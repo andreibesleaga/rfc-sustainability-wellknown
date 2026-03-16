@@ -1,0 +1,24 @@
+[
+  {
+    "capabilities": "extended",
+    "methodology-type": "hardware-estimated",
+    "methodology-uri": "https://example.com/sustainability/methodology",
+    "reporting-period": "2025-W40",
+    "energy-consumption": 102.5,
+    "energy-unit": "kWh",
+    "carbon-footprint": 18500,
+    "carbon-unit": "gCO2e",
+    "target-path": "/api/v1"
+  },
+  {
+    "capabilities": "extended",
+    "methodology-type": "hardware-estimated",
+    "methodology-uri": "https://example.com/sustainability/methodology",
+    "reporting-period": "2025-W41",
+    "energy-consumption": 98.2,
+    "energy-unit": "kWh",
+    "carbon-footprint": 17900,
+    "carbon-unit": "gCO2e",
+    "target-path": "/api/v1"
+  }
+]

@@ -1,0 +1,30 @@
+; Root response: Can be a single object or a list of objects for trends
+sustainability-response = sustainability-metrics / [* sustainability-metrics]
+
+sustainability-metrics = {
+  capabilities: "basic" / "extended",
+  
+  ; Mandatory methodology disclosure
+  methodology-type: "hardware-metered" / "hardware-estimated" / 
+                    "cloud-billing" / "third-party-modeled",
+  methodology-uri: tstr,
+  
+  ; Timeframe of the report (RFC3339 formatted string)
+  reporting-period: tstr,
+
+  ; Energy metrics (Units are fixed as literals to ensure interoperability)
+  energy-consumption: number,
+  energy-unit: "Wh" / "kWh" / "MWh" / "GWh",
+  
+  ; Carbon metrics
+  carbon-footprint: number,
+  carbon-unit: "gCO2e" / "kgCO2e" / "mtCO2e",
+  
+  ; Optional fields for extended capabilities
+  ? carbon-accounting: "location-based" / "market-based",
+  ? target-path: tstr,
+  ? scope-1: number,
+  ? scope-2: number,
+  ? scope-3: number,
+  ? sci-score: number
+}

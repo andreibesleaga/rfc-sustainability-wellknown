@@ -1,0 +1,61 @@
+[
+    {
+        "capabilities": "extended",
+        "methodology-type": "cloud-billing",
+        "methodology-uri": "https://example.com/sustainability/methodology",
+        "reporting-period": "2026-01",
+        "energy-consumption": 100,
+        "energy-unit": "kWh",
+        "carbon-footprint": 18000,
+        "carbon-unit": "gCO2e",
+        "target-path": "/api/v1",
+        "carbon-accounting": "location-based",
+        "scope-1": 5000,
+        "scope-2": 12000,
+        "scope-3": 1000,
+        "sci-score": 75
+    },
+    {
+        "capabilities": "extended",
+        "methodology-type": "cloud-billing",
+        "methodology-uri": "https://example.com/sustainability/methodology",
+        "reporting-period": "2026-02",
+        "energy-consumption": 90,
+        "energy-unit": "kWh",
+        "carbon-footprint": 17500,
+        "carbon-unit": "gCO2e",
+        "target-path": "/api/v1",
+        "carbon-accounting": "location-based",
+        "scope-1": 4900,
+        "scope-2": 11000,
+        "scope-3": 950,
+        "sci-score": 65
+    },
+    {
+        "capabilities": "extended",
+        "methodology-type": "cloud-billing",
+        "methodology-uri": "https://example.com/sustainability/methodology",
+        "reporting-period": "2026-03",
+        "energy-consumption": 100,
+        "energy-unit": "kWh",
+        "carbon-footprint": 18000,
+        "carbon-unit": "gCO2e",
+        "target-path": "/api/v1",
+        "carbon-accounting": "location-based",
+        "scope-1": 5000,
+        "scope-2": 12000,
+        "scope-3": 1000,
+        "sci-score": 75
+    },
+    {
+        "capabilities": "extended",
+        "methodology-type": "cloud-billing",
+        "methodology-uri": "https://example.com/sustainability/methodology",
+        "reporting-period": "2025-Q4",
+        "energy-consumption": 200,
+        "energy-unit": "kWh",
+        "carbon-footprint": 18500,
+        "carbon-unit": "gCO2e",
+        "target-path": "/api/v1"
+    }    
+]

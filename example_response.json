@@ -1,0 +1,10 @@
+{
+  "capabilities": "basic",
+  "methodology-type": "cloud-billing",
+  "methodology-uri": "https://example.com/methodology",
+  "reporting-period": "2026-02",
+  "energy-consumption": 1200,
+  "energy-unit": "kWh",
+  "carbon-footprint": 340000,
+  "carbon-unit": "gCO2e"
+}

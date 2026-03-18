@@ -9,8 +9,8 @@ def main():
     parser.add_argument(
         "filename", 
         nargs="?", 
-        default="example_response1.json", 
-        help="JSON file to validate (default: example_response1.json)"
+        default="example_response.json", 
+        help="JSON file to validate (default: example_response.json)"
     )
     args = parser.parse_args()
 
@@ -19,14 +19,14 @@ def main():
 
     # 1. Verify files exist
     if not os.path.exists(cddl_schema):
-        print(f"❌ Error: Schema file '{cddl_schema}' not found in current directory.")
+        print(f"Error: Schema file '{cddl_schema}' not found in current directory.")
         sys.exit(1)
     
     if not os.path.exists(json_input):
-        print(f"❌ Error: Input file '{json_input}' not found.")
+        print(f"Error: Input file '{json_input}' not found.")
         sys.exit(1)
 
-    print(f"🔍 Validating '{json_input}' against '{cddl_schema}'...")
+    print(f"Validating '{json_input}' against '{cddl_schema}'...")
 
     # 2. Execute validation using the 'cddl' tool
     try:
@@ -39,9 +39,9 @@ def main():
         )
 
         if process.returncode == 0:
-            print("✅ Validation Successful: The response matches the CDDL schema.")
+            print("Validation Successful: The response matches the CDDL schema.")
         else:
-            print("❌ Validation Failed!")
+            print("Validation Failed!")
             print("-" * 40)
             print("Details from validator:")
             # Print both stdout and stderr to capture all error details
@@ -51,7 +51,7 @@ def main():
             sys.exit(1)
 
     except FileNotFoundError:
-        print("❌ Error: 'cddl' tool not found.")
+        print("Error: 'cddl' tool not found.")
         print("Please ensure you have run: 'gem install cddl'")
         sys.exit(1)
 

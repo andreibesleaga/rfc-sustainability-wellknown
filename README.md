@@ -1,4 +1,4 @@
-# rfc-sustainability-wellknown
+# `Sustainability` Well-known URI Draft Proposal
 
 Internet RFC Draft Proposal registered with IETF (work in progress)
 

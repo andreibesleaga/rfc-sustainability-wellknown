@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "updated": "2026-03-01T12:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Corp (sustain@example.org)",
+  "measurement-method": "cloud-billing",
+  "methodology-uri": "https://example.com/sustainability",
+  "reporting-period": "2026-02",
+  "energy-consumption": 1250,
+  "energy-unit": "kWh",
+  "carbon-footprint": 345000,
+  "carbon-unit": "gCO2e"
+}

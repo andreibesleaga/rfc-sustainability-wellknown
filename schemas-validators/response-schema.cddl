@@ -2,29 +2,38 @@
 sustainability-response = sustainability-metrics / [* sustainability-metrics]
 
 sustainability-metrics = {
+  ; Versioning and provenance
+  version: tstr,
+  updated: tstr,
+  provider: tstr,
+
   capabilities: "basic" / "extended",
-  
+
   ; Mandatory methodology disclosure
-  methodology-type: "hardware-metered" / "hardware-estimated" / 
-                    "cloud-billing" / "third-party-modeled",
+  measurement-method: tstr,
   methodology-uri: tstr,
-  
+
   ; Timeframe of the report (RFC3339 formatted string)
   reporting-period: tstr,
 
   ; Energy metrics (Units are fixed as literals to ensure interoperability)
   energy-consumption: number,
   energy-unit: "Wh" / "kWh" / "MWh" / "GWh",
-  
+
   ; Carbon metrics
   carbon-footprint: number,
   carbon-unit: "gCO2e" / "kgCO2e" / "mtCO2e",
-  
+
   ; Optional fields for extended capabilities
   ? carbon-accounting: "location-based" / "market-based",
   ? target-path: tstr,
   ? scope-1: number,
   ? scope-2: number,
   ? scope-3: number,
-  ? sci-score: number
+  ? sci-score: number,
+  ? functional-unit: tstr,
+  ? carbon-intensity-gCO2-per-kWh: number,
+  ? estimated-annual-emissions-kgCO2: number,
+  ? renewable-energy: number,
+  ? verifiable-attestation-uri: tstr
 }

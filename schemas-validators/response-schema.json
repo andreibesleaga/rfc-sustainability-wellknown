@@ -1,0 +1,28 @@
+{
+  "properties": {
+    "version": { "type": "string" },
+    "updated": { "type": "string" },
+    "capabilities": { "enum": ["basic", "extended"] },
+    "provider": { "type": "string" },
+    "measurement-method": { "type": "string" },
+    "methodology-uri": { "type": "string" },
+    "reporting-period": { "type": "string" },
+    "energy-consumption": { "type": "float64" },
+    "energy-unit": { "enum": ["Wh", "kWh", "MWh", "GWh"] },
+    "carbon-footprint": { "type": "float64" },
+    "carbon-unit": { "enum": ["gCO2e", "kgCO2e", "mtCO2e"] }
+  },
+  "optionalProperties": {
+    "target-path": { "type": "string" },
+    "carbon-accounting": { "enum": ["location-based", "market-based"] },
+    "scope-1": { "type": "float64" },
+    "scope-2": { "type": "float64" },
+    "scope-3": { "type": "float64" },
+    "sci-score": { "type": "float64" },
+    "functional-unit": { "type": "string" },
+    "carbon-intensity-gCO2-per-kWh": { "type": "float64" },
+    "estimated-annual-emissions-kgCO2": { "type": "float64" },
+    "renewable-energy": { "type": "float64" },
+    "verifiable-attestation-uri": { "type": "string" }
+  }
+}

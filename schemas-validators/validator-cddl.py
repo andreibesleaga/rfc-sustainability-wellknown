@@ -9,8 +9,8 @@ def main():
     parser.add_argument(
         "filename", 
         nargs="?", 
-        default="example_response.json", 
-        help="JSON file to validate (default: example_response.json)"
+        default="example-response.json", 
+        help="JSON file to validate (default: example-response.json)"
     )
     args = parser.parse_args()
 

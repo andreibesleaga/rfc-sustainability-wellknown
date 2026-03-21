@@ -1,0 +1,34 @@
+[
+  {
+    "version": "1.0",
+    "updated": "2026-03-21T07:00:00Z",
+    "capabilities": "extended",
+    "target-path": "/api/v1",
+    "provider": "Example Corp (sustain@example.org)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "https://example.com/sustainability/api-modeling",
+    "reporting-period": "2026-01",
+    "energy-consumption": 45,
+    "energy-unit": "kWh",
+    "carbon-footprint": 12450,
+    "carbon-unit": "gCO2e",
+    "sci-score": 12,
+    "functional-unit": "per-thousand-requests"
+  },
+  {
+    "version": "1.0",
+    "updated": "2026-03-21T07:00:00Z",
+    "capabilities": "extended",
+    "target-path": "/api/v1",
+    "provider": "Example Corp (sustain@example.org)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "https://example.com/sustainability/api-modeling",
+    "reporting-period": "2026-02",
+    "energy-consumption": 42,
+    "energy-unit": "kWh",
+    "carbon-footprint": 11800,
+    "carbon-unit": "gCO2e",
+    "sci-score": 10,
+    "functional-unit": "per-thousand-requests"
+  }
+]

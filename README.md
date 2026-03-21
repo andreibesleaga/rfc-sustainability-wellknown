@@ -21,7 +21,7 @@ rfc-sustainability-wellknown/
 ├── documents/               # RFC draft source files and supporting documents
 ├── example-responses/       # Valid JSON response examples (all validators pass)
 ├── schemas-validators/      # Formal schemas (CDDL, JTD) and validation tooling
-├── scripts/                 # Server-side security middleware (Python, JS, PHP)
+├── example-scripts/                 # Server-side security middleware (Python, JS, PHP)
 └── server-configurations/   # Web server configuration snippets (nginx, Apache)
 ```
 

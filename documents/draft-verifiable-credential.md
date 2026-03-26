@@ -2,7 +2,7 @@
 
 To combat greenwashing and provide high-assurance data, the draft recommends linking to a W3C Verifiable Credential (VC). This structure allows a trusted third party (like an environmental auditor) to cryptographically sign the metrics you have published at the .well-known/sustainability URI.
 
-Here is a draft structure for the Verifiable Credential, following the W3C VC Data Model and aligned with the metrics in draft-besleaga-green-sustainability-wellknown-03.
+Here is an example draft structure for the Verifiable Credential, following the W3C VC Data Model and aligned with the metrics in draft-besleaga-green-sustainability-wellknown-03.
 
 ## Draft Verifiable Credential (JSON-LD)
 

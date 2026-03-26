@@ -16,6 +16,7 @@ A standardized `/.well-known/sustainability` URI that allows any web server or d
 ---
 
 ## Repository Structure
+The normative specification is the Internet‑Draft; this repo provides non‑normative examples, tooling, and documentation.
 
 ```
 rfc-sustainability-wellknown/

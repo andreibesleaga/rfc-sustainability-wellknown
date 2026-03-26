@@ -147,4 +147,7 @@ Both configurations implement:
 
 ## Anti-greenwashing: Verifiable Credentials
 
-The `verifiable-attestation-uri` field links to a W3C Verifiable Credential (VC) signed by a trusted third-party auditor. The VC structure is documented in [documents/draft-verifiable-credential.md](documents/draft-verifiable-credential.md). This allows automated tools to cryptographically verify published sustainability claims against external authoritative reports.
+The `verifiable-attestation-uri` field links to a W3C Verifiable Credential (VC) signed by a trusted third-party auditor. 
+
+Example VC structure is documented in [documents/draft-verifiable-credential.md](documents/draft-verifiable-credential.md). 
+This allows automated tools to cryptographically verify published sustainability claims against external authoritative reports.

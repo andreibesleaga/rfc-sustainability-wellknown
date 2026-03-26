@@ -1,8 +1,9 @@
-# Internet RFC Draft Proposal registered with IETF (work in progress)
+# Internet RFC Draft Proposal
+## IETF I-D (work in progress)
+### rfc-sustainability-wellknown - The 'sustainability' Well-Known URI
 
-## rfc-sustainability-wellknown
+Datatracker: [draft-besleaga-green-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/)
 
-The 'sustainability' Well-Known URI: [draft-besleaga-green-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/)
 **Author:** Andrei Nicolae Besleaga
 **Working Group:** IETF GREEN WG
 

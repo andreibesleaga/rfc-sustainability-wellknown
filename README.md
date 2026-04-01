@@ -11,7 +11,7 @@ Datatracker: [draft-besleaga-green-sustainability-wellknown](https://datatracker
 
 ## What this defines
 
-A standardized `/.well-known/sustainability` URI that allows any web server or digital service to publish its aggregated energy consumption and carbon footprint metrics in a machine-readable JSON format. Out-of-band, asynchronous reporting — no per-request overhead.
+A standardized `/.well-known/sustainability` URI that allows any web server or digital service to publish its aggregated energy consumption and carbon footprint metrics in a machine-readable JSON format. Out-of-band, asynchronous reporting, not per-request overhead.
 
 ---
 

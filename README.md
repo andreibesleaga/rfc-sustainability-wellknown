@@ -7,6 +7,18 @@ Datatracker: [draft-besleaga-green-sustainability-wellknown](https://datatracker
 **Author:** Andrei Nicolae Besleaga
 **Working Group:** IETF GREEN WG
 
+#### Goals
+* Provide a single, discoverable location, for environmental metrics for an origin.
+* Define a minimal, machine-readable JSON structure, suitable for broad adoption.
+* Ensure interoperability between clients and servers.
+* Support alignment with GHG Protocol, EU CSRD, and Digital Product Passports.
+* Mitigate security and privacy risks associated with publishing the data (like hardware fingerprinting).
+
+#### Non-Goals
+* This document does not mandate a specific calculation or measurement methodology.
+* It does not define the verification, validation, certificates, or attestation mechanisms, for the data itself, though it provides links to external attestations.
+* It does not replace domain-specific reporting standards; it defines discovery and semantics and provides a discovery surface for linking to authoritative reports.
+
 ---
 
 ## What this defines
@@ -152,3 +164,19 @@ The `verifiable-attestation-uri` field links to a W3C Verifiable Credential (VC)
 
 Example VC structure is documented in [documents/draft-verifiable-credential.md](documents/draft-verifiable-credential.md). 
 This allows automated tools to cryptographically verify published sustainability claims against external authoritative reports.
+
+## CHANGELOG
+
+Changes and updates between versions of the draft are documented (summarized) in [documents/CHANGELOG.md](documents/CHANGELOG.md).
+
+---
+
+## LICENSE
+
+Copyright (c) 2026 IETF Trust and the persons identified as the document authors (for Drafts).
+
+Revised [BSD License](./LICENSE) (for any other software parts and supporting files in this repository).
+
+Copyright 2026 Andrei Nicolae BESLEAGA
+
+All rights reserved.

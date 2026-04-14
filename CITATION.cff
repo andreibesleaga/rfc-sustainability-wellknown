@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use or reference this specification, please cite it as below."
+authors:
+  - family-names: "Besleaga"
+    given-names: "Andrei Nicolae"
+title: "The 'sustainability' Well-Known URI"
+version: "draft-03"
+date-released: "2026-03-21"
+url: "[https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/](https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/)"
+repository-code: "[https://github.com/andreibesleaga/rfc-sustainability-wellknown](https://github.com/andreibesleaga/rfc-sustainability-wellknown)"
+preferred-citation:
+  type: generic
+  authors:
+    - family-names: "Besleaga"
+      given-names: "Andrei Nicolae"
+  title: "The 'sustainability' Well-Known URI"
+  institution:
+    name: "Internet Engineering Task Force (IETF)"
+  number: "draft-besleaga-green-sustainability-wellknown-03"
+  year: 2026
+  url: "[https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/](https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/)"

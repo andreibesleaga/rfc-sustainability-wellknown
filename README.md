@@ -165,9 +165,20 @@ The `verifiable-attestation-uri` field links to a W3C Verifiable Credential (VC)
 Example VC structure is documented in [documents/draft-verifiable-credential.md](documents/draft-verifiable-credential.md). 
 This allows automated tools to cryptographically verify published sustainability claims against external authoritative reports.
 
+---
+
 ## CHANGELOG
 
 Changes and updates between versions of the draft are documented (summarized) in [documents/CHANGELOG.md](documents/CHANGELOG.md).
+
+--- 
+
+## Citation
+
+If you reference this project or implement the specification in your academic or professional work, please cite the IETF Internet-Draft:
+
+**Plain Text (APA):**
+> Besleaga, A. N. (2026). *The 'sustainability' Well-Known URI* (Internet-Draft draft-besleaga-green-sustainability-wellknown-03). Internet Engineering Task Force. https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/
 
 ---
 

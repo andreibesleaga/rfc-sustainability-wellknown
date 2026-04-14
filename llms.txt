@@ -1,0 +1,60 @@
+# The 'sustainability' Well-Known URI (IETF Internet-Draft)
+
+> A standardized, out-of-band mechanism for web servers and digital services to publish their aggregated environmental impact, energy consumption, and carbon footprint metrics.
+
+## Project Links
+* **GitHub Repository:** https://github.com/andreibesleaga/rfc-sustainability-wellknown
+* **IETF Datatracker:** https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/
+* **Author:** Andrei Nicolae BESLEAGA (https://github.com/andreibesleaga)
+* **IETF Working Group:** GREEN (Getting Ready for Energy-Efficient Networking)
+* **Current Latest Draft:** `draft-besleaga-green-sustainability-wellknown-03`
+
+## Context and Purpose
+The digital economy consumes a significant percentage of global electricity. Regulatory frameworks (like the EU CSRD) and industry standards (like GSF SCI, W3C Web Sustainability Guidelines) increasingly require organizations to disclose their digital environmental impact. 
+
+Initial proposals focused on per-request HTTP headers for carbon transparency, which introduced a "rebound effect" (metadata increasing the carbon footprint and reducing TTFB caching performance). This project proposes an alternative: leveraging RFC 8615 to define a discoverable `/.well-known/sustainability` URI for asynchronous, out-of-band reporting. This allows workflows where environmental impact is a primary constraint alongside cost and performance.
+
+## Repository Structure & Resources
+In addition to tracking the evolution of the draft through standard IETF versions (e.g., `draft-besleaga-green-sustainability-wellknown-00` to `-03`), the GitHub repository acts as an extended resource hub for implementers. Based on repository documentation, it includes:
+* **Schemas (`/schema`):** Formal definitions of the JSON data model, providing machine-readable formats for implementation. This includes JSON Type Definition (JTD) and Concise Data Definition Language (CDDL) schemas.
+* **Validation Tools (`/validation`):** Resources and logic to validate generated payloads, ensuring that implementers correctly support mandatory fields and format optional fields according to the specification.
+* **Draft Sources:** The core `.md` (Markdown) files which act as the source documents compiled into the final IETF `.txt` and `.html` formats using standard RFC toolchains.
+* **Examples:** Collections of sample JSON responses corresponding to the draft examples, demonstrating various scenarios (Basic, Extended, Target-Specific, and Highly Detailed requests).
+
+## Key Technical Specifications
+
+### The Endpoint
+* **Path:** `/.well-known/sustainability`
+* **Method:** HTTP GET
+* **Protocol:** HTTPS (SHOULD)
+* **Response:** `200 OK` with `application/json` payload, or `404 Not Found` if no metadata exists. Responses SHOULD follow I-JSON (RFC 7493).
+
+### Query Parameters
+Servers MUST support a "Basic" service level (no parameters, aggregating the entire host for the last full month). Servers MAY support "Extended" capabilities to filter data:
+* `target`: Specific resource path (e.g., `?target=/api/v1`).
+* `period`: Timeframe in RFC3339 format (Year `YYYY`, Month `YYYY-MM`, Day `YYYY-MM-DD`).
+* `granularity`: Time slices within a period (e.g., `monthly`, `daily`). Returns an array of objects (Max cap of 366 objects RECOMMENDED).
+
+### Data Model (Schema v1.0)
+The response schema requires the following:
+* **Mandatory Fields:** * `version`: Document schema version (e.g., "1.0").
+  * `updated`: RFC 3339 timestamp of last update.
+  * `provider`: Information about the publisher.
+  * `capabilities`: "basic" or "extended".
+  * `measurement-method`: e.g., `hardware-metered`, `hardware-estimated`, `cloud-billing`, `third-party-modeled`.
+  * `methodology-uri`: Link to the full calculation methodology.
+  * `reporting-period`: The timeframe covered.
+  * `energy-consumption` & `energy-unit`: (Wh, kWh, MWh, GWh).
+  * `carbon-footprint` & `carbon-unit`: (gCO2e, kgCO2e, mtCO2e).
+* **Optional Fields:** `target-path`, `carbon-accounting` (location/market-based), `scope-1`, `scope-2`, `scope-3` emissions, `sci-score`, `functional-unit`, `carbon-intensity-gCO2-per-kWh`, `estimated-annual-emissions-kgCO2`, `renewable-energy` percentage, and `verifiable-attestation-uri`.
+
+## Important Considerations
+* **Caching & DoS:** Heavy caching (e.g., `Cache-Control: max-age=86400`) and rate-limiting are strongly recommended because dynamic aggregation queries can be resource-intensive. `ETag` and `Last-Modified` headers are RECOMMENDED.
+* **Privacy & Traffic Analysis:** Finer-than-24-hour granularity is discouraged to prevent correlating energy spikes with real-time user actions.
+* **Hardware Fingerprinting:** A recommended ~1% "fuzzing" of metrics helps obscure specific backend hardware architectures while maintaining audit accuracy.
+* **Greenwashing Mitigation:** The specification does not mandate verification but provides schema surfaces (like `verifiable-attestation-uri`) to link to cryptographically signed W3C Verifiable Credentials or third-party attestations.
+
+## Extensibility & Versioning
+* Backward-compatible changes (additive fields) SHOULD increment the minor version.
+* Incompatible changes (removed/renamed fields) MUST increment the major version.
+* Implementations MUST ignore unknown fields to preserve forward compatibility. Extensions MAY be added under vendor namespaces.

@@ -7,6 +7,14 @@ Datatracker: [draft-besleaga-green-sustainability-wellknown](https://datatracker
 **Author:** Andrei Nicolae Besleaga
 **Working Group:** IETF GREEN WG
 
+This repository contains the initial documents and other supporting examples, tooling, etc.
+
+---
+
+## What this defines
+
+A standardized `/.well-known/sustainability` URI that allows any web server or digital service to publish its aggregated energy consumption and carbon footprint metrics in a machine-readable JSON format. Out-of-band, asynchronous reporting, not per-request overhead.
+
 #### Goals
 * Provide a single, discoverable location, for environmental metrics for an origin.
 * Define a minimal, machine-readable JSON structure, suitable for broad adoption.
@@ -18,12 +26,6 @@ Datatracker: [draft-besleaga-green-sustainability-wellknown](https://datatracker
 * This document does not mandate a specific calculation or measurement methodology.
 * It does not define the verification, validation, certificates, or attestation mechanisms, for the data itself, though it provides links to external attestations.
 * It does not replace domain-specific reporting standards; it defines discovery and semantics and provides a discovery surface for linking to authoritative reports.
-
----
-
-## What this defines
-
-A standardized `/.well-known/sustainability` URI that allows any web server or digital service to publish its aggregated energy consumption and carbon footprint metrics in a machine-readable JSON format. Out-of-band, asynchronous reporting, not per-request overhead.
 
 ---
 

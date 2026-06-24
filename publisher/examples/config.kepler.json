@@ -1,0 +1,17 @@
+{
+  "adapter": {
+    "type": "kepler-prometheus",
+    "options": {
+      "provider": "Platform SRE (sre@example.com)",
+      "methodologyUri": "https://example.com/methodology/kepler",
+      "reportingPeriod": "2026-05",
+      "prometheusUrl": "http://localhost:9090",
+      "query": "sum(increase(kepler_node_platform_joules_total[30d]))",
+      "gridIntensity": 230,
+      "functionalUnit": "per-cluster-month",
+      "capabilities": "extended"
+    }
+  },
+  "publisher": { "cacheTtlMs": 3600000 },
+  "server": { "port": 8080 }
+}

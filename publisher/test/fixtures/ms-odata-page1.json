@@ -1,0 +1,7 @@
+{
+  "value": [
+    { "subscriptionId": "sub-aaa", "serviceType": "VirtualMachines", "region": "westeurope", "month": "2026-04", "totalEmissions": 1.82, "energyKwh": 6420 },
+    { "subscriptionId": "sub-aaa", "serviceType": "Storage", "region": "westeurope", "month": "2026-04", "totalEmissions": 0.41, "energyKwh": 1530 }
+  ],
+  "@odata.nextLink": "https://api.example.microsoft.com/sustainability/v1/enrollments/12345/emissions?$skiptoken=cD0yMDI2LTA0LTAy"
+}

@@ -1,0 +1,47 @@
+{
+  "name": "sustainability-wellknown-publisher",
+  "version": "0.1.0",
+  "description": "Production publisher/gateway that serves a draft-conformant /.well-known/sustainability document from pluggable metric sources (static/computed, Kepler/Prometheus, Climatiq, Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed).",
+  "license": "BSD-3-Clause",
+  "author": "Andrei Nicolae Besleaga",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "sustainability-publisher": "bin/sustainability-publisher.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "start": "node bin/sustainability-publisher.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "sustainability",
+    "carbon",
+    "well-known",
+    "ietf",
+    "csrd",
+    "greenhouse-gas",
+    "kepler",
+    "climatiq"
+  ],
+  "dependencies": {
+    "ajv": "^8.17.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "express": "^4.21.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "optionalDependencies": {}
+}

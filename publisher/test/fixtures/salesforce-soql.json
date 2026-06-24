@@ -1,0 +1,18 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "AnnualEmssnInventory",
+        "url": "/services/data/v59.0/sobjects/AnnualEmssnInventory/0Z00X000000abcdEAA"
+      },
+      "Year": 2025,
+      "TotalScope1Emissions": 1240.5,
+      "TotalScope2MktEmissions": 3580.2,
+      "TotalScope3Emissions": 41850.9,
+      "TotalEmissions": 46671.6,
+      "ActualEnergyConsumption": 8125.0
+    }
+  ]
+}

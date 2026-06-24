@@ -1,0 +1,55 @@
+name: draft
+
+on:
+  push:
+    paths:
+      - "documents/**"
+      - ".github/workflows/draft.yml"
+  pull_request:
+    paths:
+      - "documents/**"
+
+jobs:
+  build-id:
+    # Build the latest Internet-Draft from Markdown to XML and text, and run
+    # idnits-style checks. Fails the build if kramdown-rfc or xml2rfc error.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.2" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install kramdown-rfc and xml2rfc
+        run: |
+          gem install kramdown-rfc2629
+          python3 -m pip install xml2rfc
+      - name: Determine latest draft
+        id: draft
+        run: |
+          latest=$(ls documents/draft-besleaga-green-sustainability-wellknown-*.md | sort | tail -1)
+          echo "md=$latest" >> "$GITHUB_OUTPUT"
+          echo "Latest draft: $latest"
+      - name: Build XML + text
+        run: |
+          md="${{ steps.draft.outputs.md }}"
+          base="${md%.md}"
+          kramdown-rfc "$md" > "$base.xml"
+          xml2rfc --text "$base.xml" -o "$base.txt"
+      - name: Sanity checks
+        run: |
+          base="${{ steps.draft.outputs.md }}"; base="${base%.md}"
+          # No leaked code-fence markers in the rendered text.
+          if grep -q '```' "$base.txt"; then echo "::error::leaked code fences in rendered draft"; exit 1; fi
+          # The corrected reference tags must resolve in the References section.
+          grep -q "\[RFC8610\]" "$base.txt"
+          grep -q "\[RFC7493\]" "$base.txt"
+          grep -q "\[RFC8927\]" "$base.txt"
+          # The stale CDDL reference (RFC 8949 = CBOR) must no longer be a reference entry.
+          if grep -q "\[RFC8949\]" "$base.txt"; then echo "::error::stale RFC 8949 reference present"; exit 1; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: internet-draft
+          path: |
+            documents/*.xml
+            documents/*.txt

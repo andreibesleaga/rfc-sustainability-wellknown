@@ -2,6 +2,18 @@ Here is a summary of the changes between draft versions of "The 'sustainability'
 
 ---
 
+### **Version 03 to Version 04**
+
+The transition from v03 to v04 is an **editorial and reference-correction** revision only. The data model, field semantics, service levels, query parameters, and security/privacy considerations are unchanged, and all previously published example payloads remain valid (8/8 pass both the JTD and CDDL validators).
+
+* **Reference fix (CDDL):** Corrected the normative reference for the CDDL listing from RFC 8949 (CBOR) to **RFC 8610 (CDDL)**.
+* **Missing references added:** Added **RFC 7493 (I-JSON)** and **RFC 8927 (JSON Type Definition)** to the normative references; both were already cited in the body but absent from the reference list.
+* **SCI standardization noted:** The Green Software Foundation Software Carbon Intensity reference now notes its standardization as **ISO/IEC 21031:2024**.
+* **IANA template completed:** The "Well-Known URIs" registration was expanded to the full RFC 8615 §3.1 template, including a **Related Information** field pointing to the JSON/I-JSON media type and the CDDL/JTD formal definitions.
+* **Rendering fix:** Example and schema listings now use tilde (`~~~`) source-code fences so the CDDL/JTD/JSON blocks render as proper code blocks instead of leaking literal ` ``` ` fence markers into the output. A few listing lines were also wrapped or shortened so the rendered draft has no line longer than 72 characters (`xml2rfc --strict` is warning-free).
+
+---
+
 ### **Version 02 to Version 03**
 
 The transition from v02 to v03 represents a major update, introducing significant schema changes, stricter protocol semantics, and greatly expanded security/privacy considerations.

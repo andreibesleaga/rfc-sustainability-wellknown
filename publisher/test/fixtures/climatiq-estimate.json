@@ -1,0 +1,15 @@
+{
+  "co2e": 690.0,
+  "co2e_unit": "kg",
+  "co2e_calculation_method": "ar4",
+  "emission_factor": {
+    "id": "electricity-supply_grid-source_residual_mix-US",
+    "activity_id": "electricity-supply_grid-source_residual_mix",
+    "source": "EPA",
+    "region": "US"
+  },
+  "activity_data": {
+    "activity_value": 2500,
+    "activity_unit": "kWh"
+  }
+}

@@ -1,0 +1,62 @@
+name: publisher
+
+on:
+  push:
+    paths:
+      - "publisher/**"
+      - "schemas-validators/**"
+      - "example-responses/**"
+      - ".github/workflows/publisher.yml"
+  pull_request:
+    paths:
+      - "publisher/**"
+      - "schemas-validators/**"
+      - "example-responses/**"
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: publisher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: publisher/package-lock.json
+      - run: npm ci || npm install
+      - run: npm run build
+      - run: npm test
+
+  cross-validate:
+    # Generate a live document and validate it with the repo's independent
+    # Python (JTD) and Ruby (CDDL) validators — proves the gateway is conformant.
+    runs-on: ubuntu-latest
+    needs: build-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.2" }
+      - name: Install validators
+        run: |
+          python3 -m pip install jtd
+          gem install cddl
+      - name: Build publisher
+        working-directory: publisher
+        run: |
+          npm install
+          npm run build
+      - name: Generate a document and validate it
+        run: |
+          node publisher/bin/sustainability-publisher.js \
+            --config publisher/examples/config.computed.json --once > /tmp/gen.json
+          cat /tmp/gen.json
+          cd schemas-validators
+          python3 validator-json.py /tmp/gen.json
+          python3 validator-cddl.py /tmp/gen.json

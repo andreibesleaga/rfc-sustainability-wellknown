@@ -1,0 +1,21 @@
+{
+  "adapter": {
+    "type": "computed",
+    "options": {
+      "provider": "Example Corp (sustain@example.org)",
+      "methodologyUri": "https://example.com/sustainability/methodology",
+      "measurementMethod": "hardware-estimated",
+      "reportingPeriod": "2026-02",
+      "energy": { "value": 1250, "unit": "kWh" },
+      "gridIntensity": 276,
+      "carbonAccounting": "location-based",
+      "renewableEnergy": 45,
+      "capabilities": "extended"
+    }
+  },
+  "publisher": {
+    "security": { "applyNoise": false },
+    "cacheTtlMs": 0
+  },
+  "server": { "port": 8080, "maxAge": 86400 }
+}

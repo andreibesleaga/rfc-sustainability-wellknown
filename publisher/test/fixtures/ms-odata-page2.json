@@ -1,0 +1,5 @@
+{
+  "value": [
+    { "subscriptionId": "sub-bbb", "serviceType": "AppService", "region": "northeurope", "month": "2026-04", "totalEmissions": 0.95, "energyKwh": 3120 }
+  ]
+}

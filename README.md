@@ -5,7 +5,7 @@
 Datatracker: [draft-besleaga-green-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/)
 
 **Author:** Andrei Nicolae Besleaga
-**Working Group:** IETF GREEN WG
+(**Working Group:** IETF GREEN WG)
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 
@@ -37,8 +37,14 @@ rfc-sustainability-wellknown/
 ├── documents/               # RFC draft source files and supporting documents
 ├── example-responses/       # Valid JSON response examples (all validators pass)
 ├── schemas-validators/      # Formal schemas (CDDL, JTD) and validation tooling
-├── example-scripts/                 # Server-side security middleware (Python, JS, PHP)
-└── server-configurations/   # Web server configuration snippets (nginx, Apache)
+├── example-scripts/         # Server-side security middleware (Python, JS, PHP)
+├── server-configurations/   # Web server configuration snippets (nginx, Apache)
+├── publisher/               # Production publisher/gateway (TypeScript): adapters → conformant /.well-known/sustainability
+├── discovery/               # Product discovery: market scan, opportunity, problem, requirements, PRD, spec
+├── COMPLIANCE/              # SFC framework compliance matrix (relationship to the ACM SFC framework)
+├── AUDIT.md                 # Repository audit and the rationale for the -04 changes
+└── ADOPTION.md              # The case for RFC/IANA adoption (business, technical, regulatory benefits)
+
 ```
 
 ---
@@ -49,8 +55,8 @@ RFC draft in multiple formats plus supplementary documents.
 
 | File | Description |
 |---|---|
-| `draft-besleaga-green-sustainability-wellknown-03.md` | Latest draft (current) — Markdown source |
-| `draft-besleaga-green-sustainability-wellknown-02/01/00.*` | Previous revisions (md, xml, txt, html) |
+| `draft-besleaga-green-sustainability-wellknown-04.md` | Latest draft (current) — Markdown source |
+| `draft-besleaga-green-sustainability-wellknown-03/02/01/00.*` | Previous revisions (md, xml, txt, html) |
 | `draft-verifiable-credential.md` | Supplementary: W3C Verifiable Credential structure for anti-greenwashing attestations |
 
 The draft defines the full data model, mandatory/optional fields, CDDL and JTD formal schemas, security and privacy considerations, and IANA registration request.
@@ -77,7 +83,7 @@ Formal schemas and validation tooling. See [schemas-validators/README.md](schema
 | File | Description |
 |---|---|
 | `response-schema.json` | JTD (RFC 8927) schema |
-| `response-schema.cddl` | CDDL (RFC 8949) schema — matches the formal definition in the draft |
+| `response-schema.cddl` | CDDL (RFC 8610) schema — matches the formal definition in the draft |
 | `validator-json.py` | Validates a JSON file against the JTD schema; handles single objects and arrays |
 | `validator-cddl.py` | Validates a JSON file against the CDDL schema using the `cddl` Ruby gem |
 | `validate-all.sh` | Runs both validators against all files in `example-responses/` |
@@ -169,6 +175,20 @@ This allows automated tools to cryptographically verify published sustainability
 
 ---
 
+## Reference implementation (publisher/)
+
+[publisher/](publisher/) is a production-grade TypeScript implementation that publishes a fully draft-conformant `/.well-known/sustainability` document. It ingests metrics from pluggable source adapters — static/computed values, Kepler/Prometheus energy telemetry, the Climatiq estimate API, and enterprise suites (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) — normalizes them to the draft's field model, **validates every payload against this repo's JTD and CDDL schemas before serving** (publish-only-if-valid), and exposes the Basic and Extended service levels with the draft's mandated DoS/privacy safeguards. It ships as Express and Fastify middleware plus a standalone server that any web server can reverse-proxy. See [publisher/README.md](publisher/README.md).
+
+## Discovery & SFC compliance
+
+* [discovery/](discovery/) — product discovery suite (market scan, opportunity assessment, problem statement, requirements, PRD, technical spec) framing the gateway against the enterprise carbon-accounting ecosystem.
+* [COMPLIANCE/SFC.md](COMPLIANCE/SFC.md) — how this draft and the publisher relate to the Sustainability-First Consensus (SFC) framework, with a field-level compliance matrix.
+
+## Adoption & publishing
+
+* [ADOPTION.md](ADOPTION.md) — the multi-dimensional case (technical, regulatory, business, ecosystem, environmental) for adopting and approving this as an RFC and IANA registration, with answers to likely objections.
+
+
 ## CHANGELOG
 
 Changes and updates between versions of the draft are documented (summarized) in [documents/CHANGELOG.md](documents/CHANGELOG.md).
@@ -180,7 +200,7 @@ Changes and updates between versions of the draft are documented (summarized) in
 If you reference this project or implement the specification in your academic or professional work, please cite the IETF Internet-Draft:
 
 **Plain Text (APA):**
-> Besleaga, A. N. (2026). *The 'sustainability' Well-Known URI* (Internet-Draft draft-besleaga-green-sustainability-wellknown-03). Internet Engineering Task Force. https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/
+> Besleaga, A. N. (2026). *The 'sustainability' Well-Known URI* (Internet-Draft draft-besleaga-green-sustainability-wellknown-04). Internet Engineering Task Force. https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/
 
 ---
 

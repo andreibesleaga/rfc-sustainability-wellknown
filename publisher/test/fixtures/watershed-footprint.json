@@ -1,0 +1,10 @@
+{
+  "reportingPeriod": "2026-Q1",
+  "totalEmissionsKgCo2e": 51840.0,
+  "scope1Kg": 1320.0,
+  "scope2Kg": 4180.0,
+  "scope3Kg": 46340.0,
+  "energyKwh": 18200.0,
+  "renewablePercent": 62,
+  "carbonAccounting": "market-based"
+}

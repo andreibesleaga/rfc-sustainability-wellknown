@@ -1,0 +1,29 @@
+name: validate-examples
+
+on:
+  push:
+    paths:
+      - "example-responses/**"
+      - "schemas-validators/**"
+      - ".github/workflows/validate-examples.yml"
+  pull_request:
+    paths:
+      - "example-responses/**"
+      - "schemas-validators/**"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.2" }
+      - name: Install validators
+        run: |
+          python3 -m pip install jtd
+          gem install cddl
+      - name: Validate all example responses (JTD + CDDL)
+        working-directory: schemas-validators
+        run: bash validate-all.sh

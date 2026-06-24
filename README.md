@@ -5,7 +5,7 @@
 Datatracker: [draft-besleaga-green-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/)
 
 **Author:** Andrei Nicolae Besleaga
-(**Working Group:** IETF GREEN WG)
+
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 

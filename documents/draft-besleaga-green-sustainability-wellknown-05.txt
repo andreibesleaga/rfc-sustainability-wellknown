@@ -932,7 +932,8 @@ Internet-Draft        Sustainability Well-Known URI            June 2026
 
    *  *URI Suffix*: sustainability
 
-   *  *Change Controller*: IETF
+   *  *Change Controller*: Andrei Nicolae Besleaga
+      (andrei.besleaga@ieee.org)
 
    *  *Specification Document(s)*: This document.
 
@@ -942,7 +943,6 @@ Internet-Draft        Sustainability Well-Known URI            June 2026
       media type [RFC8259] and SHOULD follow I-JSON [RFC7493].  Formal
       definitions of the response are provided in this document using
       CDDL [RFC8610] and JSON Type Definition (JTD) [RFC8927].
-
 
 
 
@@ -1049,14 +1049,14 @@ A.1.  Since -04
       removed the GREEN working group and the "Operations and
       Management" area designations from the front matter.  The document
       is an individual submission and is not a product of any IETF
-      working group.
+      working group.  The IANA "Change Controller" was set to the author
+      accordingly, per RFC 8615, Section 3.1 (the "IETF" change
+      controller applies to Standards-Track documents).
 
-   *  Added the optional disclosure-uri field (schema version 1.1): a
-      format-agnostic link to a machine-readable sustainability
-      disclosure index for the origin, with a Green Web Foundation
-      carbon.txt file given as the canonical example (added as
-      informative reference [CARBON-TXT]).  The field is optional and
-      additive; version 1.0 documents remain valid.
+
+
+
+
 
 
 
@@ -1065,6 +1065,13 @@ Besleaga                Expires 29 December 2026               [Page 19]
 
 Internet-Draft        Sustainability Well-Known URI            June 2026
 
+
+   *  Added the optional disclosure-uri field (schema version 1.1): a
+      format-agnostic link to a machine-readable sustainability
+      disclosure index for the origin, with a Green Web Foundation
+      carbon.txt file given as the canonical example (added as
+      informative reference [CARBON-TXT]).  The field is optional and
+      additive; version 1.0 documents remain valid.
 
 A.2.  Since -03
 
@@ -1097,13 +1104,6 @@ Author's Address
    Andrei Nicolae BESLEAGA
    Independent
    Email: andrei.besleaga@ieee.org
-
-
-
-
-
-
-
 
 
 

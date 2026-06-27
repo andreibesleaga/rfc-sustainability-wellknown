@@ -504,7 +504,7 @@ This registration is required to enable interoperable discovery of sustainabilit
 Following the registration template of {{RFC8615}}, Section 3.1:
 
 * **URI Suffix**: sustainability
-* **Change Controller**: IETF
+* **Change Controller**: Andrei Nicolae Besleaga (andrei.besleaga@ieee.org)
 * **Specification Document(s)**: This document.
 * **Status**: permanent
 * **Related Information**: The response uses the `application/json` media type {{RFC8259}} and SHOULD follow I-JSON {{RFC7493}}. Formal definitions of the response are provided in this document using CDDL {{RFC8610}} and JSON Type Definition (JTD) {{RFC8927}}.
@@ -522,7 +522,7 @@ Thanks to GREEN WG, to early reviewers and others who provided feedback on the i
 
 This revision re-targets the document to the Independent Submission Stream and adds one optional field; the mandatory data model, field semantics, service levels, and security and privacy considerations are otherwise unchanged from -04, and all previously published example payloads remain valid.
 
-* Set the submission type to the Independent Submission Stream and removed the GREEN working group and the "Operations and Management" area designations from the front matter. The document is an individual submission and is not a product of any IETF working group.
+* Set the submission type to the Independent Submission Stream and removed the GREEN working group and the "Operations and Management" area designations from the front matter. The document is an individual submission and is not a product of any IETF working group. The IANA "Change Controller" was set to the author accordingly, per RFC 8615, Section 3.1 (the "IETF" change controller applies to Standards-Track documents).
 * Added the optional `disclosure-uri` field (schema version `1.1`): a format-agnostic link to a machine-readable sustainability disclosure index for the origin, with a Green Web Foundation carbon.txt file given as the canonical example (added as informative reference {{CARBON-TXT}}). The field is optional and additive; version `1.0` documents remain valid.
 
 ## Since -03

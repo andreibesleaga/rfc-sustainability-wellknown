@@ -35,7 +35,8 @@ jobs:
           md="${{ steps.draft.outputs.md }}"
           base="${md%.md}"
           kramdown-rfc "$md" > "$base.xml"
-          xml2rfc --text "$base.xml" -o "$base.txt"
+          # --strict surfaces long-line and other rendering warnings as part of CI.
+          xml2rfc --strict --text "$base.xml" -o "$base.txt"
       - name: Sanity checks
         run: |
           base="${{ steps.draft.outputs.md }}"; base="${base%.md}"

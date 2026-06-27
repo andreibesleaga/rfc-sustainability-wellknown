@@ -1,0 +1,12 @@
+{
+  "url": "example.com",
+  "hosted_by": "Example Green Cloud",
+  "hosted_by_website": "https://greencloud.example",
+  "listed_provider": true,
+  "green": true,
+  "hosted_by_id": 42,
+  "modified": "2026-06-01T00:00:00",
+  "supporting_documents": [
+    { "id": 1, "title": "Renewable Energy Certificate 2026", "link": "https://greencloud.example/rec-2026.pdf" }
+  ]
+}

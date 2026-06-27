@@ -13,7 +13,8 @@
   "files": [
     "dist",
     "bin",
-    "README.md"
+    "README.md",
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -31,9 +32,14 @@
     "csrd",
     "greenhouse-gas",
     "kepler",
-    "climatiq"
+    "climatiq",
+    "co2js",
+    "carbon.txt",
+    "green-web-foundation"
   ],
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
+    "@tgwf/co2": "^0.16.9",
     "ajv": "^8.17.1"
   },
   "devDependencies": {
@@ -42,6 +48,5 @@
     "express": "^4.21.2",
     "typescript": "^5.7.2",
     "vitest": "^3.2.6"
-  },
-  "optionalDependencies": {}
+  }
 }

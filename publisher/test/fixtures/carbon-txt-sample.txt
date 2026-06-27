@@ -1,0 +1,14 @@
+version = "0.5"
+last_updated = "2026-06-01"
+
+[org]
+disclosures = [
+  { doc_type = "sustainability-page", url = "https://acme.example/sustainability", domain = "acme.example" },
+  { doc_type = "annual-report", url = "https://acme.example/annual-2025.pdf", valid_until = "2025-12-31", title = "Annual Report 2025" }
+]
+
+[upstream]
+services = [
+  { domain = "aws.amazon.com", service_type = "shared-hosting" },
+  { domain = "cloudflare.com" }
+]

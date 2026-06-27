@@ -163,6 +163,7 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   if (raw.verifiableAttestationUri !== undefined) {
     out["verifiable-attestation-uri"] = raw.verifiableAttestationUri;
   }
+  if (raw.disclosureUri !== undefined) out["disclosure-uri"] = raw.disclosureUri;
 
   // Vendor extensions, copied through (clients MUST ignore unknown fields).
   if (raw.extra) {

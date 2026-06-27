@@ -35,7 +35,7 @@ publishes unverified or malformed data (the circuit-breaker rule).
 cd publisher
 npm install
 npm run build      # tsc → dist/
-npm test           # vitest: 25 tests (unit + adapters + conformance + live server)
+npm test           # vitest: 56 tests (unit + adapters + carbon.txt + conformance + E2E server/Express/Fastify/CLI)
 ```
 
 ## Quick start (any web server, zero credentials)
@@ -100,6 +100,8 @@ support a **replay mode** (`fixture` / `fixturePages`) so they run in CI and off
 | Computed | `computedAdapter` | energy × grid intensity | `energy`, `gridIntensity` | n/a |
 | Kepler / Prometheus | `keplerPrometheusAdapter` | `kepler_*_joules_total` | `prometheusUrl`, `gridIntensity` | `fixture` |
 | Climatiq | `climatiqAdapter` | `/data/v1/estimate` | `apiKey`/`CLIMATIQ_API_KEY`, `activityId` | `fixture` |
+| CO2.js (Green Web Foundation) | `co2jsAdapter` | bytes → carbon (SWD model) + bundled grid data | `bytes`, `gridZone`/`gridIntensity`, `green`/`greencheckDomain` | bundled/`greencheckFixture` |
+| carbon.txt API (Green Web Foundation) | `carbonTxtApiAdapter` | hosted validator API `/validate/{domain,url,file}` | `domain`/`url`/`text`, `apiKey`/`GWF_API_KEY`, `compute` or measured metrics | `fixture` |
 | Salesforce Net Zero Cloud | `salesforceNzcAdapter` | SOQL on `AnnualEmssnInventory` | `instanceUrl`, `accessToken` | `fixture` |
 | Microsoft Sustainability Manager | `msSustainabilityAdapter` | OData (`$skiptoken` paged) | `baseUrl`, `accessToken`, `endpoint` | `fixturePages` |
 | Watershed | `watershedAdapter` | footprint REST pull | `apiUrl`, `apiKey` | `fixture` |
@@ -131,7 +133,17 @@ The CLI loads a JSON config:
 ```
 
 Adapter `type` is one of: `static`, `static-file`, `computed`, `kepler-prometheus`,
-`climatiq`, `salesforce-nzc`, `ms-sustainability`, `watershed`.
+`climatiq`, `co2js`, `carbontxt-api`, `salesforce-nzc`, `ms-sustainability`, `watershed`.
+
+### Bidirectional carbon.txt
+
+Set `server.carbonTxt` (or the `carbonTxt` option on the middleware) to also serve a
+[carbon.txt](https://carbontxt.org/) at `/carbon.txt` and `/.well-known/carbon.txt` whose
+first disclosure points back to this origin's `/.well-known/sustainability` — a two-way link
+with the Green Web Foundation disclosure ecosystem. `sustainability-publisher --config c.json
+--emit-carbon-txt` prints the file. The `co2js` and `carbontxt-api` adapters and the
+carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@iarna/toml`
+(ISC); see [`NOTICE`](NOTICE) for the CO2.js grid-data attribution.
 
 ## Security & privacy safeguards (draft §Security / §Privacy)
 

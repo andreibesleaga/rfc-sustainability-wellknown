@@ -23,6 +23,7 @@
     "carbon-intensity-gCO2-per-kWh": { "type": "float64" },
     "estimated-annual-emissions-kgCO2": { "type": "float64" },
     "renewable-energy": { "type": "float64" },
-    "verifiable-attestation-uri": { "type": "string" }
+    "verifiable-attestation-uri": { "type": "string" },
+    "disclosure-uri": { "type": "string" }
   }
 }

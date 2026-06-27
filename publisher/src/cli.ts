@@ -10,7 +10,9 @@
  * }
  */
 import {
+  carbonTxtApiAdapter,
   climatiqAdapter,
+  co2jsAdapter,
   computedAdapter,
   keplerPrometheusAdapter,
   msSustainabilityAdapter,
@@ -19,6 +21,8 @@ import {
   staticFileAdapter,
   watershedAdapter,
 } from "./adapters";
+import { emitCarbonTxt } from "./carbontxt";
+import { CarbonTxtServeOptions } from "./handler";
 import { Publisher, PublisherOptions } from "./publisher";
 import { createSustainabilityServer } from "./server";
 import { SourceAdapter } from "./types";
@@ -30,6 +34,8 @@ const ADAPTER_FACTORIES: Record<string, (opts: any) => SourceAdapter> = {
   computed: computedAdapter,
   "kepler-prometheus": keplerPrometheusAdapter,
   climatiq: climatiqAdapter,
+  co2js: co2jsAdapter,
+  "carbontxt-api": carbonTxtApiAdapter,
   "salesforce-nzc": salesforceNzcAdapter,
   "ms-sustainability": msSustainabilityAdapter,
   watershed: watershedAdapter,
@@ -38,7 +44,13 @@ const ADAPTER_FACTORIES: Record<string, (opts: any) => SourceAdapter> = {
 export interface PublisherConfig {
   adapter: { type: string; options: Record<string, unknown> };
   publisher?: PublisherOptions;
-  server?: { port?: number; maxAge?: number; extraPaths?: string[] };
+  server?: {
+    port?: number;
+    maxAge?: number;
+    extraPaths?: string[];
+    /** When set, also serve a bidirectional carbon.txt. */
+    carbonTxt?: CarbonTxtServeOptions;
+  };
 }
 
 export function buildAdapter(type: string, options: Record<string, unknown>): SourceAdapter {
@@ -56,12 +68,20 @@ export function buildPublisher(config: PublisherConfig): Publisher {
   return new Publisher(adapter, config.publisher ?? {});
 }
 
-function parseArgs(argv: string[]): { config?: string; once: boolean; port?: number } {
-  const out: { config?: string; once: boolean; port?: number } = { once: false };
+interface CliArgs {
+  config?: string;
+  once: boolean;
+  port?: number;
+  emitCarbonTxt: boolean;
+}
+
+function parseArgs(argv: string[]): CliArgs {
+  const out: CliArgs = { once: false, emitCarbonTxt: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--config" || a === "-c") out.config = argv[++i];
     else if (a === "--once") out.once = true;
+    else if (a === "--emit-carbon-txt") out.emitCarbonTxt = true;
     else if (a === "--port" || a === "-p") out.port = Number(argv[++i]);
   }
   return out;
@@ -71,12 +91,24 @@ export async function runCli(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
   if (!args.config) {
     process.stderr.write(
-      "Usage: sustainability-publisher --config <config.json> [--once] [--port <n>]\n",
+      "Usage: sustainability-publisher --config <config.json> [--once] [--emit-carbon-txt] [--port <n>]\n",
     );
     process.exit(2);
   }
 
   const config = readJson<PublisherConfig>(args.config);
+
+  if (args.emitCarbonTxt) {
+    const serve = config.server?.carbonTxt;
+    if (!serve?.sustainabilityUrl) {
+      throw new Error(
+        "--emit-carbon-txt requires server.carbonTxt.sustainabilityUrl in the config",
+      );
+    }
+    process.stdout.write(emitCarbonTxt({ ...serve, sustainabilityUrl: serve.sustainabilityUrl }));
+    return;
+  }
+
   const publisher = buildPublisher(config);
 
   if (args.once) {
@@ -89,6 +121,7 @@ export async function runCli(argv: string[]): Promise<void> {
   const server = createSustainabilityServer(publisher, {
     maxAge: config.server?.maxAge,
     extraPaths: config.server?.extraPaths,
+    carbonTxt: config.server?.carbonTxt,
   });
   server.listen(port, () => {
     process.stdout.write(

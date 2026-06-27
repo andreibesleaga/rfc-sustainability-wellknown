@@ -1,0 +1,7 @@
+{
+  "success": false,
+  "errors": [
+    { "type": "value_error", "loc": ["domain"], "msg": "No carbon.txt file could be found for this domain", "input": "missing.example" }
+  ],
+  "logs": ["no carbon.txt at root", "no carbon.txt at /.well-known/", "no CarbonTxt-Location header"]
+}

@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "updated": "2026-03-21T00:05:00Z",
   "capabilities": "extended",
   "provider": "Global Storage Inc. (compliance@storage.example)",
@@ -20,5 +20,6 @@
   "carbon-intensity-gCO2-per-kWh": 258,
   "estimated-annual-emissions-kgCO2": 1168,
   "renewable-energy": 99,
-  "verifiable-attestation-uri": "https://verifier.example/vc/storage-inc-2026-03-20"
+  "verifiable-attestation-uri": "https://verifier.example/vc/storage-inc-2026-03-20",
+  "disclosure-uri": "https://storage.example/.well-known/carbon.txt"
 }

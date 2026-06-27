@@ -1,0 +1,29 @@
+{
+  "adapter": {
+    "type": "co2js",
+    "options": {
+      "provider": "Example Corp (sustain@example.org)",
+      "methodologyUri": "https://example.com/sustainability/methodology",
+      "reportingPeriod": "2026-02",
+      "bytes": 5000000000,
+      "green": false,
+      "gridZone": "USA",
+      "renewableEnergy": 45,
+      "disclosureUri": "https://example.com/.well-known/carbon.txt",
+      "capabilities": "extended"
+    }
+  },
+  "publisher": {
+    "security": { "applyNoise": false },
+    "cacheTtlMs": 0
+  },
+  "server": {
+    "port": 8080,
+    "maxAge": 86400,
+    "carbonTxt": {
+      "sustainabilityUrl": "https://example.com/.well-known/sustainability",
+      "lastUpdated": "2026-06-27",
+      "upstreamServices": [{ "domain": "aws.amazon.com", "service_type": "shared-hosting" }]
+    }
+  }
+}

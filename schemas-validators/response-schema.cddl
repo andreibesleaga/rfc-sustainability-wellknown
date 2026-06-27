@@ -35,5 +35,6 @@ sustainability-metrics = {
   ? carbon-intensity-gCO2-per-kWh: number,
   ? estimated-annual-emissions-kgCO2: number,
   ? renewable-energy: number,
-  ? verifiable-attestation-uri: tstr
+  ? verifiable-attestation-uri: tstr,
+  ? disclosure-uri: tstr
 }

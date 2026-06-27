@@ -13,6 +13,7 @@ export * from "./validate";
 export * from "./publisher";
 export * from "./handler";
 export * from "./server";
+export * from "./carbontxt";
 export * from "./adapters";
 export { RESPONSE_JTD_SCHEMA } from "./schema";
 export { expressSustainability } from "./middleware/express";

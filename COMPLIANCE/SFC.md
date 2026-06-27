@@ -62,6 +62,7 @@ GHG Protocol vocabulary:
 | Provenance / offsets proof | `evidenceCid` (IPFS) | `methodology-uri` / `verifiable-attestation-uri` | passthrough |
 | Provider identity | operator DID | `provider` | passthrough |
 | Regulatory (C4) | `/v1/sustainability/csrd` (ESRS-E1) | optional fields + `methodology-uri` | scope + accounting fields |
+| Disclosure index | links to evidence (reports, certificates) | `disclosure-uri` (e.g. a carbon.txt) | `carbontxt-api` adapter + carbon.txt emit/parse |
 | Self-report | `/v1/sustainability/sfc` | the well-known document itself | gateway output |
 
 Unit bridge: SFC reports kg/kWh at operator scale; the draft and gateway carry the same

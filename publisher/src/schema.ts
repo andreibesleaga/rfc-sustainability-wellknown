@@ -32,5 +32,6 @@ export const RESPONSE_JTD_SCHEMA = {
     "estimated-annual-emissions-kgCO2": { type: "float64" },
     "renewable-energy": { type: "float64" },
     "verifiable-attestation-uri": { type: "string" },
+    "disclosure-uri": { type: "string" },
   },
 } as const;

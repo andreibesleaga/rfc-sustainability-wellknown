@@ -6,8 +6,8 @@
 * **GitHub Repository:** https://github.com/andreibesleaga/rfc-sustainability-wellknown
 * **IETF Datatracker:** https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/
 * **Author:** Andrei Nicolae BESLEAGA (https://github.com/andreibesleaga)
-* **IETF Working Group:** GREEN (Getting Ready for Energy-Efficient Networking)
-* **Current Latest Draft:** `draft-besleaga-green-sustainability-wellknown-04`
+* **IETF Stream:** Independent Submission (individual; not a working-group product)
+* **Current Latest Draft:** `draft-besleaga-green-sustainability-wellknown-05`
 
 ## Context and Purpose
 The digital economy consumes a significant percentage of global electricity. Regulatory frameworks (like the EU CSRD) and industry standards (like GSF SCI, W3C Web Sustainability Guidelines) increasingly require organizations to disclose their digital environmental impact. 
@@ -15,11 +15,11 @@ The digital economy consumes a significant percentage of global electricity. Reg
 Initial proposals focused on per-request HTTP headers for carbon transparency, which introduced a "rebound effect" (metadata increasing the carbon footprint and reducing TTFB caching performance). This project proposes an alternative: leveraging RFC 8615 to define a discoverable `/.well-known/sustainability` URI for asynchronous, out-of-band reporting. This allows workflows where environmental impact is a primary constraint alongside cost and performance.
 
 ## Repository Structure & Resources
-In addition to tracking the evolution of the draft through standard IETF versions (e.g., `draft-besleaga-green-sustainability-wellknown-00` to `-04`), the GitHub repository acts as an extended resource hub for implementers. It includes:
+In addition to tracking the evolution of the draft through standard IETF versions (e.g., `draft-besleaga-green-sustainability-wellknown-00` to `-05`), the GitHub repository acts as an extended resource hub for implementers. It includes:
 * **Draft Sources (`documents/`):** The core `.md` (Markdown) files which act as the source documents compiled into the final IETF `.xml`/`.txt` formats using the kramdown-rfc + xml2rfc toolchains, plus a `CHANGELOG.md` and a supplementary W3C Verifiable Credential structure.
 * **Schemas & Validators (`schemas-validators/`):** Formal machine-readable definitions of the JSON data model — JSON Type Definition (JTD, RFC 8927) and Concise Data Definition Language (CDDL, RFC 8610) — with Python (JTD) and Ruby (CDDL) validators and a `validate-all.sh` runner.
 * **Examples (`example-responses/`):** Sample JSON responses demonstrating Basic, Extended, Target-Specific, and Highly Detailed scenarios. All pass both validators.
-* **Reference Implementation (`publisher/`):** A production TypeScript publisher/gateway that serves a conformant `/.well-known/sustainability` from pluggable source adapters (static/computed, Kepler/Prometheus, Climatiq, Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed). It normalizes units, validates every payload against the JTD/CDDL schemas before serving, and ships as Express/Fastify middleware and a standalone server. Includes example security middleware (`example-scripts/`) and web-server configs (`server-configurations/`).
+* **Reference Implementation (`publisher/`):** A production TypeScript publisher/gateway that serves a conformant `/.well-known/sustainability` from pluggable source adapters (static/computed, Kepler/Prometheus, Climatiq, Green Web Foundation CO2.js [bytes→carbon], the Green Web Foundation carbon.txt hosted API, Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed). It normalizes units, validates every payload against the JTD/CDDL schemas before serving, and ships as Express/Fastify middleware and a standalone server. It can also serve a bidirectional `carbon.txt` (emit/parse/discover helper) that points back to the metrics document. Includes example security middleware (`example-scripts/`) and web-server configs (`server-configurations/`).
 * **Supporting Docs:** `AUDIT.md` (repository audit and the rationale for the -04 reference fixes), `ADOPTION.md` (the case for RFC/IANA adoption), `PUBLISHING.md` (how to submit the draft to the IETF and register the well-known URI with IANA), `discovery/` (market scan, PRD, spec), and `COMPLIANCE/SFC.md` (relationship to the Sustainability-First Consensus framework).
 
 ## Key Technical Specifications
@@ -47,7 +47,7 @@ The response schema requires the following:
   * `reporting-period`: The timeframe covered.
   * `energy-consumption` & `energy-unit`: (Wh, kWh, MWh, GWh).
   * `carbon-footprint` & `carbon-unit`: (gCO2e, kgCO2e, mtCO2e).
-* **Optional Fields:** `target-path`, `carbon-accounting` (location/market-based), `scope-1`, `scope-2`, `scope-3` emissions, `sci-score`, `functional-unit`, `carbon-intensity-gCO2-per-kWh`, `estimated-annual-emissions-kgCO2`, `renewable-energy` percentage, and `verifiable-attestation-uri`.
+* **Optional Fields:** `target-path`, `carbon-accounting` (location/market-based), `scope-1`, `scope-2`, `scope-3` emissions, `sci-score`, `functional-unit`, `carbon-intensity-gCO2-per-kWh`, `estimated-annual-emissions-kgCO2`, `renewable-energy` percentage, `verifiable-attestation-uri`, and `disclosure-uri` (added in schema `1.1`: a format-agnostic URI to a machine-readable sustainability disclosure index — canonical example a Green Web Foundation carbon.txt file).
 
 ## Important Considerations
 * **Caching & DoS:** Heavy caching (e.g., `Cache-Control: max-age=86400`) and rate-limiting are strongly recommended because dynamic aggregation queries can be resource-intensive. `ETag` and `Last-Modified` headers are RECOMMENDED.

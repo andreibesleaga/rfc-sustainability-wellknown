@@ -66,6 +66,13 @@ continuous, queryable, comparable data.
 
 ## 5. Ecosystem & environmental benefits
 
+- **Interoperates with existing real-world tooling.** The optional `disclosure-uri` field links
+  a metrics document to a machine-readable disclosure index — the canonical example being a
+  Green Web Foundation [carbon.txt](https://carbontxt.org/) file. The reference publisher
+  computes metrics from bytes with **CO2.js**, ingests a remote carbon.txt via the GWF **hosted
+  API**, and can serve a **bidirectional carbon.txt** pointing back to `/.well-known/sustainability`.
+  This complements the "well-known sustainability files" family (alongside security.txt/RFC 9116)
+  rather than competing with it.
 - **Aggregators and regulators** can crawl one path across millions of origins with uniform
   semantics — a public good for transparency.
 - **Carbon-aware computing** gets the missing data input for shifting load to cleaner times

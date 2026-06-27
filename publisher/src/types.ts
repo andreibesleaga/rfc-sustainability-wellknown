@@ -1,7 +1,7 @@
 /**
  * Canonical types for the `/.well-known/sustainability` data model.
  *
- * These mirror draft-besleaga-green-sustainability-wellknown-04. Field names use
+ * These mirror draft-besleaga-green-sustainability-wellknown-05. Field names use
  * the wire (kebab-case) spelling so a `SustainabilityMetrics` object serializes
  * directly to a conformant payload.
  */
@@ -38,6 +38,7 @@ export interface SustainabilityMetrics {
   "estimated-annual-emissions-kgCO2"?: number;
   "renewable-energy"?: number;
   "verifiable-attestation-uri"?: string;
+  "disclosure-uri"?: string;
 
   // Forward-compatible: unknown/vendor-namespaced fields are tolerated.
   [key: string]: unknown;
@@ -80,6 +81,8 @@ export interface RawMetrics {
   estimatedAnnualEmissionsKg?: number;
   renewableEnergy?: number;
   verifiableAttestationUri?: string;
+  /** URI of a disclosure index (e.g. a Green Web Foundation carbon.txt file). */
+  disclosureUri?: string;
 
   /** Vendor extensions, copied through verbatim. */
   extra?: Record<string, unknown>;

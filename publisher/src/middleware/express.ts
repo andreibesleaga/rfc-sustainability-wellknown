@@ -9,7 +9,15 @@
  * Express is referenced only via structural (type-only) shapes, so this module
  * compiles and runs without Express installed for non-Express users.
  */
-import { handleRequest, HandlerOptions, parseQuery, WELL_KNOWN_PATH } from "../handler";
+import {
+  CarbonTxtServeOptions,
+  CARBON_TXT_PATHS,
+  carbonTxtResult,
+  handleRequest,
+  HandlerOptions,
+  parseQuery,
+  WELL_KNOWN_PATH,
+} from "../handler";
 import { Publisher } from "../publisher";
 
 interface ReqLike {
@@ -27,15 +35,34 @@ interface ResLike {
 }
 type NextLike = (err?: unknown) => void;
 
-export function expressSustainability(publisher: Publisher, opts: HandlerOptions = {}) {
+export interface ExpressSustainabilityOptions extends HandlerOptions {
+  /** When set, also serve a bidirectional carbon.txt at /carbon.txt and /.well-known/carbon.txt. */
+  carbonTxt?: CarbonTxtServeOptions;
+}
+
+export function expressSustainability(
+  publisher: Publisher,
+  opts: ExpressSustainabilityOptions = {},
+) {
+  const carbonPaths = new Set(opts.carbonTxt ? CARBON_TXT_PATHS : []);
   return async function sustainabilityMiddleware(
     req: ReqLike,
     res: ResLike,
     next: NextLike,
   ): Promise<void> {
     const path = req.path ?? (req.url ?? "").split("?")[0];
-    if (path !== WELL_KNOWN_PATH) return next();
     if (req.method && req.method !== "GET" && req.method !== "HEAD") return next();
+
+    if (opts.carbonTxt && carbonPaths.has(path)) {
+      const host = req.headers?.host as string | undefined;
+      const result = carbonTxtResult(opts.carbonTxt, opts, host);
+      res.status(result.status).set(result.headers);
+      if (req.method === "HEAD") res.end();
+      else res.send(result.body);
+      return;
+    }
+
+    if (path !== WELL_KNOWN_PATH) return next();
 
     const ifNoneMatch = req.headers?.["if-none-match"] as string | undefined;
     const result = await handleRequest(publisher, parseQuery(req.query ?? {}), opts, ifNoneMatch);

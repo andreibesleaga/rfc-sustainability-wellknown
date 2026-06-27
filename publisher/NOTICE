@@ -1,0 +1,32 @@
+sustainability-wellknown-publisher
+Copyright (c) Andrei Nicolae Besleaga
+Licensed under BSD-3-Clause (see LICENSE).
+
+This product includes and depends on third-party software:
+
+CO2.js (@tgwf/co2)
+  Copyright The Green Web Foundation and contributors.
+  Licensed under the Apache License, Version 2.0.
+  https://github.com/thegreenwebfoundation/co2.js
+
+  CO2.js bundles grid carbon-intensity datasets used by this publisher's
+  `co2js` and `carbontxt-api` adapters:
+    - Annual average grid intensity: Ember (CC BY-SA 4.0).
+    - Marginal grid intensity: UNFCCC (CC BY-SA 4.0).
+    - Grid data (where used): Electricity Maps (ODbL 1.0).
+  Attribution is required for these datasets. This project does not redistribute
+  a modified copy of these datasets; it consumes them via the @tgwf/co2 package.
+  Calls to the Green Web Foundation Greencheck and carbon.txt HTTP APIs do not
+  redistribute any dataset.
+
+@iarna/toml
+  Copyright (c) Rebecca Turner.
+  Licensed under the ISC License.
+  https://github.com/iarna/iarna-toml
+
+ajv
+  Copyright (c) Evgeny Poberezkin.
+  Licensed under the MIT License.
+
+The Green Web Foundation carbon.txt convention and the carbon.txt HTTP API:
+  https://carbontxt.org/  ·  https://developers.thegreenwebfoundation.org/

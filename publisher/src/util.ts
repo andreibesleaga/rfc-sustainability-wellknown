@@ -57,6 +57,7 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
   if (m["verifiable-attestation-uri"] !== undefined) {
     raw.verifiableAttestationUri = String(m["verifiable-attestation-uri"]);
   }
+  if (m["disclosure-uri"] !== undefined) raw.disclosureUri = String(m["disclosure-uri"]);
   return raw;
 }
 

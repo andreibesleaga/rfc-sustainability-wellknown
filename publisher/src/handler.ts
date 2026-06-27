@@ -3,6 +3,7 @@
  * standalone server all delegate here so the HTTP semantics (status codes,
  * headers, ETag/conditional GET, caching) live in exactly one place.
  */
+import { emitCarbonTxt, EmitCarbonTxtOptions } from "./carbontxt";
 import { Publisher, NotFoundError } from "./publisher";
 import { ServiceQuery } from "./types";
 
@@ -11,6 +12,41 @@ export interface HandlerOptions {
   maxAge?: number;
   /** Set Access-Control-Allow-Origin (aggregators). Default "*". */
   cors?: string | false;
+}
+
+/**
+ * Options for serving a bidirectional carbon.txt that points back to this
+ * origin's `/.well-known/sustainability`. `sustainabilityUrl` may be fixed, or
+ * derived per-request from the Host header (with `scheme`, default "https").
+ */
+export interface CarbonTxtServeOptions extends Omit<EmitCarbonTxtOptions, "sustainabilityUrl"> {
+  sustainabilityUrl?: string;
+  scheme?: string;
+}
+
+/** Paths at which a served carbon.txt is exposed. */
+export const CARBON_TXT_PATHS = ["/carbon.txt", "/.well-known/carbon.txt"];
+
+/** Render the carbon.txt body, deriving the sustainability URL when not fixed. */
+export function carbonTxtBody(serve: CarbonTxtServeOptions, host?: string): string {
+  const sustainabilityUrl =
+    serve.sustainabilityUrl ?? `${serve.scheme ?? "https"}://${host ?? "localhost"}${WELL_KNOWN_PATH}`;
+  return emitCarbonTxt({ ...serve, sustainabilityUrl });
+}
+
+/** Build a full HTTP response serving carbon.txt (text/plain). */
+export function carbonTxtResult(
+  serve: CarbonTxtServeOptions,
+  opts: HandlerOptions = {},
+  host?: string,
+): HandlerResult {
+  const maxAge = opts.maxAge ?? 86_400;
+  const headers: Record<string, string> = {
+    "Cache-Control": `public, max-age=${maxAge}`,
+    "Content-Type": "text/plain; charset=utf-8",
+  };
+  if (opts.cors !== false) headers["Access-Control-Allow-Origin"] = opts.cors ?? "*";
+  return { status: 200, headers, body: carbonTxtBody(serve, host) };
 }
 
 export interface HandlerResult {

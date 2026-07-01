@@ -72,8 +72,8 @@ Table of Contents
      2.3.  Optional, Extended, Query Parameters  . . . . . . . . . .   5
      2.4.  Payload Format (JSON Data Model)  . . . . . . . . . . . .   6
        2.4.1.  Mandatory Response Fields . . . . . . . . . . . . . .   6
-       2.4.2.  Optional Response Fields  . . . . . . . . . . . . . .   7
-       2.4.3.  Versioning and Extensibility  . . . . . . . . . . . .   8
+       2.4.2.  Optional Response Fields  . . . . . . . . . . . . . .   8
+       2.4.3.  Versioning and Extensibility  . . . . . . . . . . . .   9
        2.4.4.  Formal Definition (CDDL)  . . . . . . . . . . . . . .   9
        2.4.5.  Formal Definition (JTD) . . . . . . . . . . . . . . .  10
    3.  Example Usage . . . . . . . . . . . . . . . . . . . . . . . .  11
@@ -82,30 +82,30 @@ Table of Contents
      3.3.  Target-Specific Request (Day Period)  . . . . . . . . . .  13
      3.4.  Target Specific Yearly Trend (Monthly Granularity)  . . .  14
      3.5.  Highly Detailed Combined Extended Request . . . . . . . .  15
-   4.  Operational Considerations  . . . . . . . . . . . . . . . . .  16
-     4.1.  Caching . . . . . . . . . . . . . . . . . . . . . . . . .  16
-   5.  Interoperability  . . . . . . . . . . . . . . . . . . . . . .  16
-   6.  Deployment  . . . . . . . . . . . . . . . . . . . . . . . . .  17
-   7.  Security Considerations . . . . . . . . . . . . . . . . . . .  17
-     7.1.  Denial of Service (DoS) . . . . . . . . . . . . . . . . .  17
-     7.2.  Array Size Limits . . . . . . . . . . . . . . . . . . . .  17
-     7.3.  Trust and Spoofing  . . . . . . . . . . . . . . . . . . .  17
-     7.4.  Greenwashing and Misrepresentation  . . . . . . . . . . .  18
-     7.5.  Privacy and Information Leakage . . . . . . . . . . . . .  18
-     7.6.  Integrity and Transport Security  . . . . . . . . . . . .  18
+     3.6.  Unreported Metric (Not-Reported Sentinel) . . . . . . . .  16
+   4.  Operational Considerations  . . . . . . . . . . . . . . . . .  17
+     4.1.  Caching . . . . . . . . . . . . . . . . . . . . . . . . .  17
+   5.  Interoperability  . . . . . . . . . . . . . . . . . . . . . .  17
+   6.  Deployment  . . . . . . . . . . . . . . . . . . . . . . . . .  18
+   7.  Security Considerations . . . . . . . . . . . . . . . . . . .  18
+     7.1.  Denial of Service (DoS) . . . . . . . . . . . . . . . . .  18
+     7.2.  Array Size Limits . . . . . . . . . . . . . . . . . . . .  18
+     7.3.  Trust and Spoofing  . . . . . . . . . . . . . . . . . . .  18
+     7.4.  Greenwashing and Misrepresentation  . . . . . . . . . . .  19
+     7.5.  Privacy and Information Leakage . . . . . . . . . . . . .  19
+     7.6.  Integrity and Transport Security  . . . . . . . . . . . .  19
    8.  Privacy Considerations  . . . . . . . . . . . . . . . . . . .  19
-     8.1.  Traffic Analysis  . . . . . . . . . . . . . . . . . . . .  19
-     8.2.  Hardware Fingerprinting . . . . . . . . . . . . . . . . .  19
-   9.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  19
+     8.1.  Traffic Analysis  . . . . . . . . . . . . . . . . . . . .  20
+     8.2.  Hardware Fingerprinting . . . . . . . . . . . . . . . . .  20
+   9.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  20
    10. Acknowledgements  . . . . . . . . . . . . . . . . . . . . . .  20
    11. References  . . . . . . . . . . . . . . . . . . . . . . . . .  20
      11.1.  Normative References . . . . . . . . . . . . . . . . . .  20
-     11.2.  Informative References . . . . . . . . . . . . . . . . .  20
-   Appendix A.  Changelog  . . . . . . . . . . . . . . . . . . . . .  21
+     11.2.  Informative References . . . . . . . . . . . . . . . . .  21
+   Appendix A.  Changelog  . . . . . . . . . . . . . . . . . . . . .  22
      A.1.  draft-besleaga-sustainability-wellknown-00 (replaces
-           draft-besleaga-green-sustainability-wellknown)  . . . . .  21
-     A.2.  Since -04 . . . . . . . . . . . . . . . . . . . . . . . .  22
-     A.3.  Since -03 . . . . . . . . . . . . . . . . . . . . . . . .  22
+           draft-besleaga-green-sustainability-wellknown)  . . . . .  22
+     A.2.  Since -04 . . . . . . . . . . . . . . . . . . . . . . . .  23
 
 
 
@@ -114,11 +114,12 @@ Besleaga                 Expires 2 January 2027                 [Page 2]
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
-     A.4.  Since -02 . . . . . . . . . . . . . . . . . . . . . . . .  23
-     A.5.  Since -01 . . . . . . . . . . . . . . . . . . . . . . . .  23
-     A.6.  Since -00 . . . . . . . . . . . . . . . . . . . . . . . .  23
-     A.7.  Initial version (-00) . . . . . . . . . . . . . . . . . .  24
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  24
+     A.3.  Since -03 . . . . . . . . . . . . . . . . . . . . . . . .  23
+     A.4.  Since -02 . . . . . . . . . . . . . . . . . . . . . . . .  24
+     A.5.  Since -01 . . . . . . . . . . . . . . . . . . . . . . . .  24
+     A.6.  Since -00 . . . . . . . . . . . . . . . . . . . . . . . .  24
+     A.7.  Initial version (-00) . . . . . . . . . . . . . . . . . .  25
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  25
 
 1.  Introduction
 
@@ -160,7 +161,6 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    "OPTIONAL" in this document are to be interpreted as described in BCP
    14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
-
 
 
 
@@ -294,7 +294,10 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
    Servers that do not support the Extended parameters MUST ignore any
    such parameters and return the Basic response, rather than failing
-   the request.
+   the request.  If a supported parameter carries a malformed value (for
+   example, a period that is not a valid date), the server MAY respond
+   with 400 Bad Request, or ignore the offending parameter and return
+   the Basic response.
 
 2.4.  Payload Format (JSON Data Model)
 
@@ -309,26 +312,23 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    *  *updated* (string, date-time): The timestamp (RFC 3339) when the
       document was last updated.
 
-   *  *capabilities* (string): MUST be "basic" or "extended".
+   *  *capabilities* (string): A self-declared indicator of the service
+      level reflected by this document.  It MUST be either "basic" or
+      "extended". "basic" denotes the minimal service, in which the
+      response carries only the mandatory fields. "extended" denotes
+      that extended capabilities apply, meaning that the Extended query
+      parameters are supported and/or one or more optional fields are
+      present.  The value is determined per response and MAY, at the
+      provider's discretion, reflect the overall server, an individual
+      response, or a specific resource path (the target).  A value of
+      "extended" does not, by itself, guarantee support for any
+      particular Extended parameter or optional field; clients determine
+      actual support from the fields present and from the server's
+      behavior.
 
    *  *provider* (string): Information about the provider publishing the
       metadata.
 
-   *  *measurement-method* (string): Short description or reference to
-      the methodology used (e.g, hardware-metered, hardware-estimated,
-      cloud-billing, third-party-modeled).
-
-   *  *methodology-uri* (string): Link to the full methodology
-      specification (calculation methodology).
-
-   *  *reporting-period* (string): The timeframe covered by the object.
-
-   *  *energy-consumption* (numeric): A numerical value indicating the
-      total energy consumed by the host or resource during the reporting
-      period.
-
-   *  *energy-unit* (string): A string indicating the unit of energy
-      (MUST be one of: Wh, kWh, MWh, or GWh).
 
 
 
@@ -337,6 +337,25 @@ Besleaga                 Expires 2 January 2027                 [Page 6]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
+
+   *  *measurement-method* (string): Short description or reference to
+      the methodology used.  This is a free-form string; the values
+      hardware-metered, hardware-estimated, cloud-billing, and third-
+      party-modeled are RECOMMENDED.
+
+   *  *methodology-uri* (string): Link to the full methodology
+      specification (calculation methodology).
+
+   *  *reporting-period* (string): The timeframe covered by the object,
+      expressed using the same [RFC3339] date formats as the period
+      parameter (YYYY, YYYY-MM, or YYYY-MM-DD).
+
+   *  *energy-consumption* (numeric): A numerical value indicating the
+      total energy consumed by the host or resource during the reporting
+      period.
+
+   *  *energy-unit* (string): A string indicating the unit of energy
+      (MUST be one of: Wh, kWh, MWh, or GWh).
 
    *  *carbon-footprint* (numeric): Total impact in grams of CO2
       equivalent.
@@ -363,6 +382,18 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    noise described in the Privacy Considerations section MUST NOT be
    applied to a field carrying the "not reported" sentinel.
 
+
+
+
+
+
+
+
+Besleaga                 Expires 2 January 2027                 [Page 7]
+
+Internet-Draft        Sustainability Well-Known URI            July 2026
+
+
    Optional numeric fields follow a different convention: when an
    optional metric is not reported it SHOULD simply be omitted, rather
    than set to a negative sentinel.  Consumers that require a value not
@@ -374,8 +405,8 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    The JSON object MAY contain the following OPTIONAL keys to align with
    the [GHG-PROTOCOL], European Sustainability Reporting Standards (ESRS
    E1), other sustainability recommendations, and optional extended
-   capabilities (extended indicates support for optional parameters, not
-   that all optional fields must appear):
+   capabilities (a capabilities value of extended does not require every
+   optional field to appear):
 
    *  *target-path* (string): The resource path requested as target
 
@@ -386,13 +417,6 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
    *  *scope-2* (numeric): Estimated Scope 2 (indirect/purchased energy)
       carbon emissions.
-
-
-
-Besleaga                 Expires 2 January 2027                 [Page 7]
-
-Internet-Draft        Sustainability Well-Known URI            July 2026
-
 
    *  *scope-3* (numeric): Estimated Scope 3 (value chain) carbon
       emissions.
@@ -410,11 +434,21 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    *  *estimated-annual-emissions-kgCO2* (numeric): Estimated annual
       emissions attributable to the origin.
 
-   *  *renewable-energy* (numeric): Percentage of energy from
+   *  *renewable-energy* (numeric): Percentage (0-100) of energy from
       sustainable renewable sources.
 
    *  *verifiable-attestation-uri* (string): Link pointing to a
       verifiable credential or attestation to prevent greenwashing.
+
+
+
+
+
+
+Besleaga                 Expires 2 January 2027                 [Page 8]
+
+Internet-Draft        Sustainability Well-Known URI            July 2026
+
 
    *  *disclosure-uri* (string): URI of a machine-readable
       sustainability disclosure index for the origin, that is, a single
@@ -442,14 +476,6 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    *  A change that is incompatible (removes or renames fields, or
       changes semantics) MUST increment the major version.
 
-
-
-
-Besleaga                 Expires 2 January 2027                 [Page 8]
-
-Internet-Draft        Sustainability Well-Known URI            July 2026
-
-
    *  Extensions MAY be added under a vendor or organization namespace
       to avoid collisions.
 
@@ -462,32 +488,6 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 2.4.4.  Formal Definition (CDDL)
 
    The following CDDL [RFC8610] describes the response:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -637,8 +637,8 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    Request: GET /.well-known/
    sustainability?period=2025&granularity=monthly
 
-
-
+   The response is an array with one object per month; only the first
+   two months are shown here for brevity.
 
 
 
@@ -733,15 +733,15 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    {
      "version": "1.1",
      "updated": "2026-03-01T12:00:00Z",
-     "capabilities": "basic",
+     "capabilities": "extended",
      "target-path": "/api/v1",
      "reporting-period": "2026-03-15",
      "provider": "Example Corp (sustain@example.org)",
      "measurement-method": "cloud-billing",
      "methodology-uri": "https://example.com/sustainability",
-     "energy-consumption": 1250,
+     "energy-consumption": 40,
      "energy-unit": "kWh",
-     "carbon-footprint": 345000,
+     "carbon-footprint": 11040,
      "carbon-unit": "gCO2e"
    }
 
@@ -750,8 +750,8 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    Request: GET /.well-known/sustainability?target=/api/
    v1&period=2026&granularity=monthly
 
-
-
+   As above, the array holds one object per month; only the first two
+   are shown for brevity.
 
 
 
@@ -868,6 +868,53 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
      "disclosure-uri": "https://storage.example/.well-known/carbon.txt"
    }
 
+3.6.  Unreported Metric (Not-Reported Sentinel)
+
+   Request: GET /.well-known/sustainability
+
+   In this example the provider has a carbon figure (for example, from a
+   supplier or a CSRD report) but does not report energy.  The required
+   energy-consumption field is therefore set to the negative "not
+   reported" sentinel (see "Unreported Numeric Metrics"), and the
+   disclosure-uri points to where the missing data can be found.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Besleaga                 Expires 2 January 2027                [Page 16]
+
+Internet-Draft        Sustainability Well-Known URI            July 2026
+
+
+   {
+     "version": "1.1",
+     "updated": "2026-04-01T00:00:00Z",
+     "capabilities": "extended",
+     "provider": "Partial Metrics Co. (sustainability@partial.example)",
+     "measurement-method": "third-party-modeled",
+     "methodology-uri": "https://partial.example/methodology",
+     "reporting-period": "2026-03",
+     "energy-consumption": -1,
+     "energy-unit": "kWh",
+     "carbon-footprint": 4200,
+     "carbon-unit": "gCO2e",
+     "carbon-accounting": "location-based",
+     "scope-2": 4200,
+     "disclosure-uri": "https://partial.example/.well-known/carbon.txt"
+   }
+
 4.  Operational Considerations
 
 4.1.  Caching
@@ -890,20 +937,22 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
    *  Servers SHOULD implement the latest schema version they support.
 
-
-
-
-Besleaga                 Expires 2 January 2027                [Page 16]
-
-Internet-Draft        Sustainability Well-Known URI            July 2026
-
-
    *  Clients MUST tolerate unknown fields and future versions.
 
    *  Implementers SHOULD publish example payloads and test vectors.
 
    *  Aggregators SHOULD document how they map provider fields to their
       internal models.
+
+
+
+
+
+
+Besleaga                 Expires 2 January 2027                [Page 17]
+
+Internet-Draft        Sustainability Well-Known URI            July 2026
+
 
 6.  Deployment
 
@@ -946,19 +995,20 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    correctness.  An attacker who controls DNS, TLS certificates, or the
    origin can publish false metadata.
 
-
-
-
-Besleaga                 Expires 2 January 2027                [Page 17]
-
-Internet-Draft        Sustainability Well-Known URI            July 2026
-
-
    *  Clients MUST NOT treat the presence of a sustainability document
       as proof of any claim.
 
    *  For high-assurance use cases, clients SHOULD rely on additional
       attestations, signed statements, or third-party verification.
+
+
+
+
+
+Besleaga                 Expires 2 January 2027                [Page 18]
+
+Internet-Draft        Sustainability Well-Known URI            July 2026
+
 
 7.4.  Greenwashing and Misrepresentation
 
@@ -997,19 +1047,6 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    *  Clients MUST validate TLS certificates according to standard
       practice.
 
-
-
-
-
-
-
-
-
-Besleaga                 Expires 2 January 2027                [Page 18]
-
-Internet-Draft        Sustainability Well-Known URI            July 2026
-
-
 8.  Privacy Considerations
 
    Publishing sustainability metadata can have privacy implications when
@@ -1017,6 +1054,17 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    SHOULD evaluate the privacy impact of any metric that could be linked
    to individual users or small groups.  When in doubt, aggregate or
    redact fine-grained data.
+
+
+
+
+
+
+
+Besleaga                 Expires 2 January 2027                [Page 19]
+
+Internet-Draft        Sustainability Well-Known URI            July 2026
+
 
 8.1.  Traffic Analysis
 
@@ -1056,16 +1104,6 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
       definitions of the response are provided in this document using
       CDDL [RFC8610] and JSON Type Definition (JTD) [RFC8927].
 
-
-
-
-
-
-Besleaga                 Expires 2 January 2027                [Page 19]
-
-Internet-Draft        Sustainability Well-Known URI            July 2026
-
-
 10.  Acknowledgements
 
    Thanks to GREEN WG, to early reviewers and others who provided
@@ -1075,6 +1113,14 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 11.  References
 
 11.1.  Normative References
+
+
+
+
+Besleaga                 Expires 2 January 2027                [Page 20]
+
+Internet-Draft        Sustainability Well-Known URI            July 2026
+
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -1114,14 +1160,6 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 11.2.  Informative References
 
-
-
-
-Besleaga                 Expires 2 January 2027                [Page 20]
-
-Internet-Draft        Sustainability Well-Known URI            July 2026
-
-
    [GHG-PROTOCOL]
               World Resources Institute and World Business Council for
               Sustainable Development, "The Greenhouse Gas Protocol: A
@@ -1131,6 +1169,14 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    [GSF-SCI]  Green Software Foundation, "Software Carbon Intensity
               (SCI) Specification, v1.0 (later standardized as ISO/IEC
               21031:2024)", December 2022.
+
+
+
+
+Besleaga                 Expires 2 January 2027                [Page 21]
+
+Internet-Draft        Sustainability Well-Known URI            July 2026
+
 
    [EU-CSRD]  European Parliament and Council, "Directive (EU) 2022/2464
               as regards corporate sustainability reporting (CSRD)",
@@ -1168,16 +1214,6 @@ A.1.  draft-besleaga-sustainability-wellknown-00 (replaces draft-
       (version 1.1 introduced the optional disclosure-uri field;
       documents declaring 1.0 remain valid).
 
-
-
-
-
-
-Besleaga                 Expires 2 January 2027                [Page 21]
-
-Internet-Draft        Sustainability Well-Known URI            July 2026
-
-
    *  Clarified the meaning of a negative value in a required numeric
       field: it denotes an unreported metric (not a real negative
       measurement); see "Unreported Numeric Metrics".  Also noted that
@@ -1190,9 +1226,29 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
       registration (rather than asserting it is already registered);
       added a "Relationship to Other Work" note (application-layer
       scope; does not update or obsolete any IETF-stream document;
+
+
+
+Besleaga                 Expires 2 January 2027                [Page 22]
+
+Internet-Draft        Sustainability Well-Known URI            July 2026
+
+
       complementary to carbon.txt); and specified that servers not
       supporting the Extended parameters MUST ignore them and return the
       Basic response.
+
+   *  Data-model and example corrections: clarified the capabilities
+      semantics (a simple basic/extended indicator that is determined
+      per response and MAY reflect the server, the specific response, or
+      a resource path) and corrected the Target-Specific example, which
+      had declared basic while carrying an optional field (target-path)
+      and had reused the whole-host totals for a sub-path; pinned
+      reporting-period to the same date formats as the period parameter;
+      noted that measurement-method is a free-form string with
+      RECOMMENDED values; bounded renewable-energy to 0-100; documented
+      malformed-parameter handling (400 or ignore); and added a "Not-
+      Reported Sentinel" example.
 
    The section headings below (Since -04, Since -03, etc.) refer to the
    revision history of the replaced document.
@@ -1229,7 +1285,7 @@ A.3.  Since -03
 
 
 
-Besleaga                 Expires 2 January 2027                [Page 22]
+Besleaga                 Expires 2 January 2027                [Page 23]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1285,7 +1341,7 @@ A.6.  Since -00
 
 
 
-Besleaga                 Expires 2 January 2027                [Page 23]
+Besleaga                 Expires 2 January 2027                [Page 24]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1341,4 +1397,4 @@ Author's Address
 
 
 
-Besleaga                 Expires 2 January 2027                [Page 24]
+Besleaga                 Expires 2 January 2027                [Page 25]

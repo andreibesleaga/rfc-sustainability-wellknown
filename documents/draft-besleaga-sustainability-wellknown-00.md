@@ -134,7 +134,7 @@ Servers MAY support "Extended" capabilities via the following parameters:
     * Day: `YYYY-MM-DD` (e.g., 2026-01-01)
 * **granularity**: Defines the "slices" within a period (e.g., `monthly`, `daily`). If granularity is finer than the period, the server SHOULD return an array of objects.
 
-Servers that do not support the Extended parameters MUST ignore any such parameters and return the Basic response, rather than failing the request.
+Servers that do not support the Extended parameters MUST ignore any such parameters and return the Basic response, rather than failing the request. If a supported parameter carries a malformed value (for example, a `period` that is not a valid date), the server MAY respond with `400 Bad Request`, or ignore the offending parameter and return the Basic response.
 
 ## Payload Format (JSON Data Model)
 
@@ -143,11 +143,11 @@ A successful response MUST return a JSON object or an array of objects {{RFC8259
 ### Mandatory Response Fields
 * **version** (string): The schema version of the document (e.g., `"1.1"`).
 * **updated** (string, date-time): The timestamp (RFC 3339) when the document was last updated.
-* **capabilities** (string): MUST be "basic" or "extended".
+* **capabilities** (string): A self-declared indicator of the service level reflected by this document. It MUST be either "basic" or "extended". "basic" denotes the minimal service, in which the response carries only the mandatory fields. "extended" denotes that extended capabilities apply, meaning that the Extended query parameters are supported and/or one or more optional fields are present. The value is determined per response and MAY, at the provider's discretion, reflect the overall server, an individual response, or a specific resource path (the `target`). A value of "extended" does not, by itself, guarantee support for any particular Extended parameter or optional field; clients determine actual support from the fields present and from the server's behavior.
 * **provider** (string): Information about the provider publishing the metadata.
-* **measurement-method** (string): Short description or reference to the methodology used (e.g, hardware-metered, hardware-estimated, cloud-billing, third-party-modeled).
+* **measurement-method** (string): Short description or reference to the methodology used. This is a free-form string; the values `hardware-metered`, `hardware-estimated`, `cloud-billing`, and `third-party-modeled` are RECOMMENDED.
 * **methodology-uri** (string): Link to the full methodology specification (calculation methodology).
-* **reporting-period** (string): The timeframe covered by the object.
+* **reporting-period** (string): The timeframe covered by the object, expressed using the same {{RFC3339}} date formats as the `period` parameter (`YYYY`, `YYYY-MM`, or `YYYY-MM-DD`).
 * **energy-consumption** (numeric): A numerical value indicating the total energy consumed by the host or resource during the reporting period.
 * **energy-unit** (string): A string indicating the unit of energy (MUST be one of: `Wh`, `kWh`, `MWh`, or `GWh`).
 * **carbon-footprint** (numeric): Total impact in grams of CO2 equivalent.
@@ -161,7 +161,7 @@ Optional numeric fields follow a different convention: when an optional metric i
 
 ### Optional Response Fields
 
-The JSON object MAY contain the following OPTIONAL keys to align with the {{GHG-PROTOCOL}}, European Sustainability Reporting Standards (ESRS E1), other sustainability recommendations, and optional extended capabilities (`extended` indicates support for optional parameters, not that all optional fields must appear):
+The JSON object MAY contain the following OPTIONAL keys to align with the {{GHG-PROTOCOL}}, European Sustainability Reporting Standards (ESRS E1), other sustainability recommendations, and optional extended capabilities (a `capabilities` value of `extended` does not require every optional field to appear):
 
 * **target-path** (string): The resource path requested as target
 * **carbon-accounting** (string): "location-based" or "market-based" (following {{GHG-PROTOCOL}}).
@@ -172,7 +172,7 @@ The JSON object MAY contain the following OPTIONAL keys to align with the {{GHG-
 * **functional-unit** (string): If present, functional-unit MUST be defined (e.g., "per-request", "per-user") and it SHOULD be in the methodology-uri document.
 * **carbon-intensity-gCO2-per-kWh** (numeric): Weighted carbon intensity in grams CO2 per kWh.
 * **estimated-annual-emissions-kgCO2** (numeric): Estimated annual emissions attributable to the origin.
-* **renewable-energy** (numeric): Percentage of energy from sustainable renewable sources.
+* **renewable-energy** (numeric): Percentage (0-100) of energy from sustainable renewable sources.
 * **verifiable-attestation-uri** (string): Link pointing to a verifiable credential or attestation to prevent greenwashing.
 * **disclosure-uri** (string): URI of a machine-readable sustainability disclosure index for the origin, that is, a single document listing links to the origin's public sustainability disclosures (reports, certificates, hosting and energy-source evidence). The field is format-agnostic; the canonical example is a Green Web Foundation carbon.txt file {{CARBON-TXT}}, which is itself commonly published at `/carbon.txt` or `/.well-known/carbon.txt`. A `disclosure-uri` links to supporting evidence and MUST NOT be treated by clients as proof of the metrics in this document.
 
@@ -300,6 +300,8 @@ Request: `GET /.well-known/sustainability`
 
 Request: `GET /.well-known/sustainability?period=2025&granularity=monthly`
 
+The response is an array with one object per month; only the first two months are shown here for brevity.
+
 ~~~ json
 [
   {
@@ -343,15 +345,15 @@ Request: `GET /.well-known/sustainability?target=/api/v1&period=2026-03-15`
 {
   "version": "1.1",
   "updated": "2026-03-01T12:00:00Z",
-  "capabilities": "basic",
+  "capabilities": "extended",
   "target-path": "/api/v1",
   "reporting-period": "2026-03-15",
   "provider": "Example Corp (sustain@example.org)",
   "measurement-method": "cloud-billing",
   "methodology-uri": "https://example.com/sustainability",
-  "energy-consumption": 1250,
+  "energy-consumption": 40,
   "energy-unit": "kWh",
-  "carbon-footprint": 345000,
+  "carbon-footprint": 11040,
   "carbon-unit": "gCO2e"
 }
 ~~~
@@ -359,6 +361,8 @@ Request: `GET /.well-known/sustainability?target=/api/v1&period=2026-03-15`
 ## Target Specific Yearly Trend (Monthly Granularity)
 
 Request: `GET /.well-known/sustainability?target=/api/v1&period=2026&granularity=monthly`
+
+As above, the array holds one object per month; only the first two are shown for brevity.
 
 ~~~ json
 [
@@ -427,6 +431,30 @@ This example utilizes almost all optional fields, including GHG Protocol Scopes 
   "renewable-energy": 99,
   "verifiable-attestation-uri": "https://verify.example/vc/storage",
   "disclosure-uri": "https://storage.example/.well-known/carbon.txt"
+}
+~~~
+
+## Unreported Metric (Not-Reported Sentinel)
+Request: `GET /.well-known/sustainability`
+
+In this example the provider has a carbon figure (for example, from a supplier or a CSRD report) but does not report energy. The required `energy-consumption` field is therefore set to the negative "not reported" sentinel (see "Unreported Numeric Metrics"), and the `disclosure-uri` points to where the missing data can be found.
+
+~~~ json
+{
+  "version": "1.1",
+  "updated": "2026-04-01T00:00:00Z",
+  "capabilities": "extended",
+  "provider": "Partial Metrics Co. (sustainability@partial.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://partial.example/methodology",
+  "reporting-period": "2026-03",
+  "energy-consumption": -1,
+  "energy-unit": "kWh",
+  "carbon-footprint": 4200,
+  "carbon-unit": "gCO2e",
+  "carbon-accounting": "location-based",
+  "scope-2": 4200,
+  "disclosure-uri": "https://partial.example/.well-known/carbon.txt"
 }
 ~~~
 
@@ -541,6 +569,7 @@ This document is an administrative continuation of draft-besleaga-green-sustaina
 * Adopted schema version `1.1` as the default across all examples (version `1.1` introduced the optional `disclosure-uri` field; documents declaring `1.0` remain valid).
 * Clarified the meaning of a negative value in a required numeric field: it denotes an unreported metric (not a real negative measurement); see "Unreported Numeric Metrics". Also noted that `carbon-footprint` is gross (non-negative) and that the anti-fingerprinting noise is not applied to the "not reported" sentinel.
 * Editorial and clarity corrections for publication: the URI Definition now states that this document *requests* the registration (rather than asserting it is already registered); added a "Relationship to Other Work" note (application-layer scope; does not update or obsolete any IETF-stream document; complementary to carbon.txt); and specified that servers not supporting the Extended parameters MUST ignore them and return the Basic response.
+* Data-model and example corrections: clarified the `capabilities` semantics (a simple `basic`/`extended` indicator that is determined per response and MAY reflect the server, the specific response, or a resource path) and corrected the Target-Specific example, which had declared `basic` while carrying an optional field (`target-path`) and had reused the whole-host totals for a sub-path; pinned `reporting-period` to the same date formats as the `period` parameter; noted that `measurement-method` is a free-form string with RECOMMENDED values; bounded `renewable-energy` to 0-100; documented malformed-parameter handling (`400` or ignore); and added a "Not-Reported Sentinel" example.
 
 The section headings below (Since -04, Since -03, etc.) refer to the revision history of the replaced document.
 

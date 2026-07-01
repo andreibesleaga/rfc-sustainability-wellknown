@@ -65,14 +65,15 @@ The draft defines the full data model, mandatory/optional fields, CDDL and JTD f
 
 ## example-responses/
 
-Four JSON response files covering all service levels defined in the draft. All pass both CDDL and JTD validation.
+Five JSON response files covering all service levels and field combinations defined in the draft. All pass both CDDL and JTD validation.
 
 | File | Description |
 |---|---|
 | `example-response.json` | Basic service — single object, aggregate host metrics |
-| `example-response-extended.json` | Extended service — single object, all optional fields including GHG scopes and `verifiable-attestation-uri` |
-| `example-response_yearly.json` | Extended service — array of 12 monthly objects for a full year trend |
+| `example-response-extended.json` | Extended service — single object, all optional fields including GHG scopes, `verifiable-attestation-uri`, and `disclosure-uri` (market-based) |
+| `example-response_yearly.json` | Extended service — array of 12 monthly objects for a full year trend (location-based) |
 | `example-response-yearly-monthly-target.json` | Extended service — array scoped to a specific `target-path` |
+| `example-response-unreported.json` | Extended service — demonstrates the negative `-1` "not reported" sentinel with a `disclosure-uri` pointer |
 
 ---
 

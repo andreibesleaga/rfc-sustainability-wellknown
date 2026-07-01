@@ -62,7 +62,7 @@ Table of Contents
 
    1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
      1.1.  Requirements Language . . . . . . . . . . . . . . . . . .   3
-     1.2.  Goals and Non-Goals . . . . . . . . . . . . . . . . . . .   3
+     1.2.  Goals and Non-Goals . . . . . . . . . . . . . . . . . . .   4
        1.2.1.  Goals . . . . . . . . . . . . . . . . . . . . . . . .   4
        1.2.2.  Non-Goals . . . . . . . . . . . . . . . . . . . . . .   4
      1.3.  Relationship to Other Work  . . . . . . . . . . . . . . .   4
@@ -148,9 +148,10 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    This document continues and replaces draft-besleaga-green-
    sustainability-wellknown.  The rename reflects that this is an
    individual Independent Submission and is not scoped to any IETF
-   Working Group; there are no technical changes to the data model
-   beyond adopting schema version 1.1 (which introduced the optional
-   disclosure-uri field) as the default in the examples.
+   Working Group.  The field set and wire format are unchanged from that
+   document; schema version 1.1 (which introduced the optional
+   disclosure-uri field) is used as the default, and this revision adds
+   only clarifications, which are summarized in the Changelog.
 
 1.1.  Requirements Language
 
@@ -160,7 +161,6 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
-1.2.  Goals and Non-Goals
 
 
 
@@ -169,6 +169,8 @@ Besleaga                 Expires 2 January 2027                 [Page 3]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
+
+1.2.  Goals and Non-Goals
 
 1.2.1.  Goals
 
@@ -212,8 +214,6 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
    may link through the optional disclosure-uri field.
 
 2.  The "sustainability" Well-Known URI
-
-
 
 
 
@@ -433,8 +433,8 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 2.4.3.  Versioning and Extensibility
 
-   *  The member MUST be present and follow the versioning pattern
-      major.minor.
+   *  The version member MUST be present and follow the versioning
+      pattern major.minor.
 
    *  A change that is backwards-compatible (additive fields) SHOULD
       increment the minor version.

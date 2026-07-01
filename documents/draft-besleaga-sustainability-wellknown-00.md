@@ -77,7 +77,7 @@ These transparency efforts align with the United Nations 2030 Agenda for Sustain
 
 While initial proposals for carbon transparency focused on per-request HTTP headers, such methods introduce a "rebound effect" where metadata increases the carbon footprint of the transaction. This document leverages {{RFC8615}} to define a `/.well-known/sustainability` URI for out-of-band reporting. This out-of-band mechanism allows servers to publish periodic, aggregated metrics, enabling workflows where environmental impact is a primary constraint alongside cost and performance.
 
-This document continues and replaces draft-besleaga-green-sustainability-wellknown. The rename reflects that this is an individual Independent Submission and is not scoped to any IETF Working Group; there are no technical changes to the data model beyond adopting schema version 1.1 (which introduced the optional `disclosure-uri` field) as the default in the examples.
+This document continues and replaces draft-besleaga-green-sustainability-wellknown. The rename reflects that this is an individual Independent Submission and is not scoped to any IETF Working Group. The field set and wire format are unchanged from that document; schema version 1.1 (which introduced the optional `disclosure-uri` field) is used as the default, and this revision adds only clarifications, which are summarized in the Changelog.
 
 ## Requirements Language
 
@@ -179,7 +179,7 @@ The JSON object MAY contain the following OPTIONAL keys to align with the {{GHG-
 Fields not defined in this specification MAY be present; clients MUST ignore unknown fields unless they are explicitly registered via IANA or agreed by implementers.
 
 ### Versioning and Extensibility
-* The member MUST be present and follow the versioning pattern `major.minor`.
+* The `version` member MUST be present and follow the versioning pattern `major.minor`.
 * A change that is backwards-compatible (additive fields) SHOULD increment the minor version.
 * A change that is incompatible (removes or renames fields, or changes semantics) MUST increment the major version.
 * Extensions MAY be added under a vendor or organization namespace to avoid collisions.

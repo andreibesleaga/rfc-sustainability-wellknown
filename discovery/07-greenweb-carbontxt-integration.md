@@ -1,6 +1,6 @@
 # Deep Research — Green Web Foundation, carbon.txt, and CO2.js: integration with `/.well-known/sustainability`
 
-*Companion research for draft-05. Non-normative. Explains how the Green Web Foundation (GWF)
+*Companion research for the draft (draft-besleaga-sustainability-wellknown). Non-normative. Explains how the Green Web Foundation (GWF)
 ecosystem — the **carbon.txt** disclosure convention, its **hosted API**, and the **CO2.js**
 estimation library — relates to this Internet-Draft, and how the reference publisher
 integrates them. Every external claim is cited.*
@@ -41,7 +41,7 @@ bytes with CO2.js, (b) **emits** a carbon.txt that points back to the metrics do
   domain|file …`. <https://github.com/thegreenwebfoundation/carbon-txt-validator>
 
 **Key distinction**: carbon.txt is a *disclosure index*, not a metrics document. This is why
-draft-05 links to it (`disclosure-uri`) rather than embedding it.
+the draft links to it (`disclosure-uri`) rather than embedding it.
 
 ## 3. carbon.txt hosted API
 

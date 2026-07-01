@@ -6,6 +6,7 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
+**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream** (ISE); replaces `draft-besleaga-green-sustainability-wellknown`. IANA `sustainability` well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)).
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 
@@ -42,7 +43,6 @@ rfc-sustainability-wellknown/
 ├── publisher/               # Production publisher/gateway (TypeScript): adapters → conformant /.well-known/sustainability
 ├── discovery/               # Product discovery: market scan, opportunity, problem, requirements, PRD, spec
 ├── COMPLIANCE/              # SFC framework compliance matrix (relationship to the ACM SFC framework)
-├── AUDIT.md                 # Repository audit and the rationale for the -04 changes
 └── ADOPTION.md              # The case for RFC/IANA adoption (business, technical, regulatory benefits)
 
 ```
@@ -183,7 +183,7 @@ This allows automated tools to cryptographically verify published sustainability
 
 ## Discovery & SFC compliance
 
-* [discovery/](discovery/) — product discovery suite (market scan, opportunity assessment, problem statement, requirements, PRD, technical spec) framing the gateway against the enterprise carbon-accounting ecosystem, plus [a deep-research companion to draft-05](discovery/07-greenweb-carbontxt-integration.md) on the Green Web Foundation / carbon.txt / CO2.js integration.
+* [discovery/](discovery/) — product discovery suite (market scan, opportunity assessment, problem statement, requirements, PRD, technical spec) framing the gateway against the enterprise carbon-accounting ecosystem, plus [a deep-research companion to the draft](discovery/07-greenweb-carbontxt-integration.md) on the Green Web Foundation / carbon.txt / CO2.js integration.
 * [COMPLIANCE/SFC.md](COMPLIANCE/SFC.md) — how this draft and the publisher relate to the Sustainability-First Consensus (SFC) framework, with a field-level compliance matrix.
 
 ## Adoption & publishing

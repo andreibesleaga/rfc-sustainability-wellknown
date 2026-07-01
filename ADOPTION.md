@@ -94,7 +94,7 @@ natural, incremental addition in exactly the spirit of RFC 8615.
 | "Could be abused for greenwashing." | Addressed: mandatory methodology link, optional signed attestations, and a clients-MUST-NOT-treat-as-proof rule. |
 | "Privacy / fingerprinting from fine metrics." | Addressed: 24-hour granularity floor, optional ~1% fuzzing, aggregation guidance. |
 | "DoS via dynamic aggregation." | Addressed: 366-object cap, mandatory caching, rate-limiting guidance; the reference gateway precomputes and caches. |
-| "Does it belong in GREEN?" | The IANA registration only needs Specification Required + Expert Review; it can proceed as an individual/Informational document regardless of WG home. |
+| "Does it belong in GREEN?" | The IANA registration only needs Specification Required + Expert Review; the draft is now an individual **Independent Submission** (ISE), and the registration proceeds regardless of WG. |
 
 ## 8. Readiness evidence (in this repository)
 

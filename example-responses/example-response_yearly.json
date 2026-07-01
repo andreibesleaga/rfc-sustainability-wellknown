@@ -1,6 +1,6 @@
 [
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -15,7 +15,7 @@
     "renewable-energy": 45
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -30,7 +30,7 @@
     "renewable-energy": 48
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -45,7 +45,7 @@
     "renewable-energy": 50
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -60,7 +60,7 @@
     "renewable-energy": 55
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -75,7 +75,7 @@
     "renewable-energy": 58
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -90,7 +90,7 @@
     "renewable-energy": 42
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -105,7 +105,7 @@
     "renewable-energy": 40
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -120,7 +120,7 @@
     "renewable-energy": 41
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -135,7 +135,7 @@
     "renewable-energy": 46
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -150,7 +150,7 @@
     "renewable-energy": 49
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",
@@ -165,7 +165,7 @@
     "renewable-energy": 47
   },
   {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-01-05T09:00:00Z",
     "capabilities": "extended",
     "provider": "CloudProvider Ops (ops@example.com)",

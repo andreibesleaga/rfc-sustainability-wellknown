@@ -1,7 +1,7 @@
 # 04 — Requirements
 
 *Non-normative. Requirements trace to clauses of
-draft-besleaga-green-sustainability-wellknown-04.*
+draft-besleaga-sustainability-wellknown.*
 
 ## Functional requirements
 

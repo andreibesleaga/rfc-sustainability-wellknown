@@ -20,7 +20,8 @@ function secureSustainabilityReport(reports: SustainabilityReport[]): Sustainabi
     const numericKeys = ["energy-consumption", "carbon-footprint", "scope-1", "scope-2", "scope-3"];
 
     numericKeys.forEach(key => {
-      if (typeof secured[key] === "number") {
+      // Negative = "not reported" sentinel; do not apply noise to it.
+      if (typeof secured[key] === "number" && secured[key] >= 0) {
         secured[key] = parseFloat((secured[key] * fuzz).toFixed(2));
       }
     });

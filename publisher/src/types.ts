@@ -1,7 +1,7 @@
 /**
  * Canonical types for the `/.well-known/sustainability` data model.
  *
- * These mirror draft-besleaga-green-sustainability-wellknown-05. Field names use
+ * These mirror draft-besleaga-sustainability-wellknown-00. Field names use
  * the wire (kebab-case) spelling so a `SustainabilityMetrics` object serializes
  * directly to a conformant payload.
  */
@@ -106,7 +106,7 @@ export interface SourceAdapter {
 }
 
 export interface NormalizeOptions {
-  /** Schema version string emitted in payloads. Default "1.0". */
+  /** Schema version string emitted in payloads. Default "1.1". */
   version?: string;
   /** Force a target energy unit; default keeps the adapter's unit (kWh for joules). */
   energyUnit?: EnergyUnit;

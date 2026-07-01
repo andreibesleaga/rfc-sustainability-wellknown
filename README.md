@@ -2,7 +2,7 @@
 ## IETF I-D (work in progress)
 ### rfc-sustainability-wellknown - The 'sustainability' Well-Known URI
 
-Datatracker: [draft-besleaga-green-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/)
+Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/)
 
 **Author:** Andrei Nicolae Besleaga
 
@@ -55,8 +55,8 @@ RFC draft in multiple formats plus supplementary documents.
 
 | File | Description |
 |---|---|
-| `draft-besleaga-green-sustainability-wellknown-05.md` | Latest draft (current) — Markdown source |
-| `draft-besleaga-green-sustainability-wellknown-04/03/02/01/00.*` | Previous revisions (md, xml, txt, html) |
+| `draft-besleaga-sustainability-wellknown-00.md` | Latest draft (current) — Markdown source |
+| `draft-besleaga-green-sustainability-wellknown-05/04/03/02/01/00.*` | Previous revisions (md, xml, txt, html) |
 | `draft-verifiable-credential.md` | Supplementary: W3C Verifiable Credential structure for anti-greenwashing attestations |
 
 The draft defines the full data model, mandatory/optional fields, CDDL and JTD formal schemas, security and privacy considerations, and IANA registration request.
@@ -144,7 +144,7 @@ Both configurations implement:
 
 | Field | Required | Type | Notes |
 |---|---|---|---|
-| `version` | Yes | string | Schema version, e.g. `"1.0"` |
+| `version` | Yes | string | Schema version, e.g. `"1.1"` |
 | `updated` | Yes | string | RFC 3339 timestamp |
 | `capabilities` | Yes | `"basic"` / `"extended"` | |
 | `provider` | Yes | string | |
@@ -201,7 +201,7 @@ Changes and updates between versions of the draft are documented (summarized) in
 If you reference this project or implement the specification in your academic or professional work, please cite the IETF Internet-Draft:
 
 **Plain Text (APA):**
-> Besleaga, A. N. (2026). *The 'sustainability' Well-Known URI* (Internet-Draft draft-besleaga-green-sustainability-wellknown). Internet Engineering Task Force. https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/
+> Besleaga, A. N. (2026). *The 'sustainability' Well-Known URI* (Internet-Draft draft-besleaga-sustainability-wellknown). Internet Engineering Task Force. https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/
 
 ---
 

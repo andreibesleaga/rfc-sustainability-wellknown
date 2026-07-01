@@ -51,7 +51,9 @@ export function secureReports(
       const secured: SustainabilityMetrics = { ...r };
       for (const key of NUMERIC_KEYS) {
         const v = secured[key];
-        if (typeof v === "number") {
+        // A negative value is the "not reported" sentinel (draft §Unreported
+        // Numeric Metrics); noise MUST NOT be applied to it.
+        if (typeof v === "number" && v >= 0) {
           secured[key] = Math.round(v * fuzz * 100) / 100;
         }
       }

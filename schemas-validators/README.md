@@ -1,6 +1,6 @@
 # schemas-validators
 
-Schemas and validators for the `/.well-known/sustainability` URI response format, as defined in [draft-besleaga-green-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/).
+Schemas and validators for the `/.well-known/sustainability` URI response format, as defined in [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
 
 ## Files
 

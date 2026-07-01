@@ -55,7 +55,7 @@ aggregator, or regulator can GET to learn an origin's energy and carbon profile.
 
 ## 4. The wedge
 
-`draft-besleaga-green-sustainability-wellknown` defines that missing surface:
+`draft-besleaga-sustainability-wellknown` defines that missing surface:
 `GET /.well-known/sustainability` → a small, validated JSON document. The **publisher/
 gateway** in this repo is the missing middleware: it reads from any of the sources above
 (or a static file) and publishes a conformant document, turning the fragmented calculation

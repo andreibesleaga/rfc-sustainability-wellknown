@@ -6,7 +6,7 @@
 
 A standards-compliant middleware that publishes a draft-conformant
 `/.well-known/sustainability` document from any metric source. It is the reference
-implementation of `draft-besleaga-green-sustainability-wellknown` and the bridge between
+implementation of `draft-besleaga-sustainability-wellknown` and the bridge between
 the fragmented carbon-calculation ecosystem and a single, public, machine-readable
 disclosure surface.
 

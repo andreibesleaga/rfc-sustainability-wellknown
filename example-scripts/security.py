@@ -18,7 +18,8 @@ def secure_sustainability_report(reports):
         # Clone and fuzz numeric values
         secured = entry.copy()
         for key in ["energy-consumption", "carbon-footprint", "scope-1", "scope-2", "scope-3"]:
-            if key in secured and isinstance(secured[key], (int, float)):
+            # Negative = "not reported" sentinel; do not apply noise to it.
+            if key in secured and isinstance(secured[key], (int, float)) and secured[key] >= 0:
                 secured[key] = round(secured[key] * fuzz, 2)
         
         secured_reports.append(secured)

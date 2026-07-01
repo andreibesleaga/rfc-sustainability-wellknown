@@ -1,6 +1,6 @@
 # server-configurations
 
-Server configuration snippets for publishing the `/.well-known/sustainability` endpoint as defined in [draft-besleaga-green-sustainability-wellknown-03](https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/).
+Server configuration snippets for publishing the `/.well-known/sustainability` endpoint as defined in [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
 
 ## Files
 

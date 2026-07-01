@@ -16,7 +16,8 @@ function secureSustainabilityReport(array $reports): array {
 
         $numericKeys = ['energy-consumption', 'carbon-footprint', 'scope-1', 'scope-2', 'scope-3'];
         foreach ($numericKeys as $key) {
-            if (isset($entry[$key]) && is_numeric($entry[$key])) {
+            // Negative = "not reported" sentinel; do not apply noise to it.
+            if (isset($entry[$key]) && is_numeric($entry[$key]) && $entry[$key] >= 0) {
                 $entry[$key] = round($entry[$key] * $fuzz, 2);
             }
         }

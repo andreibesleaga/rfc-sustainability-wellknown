@@ -78,7 +78,7 @@ describe("404 when no metadata", () => {
 describe("security safeguards", () => {
   it("caps arrays at 366 objects", () => {
     const many: SustainabilityMetrics[] = Array.from({ length: 500 }, (_, i) => ({
-      version: "1.0",
+      version: "1.1",
       updated: "2026-01-01T00:00:00Z",
       capabilities: "extended",
       provider: "p",
@@ -96,7 +96,7 @@ describe("security safeguards", () => {
   it("drops sub-daily entries (traffic-analysis floor)", () => {
     const reports: SustainabilityMetrics[] = [
       {
-        version: "1.0",
+        version: "1.1",
         updated: "2026-01-01T00:00:00Z",
         capabilities: "extended",
         provider: "p",
@@ -110,5 +110,28 @@ describe("security safeguards", () => {
       },
     ];
     expect(secureReports(reports).length).toBe(0);
+  });
+
+  it("does not apply anti-fingerprinting noise to the -1 'not reported' sentinel", () => {
+    const reports: SustainabilityMetrics[] = [
+      {
+        version: "1.1",
+        updated: "2026-01-01T00:00:00Z",
+        capabilities: "extended",
+        provider: "p",
+        "measurement-method": "m",
+        "methodology-uri": "u",
+        "reporting-period": "2026-01",
+        "energy-consumption": -1, // not reported
+        "energy-unit": "kWh",
+        "carbon-footprint": 100, // reported
+        "carbon-unit": "gCO2e",
+      },
+    ];
+    const [out] = secureReports(reports, { applyNoise: true, enforceDailyFloor: false });
+    expect(out["energy-consumption"]).toBe(-1); // sentinel preserved exactly
+    // reported value still processed (within the ~1% fuzz band)
+    expect(out["carbon-footprint"]).toBeGreaterThanOrEqual(99);
+    expect(out["carbon-footprint"]).toBeLessThanOrEqual(101);
   });
 });

@@ -4,10 +4,10 @@
 
 ## Project Links
 * **GitHub Repository:** https://github.com/andreibesleaga/rfc-sustainability-wellknown
-* **IETF Datatracker:** https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/
+* **IETF Datatracker:** https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/
 * **Author:** Andrei Nicolae BESLEAGA (https://github.com/andreibesleaga)
 * **IETF Stream:** Independent Submission (individual; not a working-group product)
-* **Current Latest Draft:** `draft-besleaga-green-sustainability-wellknown-05`
+* **Current Latest Draft:** `draft-besleaga-sustainability-wellknown-00`
 
 ## Context and Purpose
 The digital economy consumes a significant percentage of global electricity. Regulatory frameworks (like the EU CSRD) and industry standards (like GSF SCI, W3C Web Sustainability Guidelines) increasingly require organizations to disclose their digital environmental impact. 
@@ -15,7 +15,7 @@ The digital economy consumes a significant percentage of global electricity. Reg
 Initial proposals focused on per-request HTTP headers for carbon transparency, which introduced a "rebound effect" (metadata increasing the carbon footprint and reducing TTFB caching performance). This project proposes an alternative: leveraging RFC 8615 to define a discoverable `/.well-known/sustainability` URI for asynchronous, out-of-band reporting. This allows workflows where environmental impact is a primary constraint alongside cost and performance.
 
 ## Repository Structure & Resources
-In addition to tracking the evolution of the draft through standard IETF versions (e.g., `draft-besleaga-green-sustainability-wellknown-00` to `-05`), the GitHub repository acts as an extended resource hub for implementers. It includes:
+In addition to tracking the evolution of the draft through standard IETF versions (e.g., `draft-besleaga-sustainability-wellknown-00` to `-05`), the GitHub repository acts as an extended resource hub for implementers. It includes:
 * **Draft Sources (`documents/`):** The core `.md` (Markdown) files which act as the source documents compiled into the final IETF `.xml`/`.txt` formats using the kramdown-rfc + xml2rfc toolchains, plus a `CHANGELOG.md` and a supplementary W3C Verifiable Credential structure.
 * **Schemas & Validators (`schemas-validators/`):** Formal machine-readable definitions of the JSON data model — JSON Type Definition (JTD, RFC 8927) and Concise Data Definition Language (CDDL, RFC 8610) — with Python (JTD) and Ruby (CDDL) validators and a `validate-all.sh` runner.
 * **Examples (`example-responses/`):** Sample JSON responses demonstrating Basic, Extended, Target-Specific, and Highly Detailed scenarios. All pass both validators.
@@ -36,9 +36,9 @@ Servers MUST support a "Basic" service level (no parameters, aggregating the ent
 * `period`: Timeframe in RFC3339 format (Year `YYYY`, Month `YYYY-MM`, Day `YYYY-MM-DD`).
 * `granularity`: Time slices within a period (e.g., `monthly`, `daily`). Returns an array of objects (Max cap of 366 objects RECOMMENDED).
 
-### Data Model (Schema v1.0)
+### Data Model (Schema v1.1)
 The response schema requires the following:
-* **Mandatory Fields:** * `version`: Document schema version (e.g., "1.0").
+* **Mandatory Fields:** * `version`: Document schema version (e.g., "1.1").
   * `updated`: RFC 3339 timestamp of last update.
   * `provider`: Information about the publisher.
   * `capabilities`: "basic" or "extended".

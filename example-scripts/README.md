@@ -1,4 +1,4 @@
-This **README.md** provides your development team with the technical specifications and mandatory safeguards for implementing the "sustainability" Well-Known URI as defined in **draft-besleaga-green-sustainability-wellknown-03**.
+This **README.md** provides your development team with the technical specifications and mandatory safeguards for implementing the "sustainability" Well-Known URI as defined in **draft-besleaga-sustainability-wellknown**.
 
 ---
 

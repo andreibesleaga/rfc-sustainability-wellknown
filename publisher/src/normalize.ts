@@ -89,7 +89,7 @@ function nowIso(): string {
  * Throws if mandatory inputs are missing or the period is malformed.
  */
 export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): SustainabilityMetrics {
-  const version = opts.version ?? "1.0";
+  const version = opts.version ?? "1.1";
 
   if (!raw.provider) throw new Error("normalize: provider is required");
   if (!raw.measurementMethod) throw new Error("normalize: measurementMethod is required");

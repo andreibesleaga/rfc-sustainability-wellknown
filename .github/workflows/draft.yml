@@ -27,7 +27,7 @@ jobs:
       - name: Determine latest draft
         id: draft
         run: |
-          latest=$(ls documents/draft-besleaga-green-sustainability-wellknown-*.md | sort | tail -1)
+          latest=$(ls documents/draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
           echo "md=$latest" >> "$GITHUB_OUTPUT"
           echo "Latest draft: $latest"
       - name: Build XML + text

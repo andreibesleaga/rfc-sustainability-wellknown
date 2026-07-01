@@ -2,7 +2,7 @@
 
 A production-grade gateway that serves a **fully draft-conformant** `/.well-known/sustainability`
 document, as defined by
-[draft-besleaga-green-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-green-sustainability-wellknown/).
+[draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
 
 It ingests metrics from pluggable **source adapters**, normalizes them to the draft's
 field model, **validates every payload against this repository's JTD and CDDL schemas
@@ -124,7 +124,7 @@ The CLI loads a JSON config:
 {
   "adapter":  { "type": "computed", "options": { /* adapter options */ } },
   "publisher": {
-    "normalize": { "version": "1.0", "energyUnit": "kWh", "carbonUnit": "gCO2e" },
+    "normalize": { "version": "1.1", "energyUnit": "kWh", "carbonUnit": "gCO2e" },
     "security":  { "maxObjects": 366, "enforceDailyFloor": true, "applyNoise": false },
     "cacheTtlMs": 86400000
   },

@@ -1,5 +1,17 @@
 Here is a summary of the changes between draft versions of "The 'sustainability' Well-Known URI" specification.
 
+The document was published under two names. Versions **00–05** were `draft-besleaga-green-sustainability-wellknown`; it was then renamed to `draft-besleaga-sustainability-wellknown` (starting at **00**), which **replaces** the earlier series.
+
+---
+
+### **`draft-besleaga-green-sustainability-wellknown-05` → `draft-besleaga-sustainability-wellknown-00` (rename / Independent Submission)**
+
+An administrative continuation with no change to the field set or wire format; all previously published example payloads remain valid.
+
+* **Rename + Replaces:** Renamed from `draft-besleaga-green-sustainability-wellknown` to `draft-besleaga-sustainability-wellknown` and recorded a datatracker "Replaces" relationship. The prior "green" token could imply an IETF GREEN Working Group scope; this is an individual **Independent Submission** with no working-group affiliation.
+* **Schema version 1.1 as default:** All examples now declare `version: "1.1"` (1.1 introduced the optional `disclosure-uri` field; `1.0` documents remain valid).
+* **Clarification — unreported metrics:** A negative value in a required numeric field (`energy-consumption`, `carbon-footprint`) now explicitly means "not reported" (not a real negative measurement); clients consult `disclosure-uri`/`methodology-uri` instead. Added an "Unreported Numeric Metrics" subsection.
+
 ---
 
 ### **Version 04 to Version 05**
@@ -91,5 +103,17 @@ The transition from v01 to v02 primarily focused on simplifying query parameters
 * **Array Size Limits:** To prevent Denial of Service (DoS) attacks via memory exhaustion from the new `granularity` parameter, v01 adds a requirement for servers to cap the maximum number of objects returned (recommending a limit of 366 objects).
 * **Hardware Fingerprinting Mitigation:** Where v00 loosely suggested applying a "small amount of 'noise'" to obscure hardware architectures, v01 explicitly quantifies this recommendation to roughly **± 1%**.
 * **Caching Details:** v01 removes the strict `max-age=31536000` recommendation for historical data caching, simplifying the text to generally recommend a "long `max-age` (e.g., one year)".
+
+---
+
+### **Initial Version (00)**
+
+The first published revision established the core proposal:
+
+* **Well-Known URI:** Defined the `/.well-known/sustainability` URI per RFC 8615 as an out-of-band, discoverable location for an origin's environmental metrics, retrieved via HTTP GET.
+* **Data Model:** A JSON document reporting **energy** (in `kWh`) and **carbon** (in `gCO2e`) for the origin, returned as a single JSON object.
+* **Query Parameters:** A custom bounded timeframe using explicit `start` and `end` date-time strings.
+* **Schema:** An initial CDDL definition of the response.
+* **Considerations:** Preliminary security guidance (including a loose "noise" suggestion to obscure hardware) and caching recommendations.
 
 ---

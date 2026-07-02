@@ -4,6 +4,14 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
+### **Version 00 to Version 01 (`draft-besleaga-sustainability-wellknown`)**
+
+An editorial/positioning update with no change to the data model, field semantics, service levels, or wire format; all previously published example payloads remain valid.
+
+* Replaced "standardized" with "uniform convention" in the Abstract, to reflect that this is an **Informational** document describing a common, interoperable convention rather than a standards-track specification — better suited to the Independent Submission Stream and Research Group discussion.
+
+---
+
 ### **`draft-besleaga-green-sustainability-wellknown-05` → `draft-besleaga-sustainability-wellknown-00` (rename / Independent Submission)**
 
 An administrative continuation with no change to the field set or wire format; all previously published example payloads remain valid.

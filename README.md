@@ -55,8 +55,9 @@ RFC draft in multiple formats plus supplementary documents.
 
 | File | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-00.md` | Latest draft (current) — Markdown source |
-| `draft-besleaga-green-sustainability-wellknown-05/04/03/02/01/00.*` | Previous revisions (md, xml, txt, html) |
+| `draft-besleaga-sustainability-wellknown-01.md` | Latest draft (current) — Markdown source |
+| `draft-besleaga-sustainability-wellknown-00.*` | Previous revision (posted to the Datatracker) |
+| `draft-besleaga-green-sustainability-wellknown-05/04/03/02/01/00.*` | Earlier revisions (previous name) |
 | `draft-verifiable-credential.md` | Supplementary: W3C Verifiable Credential structure for anti-greenwashing attestations |
 
 The draft defines the full data model, mandatory/optional fields, CDDL and JTD formal schemas, security and privacy considerations, and IANA registration request.

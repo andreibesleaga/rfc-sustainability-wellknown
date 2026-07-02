@@ -1,7 +1,7 @@
 /**
  * Canonical types for the `/.well-known/sustainability` data model.
  *
- * These mirror draft-besleaga-sustainability-wellknown-00. Field names use
+ * These mirror draft-besleaga-sustainability-wellknown (the current revision). Field names use
  * the wire (kebab-case) spelling so a `SustainabilityMetrics` object serializes
  * directly to a conformant payload.
  */

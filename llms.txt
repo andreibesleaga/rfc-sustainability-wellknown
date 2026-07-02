@@ -1,13 +1,13 @@
 # The 'sustainability' Well-Known URI (IETF Internet-Draft)
 
-> A standardized, out-of-band mechanism for web servers and digital services to publish their aggregated environmental impact, energy consumption, and carbon footprint metrics.
+> A uniform, out-of-band convention for web servers and digital services to publish their aggregated environmental impact, energy consumption, and carbon footprint metrics.
 
 ## Project Links
 * **GitHub Repository:** https://github.com/andreibesleaga/rfc-sustainability-wellknown
 * **IETF Datatracker:** https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/
 * **Author:** Andrei Nicolae BESLEAGA (https://github.com/andreibesleaga)
 * **IETF Stream:** Independent Submission (individual; not a working-group product)
-* **Current Latest Draft:** `draft-besleaga-sustainability-wellknown-00`
+* **Current Latest Draft:** `draft-besleaga-sustainability-wellknown-01`
 
 ## Context and Purpose
 The digital economy consumes a significant percentage of global electricity. Regulatory frameworks (like the EU CSRD) and industry standards (like GSF SCI, W3C Web Sustainability Guidelines) increasingly require organizations to disclose their digital environmental impact. 

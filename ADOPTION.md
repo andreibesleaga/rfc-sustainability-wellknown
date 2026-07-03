@@ -20,7 +20,7 @@ already exist.
 |---|---|
 | New protocol machinery? | **None.** It reuses HTTP GET, `application/json`, and the existing RFC 8615 well-known mechanism. |
 | New media type / IANA burden? | **No new media type.** One entry in the existing "Well-Known URIs" registry. |
-| Registration bar | RFC 8615 sets **Specification Required + Expert Review** — designed exactly for stable specs like this; no WG adoption is strictly required. |
+| Registration bar | RFC 8615 sets **Specification Required + Expert Review** — designed exactly for stable specs like this; no WG/RG adoption is strictly required. |
 | Security/privacy reviewed? | Yes — dedicated Security and Privacy sections (DoS caps, trust/spoofing, greenwashing, traffic-analysis floor, fingerprinting noise, TLS). |
 | Maintenance risk | Minimal, forward-compatible schema with explicit versioning and "ignore unknown fields" rule. |
 | Implementation risk | A production reference gateway + JTD/CDDL validators already pass end-to-end. |
@@ -52,23 +52,22 @@ continuous, queryable, comparable data.
 
 ## 4. Business & economic benefits
 
-- **Kills N×M integration.** Today every producer–consumer pair is a bespoke connector.
-  One well-known URI collapses this to N publishers + M readers of the same format.
+- **N×M integration.** One well-known URI which collapses existing connectors to N publishers + M readers of the same format.
 - **Lowers disclosure cost.** Numbers already computed in Salesforce Net Zero Cloud,
-  Microsoft Sustainability Manager, or Watershed can be auto-projected to a public endpoint
+  Microsoft Sustainability Manager, Watershed, or Green Web Foundation APIs can be auto-projected to a public endpoint
   (this repo's gateway does exactly that) instead of manual exports.
 - **Vendor-neutral, no lock-in.** Adopters bet on an open IETF spec, not a proprietary
   format — easier procurement, easier auditing.
-- **New capabilities.** Enables carbon-aware load balancing, green routing, supplier
+- **New capabilities.** Enables carbon-aware load balancing,  routing, supplier
   due-diligence crawling, and procurement filters that need a programmatic footprint read.
-- **Trust & anti-greenwashing.** `methodology-uri` + `verifiable-attestation-uri` let claims
+- **Trust & anti-washing.** `methodology-uri` + `verifiable-attestation-uri` let claims
   be checked against signed W3C Verifiable Credentials, raising market integrity.
 
 ## 5. Ecosystem & environmental benefits
 
 - **Interoperates with existing real-world tooling.** The optional `disclosure-uri` field links
   a metrics document to a machine-readable disclosure index — the canonical example being a
-  Green Web Foundation [carbon.txt](https://carbontxt.org/) file. The reference publisher
+   Green Web Foundation [carbon.txt](https://carbontxt.org/) file. The reference publisher
   computes metrics from bytes with **CO2.js**, ingests a remote carbon.txt via the GWF **hosted
   API**, and can serve a **bidirectional carbon.txt** pointing back to `/.well-known/sustainability`.
   This complements the "well-known sustainability files" family (alongside security.txt/RFC 9116)
@@ -86,15 +85,15 @@ Well-known URIs are an established, low-risk IETF pattern: `security.txt` (RFC 9
 `change-password`, `host-meta` (RFC 6415), and dozens more. A `sustainability` entry is a
 natural, incremental addition in exactly the spirit of RFC 8615.
 
-## 7. Anticipated objections — and answers
+## 7. Possible objections
 
 | Objection | Answer |
 |---|---|
 | "Methodologies differ; numbers aren't comparable." | The draft is explicitly a **discovery and semantics** layer, not a methodology mandate; `measurement-method` + `methodology-uri` disclose how each number was derived. |
-| "Could be abused for greenwashing." | Addressed: mandatory methodology link, optional signed attestations, and a clients-MUST-NOT-treat-as-proof rule. |
+| "Could be abused for washing." | Addressed: mandatory methodology link, optional signed attestations, and a clients-MUST-NOT-treat-as-proof rule. |
 | "Privacy / fingerprinting from fine metrics." | Addressed: 24-hour granularity floor, optional ~1% fuzzing, aggregation guidance. |
 | "DoS via dynamic aggregation." | Addressed: 366-object cap, mandatory caching, rate-limiting guidance; the reference gateway precomputes and caches. |
-| "Does it belong in GREEN?" | The IANA registration only needs Specification Required + Expert Review; the draft is now an individual **Independent Submission** (ISE), and the registration proceeds regardless of WG. |
+| "Does it belong in GREEN/SUSTAIN?" | The IANA registration only needs Specification Required + Expert Review; the draft is an individual **Independent Submission** (ISE), and the registration proceeds regardless of WG/RG. |
 
 ## 8. Readiness evidence (in this repository)
 

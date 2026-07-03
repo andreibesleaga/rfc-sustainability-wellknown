@@ -1,6 +1,6 @@
-# Internet RFC Draft Proposal
+# Internet Draft Proposal
 ## IETF I-D (work in progress)
-### rfc-sustainability-wellknown - The 'sustainability' Well-Known URI
+### The 'sustainability' Well-Known URI
 
 Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/)
 
@@ -14,7 +14,7 @@ This repository contains the initial documents and other supporting examples, to
 
 ## What this defines
 
-A standardized `/.well-known/sustainability` URI that allows any web server or digital service to publish its aggregated energy consumption and carbon footprint metrics in a machine-readable JSON format. Out-of-band, asynchronous reporting, not per-request overhead.
+A `/.well-known/sustainability` URI that allows any web server or digital service to publish its aggregated energy consumption and carbon footprint metrics in a machine-readable JSON format. Out-of-band, asynchronous reporting, not per-request overhead.
 
 #### Goals
 * Provide a single, discoverable location, for environmental metrics for an origin.
@@ -29,6 +29,12 @@ A standardized `/.well-known/sustainability` URI that allows any web server or d
 * It does not replace domain-specific reporting standards; it defines discovery and semantics and provides a discovery surface for linking to authoritative reports.
 
 ---
+
+### Adoption & publishing
+
+* [ADOPTION.md](ADOPTION.md) — the multi-dimensional case (technical, regulatory, business, ecosystem, environmental) for adopting and approving this as an RFC and IANA registration.
+
+--- 
 
 ## Repository Structure
 The normative specification is the Internet‑Draft; this repo provides non‑normative examples, tooling, and documentation.
@@ -186,10 +192,6 @@ This allows automated tools to cryptographically verify published sustainability
 
 * [discovery/](discovery/) — product discovery suite (market scan, opportunity assessment, problem statement, requirements, PRD, technical spec) framing the gateway against the enterprise carbon-accounting ecosystem, plus [a deep-research companion to the draft](discovery/07-greenweb-carbontxt-integration.md) on the Green Web Foundation / carbon.txt / CO2.js integration.
 * [COMPLIANCE/SFC.md](COMPLIANCE/SFC.md) — how this draft and the publisher relate to the Sustainability-First Consensus (SFC) framework, with a field-level compliance matrix.
-
-## Adoption & publishing
-
-* [ADOPTION.md](ADOPTION.md) — the multi-dimensional case (technical, regulatory, business, ecosystem, environmental) for adopting and approving this as an RFC and IANA registration, with answers to likely objections.
 
 
 ## CHANGELOG

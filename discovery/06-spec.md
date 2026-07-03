@@ -16,7 +16,7 @@ Internet-Draft; this document specifies the software that satisfies it. Non-norm
             └───────────────────────────────┬─────────────────────────────┘
                                             ▼
             ┌─────────────────────────────────────────────────────────────┐
-            │  secureReports(): 366-cap · ≥24h floor · optional ~1% noise │  Layer 3: Safeguards
+            │  secureReports(): sort·366-cap · ≥24h floor · determ. noise │  Layer 3: Safeguards
             │  validateDocument(): JTD (RFC 8927) gate — reject if invalid│  + Validation gate
             └───────────────────────────────┬─────────────────────────────┘
                                             ▼
@@ -44,7 +44,7 @@ API), `salesforce-nzc`, `ms-sustainability` (OData `$skiptoken` paging), `waters
 
 ## 4. Layer 3 — safeguards + validation gate
 
-- `secureReports`: cap 366; drop sub-daily; optional fuzz.
+- `secureReports`: drop sub-daily; sort ascending; cap 366 keeping the most recent; optional fuzz (deterministic per reporting period, single factor per report).
 - `validateDocument`: Ajv JTD against the **embedded copy of the repo schema**
   (`schemas-validators/response-schema.json`), asserted byte-identical in CI. A failure
   raises `ValidationError`; the handler maps it to `503` and serves nothing.
@@ -71,7 +71,7 @@ MS Sustainability OData ──$skiptoken paging──▶ aggregate emissions+ene
 
 | Draft clause | Gateway component |
 |---|---|
-| Basic service (no params, single object, last full month) | `Publisher.build`, `lastFullMonth()` |
+| Basic service (no params, single object, most recent completed period) | `Publisher.build`, `lastFullMonth()` |
 | Extended params (`target`/`period`/`granularity`) | `parseQuery`, adapter `fetch(query)` |
 | Mandatory/optional fields | `normalize()` → `SustainabilityMetrics` |
 | Formal schema (JTD/CDDL) | `validate.ts` gate + CI cross-validation |

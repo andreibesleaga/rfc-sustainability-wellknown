@@ -110,22 +110,22 @@ python3 install.py
 
 ## example-scripts/
 
-Server-side security middleware implementing the mandatory safeguards from the draft's Security and Privacy sections. Three languages for broad adoption.
+Server-side security middleware implementing the operational safeguards from the draft's Security and Privacy sections. Three languages for broad adoption.
 
 | File | Description |
 |---|---|
-| `security.py` | Python — DoS cap, sub-daily filter, 1% noise injection |
+| `security.py` | Python — DoS cap, sub-daily filter, optional deterministic ~1% noise |
 | `security.js` | TypeScript — same three safeguards |
 | `security.php` | PHP — same three safeguards + `Content-Type: application/json` header |
 | `README.md` | Endpoint spec, service levels, mandatory safeguards, caching, validation field table |
 
-**Three mandatory safeguards** (draft §Security / §Privacy):
+**The draft's operational safeguards** (draft §Security / §Privacy):
 
 | Safeguard | Detail |
 |---|---|
 | **DoS protection** | Cap response arrays at 366 objects maximum |
 | **Traffic analysis prevention** | Reject entries with `reporting-period` finer than 24 hours (string length > 10) |
-| **Anti-fingerprinting** | Apply ~1% random noise to `energy-consumption`, `carbon-footprint`, `scope-1/2/3` |
+| **Anti-fingerprinting** (optional) | ~1% noise on `energy-consumption`, `carbon-footprint`, `scope-1/2/3`, applied once at generation time, deterministic per reporting period, consistent across related fields; never on the not-reported sentinel |
 
 ---
 
@@ -153,7 +153,7 @@ Both configurations implement:
 
 | Field | Required | Type | Notes |
 |---|---|---|---|
-| `version` | Yes | string | Schema version, e.g. `"1.1"` |
+| `version` | Yes | string | Informational schema-revision label, e.g. `"1.1"` (no negotiation semantics) |
 | `updated` | Yes | string | RFC 3339 timestamp |
 | `capabilities` | Yes | `"basic"` / `"extended"` | |
 | `provider` | Yes | string | |

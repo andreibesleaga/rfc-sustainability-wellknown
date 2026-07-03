@@ -51,7 +51,22 @@ export function expressSustainability(
     next: NextLike,
   ): Promise<void> {
     const path = req.path ?? (req.url ?? "").split("?")[0];
-    if (req.method && req.method !== "GET" && req.method !== "HEAD") return next();
+    const handledPath = path === WELL_KNOWN_PATH || (opts.carbonTxt && carbonPaths.has(path));
+    if (req.method && req.method !== "GET" && req.method !== "HEAD") {
+      // Draft: other methods on the well-known path SHOULD get 405 + Allow.
+      if (handledPath) {
+        res
+          .status(405)
+          .set({
+            Allow: "GET, HEAD",
+            "Content-Type": "application/json",
+            ...(opts.cors !== false ? { "Access-Control-Allow-Origin": opts.cors ?? "*" } : {}),
+          });
+        res.send(JSON.stringify({ error: "method not allowed" }));
+        return;
+      }
+      return next();
+    }
 
     if (opts.carbonTxt && carbonPaths.has(path)) {
       const host = req.headers?.host as string | undefined;

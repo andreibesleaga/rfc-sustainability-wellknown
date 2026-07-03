@@ -22,7 +22,7 @@ already exist.
 | New media type / IANA burden? | **No new media type.** One entry in the existing "Well-Known URIs" registry. |
 | Registration bar | RFC 8615 sets **Specification Required + Expert Review** — designed exactly for stable specs like this; no WG/RG adoption is strictly required. |
 | Security/privacy reviewed? | Yes — dedicated Security and Privacy sections (DoS caps, trust/spoofing, greenwashing, traffic-analysis floor, fingerprinting noise, TLS). |
-| Maintenance risk | Minimal, forward-compatible schema with explicit versioning and "ignore unknown fields" rule. |
+| Maintenance risk | Minimal: open, forward-compatible schema with an informational version label and the "ignore unknown fields" rule. |
 | Implementation risk | A production reference gateway + JTD/CDDL validators already pass end-to-end. |
 
 The downside of approval is near-zero; the cost of *not* having a standard is ongoing

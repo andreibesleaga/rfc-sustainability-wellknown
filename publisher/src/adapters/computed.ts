@@ -31,9 +31,12 @@ export interface ComputedAdapterConfig {
 }
 
 export function computedAdapter(config: ComputedAdapterConfig): SourceAdapter {
+  // Default "extended": this adapter always emits the optional
+  // carbon-intensity-gCO2-per-kWh field, and a response declaring "basic"
+  // SHOULD NOT include optional fields (draft §Mandatory Response Fields).
   return {
     name: "computed",
-    capabilities: config.capabilities ?? "basic",
+    capabilities: config.capabilities ?? "extended",
     async fetch(): Promise<RawMetrics> {
       const raw: RawMetrics = {
         provider: config.provider,
@@ -41,7 +44,7 @@ export function computedAdapter(config: ComputedAdapterConfig): SourceAdapter {
         methodologyUri: config.methodologyUri,
         reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
         carbonIntensity: config.gridIntensity,
-        capabilities: config.capabilities ?? "basic",
+        capabilities: config.capabilities ?? "extended",
       };
       if (config.energy) raw.energy = config.energy;
       if (config.energyJoules !== undefined) raw.energyJoules = config.energyJoules;

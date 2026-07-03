@@ -71,6 +71,11 @@ export interface RawMetrics {
 
   capabilities?: Capabilities;
   updated?: string;
+  /**
+   * Echoed as `target-path`. Adapters that scope a response to a requested
+   * `query.target` MUST set this (draft: absence means the metrics are
+   * origin-wide).
+   */
   targetPath?: string;
   carbonAccounting?: CarbonAccounting;
   scope1?: number;

@@ -231,6 +231,93 @@ describe("open schema (extensibility fix)", () => {
   });
 });
 
+// draft -02 pre-submission hardening: deterministic noise, sort, truncation
+describe("security conforms to draft -02 review hardening", () => {
+  const rep = (period: string, energy = 10): SustainabilityMetrics => ({
+    version: "1.1",
+    updated: "2026-04-01T00:00:00Z",
+    capabilities: "basic",
+    provider: "p",
+    "measurement-method": "m",
+    "methodology-uri": "u",
+    "reporting-period": period,
+    "energy-consumption": energy,
+    "energy-unit": "kWh",
+    "carbon-footprint": energy * 100,
+    "carbon-unit": "gCO2e",
+  });
+
+  it("noise is deterministic per reporting period (same values on regeneration)", () => {
+    const input = [rep("2026-01"), rep("2026-02")];
+    const a = secureReports(input, { applyNoise: true });
+    const b = secureReports(input, { applyNoise: true });
+    expect(a).toEqual(b); // regeneration (e.g. cache expiry) must not change published values
+    for (const r of a) {
+      // bounded within ~±1% (a factor of exactly 1.0 is a legitimate hash outcome)
+      expect(r["energy-consumption"]).toBeGreaterThanOrEqual(9.9);
+      expect(r["energy-consumption"]).toBeLessThanOrEqual(10.1);
+    }
+  });
+
+  it("noise keeps arithmetically related fields consistent (single factor)", () => {
+    const withScopes = { ...rep("2026-01"), "scope-1": 400, "scope-2": 300, "scope-3": 300 };
+    const [out] = secureReports([withScopes], { applyNoise: true });
+    const sum = (out["scope-1"] as number) + (out["scope-2"] as number) + (out["scope-3"] as number);
+    expect(Math.abs(sum - (out["carbon-footprint"] as number))).toBeLessThan(0.05); // rounding only
+  });
+
+  it("arrays are sorted ascending and truncation keeps the most recent periods", () => {
+    const months = Array.from({ length: 12 }, (_, i) => rep(`2026-${String(i + 1).padStart(2, "0")}`));
+    const shuffled = [months[5], months[0], months[11], ...months.slice(1, 5), ...months.slice(6, 11)];
+    const out = secureReports(shuffled, { maxObjects: 3 });
+    expect(out.map((r) => r["reporting-period"])).toEqual(["2026-10", "2026-11", "2026-12"]);
+  });
+});
+
+// draft -02 final repo sweep: sci-score coupling, array shape, cross-entry rules
+describe("draft -02 conformance sweep fixes", () => {
+  it("normalize throws when sci-score is supplied without functional-unit", () => {
+    expect(() => normalize(okRaw({ sciScore: 0.5 }))).toThrow(/functional-unit/);
+    expect(() => normalize(okRaw({ sciScore: 0.5, functionalUnit: "per-request" }))).not.toThrow();
+  });
+
+  it("publisher collapses a trend to the most recent object when no granularity is requested", async () => {
+    const trend = ["2026-01", "2026-02", "2026-03"].map((p) => okRaw({ reportingPeriod: p }));
+    const pub = new Publisher(
+      { name: "t", capabilities: "extended", fetch: async () => trend },
+      { cacheTtlMs: 0 },
+    );
+    const noGran = await pub.getDocument({});
+    expect(Array.isArray(noGran)).toBe(false);
+    expect((noGran as any)["reporting-period"]).toBe("2026-03"); // most recent
+    const withGran = await pub.getDocument({ period: "2026", granularity: "monthly" });
+    expect(Array.isArray(withGran)).toBe(true);
+    expect((withGran as any[]).length).toBe(3);
+  });
+
+  it("validateDocument enforces cross-entry array rules", () => {
+    const entry = (period: string, target?: string) => ({
+      version: "1.1",
+      updated: "2026-04-01T00:00:00Z",
+      capabilities: "basic",
+      provider: "p",
+      "measurement-method": "m",
+      "methodology-uri": "u",
+      "reporting-period": period,
+      "energy-consumption": 1,
+      "energy-unit": "kWh",
+      "carbon-footprint": 1,
+      "carbon-unit": "gCO2e",
+      ...(target ? { "target-path": target } : {}),
+    });
+    expect(validateDocument([entry("2026-01"), entry("2026-02")] as any).valid).toBe(true);
+    expect(validateDocument([entry("2026-02"), entry("2026-01")] as any).valid).toBe(false); // unsorted
+    expect(validateDocument([entry("2026-01"), entry("2026-01")] as any).valid).toBe(false); // overlap
+    expect(validateDocument([entry("2026"), entry("2026-01")] as any).valid).toBe(false); // mixed precision
+    expect(validateDocument([entry("2026-01", "/a"), entry("2026-02", "/b")] as any).valid).toBe(false); // mixed target
+  });
+});
+
 // co2.js swdVersion option
 describe("co2js swdVersion (dependency bump)", () => {
   it("v3 pin yields different (higher) numbers than v4 default, both valid", async () => {

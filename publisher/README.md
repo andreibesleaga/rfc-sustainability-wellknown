@@ -35,7 +35,7 @@ publishes unverified or malformed data (the circuit-breaker rule).
 cd publisher
 npm install
 npm run build      # tsc → dist/
-npm test           # vitest: 57 tests (unit + adapters + carbon.txt + conformance + E2E server/Express/Fastify/CLI)
+npm test           # vitest: 79 tests (unit + adapters + carbon.txt + conformance + hardening + E2E server/Express/Fastify/CLI)
 ```
 
 ## Quick start (any web server, zero credentials)
@@ -68,6 +68,7 @@ const publisher = new Publisher(
     reportingPeriod: "2026-02",
     energy: { value: 1250, unit: "kWh" },
     gridIntensity: 276,           // gCO2e/kWh → carbon-footprint computed for you
+    capabilities: "extended",     // the intensity field is an optional (Extended) field
   }),
 );
 
@@ -150,8 +151,10 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
 - **DoS**: arrays capped at 366 objects; responses cached (in-memory) and `Cache-Control`/`ETag` set.
 - **Traffic analysis**: the normalizer constrains `reporting-period` to day granularity at
   the finest; the security layer additionally drops any sub-daily entry.
-- **Hardware fingerprinting**: optional ~1% noise (`security.applyNoise`, off by default for
-  deterministic output).
+- **Hardware fingerprinting**: optional ~1% noise (`security.applyNoise`, off by default).
+  When enabled it is applied once at document-generation time, deterministically per
+  reporting period, with a single factor per report so related fields stay consistent
+  (per the draft's Hardware Fingerprinting rules); the sentinel is never noised.
 - **Trust**: link a signed W3C Verifiable Credential via the adapter's attestation field
   (`verifiable-attestation-uri`).
 
@@ -163,10 +166,10 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
 repo's **independent** Python (JTD) and Ruby (CDDL) validators in CI — see
 `.github/workflows/publisher.yml`.
 
-> Note on extensibility: the bundled JTD/CDDL schemas are strict (no additional members),
-> so the gateway emits only spec-defined fields. The draft permits unknown fields and
-> requires clients to ignore them; to actually emit vendor-namespaced fields, relax the
-> deployed schema to allow additional properties.
+> Note on extensibility: the bundled JTD/CDDL schemas are open per the draft (unknown
+> members are permitted and clients MUST ignore them). Vendor-namespaced fields supplied
+> by an adapter via `raw.extra` pass through `normalize` and the validation gate onto the
+> wire; the gateway itself emits only spec-defined fields unless an adapter adds extras.
 
 ## License
 

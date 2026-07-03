@@ -88,10 +88,9 @@ export function climatiqAdapter(config: ClimatiqConfig): SourceAdapter {
       }
 
       // Note: the emission_factor id is intentionally not copied into the payload.
-      // The bundled JTD/CDDL schemas are strict (no additional members), so the
-      // gateway emits only spec-defined fields; provenance lives behind
-      // `methodology-uri`. (Vendor extensions are possible only if the deploying
-      // schema is relaxed to allow additional properties.)
+      // The schemas are open (vendor extensions pass through `raw.extra`), but
+      // factor provenance belongs behind `methodology-uri` rather than as an
+      // ad-hoc extension member.
       return {
         provider: config.provider,
         measurementMethod: config.measurementMethod ?? "third-party-modeled",

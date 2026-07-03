@@ -36,27 +36,32 @@ informative:
     title: "The Greenhouse Gas Protocol: A Corporate Accounting and Reporting Standard (Revised Edition)"
     author:
       - org: World Resources Institute and World Business Council for Sustainable Development
+    target: https://ghgprotocol.org/corporate-standard
     date: 2004
   GSF-SCI:
     title: "Software Carbon Intensity (SCI) Specification (standardized as ISO/IEC 21031:2024)"
     author:
       - org: Green Software Foundation
+    target: https://sci.greensoftware.foundation/
     date: 2024
   RFC9547:
   EU-CSRD:
     title: "Directive (EU) 2022/2464 as regards corporate sustainability reporting (CSRD)"
     author:
       - org: European Parliament and Council
+    target: https://eur-lex.europa.eu/eli/dir/2022/2464/oj
     date: 2022-12
   UN-SDG:
     title: "Transforming our world: the 2030 Agenda for Sustainable Development"
     author:
       - org: United Nations
+    target: https://sdgs.un.org/2030agenda
     date: 2015
   W3C-WSG:
     title: "Web Sustainability Guidelines (WSG) 1.0 (W3C Community Group Report)"
     author:
       - org: W3C Sustainable Web Design Community Group
+    target: https://w3c.github.io/sustainableweb-wsg/
     date: 2023
   CARBON-TXT:
     title: "carbon.txt: A TOML convention for discovering an origin's sustainability disclosures"
@@ -122,7 +127,7 @@ This document defines the "sustainability" well-known URI and requests its regis
 
 ## Mandatory Minimum Supported Service
 
-The resource SHOULD be served over HTTPS. The HTTP methods, status codes, and header fields used in this document are defined in HTTP Semantics {{RFC9110}}. A `GET` request MUST receive a `200 OK` with a JSON body when metadata is available; a `HEAD` request receives the same status and headers with no message body. If no metadata is published, servers SHOULD respond with `404 Not Found`. A request using any method other than `GET` or `HEAD` SHOULD receive `405 Method Not Allowed` with an `Allow: GET, HEAD` header ({{RFC9110}}, Section 15.5.6). Responses MUST use the `application/json` media type, SHOULD follow I-JSON {{RFC7493}} for maximum compatibility, and SHOULD include appropriate caching directives (see Operational Considerations).
+The resource SHOULD be served over HTTPS. The HTTP methods, status codes, and header fields used in this document are defined in HTTP Semantics {{RFC9110}}. A `GET` request MUST receive a `200 OK` with a JSON body when metadata is available; a `HEAD` request receives the same status and headers with no message body. If no metadata is published, servers SHOULD respond with `404 Not Found`. A request using any method other than `GET` or `HEAD` SHOULD receive `405 Method Not Allowed` with an `Allow: GET, HEAD` header ({{RFC9110}}, Section 15.5.6). Successful (`200 OK`) responses MUST use the `application/json` media type, SHOULD follow I-JSON {{RFC7493}} for maximum compatibility, and SHOULD include appropriate caching directives (see Operational Considerations). A server MAY redirect the well-known URI; clients that follow a redirect MUST attribute the returned metrics to the origin of the final response, and providers SHOULD NOT redirect to a different origin.
 
 A compliant server MUST support the following "Basic" service level:
 
@@ -135,12 +140,16 @@ A compliant server MUST support the following "Basic" service level:
 
 Servers MAY support "Extended" capabilities via the following parameters:
 
-* **target**: Scopes the metrics to a resource path prefix (e.g., `?target=/api/v1/search`), matched against the origin's resource paths; the value follows URI path syntax {{RFC3986}} with any reserved characters percent-encoded.
+* **target**: Scopes the metrics to a resource path prefix (e.g., `?target=/api/v1/search`), matched against the origin's resource paths; the value follows URI path syntax {{RFC3986}} with any reserved characters percent-encoded. Matching is byte-wise and case-sensitive, on complete path segments. A server that scopes a response to a requested `target` MUST include the `target-path` field echoing the matched prefix; the absence of `target-path` means the metrics are origin-wide. To avoid disclosing the existence of unpublished paths (see Security Considerations), servers SHOULD honor `target` only for a deliberately published set of path prefixes and respond identically (per the no-data rule below) for all other values.
 * **period**: Specifies the timeframe using one of the following calendar-date precision forms (only `YYYY-MM-DD` is an RFC 3339 {{RFC3339}} `full-date`):
     * Year: `YYYY` (e.g., 2025)
     * Month: `YYYY-MM` (e.g., 2025-01)
     * Day: `YYYY-MM-DD` (e.g., 2026-01-01)
+
+  Calendar periods are interpreted in UTC unless the methodology document states otherwise.
 * **granularity**: Defines the time "slices" within a period. This document defines the values `monthly` and `daily`; a server SHOULD ignore an unrecognized value or a granularity that is not finer than the requested period. When the granularity is finer than the period, the server SHOULD return an array of objects.
+
+A `period` request without a (finer) `granularity` requests a single object covering exactly that period. If the server holds only finer-grained data for the requested period, it SHOULD either aggregate it into a single object (summing energy and carbon after conversion to a single declared unit) or respond per the no-data rule below; it MUST NOT return an array unless a `granularity` finer than the period was requested. For a requested period that has not yet completed, the server SHOULD report the completed portion to date.
 
 Servers that do not support the Extended parameters MUST ignore any such parameters and return the Basic response, rather than failing the request. If a supported parameter carries a malformed value (for example, a `period` that is not a valid date), the server MAY respond with `400 Bad Request`, or ignore the offending parameter and process the remainder of the request. When a server supports the requested parameters but has no data for a valid requested `period` or `target`, it SHOULD respond with `404 Not Found`.
 
@@ -148,10 +157,12 @@ Servers that do not support the Extended parameters MUST ignore any such paramet
 
 A successful response MUST return, with the media type `application/json`, either a single JSON object {{RFC8259}} or an array of such objects (an array is used to convey a trend, that is, several reporting periods). A single object is equivalent to a one-element array; clients MUST accept both forms and determine which was returned from the JSON top-level type.
 
+In an array response, the entries MUST be sorted in ascending order of `reporting-period`, MUST NOT cover overlapping periods, and MUST share the same period precision and (where present) the same `target-path`; the same units SHOULD be used across all entries.
+
 ### Mandatory Response Fields
 * **version** (string): An informational label identifying the schema revision the publisher used to build this document (e.g., `"1.1"`). It is a human- and debugging-oriented hint only and carries no negotiation or conformance semantics. Clients MUST NOT reject a document, or alter processing, solely because of the value of this field, and MUST apply the "ignore unknown fields" rule (see Versioning and Extensibility) regardless of the value present.
 * **updated** (string, date-time): The timestamp (RFC 3339) when the document was last updated.
-* **capabilities** (string): A self-declared indicator of the service level reflected by this document. It MUST be either "basic" or "extended". "basic" denotes the minimal service, in which the response carries only the mandatory fields. "extended" denotes that extended capabilities apply, meaning that the Extended query parameters are supported and/or one or more optional fields are present. The value is determined per response and MAY, at the provider's discretion, reflect the overall server, an individual response, or a specific resource path (the `target`). A value of "extended" does not, by itself, guarantee support for any particular Extended parameter or optional field; clients determine actual support from the fields present and from the server's behavior. A response declaring `basic` SHOULD NOT include optional fields.
+* **capabilities** (string): A self-declared indicator of the service level reflected by this document. It MUST be either "basic" or "extended". "basic" denotes the minimal service, in which the response is expected to carry only the mandatory fields. "extended" denotes that extended capabilities apply, meaning that the Extended query parameters are supported and/or one or more optional fields are present. The value is determined per response and MAY, at the provider's discretion, reflect the overall server, an individual response, or a specific resource path (the `target`). A value of "extended" does not, by itself, guarantee support for any particular Extended parameter or optional field; clients determine actual support from the fields present and from the server's behavior. A response declaring `basic` SHOULD NOT include optional fields; if it nevertheless does, clients MUST process the document normally; the fields present take precedence over the label.
 * **provider** (string): Information about the provider publishing the metadata.
 * **measurement-method** (string): Short description or reference to the methodology used. This is a free-form string; the values `hardware-metered`, `hardware-estimated`, `cloud-billing`, and `third-party-modeled` are RECOMMENDED.
 * **methodology-uri** (string): Link to the full methodology specification (calculation methodology).
@@ -167,6 +178,8 @@ All required members MUST be present so that the document is schema-valid. Howev
 
 Optional numeric fields SHOULD simply be omitted when not reported; a negative value in an optional numeric field MUST likewise be interpreted as "not reported" (omission remains RECOMMENDED). Consumers that require a value not present (or marked unreported) in this document SHOULD look to the linked disclosure or reporting resources.
 
+Publishing a document in which both `energy-consumption` and `carbon-footprint` are unreported is NOT RECOMMENDED unless the document includes a `disclosure-uri` or `verifiable-attestation-uri` pointing to where the metrics can be found; a document carrying neither measurements nor such a link conveys no information.
+
 ### Optional Response Fields
 
 The JSON object MAY contain the following OPTIONAL keys to align with the {{GHG-PROTOCOL}}, European Sustainability Reporting Standards (ESRS E1), other sustainability recommendations, and optional extended capabilities (a `capabilities` value of `extended` does not require every optional field to appear):
@@ -176,12 +189,12 @@ The JSON object MAY contain the following OPTIONAL keys to align with the {{GHG-
 * **scope-1** (numeric): Estimated Scope 1 (direct) carbon emissions.
 * **scope-2** (numeric): Estimated Scope 2 (indirect/purchased energy) carbon emissions.
 * **scope-3** (numeric): Estimated Scope 3 (value chain) carbon emissions.
-* **sci-score** (numeric): Software Carbon Intensity (SCI) score {{GSF-SCI}}.
-* **functional-unit** (string): If present, functional-unit MUST be defined (e.g., "per-request", "per-user") and it SHOULD be in the methodology-uri document.
+* **sci-score** (numeric): Software Carbon Intensity (SCI) score {{GSF-SCI}}. If `sci-score` is present, `functional-unit` MUST also be present.
+* **functional-unit** (string): The functional unit to which per-unit metrics are expressed (e.g., "per-request", "per-user"); its precise meaning SHOULD be defined in the `methodology-uri` document.
 * **carbon-intensity-gCO2-per-kWh** (numeric): Weighted carbon intensity in grams CO2 per kWh.
 * **estimated-annual-emissions-kgCO2** (numeric): Estimated annual emissions attributable to the origin.
 * **renewable-energy** (numeric): Percentage (0-100) of energy from sustainable renewable sources.
-* **verifiable-attestation-uri** (string): Link pointing to a verifiable credential or attestation to prevent greenwashing.
+* **verifiable-attestation-uri** (string): Link pointing to a verifiable credential or attestation, to support independent verification of the published metrics.
 * **disclosure-uri** (string): URI of a machine-readable sustainability disclosure index for the origin, that is, a single document listing links to the origin's public sustainability disclosures (reports, certificates, hosting and energy-source evidence). The field is format-agnostic; the canonical example is a Green Web Foundation carbon.txt file {{CARBON-TXT}}, which is itself commonly published at `/carbon.txt` or `/.well-known/carbon.txt`. A `disclosure-uri` links to supporting evidence and MUST NOT be treated by clients as proof of the metrics in this document.
 
 The `scope-1`, `scope-2`, and `scope-3` values are expressed in the unit given by `carbon-unit`; `sci-score` is expressed in grams of CO2e per the declared `functional-unit`.
@@ -252,7 +265,7 @@ sustainability-metrics = {
 
 ### Formal Definition (JTD)
 
-The following JSON Type Definition (RFC 8927) defines the reporting object:
+The following JSON Type Definition {{RFC8927}} defines the reporting object:
 
 ~~~ json
 {
@@ -359,7 +372,7 @@ Request: `GET /.well-known/sustainability?target=/api/v1&period=2026-03-15`
 ~~~ json
 {
   "version": "1.1",
-  "updated": "2026-03-01T12:00:00Z",
+  "updated": "2026-03-16T12:00:00Z",
   "capabilities": "extended",
   "target-path": "/api/v1",
   "reporting-period": "2026-03-15",
@@ -417,7 +430,7 @@ As above, the array holds one object per month; only the first two are shown for
 ~~~
 
 ## Highly Detailed Combined Extended Request
-Request: `GET /.well-known/sustainability?target=/app/storage&period=2026-03-20&granularity=daily`
+Request: `GET /.well-known/sustainability?target=/app/storage&period=2026-03-20`
 
 This example utilizes almost all optional fields, including GHG Protocol Scopes and a verifiable attestation link to combat greenwashing.
 
@@ -487,7 +500,7 @@ Because this endpoint can be dynamic, servers SHOULD implement heavy caching for
 
 To maximize interoperability:
 
-* Servers SHOULD implement the latest version of this specification that they support.
+* Servers SHOULD keep their published documents current with this specification.
 * Clients MUST tolerate unknown fields and future versions.
 * Implementers SHOULD publish example payloads and test vectors.
 * Aggregators SHOULD document how they map provider fields to their internal models.
@@ -495,7 +508,7 @@ To maximize interoperability:
 # Deployment
 
 * For multi-tenant platforms, operators SHOULD decide whether to publish per-tenant metadata at the tenant origin or a platform-level summary.
-* CDNs and reverse proxies MUST ensure that the `/.well-known/sustainability` path is routed to the authoritative publisher or proxied correctly.
+* Operators deploying behind CDNs or reverse proxies MUST ensure that the `/.well-known/sustainability` path is routed to the authoritative publisher or proxied correctly.
 * Automation: Providers SHOULD automate updates to the document to reflect changes in energy sourcing or measurement.
 
 
@@ -507,12 +520,14 @@ Because this endpoint may require internal database queries to aggregate data - 
 Dynamic aggregation of metrics for custom `period` parameters can be resource-intensive.
 
 * Servers SHOULD rate-limit requests to the sustainability URI and cache all generated reports.
+* Because each distinct query-string combination is a distinct cache entry, an attacker iterating unique parameter values can bypass a response cache; honoring `target` only for a published set of path prefixes (see Optional Extended Query Parameters) bounds the key space, and servers SHOULD precompute reports rather than aggregate on demand.
 
 ## Array Size Limits
 
 To prevent Denial of Service (DoS) via memory exhaustion, servers supporting `granularity` MUST limit the maximum number of objects returned. 
 
 * A cap of 366 objects is RECOMMENDED.
+* When a response would exceed the limit, the server SHOULD return the most recent periods and MAY signal the truncation (for example, via an extension member), or MAY respond with `400 Bad Request`.
 
 ## Trust and Spoofing
 
@@ -534,7 +549,7 @@ There is a risk that providers publish misleading or incomplete metrics to appea
 Publishing detailed operational metrics may reveal sensitive information about infrastructure, traffic patterns, or deployment topology.
 
 * Providers SHOULD avoid publishing data that could be used to infer internal architecture or expose personally identifiable information.
-* Aggregators MUST consider privacy-preserving aggregation techniques when publishing derived datasets.
+* Aggregators SHOULD use privacy-preserving aggregation techniques when publishing derived datasets.
 
 ## Integrity and Transport Security
 
@@ -551,12 +566,16 @@ Servers SHOULD NOT report metrics at a granularity finer than 24 hours to preven
 
 ## Hardware Fingerprinting
 
-Precise metrics can reveal hardware architectures. Servers MAY apply "noise" (fuzzing) of approximately 1% to reported values to mitigate identification while maintaining audit accuracy.
+Precise metrics can reveal hardware architectures. Servers MAY apply "noise" (fuzzing), uniformly bounded within approximately 1% of the true values, to mitigate identification with limited impact on aggregate accuracy. Noise MUST be applied once, at document-generation time, deterministically per reporting period, and consistently across arithmetically related fields (so that, for example, scope values still sum to the reported `carbon-footprint`); the noised values are the published values for caching and conditional-request purposes. Providers applying noise SHOULD disclose this in the `methodology-uri` document so that auditors can reconcile published figures with filed reports.
+
+## Path Disclosure
+
+When `target` is honored for arbitrary values, the difference between a scoped response and a no-data response can reveal which resource paths exist and carry traffic on the origin. As specified in Optional Extended Query Parameters, servers SHOULD honor `target` only for a deliberately published set of path prefixes and respond identically for all other values.
 
 
 # IANA Considerations
 
-IANA is requested to register the "sustainability" well-known URI in the "Well-Known URIs" registry maintained at IANA (<https://www.iana.org/assignments/well-known-uris>), following the procedure outlined in {{RFC8615}}.
+IANA is requested to register the "sustainability" well-known URI in the ["Well-Known URIs" registry](https://www.iana.org/assignments/well-known-uris), following the procedure outlined in {{RFC8615}}.
 This registration enables interoperable discovery of sustainability metadata.
 
 Following the registration template of {{RFC8615}}, Section 3.1:
@@ -569,7 +588,7 @@ Following the registration template of {{RFC8615}}, Section 3.1:
 
 A status of "provisional" is requested in keeping with {{RFC8615}}, Section 3.1: this is an Independent Submission rather than a Standards-Track or other open-standards-process document. Per that procedure, the designated expert(s) may promote the entry to "permanent" once it is found to be in broad use.
 
-The single-token suffix "sustainability" is intentionally chosen: the metadata it names is site-wide (origin-level) rather than tied to a particular resource, which is the pattern for which well-known URIs are appropriate {{RFC8615}}. Resource-specific scoping is provided through the `target` query parameter rather than through additional path segments. The use of query parameters on a well-known URI follows existing practice such as WebFinger {{?RFC7033}} and is permitted by {{RFC8615}}, Section 3.1. Registration is sought to enable interoperable discovery, not to signal endorsement of the publisher's claims.
+The single-token suffix "sustainability" is intentionally chosen: the metadata it names is site-wide (origin-level) rather than tied to a particular resource, which is the pattern for which well-known URIs are appropriate {{RFC8615}}. Resource-specific scoping is provided through the `target` query parameter rather than through additional path segments. The use of query parameters on a well-known URI follows existing practice such as WebFinger {{?RFC7033}} and is permitted by {{RFC8615}}, Section 3. Registration is sought to enable interoperable discovery, not to signal endorsement of the publisher's claims.
 
 
 # Acknowledgments
@@ -597,7 +616,8 @@ This revision applies editorial and normative clarifications to improve interope
 * Redefined the `version` member as an informational, non-negotiated label (clients MUST NOT reject or branch on it) and rewrote "Versioning and Extensibility" around the must-ignore rule, so that the specification accommodates future fields without a revision and without an in-band version-negotiation mechanism.
 * Changed the requested IANA registry status from "permanent" to "provisional" (appropriate for an Independent Submission per RFC 8615, promotable once in broad use), and added a rationale for the single-token suffix and the query-parameter design (WebFinger precedent).
 * Sharpened the "Relationship to Other Work" section to distinguish this application-layer, origin-level HTTP disclosure surface from network-layer energy work (IETF GREEN, EMAN/RFC 7326) and from IRTF research, and to state clearly that it complements, and does not duplicate, the Green Web Foundation carbon.txt convention; cited the IAB e-impact workshop report (RFC 9547) as motivating context.
-* Clarified that a single object is equivalent to a one-element array and that clients MUST accept both response forms.
+* Clarified that a single object is equivalent to a one-element array and that clients MUST accept both response forms; array entries are sorted, non-overlapping, and of uniform precision and target.
+* Interoperability hardening from pre-submission review: a `period` request without finer `granularity` yields a single (possibly aggregated) object; a server scoping a response to `target` echoes `target-path` (absence means origin-wide); `target` matching is byte-wise, case-sensitive, on complete path segments, against a published set of prefixes (also closing a path-disclosure oracle and bounding the cache key space); calendar periods are interpreted in UTC; incomplete periods report the completed portion; array truncation keeps the most recent periods; anti-fingerprinting noise is applied once at generation time, deterministically and consistently across related fields; `sci-score` requires `functional-unit`; a document with both required metrics unreported carries a disclosure link; redirect responses are attributed to the final origin.
 * Reference precision: identified carbon.txt as a TOML index, W3C WSG as a Community Group Report, and SCI by its ISO/IEC 21031:2024 form.
 * Corrected the arithmetic of the highly-detailed example (scopes now sum to the reported `carbon-footprint`).
 * Revised the Acknowledgments to thank the Internet sustainability community generally, without implying review or endorsement by any IETF Working Group or IRTF Research Group.

@@ -37,6 +37,29 @@ export function validateDocument(doc: SustainabilityDocument): ValidationResult 
       errors.push(...r.errors.map((e) => `${prefix}${e}`));
     }
   });
+
+  // Cross-entry array rules (draft §Payload Format): entries MUST be sorted
+  // ascending by reporting-period, MUST NOT overlap, and MUST share the same
+  // period precision and (where present) the same target-path. The per-object
+  // JTD schema cannot express these, so they are checked here.
+  if (Array.isArray(doc) && doc.length > 1) {
+    const periods = doc.map((m) => String(m["reporting-period"] ?? ""));
+    if (new Set(periods.map((p) => p.length)).size > 1) {
+      errors.push("array entries mix reporting-period precisions");
+    }
+    for (let i = 1; i < periods.length; i++) {
+      if (periods[i] <= periods[i - 1]) {
+        errors.push(
+          `array entries not strictly ascending by reporting-period at [${i}] ("${periods[i]}" after "${periods[i - 1]}")`,
+        );
+        break;
+      }
+    }
+    if (new Set(doc.map((m) => m["target-path"] ?? "")).size > 1) {
+      errors.push("array entries carry differing target-path values");
+    }
+  }
+
   return { valid: errors.length === 0, errors };
 }
 

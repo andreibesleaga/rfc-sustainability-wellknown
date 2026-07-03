@@ -72,9 +72,16 @@ export class Publisher {
       throw new NotFoundError();
     }
 
-    // Basic service / single source object → single object; trends → array.
-    const document: SustainabilityDocument =
-      wasArray || secured.length > 1 ? secured : secured[0];
+    // Draft: the Basic (no-parameter) request and a `period` request without a
+    // finer `granularity` MUST return a single JSON object — an array is only
+    // returned when a granularity finer than the period was requested. With no
+    // granularity in the query, collapse a trend to its most recent entry
+    // (secureReports sorts ascending, so that is the last element).
+    const document: SustainabilityDocument = query.granularity
+      ? wasArray || secured.length > 1
+        ? secured
+        : secured[0]
+      : secured[secured.length - 1];
 
     assertValid(document);
     return document;

@@ -156,6 +156,12 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   if (raw.scope1 !== undefined) out["scope-1"] = toScope(raw.scope1);
   if (raw.scope2 !== undefined) out["scope-2"] = toScope(raw.scope2);
   if (raw.scope3 !== undefined) out["scope-3"] = toScope(raw.scope3);
+  // Draft §Optional Response Fields: "If sci-score is present, functional-unit
+  // MUST also be present." The JTD gate cannot express this dependency, so it
+  // is enforced here (fail loudly rather than publish a MUST-violating doc).
+  if (raw.sciScore !== undefined && raw.functionalUnit === undefined) {
+    throw new Error("normalize: sci-score requires functional-unit (draft, Optional Response Fields)");
+  }
   if (raw.sciScore !== undefined) out["sci-score"] = round(raw.sciScore);
   if (raw.functionalUnit !== undefined) out["functional-unit"] = raw.functionalUnit;
   if (raw.carbonIntensity !== undefined) {

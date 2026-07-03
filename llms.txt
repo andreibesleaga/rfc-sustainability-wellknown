@@ -26,15 +26,15 @@ In addition to tracking the evolution of the draft through standard IETF version
 
 ### The Endpoint
 * **Path:** `/.well-known/sustainability`
-* **Method:** HTTP GET
+* **Method:** HTTP GET (and HEAD; other methods get `405` with `Allow: GET, HEAD`)
 * **Protocol:** HTTPS (SHOULD)
-* **Response:** `200 OK` with `application/json` payload, or `404 Not Found` if no metadata exists. Responses SHOULD follow I-JSON (RFC 7493).
+* **Response:** `200 OK` with `application/json` payload, or `404 Not Found` if no metadata exists. Successful responses SHOULD follow I-JSON (RFC 7493).
 
 ### Query Parameters
-Servers MUST support a "Basic" service level (no parameters, aggregating the entire host for the last full month). Servers MAY support "Extended" capabilities to filter data:
-* `target`: Specific resource path (e.g., `?target=/api/v1`).
-* `period`: Timeframe in RFC3339 format (Year `YYYY`, Month `YYYY-MM`, Day `YYYY-MM-DD`).
-* `granularity`: Time slices within a period (e.g., `monthly`, `daily`). Returns an array of objects (Max cap of 366 objects RECOMMENDED).
+Servers MUST support a "Basic" service level (no parameters, aggregating the entire origin for the most recently completed published reporting period; a full calendar month is RECOMMENDED). Servers MAY support "Extended" capabilities to filter data:
+* `target`: Specific resource path prefix (e.g., `?target=/api/v1`); servers scoping to a target echo it via `target-path` and SHOULD honor only a published set of prefixes.
+* `period`: Timeframe as a calendar-date precision form — Year `YYYY`, Month `YYYY-MM`, or Day `YYYY-MM-DD` (only the last is an RFC 3339 `full-date`); interpreted in UTC. Without a finer `granularity`, a `period` request yields a single object, never an array.
+* `granularity`: Time slices within a period (`monthly`, `daily`). When finer than the period, returns an array of objects sorted ascending (max cap of 366 objects RECOMMENDED; truncation keeps the most recent).
 
 ### Data Model (Schema v1.1)
 The response schema requires the following:
@@ -52,10 +52,10 @@ The response schema requires the following:
 ## Important Considerations
 * **Caching & DoS:** Heavy caching (e.g., `Cache-Control: max-age=86400`) and rate-limiting are strongly recommended because dynamic aggregation queries can be resource-intensive. `ETag` and `Last-Modified` headers are RECOMMENDED.
 * **Privacy & Traffic Analysis:** Finer-than-24-hour granularity is discouraged to prevent correlating energy spikes with real-time user actions.
-* **Hardware Fingerprinting:** A recommended ~1% "fuzzing" of metrics helps obscure specific backend hardware architectures while maintaining audit accuracy.
+* **Hardware Fingerprinting:** An optional ~1% "fuzzing" of metrics helps obscure specific backend hardware architectures with limited impact on aggregate accuracy; if applied, it is applied once at generation time, deterministically per reporting period, consistently across related fields, and never to the not-reported sentinel.
 * **Greenwashing Mitigation:** The specification does not mandate verification but provides schema surfaces (like `verifiable-attestation-uri`) to link to cryptographically signed W3C Verifiable Credentials or third-party attestations.
 
 ## Extensibility & Versioning
-* Backward-compatible changes (additive fields) SHOULD increment the minor version.
-* Incompatible changes (removed/renamed fields) MUST increment the major version.
-* Implementations MUST ignore unknown fields to preserve forward compatibility. Extensions MAY be added under vendor namespaces.
+* The `version` member is an informational label only (no negotiation or conformance semantics); clients MUST NOT reject a document or alter processing because of its value.
+* Forward compatibility rests on the must-ignore rule: implementations MUST ignore unknown fields, and the formal schemas (CDDL/JTD) are open to additional members. Extensions MAY be added under vendor namespaces (e.g., a `vendor-` prefix or domain-qualified name).
+* New fields can be introduced by future specifications or privately by implementers without revising the RFC; the values `"1.0"`/`"1.1"` denote historical schema revisions (`1.1` added `disclosure-uri`), and both remain valid.

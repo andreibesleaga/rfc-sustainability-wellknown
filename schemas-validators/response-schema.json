@@ -25,5 +25,6 @@
     "renewable-energy": { "type": "float64" },
     "verifiable-attestation-uri": { "type": "string" },
     "disclosure-uri": { "type": "string" }
-  }
+  },
+  "additionalProperties": true
 }

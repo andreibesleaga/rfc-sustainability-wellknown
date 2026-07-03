@@ -34,4 +34,5 @@ export const RESPONSE_JTD_SCHEMA = {
     "verifiable-attestation-uri": { type: "string" },
     "disclosure-uri": { type: "string" },
   },
+  additionalProperties: true,
 } as const;

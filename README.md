@@ -61,8 +61,9 @@ Draft in multiple formats plus supplementary documents.
 
 | File | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-01.md` | Latest draft (current) — Markdown source |
-| `draft-besleaga-sustainability-wellknown-00.*` | Previous revision |
+| `draft-besleaga-sustainability-wellknown-02.md` | Latest draft (current) — Markdown source |
+| `draft-besleaga-sustainability-wellknown-01.*` | Revision posted to the Datatracker (2026-07-02) |
+| `draft-besleaga-sustainability-wellknown-00.*` | Earlier revision |
 | `draft-besleaga-green-sustainability-wellknown-05/04/03/02/01/00.*` | Earlier revisions (previous name) |
 | `draft-verifiable-credential.md` | Supplementary: W3C Verifiable Credential structure for anti-greenwashing attestations |
 

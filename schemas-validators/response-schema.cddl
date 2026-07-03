@@ -36,5 +36,8 @@ sustainability-metrics = {
   ? estimated-annual-emissions-kgCO2: number,
   ? renewable-energy: number,
   ? verifiable-attestation-uri: tstr,
-  ? disclosure-uri: tstr
+  ? disclosure-uri: tstr,
+
+  ; Vendor extensions; clients MUST ignore unknown members
+  * tstr => any
 }

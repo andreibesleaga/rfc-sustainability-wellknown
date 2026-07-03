@@ -4,6 +4,22 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
+### **Version 01 to Version 02 (`draft-besleaga-sustainability-wellknown`)**
+
+Editorial and normative clarifications to improve interoperability and readiness for Independent-stream publication. No fields are added or removed, and all previously published example payloads remain valid.
+
+* **Formal schemas opened:** The CDDL map gains `* tstr => any` and the JTD gains `"additionalProperties": true`, aligning the machine schemas with the existing "clients MUST ignore unknown fields" rule (and matched byte-for-byte in the repo schemas and the publisher).
+* **HTTP references added:** Added **RFC 9110 (HTTP Semantics)** and **RFC 9111 (HTTP Caching)** as normative references and cited them where the document relies on methods, status codes (`405`/`Allow`), conditional requests (`ETag`/`Last-Modified`/`If-None-Match`), and caching.
+* **`version` redefined:** The `version` member is now an informational, non-negotiated label (clients MUST NOT reject or branch on it). "Versioning and Extensibility" was rewritten around the must-ignore rule so future fields need no revision of the specification and no in-band version negotiation.
+* **IANA status → provisional:** The requested "Well-Known URIs" registry status changed from `permanent` to `provisional` (appropriate for an Independent Submission per RFC 8615, promotable once in broad use), with an added rationale for the single-token suffix and the query-parameter design (WebFinger precedent) and the applicable `http`/`https` schemes.
+* **Positioning sharpened:** "Relationship to Other Work" now distinguishes this application-layer, origin-level HTTP disclosure surface from network-layer energy work (IETF GREEN, EMAN/RFC 7326) and IRTF research, and frames the Green Web Foundation **carbon.txt** convention (a TOML disclosure index) as complementary, not duplicative. Cited the IAB e-impact workshop report (**RFC 9547**).
+* **Clarifications:** date-format citations (only `YYYY-MM-DD` is an RFC 3339 `full-date`); HTTP method/no-data/granularity/malformed-parameter handling; scope units expressed in `carbon-unit` and `sci-score` per `functional-unit`; not-reported sentinel extended to optional numeric fields; Basic default period relaxed; a `basic` response omits optional fields; `target` prefix-matching and percent-encoding (**RFC 3986** added); single object equivalent to a one-element array (clients MUST accept both).
+* **Example fix:** Corrected the highly-detailed example arithmetic (scopes now sum to `carbon-footprint`; intensity 267 gCO2e/kWh).
+* **Acknowledgments:** Revised to thank the Internet sustainability community generally, without implying review or endorsement by any IETF Working Group or IRTF Research Group.
+* **Editorial:** typos, comma splices, heading hyphenation, host/origin terminology, `Acknowledgments` spelling, bare IANA URL; disambiguated the legacy changelog headings inherited from the former document name.
+
+---
+
 ### **Version 00 to Version 01 (`draft-besleaga-sustainability-wellknown`)**
 
 An editorial/positioning update with no change to the data model, field semantics, service levels, or wire format; all previously published example payloads remain valid.

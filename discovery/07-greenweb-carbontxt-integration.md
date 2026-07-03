@@ -63,9 +63,11 @@ API extracts them from linked CSRD reports / model cards into `document_data`.
 
 ## 4. CO2.js (the estimation library)
 
-- **Package** `@tgwf/co2` (Apache-2.0); converts **bytes → grams CO2e** via the Sustainable
-  Web Design (SWD) model (default) or OneByte; bundles country grid-intensity datasets;
-  wraps Greencheck. <https://developers.thegreenwebfoundation.org/co2js/overview/>
+- **Package** `@tgwf/co2` (Apache-2.0, pinned `^0.19.0`); converts **bytes → grams CO2e** via
+  the Sustainable Web Design (SWD) model (default) or OneByte; bundles country grid-intensity
+  datasets; wraps Greencheck. <https://developers.thegreenwebfoundation.org/co2js/overview/>
+  CO2.js `>= 0.18` defaults to **SWD v4** (current methodology); the `co2js` adapter exposes a
+  `swdVersion?: 3 | 4` option to reproduce pre-0.18 (v3) numbers when continuity is needed.
 - **Methods**: `new co2().perByte(bytes, green)` / `perVisit(bytes, green)` → grams;
   `perByteTrace(...)` exposes `variables.gridIntensity` (g/kWh). Datasets:
   `averageIntensity.data[ISO3]` (Ember) and `marginalIntensity.data[ISO3]` (UNFCCC), in

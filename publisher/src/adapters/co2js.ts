@@ -41,6 +41,11 @@ export interface Co2jsConfig {
   perVisit?: boolean;
   /** SWD (default) or OneByte model. */
   model?: "swd" | "1byte";
+  /**
+   * SWD model version. CO2.js >= 0.18 defaults to v4 (current methodology);
+   * pass `3` to reproduce pre-0.18 numbers. Ignored for the "1byte" model.
+   */
+  swdVersion?: 3 | 4;
 
   /** Green hosting, explicit. Overrides Greencheck. */
   green?: boolean;
@@ -106,7 +111,10 @@ export function co2jsAdapter(config: Co2jsConfig): SourceAdapter {
     name: "co2js",
     capabilities: config.capabilities ?? "extended",
     async fetch(): Promise<RawMetrics> {
-      const estimator = new Co2({ model: config.model ?? "swd" });
+      const estimator = new Co2({
+        model: config.model ?? "swd",
+        ...(config.swdVersion ? { version: config.swdVersion } : {}),
+      });
       const green = await resolveGreen(config);
 
       // CO2.js returns carbon at its own (default) grid intensity. Recover the

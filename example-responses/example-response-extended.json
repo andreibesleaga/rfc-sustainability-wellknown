@@ -9,7 +9,7 @@
   "target-path": "/app/storage",
   "energy-consumption": 12,
   "energy-unit": "kWh",
-  "carbon-footprint": 3,
+  "carbon-footprint": 3.2,
   "carbon-unit": "kgCO2e",
   "carbon-accounting": "market-based",
   "scope-1": 0.0,
@@ -17,9 +17,9 @@
   "scope-3": 1.1,
   "sci-score": 0.85,
   "functional-unit": "per-terabyte-day",
-  "carbon-intensity-gCO2-per-kWh": 258,
+  "carbon-intensity-gCO2-per-kWh": 267,
   "estimated-annual-emissions-kgCO2": 1168,
-  "renewable-energy": 99,
+  "renewable-energy": 45,
   "verifiable-attestation-uri": "https://verifier.example/vc/storage-inc-2026-03-20",
   "disclosure-uri": "https://storage.example/.well-known/carbon.txt"
 }

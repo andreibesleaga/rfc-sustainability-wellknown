@@ -7,7 +7,7 @@
 * **IETF Datatracker:** https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/
 * **Author:** Andrei Nicolae BESLEAGA (https://github.com/andreibesleaga)
 * **IETF Stream:** Independent Submission (individual; not a working-group product)
-* **Current Latest Draft:** `draft-besleaga-sustainability-wellknown-01`
+* **Current Latest Draft:** `draft-besleaga-sustainability-wellknown-02` (revision `-01` is the version posted to the IETF Datatracker as of 2026-07-02)
 
 ## Context and Purpose
 The digital economy consumes a significant percentage of global electricity. Regulatory frameworks (like the EU CSRD) and industry standards (like GSF SCI, W3C Web Sustainability Guidelines) increasingly require organizations to disclose their digital environmental impact. 
@@ -15,7 +15,7 @@ The digital economy consumes a significant percentage of global electricity. Reg
 Initial proposals focused on per-request HTTP headers for carbon transparency, which introduced a "rebound effect" (metadata increasing the carbon footprint and reducing TTFB caching performance). This project proposes an alternative: leveraging RFC 8615 to define a discoverable `/.well-known/sustainability` URI for asynchronous, out-of-band reporting. This allows workflows where environmental impact is a primary constraint alongside cost and performance.
 
 ## Repository Structure & Resources
-In addition to tracking the evolution of the draft through standard IETF versions (the former `draft-besleaga-green-sustainability-wellknown-00`…`-05` series, continued as `draft-besleaga-sustainability-wellknown-00`/`-01`), the GitHub repository acts as an extended resource hub for implementers. It includes:
+In addition to tracking the evolution of the draft through standard IETF versions (the former `draft-besleaga-green-sustainability-wellknown-00`…`-05` series, continued as `draft-besleaga-sustainability-wellknown-00`/`-01`/`-02`), the GitHub repository acts as an extended resource hub for implementers. It includes:
 * **Draft Sources (`documents/`):** The core `.md` (Markdown) files which act as the source documents compiled into the final IETF `.xml`/`.txt` formats using the kramdown-rfc + xml2rfc toolchains, plus a `CHANGELOG.md` and a supplementary W3C Verifiable Credential structure.
 * **Schemas & Validators (`schemas-validators/`):** Formal machine-readable definitions of the JSON data model — JSON Type Definition (JTD, RFC 8927) and Concise Data Definition Language (CDDL, RFC 8610) — with Python (JTD) and Ruby (CDDL) validators and a `validate-all.sh` runner.
 * **Examples (`example-responses/`):** Sample JSON responses demonstrating Basic, Extended, Target-Specific, and Highly Detailed scenarios. All pass both validators.

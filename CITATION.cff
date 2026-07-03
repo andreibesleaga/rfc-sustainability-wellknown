@@ -4,8 +4,8 @@ authors:
   - family-names: "Besleaga"
     given-names: "Andrei Nicolae"
 title: "The 'sustainability' Well-Known URI"
-version: "draft-01"
-date-released: "2026-07-01"
+version: "draft-02"
+date-released: "2026-07-03"
 url: "https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/"
 repository-code: "https://github.com/andreibesleaga/rfc-sustainability-wellknown"
 preferred-citation:
@@ -16,6 +16,6 @@ preferred-citation:
   title: "The 'sustainability' Well-Known URI"
   institution:
     name: "Internet Engineering Task Force (IETF)"
-  number: "draft-besleaga-sustainability-wellknown-01"
+  number: "draft-besleaga-sustainability-wellknown-02"
   year: 2026
   url: "https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/"

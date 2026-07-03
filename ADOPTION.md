@@ -97,7 +97,7 @@ natural, incremental addition in exactly the spirit of RFC 8615.
 
 ## 8. Readiness evidence (in this repository)
 
-- Stable draft at **draft-besleaga-sustainability-wellknown-01** (Independent Submission; continues and replaces the -00–-05 series).
+- Stable draft at **draft-besleaga-sustainability-wellknown-02** (Independent Submission; continues and replaces the -00–-05 series; revision -01 is posted to the Datatracker).
 - **Dual formal schemas** (JTD + CDDL) with Python and Ruby validators — examples pass 10/10.
 - A **production reference gateway** (TypeScript) with adapters for static/computed,
   Kepler/Prometheus, Climatiq, CO2.js and the carbon.txt hosted API (Green Web

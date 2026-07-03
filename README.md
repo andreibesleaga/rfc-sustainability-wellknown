@@ -57,7 +57,7 @@ rfc-sustainability-wellknown/
 
 ## documents/
 
-RFC draft in multiple formats plus supplementary documents.
+Draft in multiple formats plus supplementary documents.
 
 | File | Description |
 |---|---|

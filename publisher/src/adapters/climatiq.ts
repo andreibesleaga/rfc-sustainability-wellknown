@@ -73,12 +73,19 @@ export function climatiqAdapter(config: ClimatiqConfig): SourceAdapter {
       }
 
       // Climatiq returns co2e in kg by default; normalize to gCO2e for the model.
+      // Only metric mass units are recognized — anything else must fail loudly
+      // rather than be silently misread as grams.
       const unit = (resp.co2e_unit ?? "kg").toLowerCase();
-      const grams = unit.startsWith("kg")
-        ? resp.co2e * 1000
-        : unit.startsWith("t")
-          ? resp.co2e * 1_000_000
-          : resp.co2e; // assume grams otherwise
+      let grams: number;
+      if (unit === "kg" || unit === "kilogram" || unit === "kilograms") {
+        grams = resp.co2e * 1000;
+      } else if (unit === "t" || unit === "tonne" || unit === "tonnes" || unit === "metric ton") {
+        grams = resp.co2e * 1_000_000;
+      } else if (unit === "g" || unit === "gram" || unit === "grams") {
+        grams = resp.co2e;
+      } else {
+        throw new Error(`climatiqAdapter: unrecognized co2e_unit "${resp.co2e_unit}"`);
+      }
 
       // Note: the emission_factor id is intentionally not copied into the payload.
       // The bundled JTD/CDDL schemas are strict (no additional members), so the

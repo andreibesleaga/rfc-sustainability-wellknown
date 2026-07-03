@@ -32,6 +32,33 @@ export function readJson<T = any>(path: string): T {
  * {@link RawMetrics} so existing `/.well-known/sustainability` files (or example
  * payloads) can be re-ingested and re-validated by the gateway.
  */
+/** Wire-format keys handled explicitly by {@link fromWire}. */
+const WIRE_KEYS = new Set([
+  "version",
+  "updated",
+  "capabilities",
+  "provider",
+  "measurement-method",
+  "methodology-uri",
+  "reporting-period",
+  "energy-consumption",
+  "energy-unit",
+  "carbon-footprint",
+  "carbon-unit",
+  "target-path",
+  "carbon-accounting",
+  "scope-1",
+  "scope-2",
+  "scope-3",
+  "sci-score",
+  "functional-unit",
+  "carbon-intensity-gCO2-per-kWh",
+  "estimated-annual-emissions-kgCO2",
+  "renewable-energy",
+  "verifiable-attestation-uri",
+  "disclosure-uri",
+]);
+
 export function fromWire(m: SustainabilityMetrics): RawMetrics {
   const raw: RawMetrics = {
     provider: m.provider,
@@ -50,6 +77,9 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
   if (m["scope-3"] !== undefined) raw.scope3 = Number(m["scope-3"]);
   if (m["sci-score"] !== undefined) raw.sciScore = Number(m["sci-score"]);
   if (m["functional-unit"] !== undefined) raw.functionalUnit = String(m["functional-unit"]);
+  if (m["carbon-intensity-gCO2-per-kWh"] !== undefined) {
+    raw.carbonIntensity = Number(m["carbon-intensity-gCO2-per-kWh"]);
+  }
   if (m["renewable-energy"] !== undefined) raw.renewableEnergy = Number(m["renewable-energy"]);
   if (m["estimated-annual-emissions-kgCO2"] !== undefined) {
     raw.estimatedAnnualEmissionsKg = Number(m["estimated-annual-emissions-kgCO2"]);
@@ -58,6 +88,14 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
     raw.verifiableAttestationUri = String(m["verifiable-attestation-uri"]);
   }
   if (m["disclosure-uri"] !== undefined) raw.disclosureUri = String(m["disclosure-uri"]);
+
+  // Vendor extensions / unknown members survive re-ingestion (clients MUST
+  // ignore unknown fields; the gateway preserves them through normalize).
+  for (const [k, v] of Object.entries(m)) {
+    if (!WIRE_KEYS.has(k)) {
+      (raw.extra ??= {})[k] = v;
+    }
+  }
   return raw;
 }
 

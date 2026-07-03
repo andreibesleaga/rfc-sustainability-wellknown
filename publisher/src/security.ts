@@ -39,11 +39,12 @@ export function secureReports(
   const enforceDailyFloor = opts.enforceDailyFloor ?? true;
   const applyNoise = opts.applyNoise ?? false;
 
-  let out = reports.slice(0, maxObjects);
-
+  // Filter before capping so floor-dropped entries do not consume cap slots.
+  let out = reports;
   if (enforceDailyFloor) {
     out = out.filter((r) => isDailyOrCoarser(String(r["reporting-period"] ?? "")));
   }
+  out = out.slice(0, maxObjects);
 
   if (applyNoise) {
     out = out.map((r) => {

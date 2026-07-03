@@ -21,6 +21,12 @@ export interface PublisherOptions {
   security?: SecurityOptions;
   /** In-memory cache TTL in ms. Default 86_400_000 (24h), matching draft caching guidance. 0 disables. */
   cacheTtlMs?: number;
+  /**
+   * Maximum number of cached (target, period, granularity) variants. The cache
+   * key is client-controlled, so an unbounded map is a memory-DoS vector;
+   * oldest entries are evicted past this bound. Default 256.
+   */
+  maxCacheEntries?: number;
 }
 
 /** Raised when there is no metadata to publish (server should answer 404). */
@@ -89,7 +95,20 @@ export class Publisher {
     const etag = `"${createHash("sha1").update(body).digest("hex")}"`;
     const value: SerializedDocument = { body, etag, document };
 
-    if (ttl > 0) this.cache.set(key, { value, expires: Date.now() + ttl });
+    if (ttl > 0) {
+      // Bound the cache: evict expired entries first, then oldest (insertion
+      // order) while at capacity — the key is client-controlled query input.
+      const max = this.options.maxCacheEntries ?? 256;
+      const now = Date.now();
+      for (const [k, entry] of this.cache) {
+        if (entry.expires <= now) this.cache.delete(k);
+      }
+      while (this.cache.size >= max) {
+        const oldest = this.cache.keys().next().value as string;
+        this.cache.delete(oldest);
+      }
+      this.cache.set(key, { value, expires: now + ttl });
+    }
     return value;
   }
 

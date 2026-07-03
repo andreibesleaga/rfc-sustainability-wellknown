@@ -148,9 +148,14 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   // Optional fields (only set when present)
   if (raw.targetPath !== undefined) out["target-path"] = raw.targetPath;
   if (raw.carbonAccounting !== undefined) out["carbon-accounting"] = raw.carbonAccounting;
-  if (raw.scope1 !== undefined) out["scope-1"] = round(raw.scope1);
-  if (raw.scope2 !== undefined) out["scope-2"] = round(raw.scope2);
-  if (raw.scope3 !== undefined) out["scope-3"] = round(raw.scope3);
+  // Scope values are expressed in carbon-unit (draft §Optional Response
+  // Fields): they arrive in the source carbon unit and must follow the same
+  // conversion as carbon-footprint when an output unit is forced.
+  const scopeSourceUnit: CarbonUnit = raw.carbon?.unit ?? "gCO2e";
+  const toScope = (v: number) => round(convertCarbon(v, scopeSourceUnit, carbonUnit));
+  if (raw.scope1 !== undefined) out["scope-1"] = toScope(raw.scope1);
+  if (raw.scope2 !== undefined) out["scope-2"] = toScope(raw.scope2);
+  if (raw.scope3 !== undefined) out["scope-3"] = toScope(raw.scope3);
   if (raw.sciScore !== undefined) out["sci-score"] = round(raw.sciScore);
   if (raw.functionalUnit !== undefined) out["functional-unit"] = raw.functionalUnit;
   if (raw.carbonIntensity !== undefined) {

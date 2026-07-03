@@ -36,6 +36,24 @@ export interface WatershedConfig {
   fixture?: WatershedFootprint;
 }
 
+const PERIOD_RE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
+
+/**
+ * Watershed periods can be arbitrary labels (e.g. "2026-Q1") that do not fit
+ * the draft's YYYY[-MM[-DD]] shapes; require an explicit config override
+ * rather than publishing a malformed period.
+ */
+function resolvePeriod(configured?: string, upstream?: string): string {
+  const candidate = configured ?? upstream ?? "";
+  if (!PERIOD_RE.test(candidate)) {
+    throw new Error(
+      `watershedAdapter: upstream reportingPeriod "${upstream ?? ""}" is not YYYY, YYYY-MM, ` +
+        `or YYYY-MM-DD — set config.reportingPeriod explicitly`,
+    );
+  }
+  return candidate;
+}
+
 export function watershedAdapter(config: WatershedConfig): SourceAdapter {
   const carbonUnit = config.carbonUnit ?? "kgCO2e";
 
@@ -68,7 +86,7 @@ export function watershedAdapter(config: WatershedConfig): SourceAdapter {
         provider: config.provider,
         measurementMethod: config.measurementMethod ?? "third-party-modeled",
         methodologyUri: config.methodologyUri,
-        reportingPeriod: config.reportingPeriod ?? fp.reportingPeriod ?? "",
+        reportingPeriod: resolvePeriod(config.reportingPeriod, fp.reportingPeriod),
         energy: { value: fp.energyKwh, unit: "kWh" },
         carbon: { value: total, unit: carbonUnit },
         capabilities: "extended",

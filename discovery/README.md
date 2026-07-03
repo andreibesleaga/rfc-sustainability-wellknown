@@ -12,5 +12,5 @@ Internet-Draft in [`../documents/`](../documents/).
 6. [Technical spec](06-spec.md) — the four-layer gateway implementation.
 7. [Green Web Foundation / carbon.txt integration](07-greenweb-carbontxt-integration.md) — deep research (companion to the draft) on carbon.txt, the carbon.txt hosted API, and CO2.js, and how the `disclosure-uri` field + publisher integrate them.
 
-See also [../COMPLIANCE/SFC.md](../COMPLIANCE/SFC.md) for the relationship to the
+See also [../sfc-compliance/SFC.md](../sfc-compliance/SFC.md) for the relationship to the
 Sustainability-First Consensus (SFC) framework.

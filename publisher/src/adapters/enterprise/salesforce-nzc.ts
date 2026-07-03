@@ -99,11 +99,18 @@ export function salesforceNzcAdapter(config: SalesforceNzcConfig): SourceAdapter
           );
         }
         const yr = String(rec[fm.period] ?? "");
+        if (!/^\d{4}$/.test(yr)) {
+          // Never mislabel data with a guessed period: a missing/malformed
+          // inventory year is an upstream data problem, not the current year.
+          throw new Error(
+            `salesforceNzcAdapter: period field "${fm.period}" missing or not a year (got "${yr}")`,
+          );
+        }
         return {
           provider: config.provider,
           measurementMethod: config.measurementMethod ?? "third-party-modeled",
           methodologyUri: config.methodologyUri,
-          reportingPeriod: /^\d{4}$/.test(yr) ? yr : new Date().getUTCFullYear().toString(),
+          reportingPeriod: yr,
           energy: { value: energy, unit: energyUnit },
           carbon: { value: carbonTotal, unit: carbonUnit },
           carbonAccounting: "market-based",

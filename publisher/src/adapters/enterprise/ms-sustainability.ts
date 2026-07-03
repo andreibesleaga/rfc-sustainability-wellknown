@@ -62,9 +62,22 @@ export function msSustainabilityAdapter(config: MsSustainabilityConfig): SourceA
           throw new Error("msSustainabilityAdapter: baseUrl+accessToken or fixturePages required");
         }
         const endpoint = config.endpoint ?? "m365/tenantemissions";
-        let next: string | undefined = `${config.baseUrl.replace(/\/$/, "")}/${endpoint}`;
+        const base = config.baseUrl.replace(/\/$/, "");
+        const baseOrigin = new URL(base).origin;
+        let next: string | undefined = `${base}/${endpoint}`;
         let guard = 0;
-        while (next && guard < 1000) {
+        while (next) {
+          if (guard >= 1000) {
+            throw new Error(
+              "msSustainabilityAdapter: pagination exceeded 1000 pages — refusing to truncate silently",
+            );
+          }
+          // The Bearer token must never follow a cross-origin nextLink.
+          if (new URL(next, base).origin !== baseOrigin) {
+            throw new Error(
+              `msSustainabilityAdapter: @odata.nextLink points off-origin (${next}) — aborting`,
+            );
+          }
           const page: ODataPage = (await fetchJson(next, {
             headers: { Authorization: `Bearer ${config.accessToken}` },
           })) as ODataPage;
@@ -77,14 +90,24 @@ export function msSustainabilityAdapter(config: MsSustainabilityConfig): SourceA
       let carbon = 0;
       let energy = 0;
       let energyFound = false;
+      let emissionsFound = false;
       for (const page of pages) {
         for (const rec of page.value ?? []) {
-          carbon += num(rec[emissionsField]);
+          if (rec[emissionsField] !== undefined) {
+            carbon += num(rec[emissionsField]);
+            emissionsFound = true;
+          }
           if (config.energyField && rec[config.energyField] !== undefined) {
             energy += num(rec[config.energyField]);
             energyFound = true;
           }
         }
+      }
+      if (!emissionsFound) {
+        // A wrong field name must not publish 0 as a real footprint.
+        throw new Error(
+          `msSustainabilityAdapter: no record carried emissions field "${emissionsField}"`,
+        );
       }
 
       const energyKwh = energyFound ? energy : config.energyKwh;

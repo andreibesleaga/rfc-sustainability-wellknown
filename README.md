@@ -48,7 +48,7 @@ rfc-sustainability-wellknown/
 ├── server-configurations/   # Web server configuration snippets (nginx, Apache)
 ├── publisher/               # Production publisher/gateway (TypeScript): adapters → conformant /.well-known/sustainability
 ├── discovery/               # Product discovery: market scan, opportunity, problem, requirements, PRD, spec
-├── COMPLIANCE/              # SFC framework compliance matrix (relationship to the ACM SFC framework)
+├── sfc-compliance/              # SFC framework compliance matrix (relationship to the ACM SFC framework)
 └── ADOPTION.md              # The case for RFC/IANA adoption (business, technical, regulatory benefits)
 
 ```
@@ -191,7 +191,7 @@ This allows automated tools to cryptographically verify published sustainability
 ## Discovery & SFC compliance
 
 * [discovery/](discovery/) — product discovery suite (market scan, opportunity assessment, problem statement, requirements, PRD, technical spec) framing the gateway against the enterprise carbon-accounting ecosystem, plus [a deep-research companion to the draft](discovery/07-greenweb-carbontxt-integration.md) on the Green Web Foundation / carbon.txt / CO2.js integration.
-* [COMPLIANCE/SFC.md](COMPLIANCE/SFC.md) — how this draft and the publisher relate to the Sustainability-First Consensus (SFC) framework, with a field-level compliance matrix.
+* [sfc-compliance/SFC.md](sfc-compliance/SFC.md) — additional optional appendix on how this draft and the publisher relate to the Sustainability-First Consensus (SFC) framework, with a field-level compliance matrix.
 
 
 ## CHANGELOG

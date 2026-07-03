@@ -1,14 +1,13 @@
 # SFC ↔ `/.well-known/sustainability` Compliance Matrix
 
-*How this Internet-Draft and its publisher/gateway relate to the **Sustainability-First
-Consensus (SFC)** framework. Non-normative; the IETF draft does not depend on SFC.*
+*How this Internet-Draft and its publisher/gateway relate to the **Sustainability-First Consensus (SFC)** framework. Non-normative; the IETF draft does not depend on SFC. This is just an informational appendix.*
 
 ## 0. Citation
 
 SFC is defined in the accepted article to be published in Communications of Association for Computing Machinery:
 
 > Besleaga, A. N. (2026). *"Sustainability-First Consensus" Ledgers for a Green Digital
-> Future.* Association for Computing Machinery. https://doi.org/10.1145/3809296 ·
+> Future.* Association for Computing Machinery. DOI: 10.1145/3809296 ·
 > ORCID [0009-0001-3464-5283](https://orcid.org/0009-0001-3464-5283)
 
 Any deployment claiming SFC alignment MUST cite the paper. This document covers only the
@@ -22,7 +21,7 @@ SFC operationalizes sustainability for blockchain/DLT systems as four verifiable
 **C1** annualized network energy < 1 GWh; **C2** general-purpose hardware, no single-use
 ASICs; **C3** native on-chain carbon transparency with annual Net Zero, GHG Protocol
 Scope 2 & 3; **C4** regulatory readiness via CSRD/ESRS-E1 machine-readable APIs. Operators
-emit signed monthly `EnergyAttested` and `CarbonAttested` events and expose a
+should emit `EnergyAttested` and `CarbonAttested` events and expose a
 `/v1/sustainability/*` API. Conformance checks **C-SFC-1..6** gate compliance.
 
 ## 2. The holistic relationship

@@ -15,7 +15,7 @@ The GWF ecosystem and this draft solve **two halves of the same problem**:
 - **`/.well-known/sustainability`** answers *"what are this origin's actual energy and carbon
   numbers?"* — a schema-validated JSON **metrics** document.
 
-They are complementary, not competing. Draft-05 adds one optional, format-agnostic field —
+They are complementary, not competing. The draft adds one optional, format-agnostic field —
 **`disclosure-uri`** — to link a metrics document to its disclosure index (a carbon.txt being
 the canonical example). The reference publisher additionally (a) **computes** metrics from
 bytes with CO2.js, (b) **emits** a carbon.txt that points back to the metrics document

@@ -55,6 +55,9 @@ All responses must validate against the **JSON Type Definition (JTD)** provided 
 | `capabilities` | "basic" or "extended" | Yes |
 | `provider` | string | Yes |
 | `measurement-method` | string | Yes |
+| `methodology-uri` | string | Yes |
 | `reporting-period` | string | Yes |
 | `energy-consumption` | float64 | Yes |
+| `energy-unit` | "Wh"/"kWh"/"MWh"/"GWh" | Yes |
 | `carbon-footprint` | float64 | Yes |
+| `carbon-unit` | "gCO2e"/"kgCO2e"/"mtCO2e" | Yes |

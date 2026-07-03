@@ -62,7 +62,7 @@ Draft in multiple formats plus supplementary documents.
 | File | Description |
 |---|---|
 | `draft-besleaga-sustainability-wellknown-01.md` | Latest draft (current) — Markdown source |
-| `draft-besleaga-sustainability-wellknown-00.*` | Previous revision (posted to the Datatracker) |
+| `draft-besleaga-sustainability-wellknown-00.*` | Previous revision |
 | `draft-besleaga-green-sustainability-wellknown-05/04/03/02/01/00.*` | Earlier revisions (previous name) |
 | `draft-verifiable-credential.md` | Supplementary: W3C Verifiable Credential structure for anti-greenwashing attestations |
 
@@ -107,7 +107,7 @@ python3 install.py
 
 ---
 
-## scripts/
+## example-scripts/
 
 Server-side security middleware implementing the mandatory safeguards from the draft's Security and Privacy sections. Three languages for broad adoption.
 

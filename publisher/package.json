@@ -48,5 +48,8 @@
     "express": "^4.21.2",
     "typescript": "^5.7.2",
     "vitest": "^3.2.6"
+  },
+  "overrides": {
+    "esbuild": "^0.28.1"
   }
 }

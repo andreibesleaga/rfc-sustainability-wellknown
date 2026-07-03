@@ -90,7 +90,7 @@ The transition from v01 to v02 primarily focused on simplifying query parameters
 
 ---
 
-### **Version 00 to Version 01**
+### **Version 00 to Version 01 (`draft-besleaga-green-sustainability-wellknown`)**
 
 **1. Architectural & Protocol Updates**
 * **Service Levels:** v01 introduces a "Mandatory Minimum Supported Service" (Basic service level), which dictates that requests without query parameters must return an aggregate impact of the entire host for the most recently completed full calendar month.

@@ -31,7 +31,8 @@ Internet-Draft; this document specifies the software that satisfies it. Non-norm
 Interface `SourceAdapter { name, capabilities, fetch(query) }`. Adapters return loosely
 typed `RawMetrics`; credential-bearing adapters accept a `fixture` (replay) for offline/CI.
 Implemented: `static`, `static-file`, `computed`, `kepler-prometheus`, `climatiq`,
-`salesforce-nzc`, `ms-sustainability` (OData `$skiptoken` paging), `watershed`.
+`co2js` (Green Web Foundation CO2.js), `carbontxt-api` (Green Web Foundation hosted
+API), `salesforce-nzc`, `ms-sustainability` (OData `$skiptoken` paging), `watershed`.
 
 ## 3. Layer 2 — normalization
 

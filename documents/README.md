@@ -6,20 +6,20 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 
 **`draft-besleaga-sustainability-wellknown-01`** — *The 'sustainability' Well-Known URI*.
 Individual submission on the IETF **Independent Submission Stream** (Informational).
-Revision `-00` is the version currently posted to the Datatracker; `-01` is the next revision.
+Revision `-01` is the version currently posted to the Datatracker (2026-07-02).
 
 | File | Role |
 |---|---|
 | `draft-besleaga-sustainability-wellknown-01.md` | Markdown source (kramdown-rfc front matter + body). Edit this. |
 | `draft-besleaga-sustainability-wellknown-01.xml` | xml2rfc v3 XML — the **authoritative** form for submission. |
 | `draft-besleaga-sustainability-wellknown-01.txt` | Rendered plain-text form. |
-| `draft-besleaga-sustainability-wellknown-00.*` | Previous revision (posted to the Datatracker). |
+| `draft-besleaga-sustainability-wellknown-00.*` | Previous revision. |
 
 Datatracker: <https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/>
 
 ## Historical revisions (previous name)
 
-`draft-besleaga-green-sustainability-wellknown-00` … `-05` (`.md`/`.xml`/`.txt`/`.html`)
+`draft-besleaga-green-sustainability-wellknown-00` … `-05` (`.md`/`.xml`, plus `.txt` for -04/-05)
 are the earlier revisions of this work under its **previous name**. The document was renamed
 to drop the `green` token (which could imply a scope tied to the IETF GREEN Working Group);
 the current draft **Replaces** that series. These files are retained for history only.
@@ -42,10 +42,10 @@ Requires `kramdown-rfc` (Ruby gem `kramdown-rfc2629`) and `xml2rfc`:
 
 ```bash
 cd documents
-kramdown-rfc draft-besleaga-sustainability-wellknown-00.md \
-  > draft-besleaga-sustainability-wellknown-00.xml
-xml2rfc --strict --text draft-besleaga-sustainability-wellknown-00.xml \
-  -o draft-besleaga-sustainability-wellknown-00.txt
+kramdown-rfc draft-besleaga-sustainability-wellknown-01.md \
+  > draft-besleaga-sustainability-wellknown-01.xml
+xml2rfc --strict --text draft-besleaga-sustainability-wellknown-01.xml \
+  -o draft-besleaga-sustainability-wellknown-01.txt
 ```
 
 `xml2rfc --strict` is expected to complete with no warnings. CI runs the same build (see

@@ -98,10 +98,11 @@ natural, incremental addition in exactly the spirit of RFC 8615.
 ## 8. Readiness evidence (in this repository)
 
 - Stable draft at **draft-besleaga-sustainability-wellknown-01** (Independent Submission; continues and replaces the -00–-05 series).
-- **Dual formal schemas** (JTD + CDDL) with Python and Ruby validators — examples pass 8/8.
+- **Dual formal schemas** (JTD + CDDL) with Python and Ruby validators — examples pass 10/10.
 - A **production reference gateway** (TypeScript) with adapters for static/computed,
-  Kepler/Prometheus, Climatiq, Salesforce NZC, Microsoft Sustainability Manager, and
-  Watershed — every adapter's output validates against both schemas.
+  Kepler/Prometheus, Climatiq, CO2.js and the carbon.txt hosted API (Green Web
+  Foundation), Salesforce NZC, Microsoft Sustainability Manager, and Watershed —
+  every adapter's output validates against both schemas.
 - CI that rebuilds the draft and cross-validates generated documents.
 
 ## 9. One-paragraph summary for reviewers

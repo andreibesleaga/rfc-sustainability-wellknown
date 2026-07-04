@@ -7,7 +7,7 @@
 * **IETF Datatracker:** https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/
 * **Author:** Andrei Nicolae BESLEAGA (https://github.com/andreibesleaga)
 * **IETF Stream:** Independent Submission (individual; not a working-group product)
-* **Current Latest Draft:** `draft-besleaga-sustainability-wellknown-02` (revision `-01` is the version posted to the IETF Datatracker as of 2026-07-02)
+* **Current Latest Draft:** `draft-besleaga-sustainability-wellknown-02` — posted to the IETF Datatracker (2026-07-03) and submitted to the Independent Submissions Editor (ISE)
 
 ## Context and Purpose
 The digital economy consumes a significant percentage of global electricity. Regulatory frameworks (like the EU CSRD) and industry standards (like GSF SCI, W3C Web Sustainability Guidelines) increasingly require organizations to disclose their digital environmental impact. 

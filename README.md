@@ -6,7 +6,7 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream** (ISE); replaces `draft-besleaga-green-sustainability-wellknown`. IANA `sustainability` well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)).
+**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream** — revision `-02` posted to the Datatracker (2026-07-03) and **submitted to the ISE** for publication as an Informational RFC; replaces `draft-besleaga-green-sustainability-wellknown`. IANA `sustainability` well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)).
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 
@@ -61,8 +61,8 @@ Draft in multiple formats plus supplementary documents.
 
 | File | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-02.md` | Latest draft (current) — Markdown source |
-| `draft-besleaga-sustainability-wellknown-01.*` | Revision posted to the Datatracker (2026-07-02) |
+| `draft-besleaga-sustainability-wellknown-02.md` | Latest draft (current) — posted to the Datatracker 2026-07-03, under ISE review |
+| `draft-besleaga-sustainability-wellknown-01.*` | Previous revision (posted 2026-07-02) |
 | `draft-besleaga-sustainability-wellknown-00.*` | Earlier revision |
 | `draft-besleaga-green-sustainability-wellknown-05/04/03/02/01/00.*` | Earlier revisions (previous name) |
 | `draft-verifiable-credential.md` | Supplementary: W3C Verifiable Credential structure for anti-greenwashing attestations |

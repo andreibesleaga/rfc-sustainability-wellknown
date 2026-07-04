@@ -6,15 +6,15 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 
 **`draft-besleaga-sustainability-wellknown-02`** — *The 'sustainability' Well-Known URI*.
 Individual submission on the IETF **Independent Submission Stream** (Informational).
-Revision `-02` is the current working revision in this repository; revision `-01` is the
-version currently posted to the Datatracker (2026-07-02).
+Revision `-02` is posted to the Datatracker (2026-07-03) and has been submitted to the
+Independent Submissions Editor (ISE) for publication as an Informational RFC.
 
 | File | Role |
 |---|---|
 | `draft-besleaga-sustainability-wellknown-02.md` | Markdown source (kramdown-rfc front matter + body). Edit this. |
 | `draft-besleaga-sustainability-wellknown-02.xml` | xml2rfc v3 XML — the **authoritative** form for submission. |
 | `draft-besleaga-sustainability-wellknown-02.txt` | Rendered plain-text form. |
-| `draft-besleaga-sustainability-wellknown-01.*` | Revision posted to the Datatracker (2026-07-02). |
+| `draft-besleaga-sustainability-wellknown-01.*` | Previous revision (posted 2026-07-02). |
 | `draft-besleaga-sustainability-wellknown-00.*` | Earlier revision. |
 
 Datatracker: <https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/>

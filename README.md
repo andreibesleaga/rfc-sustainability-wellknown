@@ -144,7 +144,7 @@ Both configurations implement:
 - `Cache-Control: public, max-age=86400` (RECOMMENDED)
 - `ETag` / `Last-Modified` (auto, RECOMMENDED)
 - `Access-Control-Allow-Origin: *` for aggregator access
-- GET/HEAD-only method restriction
+- GET/HEAD-only method restriction (other methods get `405` with `Allow: GET, HEAD`)
 - Rate limiting snippet (commented — activate for dynamic `period`/`granularity` parameters)
 
 ---

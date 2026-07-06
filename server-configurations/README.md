@@ -17,7 +17,7 @@ Server configuration snippets for publishing the `/.well-known/sustainability` e
 | `Cache-Control: max-age=86400` | ✓ | ✓ | RECOMMENDED |
 | `ETag` / `Last-Modified` | auto (on by default) | auto (static files) | RECOMMENDED |
 | `Access-Control-Allow-Origin: *` | ✓ | ✓ | allows aggregators |
-| GET/HEAD only restriction | ✓ | ✓ | SHOULD |
+| GET/HEAD only; others get `405` + `Allow: GET, HEAD` | ✓ | ✓ | SHOULD |
 | Rate limiting | commented out | commented out | RECOMMENDED |
 
 ## Usage
@@ -43,9 +43,9 @@ location = /.well-known/sustainability {
 ### Apache
 
 1. Add the `Alias` directive and `<Location>` block to your `VirtualHost` configuration.
-2. Ensure `mod_headers` and `mod_alias` are enabled:
+2. Ensure `mod_headers`, `mod_alias`, and `mod_rewrite` are enabled:
    ```bash
-   a2enmod headers alias
+   a2enmod headers alias rewrite
    systemctl reload apache2
    ```
 3. Update the file path in the `Alias` directive.

@@ -32,7 +32,7 @@ A `/.well-known/sustainability` URI that allows any web server or digital servic
 
 ### Adoption & publishing
 
-* [ADOPTION.md](ADOPTION.md) — the multi-dimensional case (technical, regulatory, business, ecosystem, environmental) for adopting and approving this as an RFC and IANA registration.
+* [ADOPTION.md](ADOPTION.md) — the multi-dimensional case (technical, regulatory, business, ecosystem, environmental) for adopting and approving this as an informational RFC and IANA registration.
 
 --- 
 

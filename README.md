@@ -46,7 +46,7 @@ rfc-sustainability-wellknown/
 ├── documents/               # RFC draft source files and supporting documents
 ├── example-responses/       # Valid JSON response examples (all validators pass)
 ├── schemas-validators/      # Formal schemas (CDDL, JTD) and validation tooling
-├── example-scripts/         # Server-side security middleware (Python, JS, PHP)
+├── example-scripts/         # Server-side security middleware + reference request handler (Python, JS, PHP), with tests
 ├── server-configurations/   # Web server configuration snippets (nginx, Apache)
 ├── publisher/               # Production publisher/gateway (TypeScript): adapters → conformant /.well-known/sustainability
 ├── discovery/               # Product discovery: market scan, opportunity, problem, requirements, PRD, spec
@@ -112,13 +112,14 @@ python3 install.py
 
 ## example-scripts/
 
-Server-side security middleware implementing the operational safeguards from the draft's Security and Privacy sections. Three languages for broad adoption.
+Server-side security middleware implementing the operational safeguards from the draft's Security and Privacy sections, plus a full reference request handler. Zero dependencies, for broad adoption.
 
 | File | Description |
 |---|---|
 | `security.py` | Python — DoS cap, sub-daily filter, optional deterministic ~1% noise |
-| `security.js` | TypeScript — same three safeguards |
+| `security.js` | JavaScript (Node, zero dependencies) — same three safeguards |
 | `security.php` | PHP — same three safeguards + `Content-Type: application/json` header |
+| `request-handler.py` | Complete, zero-dependency (`http.server`) reference request handler: query-parameter parsing, Basic/Extended routing, single-object-vs-array shape, conditional requests, 404/405 — verified end-to-end against both schema validators |
 | `README.md` | Endpoint spec, service levels, mandatory safeguards, caching, validation field table |
 
 **The draft's operational safeguards** (draft §Security / §Privacy):

@@ -1,0 +1,132 @@
+name: example-scripts
+
+on:
+  push:
+    paths:
+      - "example-scripts/**"
+      - "schemas-validators/**"
+      - "server-configurations/**"
+      - ".github/workflows/example-scripts.yml"
+  pull_request:
+    paths:
+      - "example-scripts/**"
+      - "schemas-validators/**"
+      - "server-configurations/**"
+
+jobs:
+  security-scripts:
+    # The three security.* files each implement the same array safeguards
+    # (sort, cap, granularity floor, deterministic noise) independently in
+    # Python, JavaScript, and PHP; run each language's own test suite.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: "8.3" }
+      - name: Python
+        working-directory: example-scripts
+        run: python3 test_security.py -v
+      - name: JavaScript
+        working-directory: example-scripts
+        run: node test_security.js
+      - name: PHP
+        working-directory: example-scripts
+        run: php test_security.php
+
+  request-handler-e2e:
+    # End-to-end test of the reference request handler: golden paths, error
+    # paths, and edge cases, over real HTTP, with responses cross-checked
+    # against the repo's independent JTD and CDDL validators.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.2" }
+      - name: Install validators
+        run: |
+          python3 -m pip install jtd
+          gem install cddl
+      - name: Run E2E tests
+        working-directory: example-scripts
+        run: python3 test_request_handler.py -v
+
+  server-config-syntax:
+    # Real syntax + behavior verification of the nginx/Apache snippets against
+    # actual server binaries — not just visual inspection. Confirms the
+    # documented 405+Allow behavior for both (see server-configurations/README.md
+    # for why each needed the specific pattern it uses).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install nginx and apache2
+        run: sudo apt-get update -qq && sudo apt-get install -y nginx apache2
+
+      - name: nginx config check
+        run: |
+          set -e
+          mkdir -p /tmp/nginx-test/logs /tmp/nginx-test/run
+          echo '{"version":"1.1","test":true}' > /tmp/nginx-test/sustainability.json
+          cat > /tmp/nginx-test/nginx.conf <<'EOF'
+          worker_processes 1;
+          error_log /tmp/nginx-test/logs/error.log;
+          pid /tmp/nginx-test/run/nginx.pid;
+          events { worker_connections 16; }
+          http {
+            server {
+              listen 127.0.0.1:8099;
+          EOF
+          sed 's#/var/www/metadata/sustainability.json#/tmp/nginx-test/sustainability.json#' \
+            server-configurations/nginx.conf | grep -v '^#' >> /tmp/nginx-test/nginx.conf
+          echo '  }' >> /tmp/nginx-test/nginx.conf
+          echo '}' >> /tmp/nginx-test/nginx.conf
+          nginx -t -c /tmp/nginx-test/nginx.conf
+          nginx -c /tmp/nginx-test/nginx.conf
+          sleep 1
+          status=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8099/.well-known/sustainability)
+          [ "$status" = "200" ] || { echo "::error::expected 200, got $status"; exit 1; }
+          post=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8099/.well-known/sustainability)
+          echo "$post" | grep -q "405 Method Not Allowed" || { echo "::error::expected 405"; exit 1; }
+          echo "$post" | grep -qi "^Allow: GET, HEAD" || { echo "::error::expected Allow: GET, HEAD"; exit 1; }
+          nginx -s stop -c /tmp/nginx-test/nginx.conf
+
+      - name: Apache config check
+        run: |
+          set -e
+          mkdir -p /tmp/apache-test/logs /tmp/apache-test/run /tmp/apache-test/htdocs
+          echo '{"version":"1.1","test":true}' > /tmp/apache-test/htdocs/sustainability.json
+          echo '{"error":"method not allowed"}' > /tmp/apache-test/htdocs/sustainability-405.json
+          cat > /tmp/apache-test/httpd.conf <<EOF
+          ServerRoot "/tmp/apache-test"
+          Listen 127.0.0.1:8098
+          PidFile "/tmp/apache-test/run/httpd.pid"
+          ErrorLog "/tmp/apache-test/logs/error.log"
+          LoadModule mpm_event_module /usr/lib/apache2/modules/mod_mpm_event.so
+          LoadModule authz_core_module /usr/lib/apache2/modules/mod_authz_core.so
+          LoadModule alias_module /usr/lib/apache2/modules/mod_alias.so
+          LoadModule headers_module /usr/lib/apache2/modules/mod_headers.so
+          LoadModule rewrite_module /usr/lib/apache2/modules/mod_rewrite.so
+          LoadModule mime_module /usr/lib/apache2/modules/mod_mime.so
+          User $(whoami)
+          Group $(id -gn)
+          ServerName localhost
+          TypesConfig /etc/mime.types
+          EOF
+          sed "s#/var/www/metadata/sustainability-405.json#/tmp/apache-test/htdocs/sustainability-405.json#; s#/var/www/metadata/sustainability.json#/tmp/apache-test/htdocs/sustainability.json#" \
+            server-configurations/apache.conf | grep -v '^#' >> /tmp/apache-test/httpd.conf
+          apache2 -f /tmp/apache-test/httpd.conf -t
+          apache2 -f /tmp/apache-test/httpd.conf -k start
+          sleep 1
+          status=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8098/.well-known/sustainability)
+          [ "$status" = "200" ] || { echo "::error::expected 200, got $status"; exit 1; }
+          post=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8098/.well-known/sustainability)
+          echo "$post" | grep -q "405 Method Not Allowed" || { echo "::error::expected 405"; exit 1; }
+          allow_count=$(echo "$post" | grep -ci "^Allow:")
+          [ "$allow_count" = "1" ] || { echo "::error::expected exactly one Allow header, got $allow_count"; exit 1; }
+          echo "$post" | grep -qi "^Allow: GET, HEAD" || { echo "::error::expected Allow: GET, HEAD"; exit 1; }
+          apache2 -f /tmp/apache-test/httpd.conf -k stop

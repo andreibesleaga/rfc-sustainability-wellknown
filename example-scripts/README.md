@@ -62,3 +62,23 @@ All responses must validate against the **JSON Type Definition (JTD)** provided 
 | `energy-unit` | "Wh"/"kWh"/"MWh"/"GWh" | Yes |
 | `carbon-footprint` | float64 | Yes |
 | `carbon-unit` | "gCO2e"/"kgCO2e"/"mtCO2e" | Yes |
+
+## 6. Files in this directory
+
+| File | Role |
+|---|---|
+| `security.py` / `.js` / `.php` | The array safeguards ONLY (sort, cap, granularity floor, deterministic noise) — a filter you apply to whatever data you already have. Zero dependencies; runnable as-is in each language. |
+| `request-handler.py` | A complete, minimal, zero-dependency (`http.server` only) reference **request handler**: query-parameter parsing (`target`/`period`/`granularity`), Basic vs Extended routing, the single-object-vs-array response-shape rule, conditional requests (`ETag`/`If-None-Match` → `304`), 404, and 405+`Allow`. Shows how the safeguards above plug into full request handling. Not a production implementation — for that, see `publisher/` (TypeScript, 10 source adapters, fully tested). |
+
+Run the reference handler and try it:
+
+```bash
+cd example-scripts
+python3 request-handler.py 8080 &
+curl -s http://localhost:8080/.well-known/sustainability | python3 -m json.tool
+curl -s "http://localhost:8080/.well-known/sustainability?period=2026&granularity=monthly" | python3 -m json.tool
+curl -i -X POST http://localhost:8080/.well-known/sustainability   # 405 + Allow: GET, HEAD
+```
+
+Verified (2026-07-09): every response from `request-handler.py` passes both
+independent validators (`schemas-validators/validator-json.py` and `validator-cddl.py`).

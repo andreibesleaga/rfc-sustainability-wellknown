@@ -23,9 +23,9 @@ npm run build      # tsc → dist/
 npm test           # vitest: unit + fetch (static-file server) + interop (live publisher/) tests
 ```
 
-Not yet published to npm (see [USAGE.md §6](USAGE.md#6-using-it-as-a-library) for
-installing from a git checkout in the meantime). Package name once published:
-`sustainability-wellknown-consumer`.
+Published: **[`sustainability-wellknown-consumer`](https://www.npmjs.com/package/sustainability-wellknown-consumer)**
+(`npm install sustainability-wellknown-consumer`) — see [USAGE.md §6](USAGE.md#6-using-it-as-a-library)
+for that and the git-checkout alternative.
 
 ## Quick start
 

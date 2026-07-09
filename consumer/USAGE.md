@@ -285,17 +285,17 @@ your implementation as a smoke test before shipping a change.
 
 ## 6. Using it as a library
 
-Not yet published to npm. Until it is, install from a git checkout or as a git
-dependency:
+Published: **[`sustainability-wellknown-consumer`](https://www.npmjs.com/package/sustainability-wellknown-consumer)**.
 
 ```bash
-# From a local checkout of this repo:
-npm install /path/to/rfc-sustainability-wellknown/consumer
-# Or, once pushed to GitHub, directly from git:
-npm install github:andreibesleaga/rfc-sustainability-wellknown#main:consumer
-
-# Once published (future):
 npm install sustainability-wellknown-consumer
+```
+
+A git checkout or git-based install also work, e.g. for tracking `main` ahead of a release:
+
+```bash
+npm install /path/to/rfc-sustainability-wellknown/consumer
+npm install github:andreibesleaga/rfc-sustainability-wellknown#main:consumer
 ```
 
 ### Worked example: a cron-style fetch → CSV → log-file script

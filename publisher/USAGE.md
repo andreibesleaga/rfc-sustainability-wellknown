@@ -237,19 +237,18 @@ Extended query-parameter support (see those files' READMEs for the tradeoff).
 
 ## 6. Installing from npm
 
-This package is **publish-ready but not yet published** to the npm registry (the
-name `sustainability-wellknown-publisher` is currently available — verified via
-`npm view` and a successful `npm publish --dry-run`, both non-destructive checks).
-Until/unless it's published:
+Published: **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)**.
 
 ```bash
-# From a git checkout (works today):
-npm install /path/to/rfc-sustainability-wellknown/publisher
-# or, once pushed to GitHub, directly from git:
-npm install github:andreibesleaga/rfc-sustainability-wellknown#main:publisher
-
-# Once published (future):
 npm install sustainability-wellknown-publisher
+```
+
+A git checkout or a git-based install also work, e.g. for tracking `main` ahead of
+a release:
+
+```bash
+npm install /path/to/rfc-sustainability-wellknown/publisher
+npm install github:andreibesleaga/rfc-sustainability-wellknown#main:publisher
 ```
 
 Publishing itself (`npm publish`, from a clean `publisher/` directory, after

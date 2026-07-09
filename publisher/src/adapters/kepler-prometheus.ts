@@ -43,9 +43,23 @@ export interface PromQueryResponse {
   };
 }
 
-/** Sum the scalar/vector values in a Prometheus query response. */
-export function sumPromValues(resp: PromQueryResponse): number {
+/**
+ * Sum the scalar/vector values in a Prometheus query response.
+ *
+ * Throws on an empty result set: a wrong label selector, a scrape gap, or the
+ * Kepler >= 0.10 metric rename (see the file header) all yield zero series, and
+ * reducing them returns 0 — publishing a fabricated measured 0. Every other
+ * adapter fails loud here, so this one does too. The optional `query` label is
+ * included in the error to point at the likely misconfiguration.
+ */
+export function sumPromValues(resp: PromQueryResponse, query?: string): number {
   if (resp.status !== "success") throw new Error(`Prometheus query failed: ${resp.status}`);
+  if (resp.data.result.length === 0) {
+    throw new Error(
+      `sumPromValues: Prometheus query returned no series${query ? ` for "${query}"` : ""} ` +
+        `— refusing to publish a fabricated 0 (check the label selector / metric name / scrape window)`,
+    );
+  }
   return resp.data.result.reduce((acc, r) => acc + Number(r.value[1]), 0);
 }
 
@@ -66,7 +80,7 @@ export function keplerPrometheusAdapter(config: KeplerPrometheusConfig): SourceA
         resp = (await fetchJson(url)) as PromQueryResponse;
       }
 
-      const joules = sumPromValues(resp);
+      const joules = sumPromValues(resp, query);
       return {
         provider: config.provider,
         measurementMethod: config.measurementMethod ?? "hardware-metered",

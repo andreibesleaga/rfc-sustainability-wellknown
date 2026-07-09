@@ -9,6 +9,7 @@
  * Docs: https://watershed.com/ (API & developer guides)
  */
 import { CarbonUnit, RawMetrics, SourceAdapter } from "../../types";
+import { PERIOD_RE } from "../../normalize";
 import { fetchJson } from "../../util";
 
 export interface WatershedFootprint {
@@ -35,8 +36,6 @@ export interface WatershedConfig {
   measurementMethod?: string;
   fixture?: WatershedFootprint;
 }
-
-const PERIOD_RE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
 
 /**
  * Watershed periods can be arbitrary labels (e.g. "2026-Q1") that do not fit
@@ -75,6 +74,20 @@ export function watershedAdapter(config: WatershedConfig): SourceAdapter {
         })) as WatershedFootprint;
       }
 
+      // Track whether any carbon figure was actually present. If neither the
+      // aggregate nor any scope field is supplied, the sum silently collapses
+      // to 0 and would be published as a real carbon-footprint of 0 — mirror
+      // the emissionsFound guard in ms-sustainability.ts and fail loudly.
+      const carbonFound =
+        fp.totalEmissionsKgCo2e !== undefined ||
+        fp.scope1Kg !== undefined ||
+        fp.scope2Kg !== undefined ||
+        fp.scope3Kg !== undefined;
+      if (!carbonFound) {
+        throw new Error(
+          "watershedAdapter: footprint carries no carbon data (totalEmissionsKgCo2e/scope1Kg/scope2Kg/scope3Kg all missing) — refusing to publish a fabricated 0",
+        );
+      }
       const total =
         fp.totalEmissionsKgCo2e ??
         (fp.scope1Kg ?? 0) + (fp.scope2Kg ?? 0) + (fp.scope3Kg ?? 0);

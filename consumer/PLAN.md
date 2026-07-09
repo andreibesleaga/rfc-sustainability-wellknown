@@ -28,8 +28,10 @@ this plan (and the MVP implementation built alongside it) closes that gap.
      the platform's native `fetch()`, for a quick script or another project
      that doesn't want a dependency.
   2. **A richer `SustainabilityClient` class** — conditional-request caching
-     (ETag/`If-None-Match`), retries, and the transformation helpers below —
-     for a long-running service that polls many origins repeatedly.
+     (ETag/`If-None-Match`), plus per-request timeout and response-size caps,
+     and the transformation helpers below — for a long-running service that
+     polls many origins repeatedly. (Automatic retry/backoff is *possible
+     future work*, not currently implemented — see §8.)
 - **Supports the whole protocol surface**, not just the happy path:
   - Basic (no params) and Extended (`target`/`period`/`granularity`) requests.
   - Correct handling of both response shapes (single object vs array) per the
@@ -51,9 +53,13 @@ this plan (and the MVP implementation built alongside it) closes that gap.
   one-row-per-metric shape for time-series ingestion, simple trend
   aggregation).
 - **Doubles as a conformance checker.** The CLI's `--strict` mode exercises a
-  target origin against the protocol surface (Basic, each Extended parameter,
-  method handling) and reports pass/fail per check — useful to any implementer
-  wanting to self-test a new server, not just this repo's own producer.
+  target origin against a fixed battery of checks (Basic single-object + schema
+  validity, `application/json` media type, ETag presence, conditional-GET `304`,
+  `405`+`Allow` for a non-`GET`/`HEAD` method, and an Extended `granularity`
+  request returning an array) and reports pass/fail per check — useful to any
+  implementer wanting to self-test a new server, not just this repo's own
+  producer. (It does not test every Extended parameter individually or probe
+  `404`-on-unknown-target; those would be reasonable future additions.)
 
 ## 2. Non-goals (explicitly out of scope for v0)
 
@@ -88,7 +94,7 @@ consumer/
 │   ├── schema.ts        # embedded JTD schema, byte-identical to schemas-validators/response-schema.json (CI-checked)
 │   ├── validate.ts       # validateDocument()/assertValid() — same JTD gate as publisher, PLUS cross-entry array rules
 │   ├── fetch.ts          # the core one-call function: fetchSustainability(origin, options)
-│   ├── client.ts         # SustainabilityClient class: ETag caching, retries, convenience methods
+│   ├── client.ts         # SustainabilityClient class: ETag caching, timeout/size caps, convenience methods (no retries in v0)
 │   ├── sentinel.ts       # isNotReported(), withoutSentinels()
 │   ├── units.ts          # convertEnergy()/convertCarbon() — parity-tested against publisher/src/normalize.ts
 │   ├── transform.ts      # toCsvRows(), toNdjson(), flatten(), aggregate()
@@ -164,10 +170,13 @@ sustainability-fetch <origin> [--target=/path] [--period=2026-02] [--granularity
   code on any HTTP error, validation failure, or (for `--strict`) any
   conformance check failure — directly scriptable in cron/CI (`&&`/`set -e`).
 - `--format=csv`/`ndjson`: pipe-friendly output for ingestion elsewhere.
-- `--strict`: run the full conformance battery against the origin (Basic
-  request, each Extended parameter individually and in combination, method
-  handling for 405, 404-on-unknown-target) and print a pass/fail table —
-  usable by any implementer testing a *new* server, not just this repo's.
+- `--strict`: run the conformance battery against the origin (6 checks: Basic
+  single-object + schema validity, `application/json` media type, ETag presence,
+  conditional-GET `304`, `405`+`Allow` for a non-`GET`/`HEAD` method, and an
+  Extended `granularity` request returning an array) and print a pass/fail
+  table — usable by any implementer testing a *new* server, not just this
+  repo's. (Per-parameter Extended checks and a `404`-on-unknown-target probe are
+  not yet implemented.)
 - `--etag=<value>`: demonstrates/enables conditional-request polling from a
   shell script (store the last ETag, pass it back next run).
 
@@ -192,12 +201,12 @@ Mirrors the golden-path/error-path/edge-case discipline used for
   `createSustainabilityServer`, and points the new consumer's
   `fetchSustainability`/`SustainabilityClient` at it — a true, live
   producer-to-consumer protocol round trip in one process. Exercises: Basic
-  fetch, Extended fetch with `granularity` (array), conditional GET → 304,
-  404 for an unknown target, and (deliberately) points at the
-  `example-scripts/request-handler.py` reference server too if a Python
-  runtime is available in CI, proving interop against a *second*,
-  independently-implemented producer — the strongest possible interop
-  evidence this repo can produce.
+  fetch, Extended fetch with `granularity` (array), conditional GET → 304, and
+  404 for an unknown target. (Interop against a *second*, independently-
+  implemented producer — for example the `example-scripts/request-handler.py`
+  reference server, gated on a Python runtime — is a possible future addition;
+  it is **not** implemented, the interop test today exercises `publisher/`
+  only.)
 - **Golden/error/edge-case checklist** (all covered, mirroring the E2E
   discipline used earlier this session): 200 single object; 200 array;
   304 conditional; 404 no data; 405 wrong method (from `--strict`); malformed

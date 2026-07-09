@@ -137,6 +137,19 @@ class Handler(BaseHTTPRequestHandler):
     def do_PATCH(self):
         self._send_405()
 
+    def __getattr__(self, name):
+        # The draft: "a request using any method other than GET or HEAD SHOULD
+        # receive 405 Method Not Allowed with an Allow: GET, HEAD header." Without
+        # this catch-all, http.server answers OPTIONS/TRACE/any-other-method with
+        # its own default 501 Not Implemented. BaseHTTPRequestHandler dispatches
+        # via getattr(self, "do_<METHOD>"); synthesizing a 405 handler for every
+        # do_* we didn't define explicitly makes all non-GET/HEAD methods return
+        # 405. (__getattr__ runs only when normal lookup fails, so the real
+        # do_GET/do_HEAD/do_POST/... above are unaffected.)
+        if name.startswith("do_"):
+            return self._send_405
+        raise AttributeError(name)
+
     def log_message(self, fmt, *args):
         pass  # keep example output quiet; use the default logger in production
 

@@ -6,6 +6,10 @@ export interface SustainabilityClientOptions {
   fetchImpl?: typeof fetch;
   /** Bounds the ETag cache (one entry per distinct origin+params combination). */
   maxCacheEntries?: number;
+  /** Per-request timeout (ms) applied to every fetch; see fetchSustainability. */
+  timeoutMs?: number;
+  /** Per-response body byte cap applied to every fetch; see fetchSustainability. */
+  maxBytes?: number;
 }
 
 interface CacheEntry {
@@ -34,6 +38,8 @@ export class SustainabilityClient {
       ...params,
       ifNoneMatch: cached?.etag,
       fetchImpl: this.options.fetchImpl,
+      timeoutMs: this.options.timeoutMs,
+      maxBytes: this.options.maxBytes,
     } satisfies FetchOptions);
 
     if (result.status === "not-modified" && cached) {

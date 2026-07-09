@@ -140,6 +140,14 @@ class RequestHandlerE2ETests(unittest.TestCase):
             self.assertEqual(status, 405, f"{method} should be 405")
             self.assertEqual(headers["Allow"], "GET, HEAD")
 
+    def test_other_methods_also_405_not_501(self):
+        # Draft: ANY method other than GET/HEAD SHOULD get 405 — not http.server's
+        # default 501. Covers OPTIONS/TRACE and an arbitrary custom method.
+        for method in ("OPTIONS", "TRACE", "BREW"):
+            status, headers, _ = self._get(method=method)
+            self.assertEqual(status, 405, f"{method} should be 405, not 501")
+            self.assertEqual(headers["Allow"], "GET, HEAD")
+
     def test_unknown_path_returns_404(self):
         req = urllib.request.Request(f"{BASE}/nope")
         with self.assertRaises(urllib.error.HTTPError) as ctx:

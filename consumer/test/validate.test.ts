@@ -42,6 +42,18 @@ describe("validateDocument: single object", () => {
     // confirm the extension field is still there afterwards.
     expect((doc as Record<string, unknown>)["x-vendor-region"]).toBe("eu-west-1");
   });
+
+  // Draft cross-field MUST that JTD/CDDL cannot express: sci-score ⇒ functional-unit.
+  it("rejects sci-score present without functional-unit (cross-field MUST)", () => {
+    const r = validateDocument(metrics({ "sci-score": 1.2 }));
+    expect(r.valid).toBe(false);
+    expect(r.errors.some((m) => /sci-score.*functional-unit/i.test(m))).toBe(true);
+  });
+
+  it("accepts sci-score when functional-unit is also present", () => {
+    const r = validateDocument(metrics({ "sci-score": 1.2, "functional-unit": "request" }));
+    expect(r.valid).toBe(true);
+  });
 });
 
 describe("validateDocument: array (trend) rules", () => {

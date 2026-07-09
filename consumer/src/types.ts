@@ -46,4 +46,6 @@ export type FetchResult =
   | { status: "not-modified" }
   | { status: "not-found" }
   | { status: "invalid"; errors: string[] }
-  | { status: "http-error"; httpStatus: number };
+  | { status: "http-error"; httpStatus: number }
+  | { status: "timeout"; timeoutMs: number }
+  | { status: "too-large"; detail: string };

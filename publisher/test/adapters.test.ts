@@ -10,6 +10,7 @@ import {
   staticFileAdapter,
   watershedAdapter,
 } from "../src/adapters";
+import { sumPromValues } from "../src/adapters/kepler-prometheus";
 import { Publisher } from "../src/publisher";
 import { readJson } from "../src/util";
 import { validateDocument } from "../src/validate";
@@ -139,5 +140,48 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
     expect(validateDocument(doc).valid).toBe(true);
     expect((doc as any)["scope-3"]).toBe(46340.0);
     expect((doc as any)["renewable-energy"]).toBe(62);
+  });
+});
+
+describe("adapters refuse to publish a fabricated 0 (fail loud)", () => {
+  // Fix 2 (MAJOR): kepler-prometheus must throw on an empty result set rather
+  // than summing to a fake measured 0.
+  it("kepler sumPromValues throws on an empty Prometheus result", () => {
+    const empty = { status: "success", data: { resultType: "vector", result: [] } };
+    expect(() => sumPromValues(empty)).toThrow(/no series/i);
+    // and end-to-end through the adapter
+    const a = keplerPrometheusAdapter({
+      provider: "SRE",
+      methodologyUri: "https://x/kepler",
+      reportingPeriod: "2026-05",
+      gridIntensity: 230,
+      query: "sum(kepler_node_platform_joules_total)",
+      fixture: empty as any,
+    });
+    return expect(a.fetch({})).rejects.toThrow(/no series/i);
+  });
+
+  // Fix 3 (MAJOR): watershed must throw when a footprint carries no carbon data
+  // at all (neither aggregate nor any scope field).
+  it("watershed throws when no carbon/scope field is present", async () => {
+    const a = watershedAdapter({
+      provider: "P",
+      methodologyUri: "https://x/m",
+      reportingPeriod: "2026-03",
+      fixture: { energyKwh: 50 } as any, // no total, no scopes
+    });
+    await expect(a.fetch({})).rejects.toThrow(/no carbon data/i);
+  });
+
+  // Fix 3 (MAJOR): salesforce must throw when a record has neither the carbon
+  // aggregate nor any scope field.
+  it("salesforce throws when no carbon/scope field is present", async () => {
+    const a = salesforceNzcAdapter({
+      provider: "P",
+      methodologyUri: "https://x/m",
+      // valid year + energy, but no carbon and no scope fields at all
+      fixture: { records: [{ Year: 2025, ActualEnergyConsumption: 10 }] } as any,
+    });
+    await expect(a.fetch({})).rejects.toThrow(/no carbon data/i);
   });
 });

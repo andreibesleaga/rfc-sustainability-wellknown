@@ -34,14 +34,38 @@ const CARBON_TO_G: Record<CarbonUnit, number> = {
   mtCO2e: 1_000_000, // metric tonne CO2e = 1e6 g
 };
 
-/** Convert an energy value between any two supported units. */
+/**
+ * Convert an energy value between any two supported units.
+ * Throws (rather than silently producing NaN) if either unit is unrecognized —
+ * a mistyped unit like "kwh" would otherwise index the lookup table as
+ * `undefined`, yield NaN, and be serialized as `null` past the validation gate.
+ */
 export function convertEnergy(value: number, from: EnergyUnit, to: EnergyUnit): number {
-  return (value * ENERGY_TO_WH[from]) / ENERGY_TO_WH[to];
+  const fromWh = ENERGY_TO_WH[from];
+  const toWh = ENERGY_TO_WH[to];
+  if (fromWh === undefined || toWh === undefined) {
+    throw new Error(
+      `convertEnergy: unrecognized energy unit (from="${from}", to="${to}"); ` +
+        `must be one of ${Object.keys(ENERGY_TO_WH).join(", ")}`,
+    );
+  }
+  return (value * fromWh) / toWh;
 }
 
-/** Convert a carbon value between any two supported units. */
+/**
+ * Convert a carbon value between any two supported units.
+ * Throws if either unit is unrecognized (see {@link convertEnergy}).
+ */
 export function convertCarbon(value: number, from: CarbonUnit, to: CarbonUnit): number {
-  return (value * CARBON_TO_G[from]) / CARBON_TO_G[to];
+  const fromG = CARBON_TO_G[from];
+  const toG = CARBON_TO_G[to];
+  if (fromG === undefined || toG === undefined) {
+    throw new Error(
+      `convertCarbon: unrecognized carbon unit (from="${from}", to="${to}"); ` +
+        `must be one of ${Object.keys(CARBON_TO_G).join(", ")}`,
+    );
+  }
+  return (value * fromG) / toG;
 }
 
 /**
@@ -72,7 +96,13 @@ export function computeSci(
   return (energyKwh * gco2PerKwh + embodiedG) / units;
 }
 
-const PERIOD_RE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
+/**
+ * Draft period shape: `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`. Month is bounded to
+ * 01-12 and day to 01-31 so impossible dates like "2026-13-40" are rejected
+ * (a plain `\d{2}` would accept them). Exported as the single source of truth;
+ * adapters import this rather than duplicating the pattern.
+ */
+export const PERIOD_RE = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
 
 /** Round to a sensible precision to avoid float noise in payloads. */
 function round(n: number, dp = 4): number {
@@ -170,7 +200,20 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   if (raw.estimatedAnnualEmissionsKg !== undefined) {
     out["estimated-annual-emissions-kgCO2"] = round(raw.estimatedAnnualEmissionsKg);
   }
-  if (raw.renewableEnergy !== undefined) out["renewable-energy"] = round(raw.renewableEnergy);
+  if (raw.renewableEnergy !== undefined) {
+    // Draft §Optional Response Fields: renewable-energy is a percentage (0-100).
+    // Per the draft's sentinel rule (§Unreported Numeric Metrics), a negative
+    // value in an optional numeric field means "not reported" — so a negative
+    // is a legal sentinel (the consumer strips it), NOT an error. Only a value
+    // above 100 is genuinely impossible, so fail loudly on that alone rather
+    // than publish an out-of-range percentage.
+    if (raw.renewableEnergy > 100) {
+      throw new Error(
+        `normalize: renewable-energy must be a percentage <= 100 (got ${raw.renewableEnergy})`,
+      );
+    }
+    out["renewable-energy"] = round(raw.renewableEnergy);
+  }
   if (raw.verifiableAttestationUri !== undefined) {
     out["verifiable-attestation-uri"] = raw.verifiableAttestationUri;
   }

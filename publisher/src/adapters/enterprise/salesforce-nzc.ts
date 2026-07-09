@@ -90,8 +90,23 @@ export function salesforceNzcAdapter(config: SalesforceNzcConfig): SourceAdapter
         const scope1 = num(rec[fm.scope1]);
         const scope2 = num(rec[fm.scope2]);
         const scope3 = num(rec[fm.scope3]);
+        const carbonField = num(rec[fm.carbon]);
+        // If neither the aggregate carbon field nor any scope field is present,
+        // the sum silently collapses to 0 and would be published as a real
+        // carbon-footprint of 0. Fail loudly instead (mirrors the
+        // emissionsFound guard in ms-sustainability.ts).
+        if (
+          carbonField === undefined &&
+          scope1 === undefined &&
+          scope2 === undefined &&
+          scope3 === undefined
+        ) {
+          throw new Error(
+            `salesforceNzcAdapter: record carries no carbon data (fields "${fm.carbon}", "${fm.scope1}", "${fm.scope2}", "${fm.scope3}" all missing/empty) — refusing to publish a fabricated 0`,
+          );
+        }
         const carbonTotal =
-          num(rec[fm.carbon]) ?? (scope1 ?? 0) + (scope2 ?? 0) + (scope3 ?? 0);
+          carbonField ?? (scope1 ?? 0) + (scope2 ?? 0) + (scope3 ?? 0);
         const energy = num(rec[fm.energy]);
         if (energy === undefined) {
           throw new Error(

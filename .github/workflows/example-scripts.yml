@@ -97,7 +97,9 @@ jobs:
           status=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8099/.well-known/sustainability)
           [ "$status" = "200" ] || { echo "::error::expected 200, got $status"; exit 1; }
           post=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8099/.well-known/sustainability)
-          echo "$post" | grep -q "405 Method Not Allowed" || { echo "::error::expected 405"; exit 1; }
+          # nginx's 405 reason phrase is "Not Allowed" (Apache's is "Method Not
+          # Allowed"); match the numeric status code to stay server-agnostic.
+          echo "$post" | grep -qE "^HTTP/[0-9.]+ 405" || { echo "::error::expected 405, got:"; echo "$post" | head -1; exit 1; }
           echo "$post" | grep -qi "^Allow: GET, HEAD" || { echo "::error::expected Allow: GET, HEAD"; exit 1; }
           nginx -s stop -c /tmp/nginx-test/nginx.conf
 
@@ -131,7 +133,7 @@ jobs:
           status=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8098/.well-known/sustainability)
           [ "$status" = "200" ] || { echo "::error::expected 200, got $status"; exit 1; }
           post=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8098/.well-known/sustainability)
-          echo "$post" | grep -q "405 Method Not Allowed" || { echo "::error::expected 405"; exit 1; }
+          echo "$post" | grep -qE "^HTTP/[0-9.]+ 405" || { echo "::error::expected 405, got:"; echo "$post" | head -1; exit 1; }
           allow_count=$(echo "$post" | grep -ci "^Allow:")
           [ "$allow_count" = "1" ] || { echo "::error::expected exactly one Allow header, got $allow_count"; exit 1; }
           echo "$post" | grep -qi "^Allow: GET, HEAD" || { echo "::error::expected Allow: GET, HEAD"; exit 1; }

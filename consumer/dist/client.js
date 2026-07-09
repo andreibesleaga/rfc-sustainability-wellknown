@@ -20,6 +20,8 @@ class SustainabilityClient {
             ...params,
             ifNoneMatch: cached?.etag,
             fetchImpl: this.options.fetchImpl,
+            timeoutMs: this.options.timeoutMs,
+            maxBytes: this.options.maxBytes,
         });
         if (result.status === "not-modified" && cached) {
             return { status: "ok", document: cached.document, etag: cached.etag };

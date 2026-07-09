@@ -47,9 +47,13 @@ export function carbonTxtBody(serve: CarbonTxtServeOptions, host?: string): stri
  * Build a full HTTP response serving carbon.txt (text/plain).
  *
  * When `sustainabilityUrl` is not fixed, the URL is derived from the request's
- * Host header. Because the response is publicly cacheable, a malformed or
- * attacker-shaped Host is rejected with 400 rather than baked into the body
- * (cache-poisoning guard). Prefer configuring a fixed `sustainabilityUrl`.
+ * Host header. The client-supplied Host is validated only for shape (HOST_RE),
+ * so a Host-derived body MUST NOT be stored in a shared cache that keys only on
+ * path: that would be a cache-poisoning primitive. Such responses are therefore
+ * served `no-store` (they are per-request anyway, so no caching benefit is
+ * lost) and carry `Vary: Host`. Only the fixed-`sustainabilityUrl` path — whose
+ * body does not depend on the request — is publicly cacheable. A malformed or
+ * attacker-shaped Host is still rejected with 400.
  */
 export function carbonTxtResult(
   serve: CarbonTxtServeOptions,
@@ -57,13 +61,15 @@ export function carbonTxtResult(
   host?: string,
 ): HandlerResult {
   const maxAge = opts.maxAge ?? 86_400;
+  const hostDerived = !serve.sustainabilityUrl;
   const headers: Record<string, string> = {
-    "Cache-Control": `public, max-age=${maxAge}`,
+    "Cache-Control": hostDerived ? "no-store" : `public, max-age=${maxAge}`,
     "Content-Type": "text/plain; charset=utf-8",
   };
+  if (hostDerived) headers["Vary"] = "Host";
   if (opts.cors !== false) headers["Access-Control-Allow-Origin"] = opts.cors ?? "*";
 
-  if (!serve.sustainabilityUrl && host !== undefined && !HOST_RE.test(host)) {
+  if (hostDerived && host !== undefined && !HOST_RE.test(host)) {
     return {
       status: 400,
       headers: { ...headers, "Cache-Control": "no-store", "Content-Type": "application/json" },

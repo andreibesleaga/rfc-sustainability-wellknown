@@ -48,6 +48,32 @@ server's actual documented/observed behavior:
   `sustainability-405.json` — create that one-line JSON file once (e.g.
   `{"error":"method not allowed"}`) alongside your main document.
 
+### TRACE method handling (XST hardening)
+
+`TRACE` gets slightly different treatment from other non-GET/HEAD methods on
+both servers, so it's called out explicitly here.
+
+- **Apache** now sets `TraceEnable Off` at the server/virtualhost level. Without
+  it, Apache's core answers `TRACE` with `200 OK` and echoes the request back
+  (the Cross-Site-Tracing / XST anti-pattern) **before** the `mod_rewrite` +
+  `ErrorDocument` 405 logic ever runs. With `TraceEnable Off`, the XST echo is
+  gone and `TRACE` receives Apache's own **generic 405** — i.e. the correct
+  status, but *not* routed through the custom `sustainability-405.json` body,
+  and with an empty `Allow` header. That is an accepted residual: 405 is still
+  the right status, and killing the 200-OK echo is the security win that matters.
+- **nginx** rejects `TRACE` like any other non-GET/HEAD method (405 Not
+  Allowed), but nginx handles `TRACE` through its own built-in response path, so
+  it returns nginx's default `405 Not Allowed` page rather than the custom JSON
+  error body / full `Allow: GET, HEAD` header used for methods like `POST`.
+
+**What is guaranteed** for `TRACE` on both servers: no XST 200-OK echo of the
+request, and a correct `405` status. **Documented minor residual:** `TRACE` may
+not carry the custom JSON body or the full `Allow: GET, HEAD` header that other
+disallowed methods receive. This is accepted because `TRACE` is rare in practice
+and browsers already block cross-origin `TRACE`, so the XST vector it targets is
+closed regardless. (Non-TRACE methods such as `POST`/`PUT`/`DELETE` still get
+the full custom JSON 405 treatment described above.)
+
 ## Usage
 
 ### Nginx

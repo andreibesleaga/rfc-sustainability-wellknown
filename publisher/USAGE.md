@@ -149,7 +149,7 @@ from it.
 
 ## 4. Writing a custom adapter (extensibility)
 
-The package ships nine adapters (`static`, `computed`, `kepler-prometheus`,
+The package ships ten adapters (`static`, `static-file`, `computed`, `kepler-prometheus`,
 `climatiq`, `co2js`, `carbontxt-api`, `salesforce-nzc`, `ms-sustainability`,
 `watershed`), but any data source can plug in by implementing one interface:
 

@@ -19,10 +19,20 @@ const ajv = new jtd_1.default({ allErrors: true });
 const validateObject = ajv.compile(schema_1.RESPONSE_JTD_SCHEMA);
 function validateMetrics(obj) {
     const valid = validateObject(obj);
-    if (valid)
-        return { valid: true, errors: [] };
-    const errors = (validateObject.errors ?? []).map((e) => `${e.instancePath || "/"} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`);
-    return { valid: false, errors };
+    const errors = valid
+        ? []
+        : (validateObject.errors ?? []).map((e) => `${e.instancePath || "/"} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`);
+    // Draft §Optional Response Fields: "If sci-score is present, functional-unit
+    // MUST also be present." This cross-field dependency cannot be expressed in
+    // JTD (or CDDL), so the schema gate above can't catch it — check it here so a
+    // conformance-checking client actually enforces the full prose MUST.
+    if (obj &&
+        typeof obj === "object" &&
+        "sci-score" in obj &&
+        obj["functional-unit"] === undefined) {
+        errors.push("sci-score is present but functional-unit is missing (draft MUST)");
+    }
+    return { valid: errors.length === 0, errors };
 }
 /** Validate a full document (single object or array), incl. cross-entry array rules. */
 function validateDocument(doc) {

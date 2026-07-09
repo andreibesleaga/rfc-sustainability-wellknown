@@ -59,5 +59,11 @@ export async function runCli(argv: string[]): Promise<number> {
     case "http-error":
       console.error(`HTTP error: ${result.httpStatus}`);
       return 1;
+    case "timeout":
+      console.error(`Request timed out after ${result.timeoutMs} ms`);
+      return 1;
+    case "too-large":
+      console.error(`Response too large: ${result.detail}`);
+      return 1;
   }
 }

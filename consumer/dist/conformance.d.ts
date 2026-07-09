@@ -8,4 +8,10 @@ export interface ConformanceReport {
     checks: ConformanceCheck[];
     allPassed: boolean;
 }
-export declare function runConformanceChecks(origin: string, fetchImpl?: typeof fetch): Promise<ConformanceReport>;
+export interface ConformanceOptions {
+    /** Per-request timeout (ms), forwarded to fetchSustainability and the raw probes. */
+    timeoutMs?: number;
+    /** Per-response body byte cap, forwarded to fetchSustainability. */
+    maxBytes?: number;
+}
+export declare function runConformanceChecks(origin: string, fetchImpl?: typeof fetch, options?: ConformanceOptions): Promise<ConformanceReport>;

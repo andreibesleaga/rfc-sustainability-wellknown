@@ -1,12 +1,12 @@
 # Internet Draft Proposal
-## IETF I-D (work in progress)
+## IETF Internet-Draft (I-D) — (work in progress)
 ### The 'sustainability' Well-Known URI
 
 Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/)
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream** — revision `-02` posted to the Datatracker (2026-07-03) and **submitted to the ISE** for publication as an Informational RFC; replaces `draft-besleaga-green-sustainability-wellknown`. IANA `sustainability` well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)).
+**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream** — revision `-02` posted to the Datatracker (2026-07-03) and **submitted to the ISE** for publication as an Informational RFC (ISE "Submission Received" state as of 2026-07-08); replaces `draft-besleaga-green-sustainability-wellknown`. IANA `sustainability` well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)).
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 
@@ -16,7 +16,7 @@ This repository contains the initial documents and other supporting examples, to
 
 A `/.well-known/sustainability` URI that allows any web server or digital service to publish its aggregated energy consumption and carbon footprint metrics in a machine-readable JSON format. Out-of-band, asynchronous reporting, not per-request overhead.
 
-**Not limited to conventional websites, and not limited to a server's own electricity bill.** A well-known URI is scoped to an HTTP(S) *origin* (RFC 8615) — any device or service that speaks HTTP can serve one alongside its normal API. That includes IoT and embedded devices (constrained devices already use the analogous well-known convention for discovery, e.g. CoAP's `/.well-known/core`, RFC 7252) and Web3/blockchain infrastructure — an RPC gateway, validator dashboard, or node operator's endpoint is an ordinary HTTP origin like any other. Separately, the `provider` field names "the entity operating the origin," `measurement-method` is free-form, and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) already publish *organization-level* figures through this same endpoint — so it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — exactly the shape of this schema's optional fields, for an entity that is not a website at all.
+**Not limited to conventional websites, and not limited to a server's own electricity bill.** A well-known URI is scoped to an HTTP(S) *origin* (RFC 8615) — any device or service that speaks HTTP can serve one alongside its normal API. That includes IoT and embedded devices (constrained devices already use the analogous well-known convention for discovery, e.g. CoAP's `/.well-known/core`, registered by RFC 6690) and Web3/blockchain infrastructure — an RPC gateway, validator dashboard, or node operator's endpoint is an ordinary HTTP origin like any other. Separately, the `provider` field names "the entity operating the origin," `measurement-method` is free-form, and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) already publish *organization-level* figures through this same endpoint — so it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — exactly the shape of this schema's optional fields, for an entity that is not a website at all.
 
 #### Goals
 * Provide a single, discoverable location, for environmental metrics for an origin.

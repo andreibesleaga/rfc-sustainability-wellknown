@@ -120,6 +120,49 @@ describe("fetchSustainability() against a plain http server", () => {
     }
   });
 
+  it('returns {status:"timeout"} within the budget when the origin never responds', async () => {
+    // A server that accepts the connection but never writes a response, so the
+    // only way out is the client-side timeout — deterministic (no fixed delay),
+    // just a never-completing request against a small timeoutMs.
+    const origin = await start(() => {
+      /* intentionally never respond */
+    });
+
+    const result = await fetchSustainability(origin, { timeoutMs: 150 });
+    expect(result.status).toBe("timeout");
+    if (result.status === "timeout") {
+      expect(result.timeoutMs).toBe(150);
+    }
+  });
+
+  it('returns {status:"too-large"} on an oversized Content-Length without buffering the body', async () => {
+    const origin = await start((_req, res) => {
+      // Advertise a multi-GB body; the client must reject on the header alone
+      // and never wait for (or buffer) the bytes.
+      res.writeHead(200, { "Content-Type": "application/json", "Content-Length": "9999999999" });
+      res.end("{}");
+    });
+
+    const result = await fetchSustainability(origin, { maxBytes: 1000 });
+    expect(result.status).toBe("too-large");
+    if (result.status === "too-large") {
+      expect(result.detail).toContain("Content-Length");
+    }
+  });
+
+  it('returns {status:"too-large"} when a body with no Content-Length exceeds the cap', async () => {
+    const origin = await start((_req, res) => {
+      // Chunked transfer (no Content-Length): a lying/absent length can only be
+      // caught by the running byte cap on the stream.
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.write("[" + " ".repeat(5000));
+      res.end("]");
+    });
+
+    const result = await fetchSustainability(origin, { maxBytes: 500 });
+    expect(result.status).toBe("too-large");
+  });
+
   it('returns {status:"invalid"} for a schema-invalid document (missing a mandatory field)', async () => {
     const doc = JSON.parse(fs.readFileSync(path.join(EXAMPLES_DIR, "example-response.json"), "utf8"));
     delete doc.version; // "version" is mandatory per RESPONSE_JTD_SCHEMA

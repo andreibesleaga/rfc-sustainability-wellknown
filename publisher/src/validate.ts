@@ -16,14 +16,48 @@ export interface ValidationResult {
   errors: string[];
 }
 
+/**
+ * Every numeric field defined by the draft. JTD's `float64` only checks
+ * `typeof === "number"`, so NaN and ±Infinity pass it and then serialize as
+ * JSON `null` (or invalid JSON). This list lets the gate reject non-finite
+ * values before a payload is ever published.
+ */
+const NUMERIC_FIELDS = [
+  "energy-consumption",
+  "carbon-footprint",
+  "scope-1",
+  "scope-2",
+  "scope-3",
+  "sci-score",
+  "carbon-intensity-gCO2-per-kWh",
+  "estimated-annual-emissions-kgCO2",
+  "renewable-energy",
+] as const;
+
 /** Validate a single metrics object against the JTD schema. */
 export function validateMetrics(obj: unknown): ValidationResult {
   const valid = validateObject(obj) as boolean;
-  if (valid) return { valid: true, errors: [] };
-  const errors = (validateObject.errors ?? []).map(
-    (e) => `${e.instancePath || "/"} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`,
-  );
-  return { valid: false, errors };
+  if (!valid) {
+    const errors = (validateObject.errors ?? []).map(
+      (e) => `${e.instancePath || "/"} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`,
+    );
+    return { valid: false, errors };
+  }
+
+  // Post-JTD guard: reject non-finite numbers (NaN, Infinity, -Infinity). These
+  // pass JTD's float64 (typeof === "number") but serialize to JSON `null`,
+  // which would let malformed adapter output be published as valid data.
+  const errors: string[] = [];
+  if (obj && typeof obj === "object") {
+    const rec = obj as Record<string, unknown>;
+    for (const field of NUMERIC_FIELDS) {
+      const v = rec[field];
+      if (typeof v === "number" && !Number.isFinite(v)) {
+        errors.push(`/${field} is not a finite number (${String(v)})`);
+      }
+    }
+  }
+  return { valid: errors.length === 0, errors };
 }
 
 /** Validate a full document (single object or array). */

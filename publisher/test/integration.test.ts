@@ -162,6 +162,60 @@ describe("Fastify plugin (mock runtime)", () => {
     expect(cReply.statusCode).toBe(200);
     expect(parseCarbonTxt(cReply.sentBody).org.disclosures).toHaveLength(1);
   });
+
+  // Fix 4 (MAJOR): a real Fastify instance exposes `route`, so the plugin
+  // registers one handler for every method and answers non-GET/HEAD with
+  // 405 + Allow: GET, HEAD (mirroring express.ts and server.ts). This seam
+  // drives that path without the fastify package installed.
+  it("answers non-GET/HEAD with 405 + Allow (route seam)", async () => {
+    const routes = new Map<string, (req: any, reply: any) => Promise<unknown>>();
+    const fakeFastify = {
+      get(path: string, handler: any) {
+        routes.set(path, handler);
+      },
+      route(opts: { method: string | string[]; url: string; handler: any }) {
+        routes.set(opts.url, opts.handler);
+      },
+    };
+    await fastifySustainability(fakeFastify as any, {
+      publisher: demoPublisher(),
+      carbonTxt: { sustainabilityUrl: "https://demo.example/.well-known/sustainability" },
+    });
+
+    const makeReply = () => {
+      const r: any = {
+        statusCode: 0,
+        headerBag: {} as Record<string, string>,
+        sentBody: "",
+        code(c: number) {
+          r.statusCode = c;
+          return r;
+        },
+        headers(h: Record<string, string>) {
+          Object.assign(r.headerBag, h);
+          return r;
+        },
+        send(b: string) {
+          r.sentBody = b ?? "";
+          return r;
+        },
+      };
+      return r;
+    };
+
+    for (const path of ["/.well-known/sustainability", "/carbon.txt", "/.well-known/carbon.txt"]) {
+      const reply = makeReply();
+      await routes.get(path)!({ method: "POST", headers: {}, query: {} }, reply);
+      expect(reply.statusCode, path).toBe(405);
+      expect(reply.headerBag.Allow, path).toBe("GET, HEAD");
+    }
+
+    // GET still works through the route seam.
+    const okReply = makeReply();
+    await routes.get("/.well-known/sustainability")!({ method: "GET", headers: {}, query: {} }, okReply);
+    expect(okReply.statusCode).toBe(200);
+    expect(validateDocument(JSON.parse(okReply.sentBody)).valid).toBe(true);
+  });
 });
 
 describe("CLI / config loader", () => {

@@ -24,9 +24,45 @@ This installs:
 - `jtd` Python package (used by `validator-json.py`)
 - `cddl` Ruby gem (used by `validator-cddl.py`)
 
+`install.py` runs `pip install -r requirements.txt` (retrying with
+`--break-system-packages` if needed) and `gem install cddl` (retrying with
+`sudo` only if the first attempt fails).
+
 Ruby must be present on the system. If not:
 - Ubuntu/Debian: `sudo apt install ruby-full`
 - macOS: `brew install ruby`
+
+### Important: put the Ruby user-gem bin directory on your PATH
+
+On a stock **non-root** Linux box, `gem install cddl` (no `sudo`) succeeds but
+installs the `cddl` executable into your *user* gem directory — e.g.
+`~/.local/share/gem/ruby/X.Y.0/bin` — which is **not** on `$PATH` by default.
+When that happens, `validate-all.sh` reports
+`[CDDL] FAIL (Error: 'cddl' tool not found.)` on every example even though the
+installer said "OK".
+
+Find your user-gem bin directory and add it to PATH:
+
+```bash
+# Show the user gem directory (the executable lives in <user_dir>/bin):
+ruby -e 'puts Gem.user_dir'          # e.g. /home/you/.local/share/gem/ruby/3.2.0
+gem environment | grep -i 'user'     # alternative: 'USER INSTALLATION DIRECTORY'
+
+# Add its bin/ to PATH for the current shell (and persist it in ~/.bashrc):
+export PATH="$(ruby -e 'print Gem.user_dir')/bin:$PATH"
+echo 'export PATH="$(ruby -e '"'"'print Gem.user_dir'"'"')/bin:$PATH"' >> ~/.bashrc
+```
+
+To be explicit about a per-user install you can also run
+`gem install --user-install cddl` (still requires the PATH step above).
+
+**Verify before running `validate-all.sh`:** `cddl --help` must work.
+
+```bash
+cddl --help   # should print usage, not "command not found"
+```
+
+Only once `cddl --help` works will the CDDL leg of `./validate-all.sh` pass.
 
 ## Usage
 
@@ -49,3 +85,24 @@ python3 validator-cddl.py ../example-responses/example-response.json
 ```
 
 Both validators must be run from the `schemas-validators/` directory so they can locate the schema files.
+
+## What the formal schemas do and do not enforce
+
+The JTD and CDDL schemas validate **structure**: field types, required fields,
+and open extensibility (unknown members are permitted). They deliberately do
+**not** — and technically **cannot** — express a small number of the draft's
+cross-field and value-range prose rules, because neither CDDL nor JTD can encode
+conditional dependencies between fields or numeric bounds in a way these
+validators check. In particular:
+
+- **`sci-score` ⇒ `functional-unit`** — the draft states a MUST: "If `sci-score`
+  is present, `functional-unit` MUST also be present." This is a cross-field
+  conditional dependency, which neither CDDL nor JTD can express, so a document
+  carrying `sci-score` **without** `functional-unit` passes both validators.
+- **Numeric ranges** — e.g. `renewable-energy` being within `0`–`100`. The
+  formal schemas type these as numbers but do not enforce the min/max bounds.
+
+These rules are checked at the **application layer**: this repo's `publisher/`
+and `consumer/` implementations validate the `sci-score` ⇒ `functional-unit`
+dependency and the numeric ranges. Treat a "PASS" from the formal validators as
+"structurally valid", not "fully conformant to every prose MUST in the draft".

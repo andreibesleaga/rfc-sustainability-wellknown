@@ -52,9 +52,12 @@ jobs:
       - name: Validate every example response (both validators)
         working-directory: schemas-validators
         run: bash validate-all.sh
-      # Three-way schema equality (repo JSON == publisher dist == consumer dist) is
-      # checked in the `consumer` job below, after both packages are built — that
-      # is the only point both compiled dist/schema.js files reliably exist.
+      # Three-way schema equality (schemas-validators/response-schema.json ==
+      # publisher/src/schema.ts == consumer/src/schema.ts) is enforced by each
+      # package's own test suite: publisher/test/conformance.test.ts and
+      # consumer/test/schema.test.ts both assert their embedded TS schema is
+      # byte-identical to the repo JSON. Those run in the `publisher`/`consumer`
+      # jobs below (via `npm test`), so no separate equality step is needed here.
 
   publisher:
     runs-on: ubuntu-latest

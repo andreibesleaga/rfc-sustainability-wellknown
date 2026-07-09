@@ -40,9 +40,17 @@ export interface MsSustainabilityConfig {
   fixturePages?: ODataPage[];
 }
 
+// Both call sites invoke num() only for a field that is present (!== undefined),
+// so a present-but-non-numeric value (e.g. "N/A", null) is genuine bad upstream
+// data. Coercing it silently to 0 would publish a fabricated measurement — the
+// same silent-zero footgun the watershed/salesforce adapters guard against — so
+// fail loud instead.
 function num(v: unknown): number {
   const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
+  if (!Number.isFinite(n)) {
+    throw new Error(`msSustainabilityAdapter: expected a numeric value, got ${JSON.stringify(v)}`);
+  }
+  return n;
 }
 
 export function msSustainabilityAdapter(config: MsSustainabilityConfig): SourceAdapter {

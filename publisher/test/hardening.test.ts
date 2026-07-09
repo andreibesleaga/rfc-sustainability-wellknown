@@ -134,6 +134,20 @@ describe("ms-sustainability guards (fix 7)", () => {
     });
     await expect(a.fetch({})).rejects.toThrow(/emissions field/);
   });
+
+  it("throws on a present-but-non-numeric emissions value (no fabricated 0)", async () => {
+    const a = msSustainabilityAdapter({
+      provider: "P",
+      methodologyUri: "https://x/m",
+      reportingPeriod: "2026-02",
+      emissionsField: "totalEmissions",
+      energyField: "energyKwh",
+      // "N/A" is present, so the old num() would coerce it to 0 and publish a
+      // fabricated real footprint; it must now fail loud instead.
+      fixturePages: [{ value: [{ totalEmissions: "N/A", energyKwh: 5 }] }] as any,
+    });
+    await expect(a.fetch({})).rejects.toThrow(/numeric value/);
+  });
 });
 
 // #9 Host validation for carbon.txt
@@ -146,6 +160,27 @@ describe("carbonTxtResult rejects a poisoned Host (fix 9)", () => {
   it("200 when sustainabilityUrl is fixed (Host ignored)", () => {
     const r = carbonTxtResult({ sustainabilityUrl: "https://ok.example/.well-known/sustainability" }, {}, "anything");
     expect(r.status).toBe(200);
+  });
+
+  // Fix 5 (security): a Host-derived body must not be publicly cacheable behind
+  // a path-keyed shared cache; it is served no-store (+ Vary: Host). The
+  // fixed-URL body is request-independent and stays publicly cacheable.
+  it("Host-derived 200 is no-store with Vary: Host (cache-poisoning guard)", () => {
+    const r = carbonTxtResult({}, {}, "ok.example");
+    expect(r.status).toBe(200);
+    expect(r.headers["Cache-Control"]).toBe("no-store");
+    expect(r.headers["Vary"]).toBe("Host");
+  });
+
+  it("fixed-URL 200 keeps public caching and no Vary: Host", () => {
+    const r = carbonTxtResult(
+      { sustainabilityUrl: "https://ok.example/.well-known/sustainability" },
+      { maxAge: 3600 },
+      "ok.example",
+    );
+    expect(r.status).toBe(200);
+    expect(r.headers["Cache-Control"]).toBe("public, max-age=3600");
+    expect(r.headers["Vary"]).toBeUndefined();
   });
 });
 

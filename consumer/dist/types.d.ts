@@ -50,4 +50,10 @@ export type FetchResult = {
 } | {
     status: "http-error";
     httpStatus: number;
+} | {
+    status: "timeout";
+    timeoutMs: number;
+} | {
+    status: "too-large";
+    detail: string;
 };

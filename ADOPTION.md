@@ -53,7 +53,7 @@ fragmentation.
   specifically. Every device or service that speaks HTTP(S) is a valid publisher alongside
   its normal API: web servers, but equally IoT/embedded devices (constrained devices
   already use the analogous well-known convention for discovery — CoAP's
-  `/.well-known/core`, RFC 7252 — so the pattern is proven, not speculative, in embedded
+  `/.well-known/core`, registered by RFC 6690 (the CoRE Link Format) — so the pattern is proven, not speculative, in embedded
   contexts) and Web3/blockchain infrastructure (a validator dashboard, RPC gateway, or
   node operator's endpoint is an ordinary HTTP origin). No new protocol machinery is
   needed for any of these; they gain the endpoint for free by implementing RFC 8615 like
@@ -141,7 +141,8 @@ RFC 8615.
 
 ## 7. Relationship to adjacent work — the no-conflict map
 
-Independently verified against the live charters and specs (see `AUDIT.md`); the draft's
+Independently verified against the live charters and specs (each row's positioning was
+checked against the current published charter/spec text for that initiative); the draft's
 "Relationship to Other Work" section states this normatively, which pre-answers the
 RFC 5742 conflict-review question before it is asked.
 
@@ -272,7 +273,7 @@ never positioning against it.
 | "Does it belong in GREEN or SUSTAIN?" | Neither venue takes it: GREEN's charter excludes carbon accounting/reporting and app-layer discovery; SUSTAIN defers standardization to the IETF. The ISE exists precisely for this profile, and the IANA registration needs only Specification Required regardless (see §7). |
 | "Should it register a media type?" | Not required — security.txt registered none; the draft deliberately reuses `application/json` + I-JSON and says so in the registration's Related Information. A structured-suffix type (`application/sustainability+json`) remains possible later without breaking anything, if the expert prefers it. |
 | "Why an RFC instead of a community convention?" | The Well-Known URIs registry is IANA's, and its policy is Specification Required — a stable, citable spec is the entry ticket. An Independent-stream Informational RFC is the lightest instrument that clears that bar, exactly as RFC 9116 did. |
-| "Isn't this just for websites?" | No — a well-known URI is scoped to an HTTP(S) origin (RFC 8615), not to "a website." IoT/embedded devices already use the analogous convention for discovery (CoAP's `/.well-known/core`, RFC 7252); a blockchain RPC gateway or validator dashboard is an ordinary HTTP origin. Separately, the data model reports the *entity* (`provider`), not the box: EU MiCA already mandates near-identical fields (consensus-mechanism energy, renewable share, per-transaction intensity, GHG emissions) for crypto-asset issuers — an entity, not a website (§3). |
+| "Isn't this just for websites?" | No — a well-known URI is scoped to an HTTP(S) origin (RFC 8615), not to "a website." IoT/embedded devices already use the analogous convention for discovery (CoAP's `/.well-known/core`, registered by RFC 6690); a blockchain RPC gateway or validator dashboard is an ordinary HTTP origin. Separately, the data model reports the *entity* (`provider`), not the box: EU MiCA already mandates near-identical fields (consensus-mechanism energy, renewable share, per-transaction intensity, GHG emissions) for crypto-asset issuers — an entity, not a website (§3). |
 
 ## 9. Readiness evidence (in this repository)
 
@@ -281,11 +282,11 @@ never positioning against it.
   series, with the datatracker "Replaces" relationship recorded). Builds strict-clean
   (`xml2rfc --strict`, 0 warnings; idnits **0 errors**); all 20 references verified against
   authoritative sources, none unused.
-- **Two full pre-submission audit rounds** (recorded in `AUDIT.md`): a five-stream
-  web-verified ISE-readiness audit (registry landscape, reference integrity, extensibility,
-  ecosystem positioning, mailing-list precedent) and a three-reviewer adversarial pass
-  (technical consistency, datatracker readiness, hostile-implementer) — every confirmed
-  finding fixed in -02.
+- **Two full pre-submission audit rounds**: a five-stream web-verified ISE-readiness audit
+  (registry landscape, reference integrity, extensibility, ecosystem positioning,
+  mailing-list precedent) and a three-reviewer adversarial pass (technical consistency,
+  datatracker readiness, hostile-implementer) — every confirmed finding fixed in -02, as
+  reflected in the current draft text and the CI checks below.
 - **Dual formal schemas** (JTD + CDDL) with independent Python and Ruby validators —
   all repository and in-draft examples pass both (10/10 and 6/6).
 - A **production reference gateway** (TypeScript, 79 passing tests) with adapters for
@@ -294,6 +295,12 @@ never positioning against it.
   every adapter's output validates against both schemas, and the gateway enforces the
   draft's MUSTs that schemas cannot express (sci-score/functional-unit coupling, array
   ordering and uniformity, single-object response rules, deterministic noise).
+- A **reference client** (`consumer/`, TypeScript, also published to npm as
+  `sustainability-wellknown-consumer`) that complements the publisher: it fetches,
+  defensively validates, transforms (CSV/NDJSON/flatten/trend), and conformance-checks a
+  document from any origin. It is interop-tested in-process against a live `Publisher`,
+  exercising the full produce→fetch→validate→transform lifecycle — so the repository ships
+  **two independent, interoperating implementations** (producer and consumer), not just one.
 - CI that rebuilds the draft and cross-validates generated documents.
 
 ## 10. Process fit: the Independent Submission Stream

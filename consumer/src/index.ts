@@ -19,4 +19,4 @@ export type { FlatRecord, AggregateOptions } from "./transform";
 export { resolveDisclosureLinks, fetchDisclosure } from "./disclosure";
 export type { DisclosureLinks } from "./disclosure";
 export { runConformanceChecks } from "./conformance";
-export type { ConformanceReport, ConformanceCheck } from "./conformance";
+export type { ConformanceReport, ConformanceCheck, ConformanceOptions } from "./conformance";

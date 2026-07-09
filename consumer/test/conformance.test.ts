@@ -80,7 +80,81 @@ function startNonConditionalServer(): Promise<string> {
   });
 }
 
+/**
+ * A fully wire-conformant server (200+ETag, 304 on matching If-None-Match,
+ * 405+Allow on POST) whose Basic 200 Content-Type is caller-chosen, so the
+ * media-type MUST can be exercised as both a true positive and a true negative.
+ */
+function startServerWithContentType(contentType: string): Promise<string> {
+  const body = JSON.stringify(EXAMPLE_DOC);
+  const ETAG = '"content-type-probe-etag"';
+  const handler = (req: IncomingMessage, res: ServerResponse) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    if (url.pathname !== WELL_KNOWN_PATH) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "not found" }));
+      return;
+    }
+    if (req.method === "POST") {
+      res.writeHead(405, { Allow: "GET, HEAD" });
+      res.end();
+      return;
+    }
+    if (req.headers["if-none-match"] === ETAG) {
+      res.writeHead(304, { ETag: ETAG });
+      res.end();
+      return;
+    }
+    res.writeHead(200, { "Content-Type": contentType, ETag: ETAG });
+    res.end(body);
+  };
+  return new Promise((resolve) => {
+    server = createServer(handler);
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server!.address() as AddressInfo;
+      resolve(`http://127.0.0.1:${port}`);
+    });
+  });
+}
+
 describe("runConformanceChecks()", () => {
+  const CONTENT_TYPE_CHECK = "Basic 200 response uses the application/json media type (MUST)";
+
+  it("true negative: valid JSON served as text/html fails only the media-type check", async () => {
+    // Body is valid JSON (so parsing/schema checks still pass), but the media
+    // type violates the draft's application/json MUST.
+    const origin = await startServerWithContentType("text/html; charset=utf-8");
+
+    const report = await runConformanceChecks(origin);
+
+    expect(report.allPassed).toBe(false);
+    const byName = new Map(report.checks.map((c) => [c.name, c]));
+
+    const ct = byName.get(CONTENT_TYPE_CHECK);
+    expect(ct).toBeDefined();
+    expect(ct?.pass).toBe(false);
+
+    // Discrimination: the failure is specific to the media type; the body still
+    // parses and validates, and the other wire checks still pass.
+    expect(byName.get("Basic request returns a schema-valid single object")?.pass).toBe(true);
+    expect(byName.get("Response carries an ETag (RECOMMENDED)")?.pass).toBe(true);
+    expect(byName.get("Conditional GET with a fresh ETag returns 304")?.pass).toBe(true);
+    expect(byName.get("A method other than GET/HEAD gets 405 with Allow")?.pass).toBe(true);
+  });
+
+  it("true positive: valid JSON served as application/json passes the media-type check (and all others)", async () => {
+    const origin = await startServerWithContentType("application/json");
+
+    const report = await runConformanceChecks(origin);
+
+    const byName = new Map(report.checks.map((c) => [c.name, c]));
+    expect(byName.get(CONTENT_TYPE_CHECK)?.pass).toBe(true);
+    for (const c of report.checks) {
+      expect(c.pass, `check "${c.name}" failed: ${c.detail ?? "(no detail)"}`).toBe(true);
+    }
+    expect(report.allPassed).toBe(true);
+  });
+
   it.runIf(hasPublisherDist)("true positive: a real, conformant publisher-backed server passes every check", async () => {
     const publisher = new Publisher(
       computedAdapter({

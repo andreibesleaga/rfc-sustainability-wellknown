@@ -8,6 +8,7 @@ Run: python3 test_request_handler.py
 """
 import json
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -17,7 +18,19 @@ import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 VALIDATORS_DIR = os.path.join(HERE, "..", "schemas-validators")
-PORT = 8099
+
+
+def _free_port() -> int:
+    """Ask the OS for a free ephemeral port, to avoid colliding with anything
+    else running on a fixed port (this exact flake happened once already)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
+PORT = _free_port()
 BASE = f"http://127.0.0.1:{PORT}"
 WELL_KNOWN = f"{BASE}/.well-known/sustainability"
 

@@ -70,7 +70,7 @@ jobs:
       - name: nginx config check
         run: |
           set -e
-          mkdir -p /tmp/nginx-test/logs /tmp/nginx-test/run
+          mkdir -p /tmp/nginx-test/logs /tmp/nginx-test/run /tmp/nginx-test/tmp
           echo '{"version":"1.1","test":true}' > /tmp/nginx-test/sustainability.json
           cat > /tmp/nginx-test/nginx.conf <<'EOF'
           worker_processes 1;
@@ -78,6 +78,12 @@ jobs:
           pid /tmp/nginx-test/run/nginx.pid;
           events { worker_connections 16; }
           http {
+            access_log /tmp/nginx-test/logs/access.log;
+            client_body_temp_path /tmp/nginx-test/tmp/body;
+            proxy_temp_path /tmp/nginx-test/tmp/proxy;
+            fastcgi_temp_path /tmp/nginx-test/tmp/fastcgi;
+            uwsgi_temp_path /tmp/nginx-test/tmp/uwsgi;
+            scgi_temp_path /tmp/nginx-test/tmp/scgi;
             server {
               listen 127.0.0.1:8099;
           EOF

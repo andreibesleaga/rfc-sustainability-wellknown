@@ -117,9 +117,13 @@ jobs:
       - name: Live server-configuration check (see server-configurations/README.md)
         run: |
           set -e
-          mkdir -p /tmp/nginx-fv/logs /tmp/nginx-fv/run
+          mkdir -p /tmp/nginx-fv/logs /tmp/nginx-fv/run /tmp/nginx-fv/tmp
           echo '{"version":"1.1","test":true}' > /tmp/nginx-fv/sustainability.json
-          { echo 'worker_processes 1; events{worker_connections 16;} http{ server{ listen 127.0.0.1:8099;'; \
+          { echo 'worker_processes 1; pid /tmp/nginx-fv/run/nginx.pid; error_log /tmp/nginx-fv/logs/error.log;'; \
+            echo 'events{worker_connections 16;} http{ access_log /tmp/nginx-fv/logs/access.log;'; \
+            echo 'client_body_temp_path /tmp/nginx-fv/tmp/body; proxy_temp_path /tmp/nginx-fv/tmp/proxy;'; \
+            echo 'fastcgi_temp_path /tmp/nginx-fv/tmp/fastcgi; uwsgi_temp_path /tmp/nginx-fv/tmp/uwsgi; scgi_temp_path /tmp/nginx-fv/tmp/scgi;'; \
+            echo 'server{ listen 127.0.0.1:8099;'; \
             sed 's#/var/www/metadata/sustainability.json#/tmp/nginx-fv/sustainability.json#' server-configurations/nginx.conf | grep -v '^#'; \
             echo '} }'; } > /tmp/nginx-fv/nginx.conf
           nginx -t -c /tmp/nginx-fv/nginx.conf
@@ -128,6 +132,38 @@ jobs:
           [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/.well-known/sustainability)" = "200" ]
           curl -s -D - -o /dev/null -X POST http://127.0.0.1:8099/.well-known/sustainability | grep -qi '^Allow: GET, HEAD'
           nginx -s stop -c /tmp/nginx-fv/nginx.conf
+
+      - name: Apache config check
+        run: |
+          set -e
+          mkdir -p /tmp/apache-fv/logs /tmp/apache-fv/run /tmp/apache-fv/htdocs
+          echo '{"version":"1.1","test":true}' > /tmp/apache-fv/htdocs/sustainability.json
+          echo '{"error":"method not allowed"}' > /tmp/apache-fv/htdocs/sustainability-405.json
+          cat > /tmp/apache-fv/httpd.conf <<EOF
+          ServerRoot "/tmp/apache-fv"
+          Listen 127.0.0.1:8098
+          PidFile "/tmp/apache-fv/run/httpd.pid"
+          ErrorLog "/tmp/apache-fv/logs/error.log"
+          LoadModule mpm_event_module /usr/lib/apache2/modules/mod_mpm_event.so
+          LoadModule authz_core_module /usr/lib/apache2/modules/mod_authz_core.so
+          LoadModule alias_module /usr/lib/apache2/modules/mod_alias.so
+          LoadModule headers_module /usr/lib/apache2/modules/mod_headers.so
+          LoadModule rewrite_module /usr/lib/apache2/modules/mod_rewrite.so
+          LoadModule mime_module /usr/lib/apache2/modules/mod_mime.so
+          User $(whoami)
+          Group $(id -gn)
+          ServerName localhost
+          TypesConfig /etc/mime.types
+          EOF
+          sed "s#/var/www/metadata/sustainability-405.json#/tmp/apache-fv/htdocs/sustainability-405.json#; s#/var/www/metadata/sustainability.json#/tmp/apache-fv/htdocs/sustainability.json#" \
+            server-configurations/apache.conf | grep -v '^#' >> /tmp/apache-fv/httpd.conf
+          apache2 -f /tmp/apache-fv/httpd.conf -t
+          apache2 -f /tmp/apache-fv/httpd.conf -k start
+          sleep 1
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8098/.well-known/sustainability)" = "200" ]
+          post=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8098/.well-known/sustainability)
+          echo "$post" | grep -qi "^Allow: GET, HEAD"
+          apache2 -f /tmp/apache-fv/httpd.conf -k stop
 
   summary:
     needs: [draft, schemas, publisher, consumer, example-scripts-and-server-configs]

@@ -1,7 +1,9 @@
 temp
 __pycache__/
+node_modules/
 
 AUDIT.md
+CHANGELOGS.md
 PUBLISHING.md
 PRESENTATION.md
 RESEARCH.md

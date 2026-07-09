@@ -1,7 +1,7 @@
 {
-  "name": "sustainability-wellknown-publisher",
+  "name": "sustainability-wellknown-consumer",
   "version": "0.1.0",
-  "description": "Production publisher/gateway that serves a draft-conformant /.well-known/sustainability document from pluggable metric sources (static/computed, Kepler/Prometheus, Climatiq, Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed).",
+  "description": "Reference client for /.well-known/sustainability (draft-besleaga-sustainability-wellknown): fetch, validate, and transform. Complements sustainability-wellknown-publisher.",
   "license": "BSD-3-Clause",
   "author": "Andrei Nicolae Besleaga",
   "type": "commonjs",
@@ -13,25 +13,23 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/andreibesleaga/rfc-sustainability-wellknown.git",
-    "directory": "publisher"
+    "directory": "consumer"
   },
-  "homepage": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/main/publisher#readme",
+  "homepage": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/main/consumer#readme",
   "bugs": {
     "url": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/issues"
   },
   "bin": {
-    "sustainability-publisher": "bin/sustainability-publisher.js"
+    "sustainability-fetch": "bin/sustainability-fetch.js"
   },
   "files": [
     "dist",
     "bin",
-    "README.md",
-    "NOTICE"
+    "README.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "start": "node bin/sustainability-publisher.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -41,23 +39,15 @@
     "carbon",
     "well-known",
     "ietf",
-    "csrd",
-    "greenhouse-gas",
-    "kepler",
-    "climatiq",
-    "co2js",
-    "carbon.txt",
-    "green-web-foundation"
+    "client",
+    "consumer",
+    "m2m"
   ],
   "dependencies": {
-    "@iarna/toml": "^2.2.5",
-    "@tgwf/co2": "^0.19.0",
     "ajv": "^8.17.1"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
     "@types/node": "^22.10.0",
-    "express": "^4.21.2",
     "typescript": "^5.7.2",
     "vitest": "^3.2.6"
   },

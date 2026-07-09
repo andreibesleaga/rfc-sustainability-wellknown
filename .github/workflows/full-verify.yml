@@ -1,0 +1,137 @@
+name: full-verify
+
+# The single, unconditional "is the whole repo green" check — unlike the other
+# workflows (draft.yml, publisher.yml, consumer.yml, validate-examples.yml,
+# example-scripts.yml), which are path-filtered to their own area, this one
+# always runs on every push/PR to main and re-verifies every area in one place.
+# Intended as the required status check for branch protection.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.2" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: gem install kramdown-rfc2629
+      - run: python3 -m pip install xml2rfc
+      - name: Build and strict-check the latest draft
+        run: |
+          set -e
+          cd documents
+          md=$(ls draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
+          base="${md%.md}"
+          kramdown-rfc "$md" > "$base.xml"
+          xml2rfc --strict --text "$base.xml" -o "$base.txt"
+      - name: idnits (0 errors required)
+        run: |
+          cd documents
+          md=$(ls draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
+          base="${md%.md}"
+          npx --yes @ietf-tools/idnits "$base.xml" | tee /tmp/idnits.out
+          ! grep -qE '^ *ERROR' /tmp/idnits.out
+
+  schemas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.2" }
+      - run: python3 -m pip install jtd
+      - run: gem install cddl
+      - name: Validate every example response (both validators)
+        working-directory: schemas-validators
+        run: bash validate-all.sh
+      # Three-way schema equality (repo JSON == publisher dist == consumer dist) is
+      # checked in the `consumer` job below, after both packages are built — that
+      # is the only point both compiled dist/schema.js files reliably exist.
+
+  publisher:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: publisher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: publisher/package-lock.json }
+      - run: npm ci || npm install
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+      - run: npm publish --dry-run
+
+  consumer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Build publisher (consumer's interop test needs its dist/)
+        working-directory: publisher
+        run: npm ci || npm install; npm run build
+      - name: Build and test consumer
+        working-directory: consumer
+        run: |
+          npm ci || npm install
+          npm run typecheck
+          npm run build
+          npm test
+      - name: Dry-run publish
+        working-directory: consumer
+        run: npm publish --dry-run
+
+  example-scripts-and-server-configs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: "8.3" }
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.2" }
+      - run: python3 -m pip install jtd
+      - run: gem install cddl
+      - name: example-scripts test suites
+        working-directory: example-scripts
+        run: |
+          python3 test_security.py
+          node test_security.js
+          php test_security.php
+          python3 test_request_handler.py
+      - name: Install nginx and apache2
+        run: sudo apt-get update -qq && sudo apt-get install -y nginx apache2
+      - name: Live server-configuration check (see server-configurations/README.md)
+        run: |
+          set -e
+          mkdir -p /tmp/nginx-fv/logs /tmp/nginx-fv/run
+          echo '{"version":"1.1","test":true}' > /tmp/nginx-fv/sustainability.json
+          { echo 'worker_processes 1; events{worker_connections 16;} http{ server{ listen 127.0.0.1:8099;'; \
+            sed 's#/var/www/metadata/sustainability.json#/tmp/nginx-fv/sustainability.json#' server-configurations/nginx.conf | grep -v '^#'; \
+            echo '} }'; } > /tmp/nginx-fv/nginx.conf
+          nginx -t -c /tmp/nginx-fv/nginx.conf
+          nginx -c /tmp/nginx-fv/nginx.conf
+          sleep 1
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/.well-known/sustainability)" = "200" ]
+          curl -s -D - -o /dev/null -X POST http://127.0.0.1:8099/.well-known/sustainability | grep -qi '^Allow: GET, HEAD'
+          nginx -s stop -c /tmp/nginx-fv/nginx.conf
+
+  summary:
+    needs: [draft, schemas, publisher, consumer, example-scripts-and-server-configs]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "All areas verified green: draft, schemas, publisher, consumer, example-scripts, server-configurations."

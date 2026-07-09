@@ -69,6 +69,8 @@ All responses must validate against the **JSON Type Definition (JTD)** provided 
 |---|---|
 | `security.py` / `.js` / `.php` | The array safeguards ONLY (sort, cap, granularity floor, deterministic noise) — a filter you apply to whatever data you already have. Zero dependencies; runnable as-is in each language. |
 | `request-handler.py` | A complete, minimal, zero-dependency (`http.server` only) reference **request handler**: query-parameter parsing (`target`/`period`/`granularity`), Basic vs Extended routing, the single-object-vs-array response-shape rule, conditional requests (`ETag`/`If-None-Match` → `304`), 404, and 405+`Allow`. Shows how the safeguards above plug into full request handling. Not a production implementation — for that, see `publisher/` (TypeScript, 10 source adapters, fully tested). |
+| `test_security.py` / `.js` / `.php` | Unit tests for the corresponding `security.*` file (sort, cap, determinism, sentinel exclusion, scope-consistency). Run directly: `python3 test_security.py`, `node test_security.js`, `php test_security.php`. |
+| `test_request_handler.py` | End-to-end tests for `request-handler.py`: spins up the real server and exercises golden paths, error paths, and edge cases over real HTTP, cross-validating responses against both independent schema validators. Run: `python3 test_request_handler.py`. |
 
 Run the reference handler and try it:
 

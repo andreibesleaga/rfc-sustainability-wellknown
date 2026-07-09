@@ -26,10 +26,12 @@ are the earlier revisions of this work under its **previous name**. The document
 to drop the `green` token (which could imply a scope tied to the IETF GREEN Working Group);
 the current draft **Replaces** that series. These files are retained for history only.
 
-The current draft also **Replaces** an earlier companion draft,
-`draft-besleaga-green-sustainability-header` (the per-request HTTP-header approach): the
-well-known URI approach consolidates and supersedes that direction, avoiding the per-request
-"rebound effect".
+An earlier per-request HTTP-header approach to carbon transparency was discussed and set
+aside in favor of this well-known URI's out-of-band design, which avoids the per-request
+"rebound effect" (metadata increasing the footprint it reports). That discussion is
+recorded on the GREEN working group mailing list; it was never filed as a separate
+Internet-Draft, so there is no second formal "Replaces" relationship — only the rename
+noted above.
 
 ## Supplementary
 

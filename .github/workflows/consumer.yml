@@ -1,0 +1,47 @@
+name: consumer
+
+on:
+  push:
+    paths:
+      - "consumer/**"
+      - "publisher/**"
+      - "schemas-validators/**"
+      - "example-responses/**"
+      - ".github/workflows/consumer.yml"
+  pull_request:
+    paths:
+      - "consumer/**"
+      - "publisher/**"
+      - "schemas-validators/**"
+      - "example-responses/**"
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: consumer/package-lock.json
+
+      # interop.test.ts imports publisher's built dist/ directly (both
+      # packages live in the same repo) — it must be built first.
+      - name: Build publisher (for the interop test)
+        working-directory: publisher
+        run: |
+          npm ci || npm install
+          npm run build
+
+      - name: Install consumer dependencies
+        working-directory: consumer
+        run: npm ci || npm install
+
+      - name: Build consumer
+        working-directory: consumer
+        run: npm run build
+
+      - name: Test
+        working-directory: consumer
+        run: npm test

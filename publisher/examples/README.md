@@ -1,6 +1,8 @@
 # Adapter examples: originals → transformed
 
-For every source this gateway ships an adapter for, this directory carries a matched pair:
+For every source with a real upstream shape (nine of this gateway's ten adapters — the
+plain inline `static` adapter takes literal config values with no upstream response to
+show), this directory carries a matched pair:
 
 | Directory | Contents |
 |---|---|

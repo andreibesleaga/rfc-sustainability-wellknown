@@ -49,6 +49,7 @@ rfc-sustainability-wellknown/
 ├── example-scripts/         # Server-side security middleware + reference request handler (Python, JS, PHP), with tests
 ├── server-configurations/   # Web server configuration snippets (nginx, Apache)
 ├── publisher/               # Production publisher/gateway (TypeScript): adapters → conformant /.well-known/sustainability
+├── consumer/                # Reference client (TypeScript): fetch, validate, transform a /.well-known/sustainability document
 ├── discovery/               # Product discovery: market scan, opportunity, problem, requirements, PRD, spec
 ├── sfc-compliance/              # SFC framework compliance matrix (relationship to the ACM SFC framework)
 └── ADOPTION.md              # The case for RFC/IANA adoption (business, technical, regulatory benefits)
@@ -120,6 +121,8 @@ Server-side security middleware implementing the operational safeguards from the
 | `security.js` | JavaScript (Node, zero dependencies) — same three safeguards |
 | `security.php` | PHP — same three safeguards + `Content-Type: application/json` header |
 | `request-handler.py` | Complete, zero-dependency (`http.server`) reference request handler: query-parameter parsing, Basic/Extended routing, single-object-vs-array shape, conditional requests, 404/405 — verified end-to-end against both schema validators |
+| `test_security.py` / `.js` / `.php` | Unit tests for the corresponding `security.*` safeguards file |
+| `test_request_handler.py` | End-to-end tests for `request-handler.py` (golden/error/edge-case paths, schema-validated) |
 | `README.md` | Endpoint spec, service levels, mandatory safeguards, caching, validation field table |
 
 **The draft's operational safeguards** (draft §Security / §Privacy):
@@ -191,6 +194,10 @@ This allows automated tools to cryptographically verify published sustainability
 ## Reference implementation (publisher/)
 
 [publisher/](publisher/) is a production-grade TypeScript implementation that publishes a fully draft-conformant `/.well-known/sustainability` document. It ingests metrics from pluggable source adapters — static/computed values, Kepler/Prometheus energy telemetry, the Climatiq estimate API, **Green Web Foundation CO2.js (bytes → carbon)**, the **Green Web Foundation carbon.txt hosted API**, and enterprise suites (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) — normalizes them to the draft's field model, **validates every payload against this repo's JTD and CDDL schemas before serving** (publish-only-if-valid), and exposes the Basic and Extended service levels with the draft's mandated DoS/privacy safeguards. It can also **serve a bidirectional `carbon.txt`** that points back to the metrics document. It ships as Express and Fastify middleware plus a standalone server that any web server can reverse-proxy. See [publisher/README.md](publisher/README.md).
+
+## Reference implementation (consumer/)
+
+[consumer/](consumer/) is a reference **client** for `/.well-known/sustainability`, complementing `publisher/`'s reference producer: fetch, defensively validate (JTD schema plus the draft's cross-entry array rules, since a non-conformant upstream server is the normal case for early ecosystem adoption), and transform (CSV, NDJSON, a flattened one-row-per-metric shape, trend aggregation) a document from any origin. It ships a zero-dependency one-call function (`fetchSustainability`) and a richer `SustainabilityClient` class for repeated, ETag-cached polling, plus a `sustainability-fetch` CLI whose `--strict` mode doubles as a standalone conformance checker usable against **any** implementation, not just this repo's own `publisher/`. Its `interop.test.ts` — a live, in-process round trip against a real `Publisher` instance — is concrete, running proof of the draft's client-side MUSTs (accept both response shapes; ignore unknown fields; respect the not-reported sentinel). See [consumer/README.md](consumer/README.md) and [consumer/USAGE.md](consumer/USAGE.md).
 
 ## Discovery & SFC compliance
 

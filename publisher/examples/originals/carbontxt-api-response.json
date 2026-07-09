@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "url": "https://acme.example/carbon.txt",
+  "data": {
+    "version": "0.5",
+    "last_updated": "2026-06-01",
+    "org": {
+      "disclosures": [
+        { "doc_type": "sustainability-page", "url": "https://acme.example/sustainability", "domain": "acme.example", "title": "Sustainability at ACME" },
+        { "doc_type": "csrd-report", "url": "https://acme.example/csrd-2025.pdf", "valid_until": "2025-12-31", "title": "CSRD Report 2025" },
+        { "doc_type": "certificate", "url": "https://acme.example/iso14001.pdf", "title": "ISO 14001" }
+      ]
+    },
+    "upstream": {
+      "services": [
+        { "domain": "aws.amazon.com", "service_type": "shared-hosting" }
+      ]
+    }
+  },
+  "document_data": {},
+  "logs": ["found carbon.txt at https://acme.example/carbon.txt"]
+}

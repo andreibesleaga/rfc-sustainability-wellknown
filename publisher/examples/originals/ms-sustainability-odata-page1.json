@@ -1,0 +1,7 @@
+{
+  "value": [
+    { "dateKey": 20260401, "officeRegionName": "West Europe", "scope": "Scope3", "tenantId": "tenant-aaa", "tenantName": "Contoso Ltd", "totalEmissions": 1.82 },
+    { "dateKey": 20260401, "officeRegionName": "West Europe", "scope": "Scope3", "tenantId": "tenant-aaa", "tenantName": "Contoso Ltd", "totalEmissions": 0.41 }
+  ],
+  "@odata.nextLink": "https://api.mcfs.microsoft.com/api/v1.0/instances/12345/m365/tenantemissions?$skiptoken=cD0yMDI2LTA0LTAy"
+}

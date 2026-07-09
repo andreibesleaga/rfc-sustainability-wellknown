@@ -24,7 +24,7 @@ bytes with CO2.js, (b) **emits** a carbon.txt that points back to the metrics do
 ## 2. carbon.txt (the convention)
 
 - **What it is**: "a single recognisable location on any web domain for public sustainability
-  data" maintained by the Green Web Foundation; current syntax **v0.6** (valid from
+  data" maintained by the Green Web Foundation; current syntax **v0.5+** (versioned spec, valid from
   2026-03-10). Format: **TOML**. <https://carbontxt.org/syntax>
 - **Shape**: top-level `version` (required since 0.3) and optional `last_updated`; a required
   `[org].disclosures` array of `{ doc_type, url, domain?, valid_until?, title? }` where

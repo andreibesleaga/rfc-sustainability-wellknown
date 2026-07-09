@@ -52,6 +52,13 @@ node bin/sustainability-publisher.js --config examples/config.computed.json --po
 curl -s http://localhost:8080/.well-known/sustainability | jq
 ```
 
+For every adapter this gateway ships (Climatiq, CO2.js, the carbon.txt hosted API,
+Kepler/Prometheus, Salesforce Net Zero Cloud, Microsoft Sustainability Manager,
+Watershed, computed, static), `examples/originals/` has a real, source-verified upstream
+response and `examples/transformed/` has the exact document this repo's code derives
+from it — see [`examples/README.md`](examples/README.md) for the full pairing, sources,
+and how to regenerate them.
+
 Point your web server at it (the repo's `server-configurations/nginx.conf` /
 `apache.conf` show the matching reverse-proxy / alias blocks).
 

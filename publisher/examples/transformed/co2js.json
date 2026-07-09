@@ -1,0 +1,16 @@
+{
+  "version": "1.1",
+  "updated": "2026-07-09T09:57:40Z",
+  "capabilities": "extended",
+  "provider": "Example Corp (sustain@example.org)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://example.com/sustainability/methodology",
+  "reporting-period": "2026-02",
+  "energy-consumption": 1.225,
+  "energy-unit": "kWh",
+  "carbon-footprint": 469.8488,
+  "carbon-unit": "gCO2e",
+  "carbon-intensity-gCO2-per-kWh": 383.55,
+  "renewable-energy": 45,
+  "disclosure-uri": "https://example.com/.well-known/carbon.txt"
+}

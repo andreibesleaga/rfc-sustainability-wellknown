@@ -48,6 +48,24 @@ fragmentation.
   new IANA field registry: the published RFC accommodates all future fields as-is, and the
   `version` member is an informational label clients MUST NOT branch on (per RFC 6709's
   guidance against decorative version machinery).
+- **Applies to any HTTP origin, not just conventional websites.** A well-known URI is
+  scoped to an *origin* — scheme, host, and port (RFC 8615) — never to "a website"
+  specifically. Every device or service that speaks HTTP(S) is a valid publisher alongside
+  its normal API: web servers, but equally IoT/embedded devices (constrained devices
+  already use the analogous well-known convention for discovery — CoAP's
+  `/.well-known/core`, RFC 7252 — so the pattern is proven, not speculative, in embedded
+  contexts) and Web3/blockchain infrastructure (a validator dashboard, RPC gateway, or
+  node operator's endpoint is an ordinary HTTP origin). No new protocol machinery is
+  needed for any of these; they gain the endpoint for free by implementing RFC 8615 like
+  any web server would.
+- **The schema reports the entity, not just the box it runs on.** `provider` names "the
+  entity operating the origin" (not necessarily the hardware); `measurement-method` is
+  free-form; and the reference implementation's enterprise adapters (Salesforce Net Zero
+  Cloud, Microsoft Sustainability Manager, Watershed) already populate documents from
+  *organization-level* reporting platforms, not server telemetry. A single origin — a
+  compliance subdomain, a corporate reporting portal — can therefore publish the numbers a
+  regulator requires of the *entity* (CSRD and its analogues), with the website-hosting
+  case being one instance of that, not the whole scope.
 
 ## 3. Regulatory alignment
 
@@ -56,6 +74,17 @@ fragmentation.
 - **ISO/IEC 21031:2024 (GSF SCI)**: first-class `sci-score` / `functional-unit` support.
 - **GHG Protocol**: scope semantics align with the global accounting standard.
 - **W3C Web Sustainability Guidelines** and the **UN SDG 2030 Agenda**: shared framing.
+- **EU Markets in Crypto-Assets Regulation (MiCA)** — a concrete, already-in-force example
+  of the "beyond websites" case above: MiCA mandates that crypto-asset issuers and service
+  providers disclose the annual electricity consumption (kWh) of their consensus
+  mechanism, and, above 500,000 kWh/year, the renewable-energy share, the energy intensity
+  per transaction, and the GHG emissions attributable to it (in force since mid/late
+  2024). That is a field-for-field match to this schema's `energy-consumption`,
+  `renewable-energy`, `sci-score`/`functional-unit` (e.g. "per-transaction"), and
+  `carbon-footprint` — for an entity whose "origin" is a node operator's or exchange's HTTP
+  endpoint, not a conventional website. Node-level carbon/energy visibility tooling for
+  blockchain infrastructure already exists commercially (e.g. GREENPOW); today it has no
+  standard wire format to publish through — this endpoint is exactly that format.
 
 Standardizing the *publication surface* turns these mandates from annual PDFs into
 continuous, queryable, comparable data.
@@ -131,6 +160,101 @@ Net: nothing in the IETF, IRTF, or the ecosystem does what this draft does, and 
 adjacent either composes with it or is explicitly out of its scope. Nothing can "break" it,
 and it displaces nothing.
 
+### 7.1 The Green Web Foundation portfolio — the full honest matrix
+
+The GWF (a Dutch nonprofit, ~8 staff, funded by ISOC Foundation, Ford Foundation, SIDN
+fonds, and formerly EU NGI programs; mission "a fossil-free internet by 2030") is the most
+substantial organization in this space. An honest per-project comparison (facts verified
+2026-07; sources in the project research notes):
+
+| GWF project | What it is | What it publishes/consumes | Overlap with this draft |
+|---|---|---|---|
+| **carbon.txt** | TOML *disclosure index* at `/carbon.txt` (alt `/.well-known/carbon.txt`, DNS-TXT/header delegation): typed links (`csrd-report`, `certificate`, `sustainability-page`, `ai-model-card`, …) to where an org's evidence lives. "Connect, not collect." Community convention; **not IANA-registered; never submitted to the IETF.** | Links to documents — **the file itself carries zero kWh/gCO2e numbers**. Its validator's CSRD plugin can extract org-level ESRS datapoints from linked, audited iXBRL filings. | **High on ambition, partial on substance**: same discovery instinct, different payload (document index vs live numeric metrics), no query semantics, no metrics schema, no IANA path. Composes with this draft in both directions via `disclosure-uri`. |
+| **CO2.js** | JS estimation library (bytes → gCO2e; SWD v4 / OneByte models). Adopted by Firefox Profiler, WebPageTest, Ecograder, Website Carbon, Sitespeed.io (~10k npm downloads/week). | Consumes bytes + grid datasets; produces estimates. **Defines no discovery mechanism or wire format.** | **None on wire format; pure producer.** This repo's gateway ships a CO2.js adapter that emits draft-conformant documents. |
+| **Green Web Dataset / greencheck** | The verified green-*hosting* directory (since 2006; ~300 verified providers; millions of green domains; ODbL). | A boolean + provider identity + evidence links per domain — **no energy/carbon quantities**. | None on metrics. Certifies who hosts you, not what you emit. |
+| **Grid-aware Websites / IP-to-CO2 API / Grid Intensity CLI** | Grid-intensity tooling (adapt sites to grid conditions; country intensity by IP). | Grid averages — inputs to carbon math. | None; the IP-to-CO2 API is a natural *input* for this draft's `carbon-intensity-gCO2-per-kWh` field. |
+| **Branch magazine / Fellowships** | Community and editorial programs. | — | None. |
+
+Adjacent but **not** GWF: the **Technology Carbon Standard (TCS)** is Scott Logic's
+taxonomy/schema (CC BY-SA), with a GWF partnership so TCS JSON *estimates* can be linked
+from a carbon.txt. TCS-via-carbon.txt is the closest existing thing to this draft's
+territory — and it is still a static estimate file reached through an index, not a
+standardized live endpoint with query semantics, formal schemas, and a registry entry.
+
+### 7.2 Similar IETF work — the complete sweep
+
+Datatracker sweep (carbon/sustain, all streams, active + expired), verified 2026-07:
+
+| Draft / effort | Status | Difference from this draft |
+|---|---|---|
+| `draft-martin-http-carbon-emissions-scope-2-00` | **Expired** (2023, single rev) | The only true prior art for web-facing carbon signaling: a per-request HTTP response header — exactly the in-band design this draft rejects for its rebound effect; Scope-2 only; no schema, no discovery, never registered. |
+| `draft-amalj-sustain-shape-02` (SHAPE) | Active | YANG/NETCONF *network-path* energy API inside operator domains — not web-origin, not HTTP-discoverable. |
+| `draft-csha-sustain-reporting-arch-00` | Active | Eco-data reporting *architecture* within operator infrastructure; no public endpoint or wire format. |
+| `draft-elzahr-flow-carbon-trace-00` | Active | Flow-level carbon tracing in packet networks — transport telemetry. |
+| `draft-knodel-beyond-carbon-01` | Active | Survey of impacts beyond carbon; no mechanism. |
+| `draft-pignataro-enviro-sustainability-*`, `draft-various-eimpact-arch-*`, `draft-almprs-sustainability-insights`, `draft-cx-green-green-metrics`, `draft-sreek-powerconsumption-mib` | Expired | e-impact/network-management lineage, all operator-internal. |
+| CATS WG | Chartered | Computing-aware traffic steering; charter contains no energy/carbon metrics. |
+
+**One-sentence position:** everything active at the IETF in this space is
+network-operator-internal; the only two artifacts ever proposing *web-facing, per-site*
+carbon disclosure are the expired 2023 header draft and this one — and the GREEN charter
+explicitly carves disclosure/metadata formats out of its scope.
+
+### 7.3 The honest verdict — "why this draft, against a funded organization's full-stack work?"
+
+**What GWF genuinely covers better:** the discovery *narrative*, the verification layer
+(20 years of hosting evidence), the estimation layer (CO2.js in real products), community
+and funding, W3C invited-expert seats, and — through the carbon.txt CSRD plugin — a
+provenance chain into *audited, legally mandated* filings that self-published JSON cannot
+match. None of that is disputed; this draft cites and builds on it.
+
+**The genuine gap only this draft fills:** structured **numeric** energy/carbon metrics
+served **live** at a **standardized, IANA-registered** path with **query semantics**
+(target/period/granularity), **formal schemas** (CDDL + JTD), and **must-ignore
+extensibility**. Verified negatives: the IANA well-known registry contains no
+sustainability/carbon/energy entry; GWF has never submitted an IETF draft and states no
+intent to (carbon.txt is deliberately a lightweight community convention, change-controlled
+by GWF); GREEN excludes the space; RFC 9547 explicitly calls for standardized,
+non-proprietary metrics.
+
+**The strongest case against this draft, stated honestly — and its rebuttal:**
+1. *"A second well-known location fragments a tiny ecosystem."* — The formats are layers,
+   not rivals: carbon.txt indexes documents; this serves numbers; the draft's
+   `disclosure-uri` points at carbon.txt and a carbon.txt can list this endpoint. The
+   reference implementation serves both, bidirectionally.
+2. *"Data availability, not format, is the bottleneck — almost nobody has per-origin
+   numbers to publish."* — Producers are arriving by regulation (EU datacentre reporting,
+   CSRD) and by tooling (cloud carbon dashboards, CO2.js, Boavizta); standardizing the
+   transport *before* per-vendor proprietary endpoints proliferate is precisely RFC 9547's
+   recommendation, and is cheaper than harmonizing after the fact.
+3. *"Self-asserted numbers are greenwashing; GWF's model is evidence-reviewed."* — Mandatory
+   `measurement-method` + `methodology-uri`, the machine-readable not-reported sentinel,
+   the normative MUST-NOT-treat-as-proof rule, and the attestation/disclosure link-outs
+   make self-assertion *auditable*; note that TCS-via-carbon.txt numbers are also
+   self-published estimates. Verification composes on top; no format can conjure it in-band.
+4. *"One author, no adoption, no institutional weight."* — Which is exactly what IANA
+   registration and an RFC add and a community convention cannot: name-collision
+   protection, a stable citable reference that outlives any NGO's funding cycle, and
+   change control through a public registry rather than one organization. Wire-format
+   standardization is the IETF's product — demonstrably not GWF's, by their own choice.
+
+**Concrete mutual-benefit plan (offered, not hypothetical):**
+- `disclosure-uri` → carbon.txt is already in the draft (their spec cited).
+- Propose, via GWF's open consultation process, a disclosure entry type by which a
+  carbon.txt lists a `/.well-known/sustainability` endpoint — their index then *finds*
+  these documents.
+- Contribute a plugin to the (plugin-based) carbon-txt validator that fetches and
+  schema-validates this endpoint.
+- A small CO2.js helper emitting draft-conformant JSON would turn its existing user base
+  into publishers; the GWF IP-to-CO2 API supplies the intensity field.
+- Field semantics stay mapped to SCI (ISO/IEC 21031) and can map to the TCS schema — the
+  endpoint transports metrics that others define.
+
+Neither side replaces the other: GWF has the ecosystem and the evidence chains; this draft
+has the neutral wire contract. The strategic posture — in the draft text, the reference
+implementation, and all correspondence — is explicit spec-level interlock with GWF's work,
+never positioning against it.
+
 ## 8. Possible objections — each pre-empted in the -02 text
 
 | Objection | Answer (and where the draft already settles it) |
@@ -148,6 +272,7 @@ and it displaces nothing.
 | "Does it belong in GREEN or SUSTAIN?" | Neither venue takes it: GREEN's charter excludes carbon accounting/reporting and app-layer discovery; SUSTAIN defers standardization to the IETF. The ISE exists precisely for this profile, and the IANA registration needs only Specification Required regardless (see §7). |
 | "Should it register a media type?" | Not required — security.txt registered none; the draft deliberately reuses `application/json` + I-JSON and says so in the registration's Related Information. A structured-suffix type (`application/sustainability+json`) remains possible later without breaking anything, if the expert prefers it. |
 | "Why an RFC instead of a community convention?" | The Well-Known URIs registry is IANA's, and its policy is Specification Required — a stable, citable spec is the entry ticket. An Independent-stream Informational RFC is the lightest instrument that clears that bar, exactly as RFC 9116 did. |
+| "Isn't this just for websites?" | No — a well-known URI is scoped to an HTTP(S) origin (RFC 8615), not to "a website." IoT/embedded devices already use the analogous convention for discovery (CoAP's `/.well-known/core`, RFC 7252); a blockchain RPC gateway or validator dashboard is an ordinary HTTP origin. Separately, the data model reports the *entity* (`provider`), not the box: EU MiCA already mandates near-identical fields (consensus-mechanism energy, renewable share, per-transaction intensity, GHG emissions) for crypto-asset issuers — an entity, not a website (§3). |
 
 ## 9. Readiness evidence (in this repository)
 

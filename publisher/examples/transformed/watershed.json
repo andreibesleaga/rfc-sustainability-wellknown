@@ -1,0 +1,18 @@
+{
+  "version": "1.1",
+  "updated": "2026-07-09T09:57:40Z",
+  "capabilities": "extended",
+  "provider": "Northwind Logistics (climate@northwind.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://northwind.example/climate/methodology",
+  "reporting-period": "2026-01",
+  "energy-consumption": 18200,
+  "energy-unit": "kWh",
+  "carbon-footprint": 51840,
+  "carbon-unit": "kgCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 1320,
+  "scope-2": 4180,
+  "scope-3": 46340,
+  "renewable-energy": 62
+}

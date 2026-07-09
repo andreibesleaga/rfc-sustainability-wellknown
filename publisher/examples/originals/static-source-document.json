@@ -1,0 +1,13 @@
+{
+  "version": "1.1",
+  "updated": "2026-06-01T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Small Business Hosting (hello@smallbiz.example)",
+  "measurement-method": "cloud-billing",
+  "methodology-uri": "https://smallbiz.example/sustainability/methodology",
+  "reporting-period": "2026-05",
+  "energy-consumption": 340,
+  "energy-unit": "kWh",
+  "carbon-footprint": 91800,
+  "carbon-unit": "gCO2e"
+}

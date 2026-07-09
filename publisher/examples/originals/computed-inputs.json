@@ -1,0 +1,7 @@
+{
+  "note": "The 'computed' adapter has no upstream vendor API — it takes metered/billed energy plus a grid-intensity factor (e.g. from a utility bill, a cloud provider's own carbon dashboard export, or a grid-intensity API) and computes carbon-footprint = energy * gridIntensity. This file is the raw input a billing/metering system would supply, not a vendor response.",
+  "energy": { "value": 1250, "unit": "kWh" },
+  "gridIntensity": 276,
+  "carbonAccounting": "location-based",
+  "renewableEnergy": 45
+}

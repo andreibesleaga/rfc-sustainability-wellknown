@@ -1,0 +1,6 @@
+{
+  "bytes": 5000000000,
+  "green": false,
+  "gridZone": "USA",
+  "note": "The bytes-transferred figure is typically measured by page-weight/traffic tooling (e.g. WebPageTest, a CDN access log, or browser Navigation Timing/Resource Timing sums) rather than returned by an API; CO2.js (@tgwf/co2) is a library invoked with this input, not a network call. The 'green' flag is normally resolved via the Green Web Foundation Greencheck API (see co2js-greencheck-response.json) rather than hardcoded."
+}

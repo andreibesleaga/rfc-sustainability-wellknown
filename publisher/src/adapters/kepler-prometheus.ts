@@ -6,6 +6,11 @@
  * Prometheus, or in replay mode against a recorded query response (`fixture`).
  *
  * Kepler metrics: kepler_node_platform_joules_total, kepler_container_joules_total.
+ * These are Kepler's pre-0.10 (legacy) metric names; Kepler >= 0.10 (the
+ * "re-architected" release) replaces the joules counters with the
+ * kepler_platform_watts gauge and per-domain kepler_node_{cpu,gpu}_joules_total
+ * counters. Point `query` at whichever metric set your Kepler deployment
+ * exports; this adapter only sums whatever the query returns.
  */
 import { RawMetrics, SourceAdapter } from "../types";
 import { fetchJson, lastFullMonth } from "../util";

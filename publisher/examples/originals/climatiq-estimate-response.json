@@ -1,0 +1,31 @@
+{
+  "co2e": 690.0,
+  "co2e_unit": "kg",
+  "co2e_calculation_method": "ar4",
+  "co2e_calculation_origin": "source",
+  "emission_factor": {
+    "name": "Electricity supplied from grid - residual mix",
+    "activity_id": "electricity-supply_grid-source_residual_mix",
+    "id": "7f743e8d-ce7c-43e7-af63-1b89e79916ce",
+    "access_type": "public",
+    "source": "EPA",
+    "source_dataset": "eGRID",
+    "year": 2024,
+    "region": "US",
+    "category": "Electricity",
+    "source_lca_activity": "electricity_generation",
+    "data_quality_flags": []
+  },
+  "constituent_gases": {
+    "co2e_total": 690.0,
+    "co2": 660.5,
+    "ch4": 15.2,
+    "n2o": 14.3
+  },
+  "activity_data": {
+    "activity_value": 2500,
+    "activity_unit": "kWh"
+  },
+  "audit_trail": "selector",
+  "notices": []
+}

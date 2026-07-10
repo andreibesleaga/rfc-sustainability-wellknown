@@ -14,16 +14,21 @@ This repository contains the initial documents and other supporting examples, to
 
 ## What this defines
 
-A `/.well-known/sustainability` URI that allows any web server or digital service to publish its aggregated energy consumption and carbon footprint metrics in a machine-readable JSON format. Out-of-band, asynchronous reporting, not per-request overhead.
+A universal `/.well-known/sustainability` URI that allows any web server or digital service to publish aggregated energy consumption and carbon footprint metrics in a machine-readable JSON format. Out-of-band, asynchronous reporting, no overhead.
 
-**Not limited to conventional websites, and not limited to a server's own electricity bill.** A well-known URI is scoped to an HTTP(S) *origin* (RFC 8615) — any device or service that speaks HTTP can serve one alongside its normal API. That includes IoT and embedded devices (constrained devices already use the analogous well-known convention for discovery, e.g. CoAP's `/.well-known/core`, registered by RFC 6690) and Web3/blockchain infrastructure — an RPC gateway, validator dashboard, or node operator's endpoint is an ordinary HTTP origin like any other. Separately, the `provider` field names "the entity operating the origin," `measurement-method` is free-form, and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) already publish *organization-level* figures through this same endpoint — so it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — exactly the shape of this schema's optional fields, for an entity that is not a website at all.
+**Not limited to conventional websites, and not limited to a server's own electricity bill.** 
+
+A well-known URI is scoped to an HTTP(S) *origin* (RFC 8615) — any device or service that speaks HTTP can serve one alongside its normal API. That includes IoT and embedded devices (constrained devices already use the analogous well-known convention for discovery, e.g. CoAP's `/.well-known/core`, registered by RFC 6690) and Web3/blockchain infrastructure — an RPC gateway, validator dashboard, or node operator's endpoint is an ordinary HTTP origin like any other. 
+
+Separately, the `provider` field names "the entity operating the origin," `measurement-method` is free-form, and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) already publish *organization-level* figures through this same endpoint — so it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — exactly the shape of this schema's optional fields, for an entity that is not a website at all.
 
 #### Goals
-* Provide a single, discoverable location, for environmental metrics for an origin.
-* Define a minimal, machine-readable JSON structure, suitable for broad adoption.
+* Provide a single, discoverable location, for environmental metrics, for an origin entity.
+* Define a minimal, machine and human readable JSON structure, suitable for broad adoption.
 * Ensure interoperability between clients and servers.
-* Support alignment with GHG Protocol, EU CSRD, and Digital Product Passports.
-* Mitigate security and privacy risks associated with publishing the data (like hardware fingerprinting).
+* Mitigate security and privacy risks associated with publishing the data.
+* Provide an universal informational, backward and forward compatible schema, for reporting any sustainability data.
+* Support alignment with GHG Protocol, EU CSRD, and other initiatives.
 
 #### Non-Goals
 * This document does not mandate a specific calculation or measurement methodology.

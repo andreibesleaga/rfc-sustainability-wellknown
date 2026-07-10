@@ -37,18 +37,20 @@ function secureSustainabilityReport(array $reports): array {
         $fuzz = fuzzFactorFor($entry['reporting-period'] ?? '');
 
         // An unreported metric is simply omitted (-03 removed the negative
-        // "not reported" sentinel), so every numeric value present is noised.
-        // scope-1/2/3 MAY legitimately be negative (removals / net accounting);
-        // multiplicative noise preserves the sign and the arithmetic
-        // relationships between related fields.
+        // "not reported" sentinel), so every value in the list below is
+        // noised. The list deliberately covers only the additive family
+        // (energy, footprint, scopes) — derived/annualized members
+        // (intensity, annual estimate) stay un-noised so cross-member
+        // arithmetic survives (footprint = energy x intensity; scopes sum to
+        // footprint), per the draft's "consistent across arithmetically
+        // related fields" rule. scope-1/2/3 MAY legitimately be negative
+        // (removals / net accounting); multiplication preserves sign.
         $numericKeys = [
             'energy-consumption',
             'carbon-footprint',
             'scope-1',
             'scope-2',
             'scope-3',
-            'carbon-intensity-gCO2e-per-kWh',
-            'estimated-annual-emissions-kgCO2e',
         ];
         foreach ($numericKeys as $key) {
             if (isset($entry[$key]) && is_numeric($entry[$key])) {

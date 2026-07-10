@@ -35,7 +35,7 @@ publishes unverified or malformed data (the circuit-breaker rule).
 cd publisher
 npm install
 npm run build      # tsc → dist/
-npm test           # vitest: 79 tests (unit + adapters + carbon.txt + conformance + hardening + E2E server/Express/Fastify/CLI)
+npm test           # vitest: the full suite, 100+ tests (unit + adapters + carbon.txt + conformance + hardening + E2E server/Express/Fastify/CLI)
 ```
 
 ## Quick start (any web server, zero credentials)

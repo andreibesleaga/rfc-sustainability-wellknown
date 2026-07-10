@@ -28,7 +28,7 @@ The draft mandates the array cap, recommends the granularity floor, and permits 
 
 ### Anti-Fingerprinting (Privacy — OPTIONAL)
 * **Noise Injection**: Servers MAY apply approximately **1% "noise" (fuzzing)** to numeric values (e.g., energy consumption, carbon footprint).
-* **Conditions when applied**: noise MUST be applied **once, at document-generation time**, **deterministically per reporting period**, and **consistently across arithmetically related fields** (so scopes still sum to the fuzzed `carbon-footprint`). Noise is **multiplicative and sign-preserving**, and is applied to every numeric value present regardless of sign — an unreported metric is simply omitted (there is no "not reported" sentinel), and `scope-1`/`scope-2`/`scope-3` MAY legitimately be negative (removals / net accounting). The noised values are the published values for caching/`ETag` purposes.
+* **Conditions when applied**: noise MUST be applied **once, at document-generation time**, **deterministically per reporting period**, and **consistently across arithmetically related fields** (so scopes still sum to the fuzzed `carbon-footprint`). Noise is **multiplicative and sign-preserving**, applied to the additive family only — `energy-consumption`, `carbon-footprint`, and `scope-1/2/3` — while derived/annualized members (intensity, annual estimate) stay un-noised so cross-member arithmetic survives (`footprint = energy × intensity`) — an unreported metric is simply omitted (there is no "not reported" sentinel), and `scope-1`/`scope-2`/`scope-3` MAY legitimately be negative (removals / net accounting). The noised values are the published values for caching/`ETag` purposes.
 * **Purpose**: This masks specific hardware architectures to mitigate hardware fingerprinting.
 
 ### Traffic Analysis Prevention (Privacy)
@@ -63,8 +63,15 @@ All responses must validate against the **JSON Type Definition (JTD)** provided 
 | `energy-unit` | "Wh"/"kWh"/"MWh"/"GWh" | No (default `kWh`) |
 | `carbon-footprint` | float64 | No (defaults to `gCO2e` when `carbon-unit` absent) |
 | `carbon-unit` | "gCO2e"/"kgCO2e"/"mtCO2e" | No (default `gCO2e`) |
-| `carbon-intensity-gCO2e-per-kWh` | float64 | No |
-| `estimated-annual-emissions-kgCO2e` | float64 | No |
+| `carbon-accounting` | "location-based"/"market-based" | No |
+| `scope-1` / `scope-2` / `scope-3` | float64 (MAY be negative — removals/net accounting) | No |
+| `sci-score` | float64 (non-negative; requires `functional-unit`) | No |
+| `functional-unit` | string | No |
+| `carbon-intensity-gCO2e-per-kWh` | float64 (non-negative) | No |
+| `estimated-annual-emissions-kgCO2e` | float64 (non-negative) | No |
+| `renewable-energy` | float64 (percentage, 0-100 inclusive) | No |
+| `verifiable-attestation-uri` | string | No |
+| `disclosure-uri` | string | No |
 
 ## 6. Files in this directory
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { aggregate, flatten, toCsvRows, toNdjson } from "../src/transform";
+import { validateDocument } from "../src/validate";
 import { SustainabilityMetrics } from "../src/types";
 
 function metrics(overrides: Partial<SustainabilityMetrics> = {}): SustainabilityMetrics {
@@ -313,5 +314,38 @@ describe("aggregate", () => {
     const result = aggregate(entries, { by: "sum" });
     expect(result["energy-consumption"]).toBe(100);
     expect(result["carbon-footprint"]).toBe(10);
+  });
+});
+
+describe("final-audit fix: aggregate drops non-aggregatable per-entry metrics", () => {
+  it("summary omits scopes/sci-score/renewable/intensity/annual from the first entry", () => {
+    const entry = (period: string, over: Record<string, unknown> = {}) =>
+      ({
+        version: "2.0",
+        updated: "2026-01-01T00:00:00Z",
+        capabilities: "extended",
+        provider: "p",
+        "measurement-method": "m",
+        "methodology-uri": "https://x/m",
+        "reporting-period": period,
+        target: "example.com",
+        "energy-consumption": 10,
+        "energy-unit": "kWh",
+        "carbon-footprint": 5,
+        "carbon-unit": "kgCO2e",
+        ...over,
+      }) as any;
+    const summary = aggregate(
+      [
+        entry("2026-01", { "scope-1": 5, "sci-score": -1, "renewable-energy": 45 }),
+        entry("2026-02"),
+      ],
+      { by: "sum", carbonUnit: "gCO2e" },
+    );
+    expect(summary).not.toHaveProperty("scope-1");
+    expect(summary).not.toHaveProperty("sci-score");
+    expect(summary).not.toHaveProperty("renewable-energy");
+    expect(summary["carbon-footprint"]).toBe(10000); // 5+5 kg -> g
+    expect(validateDocument(summary).valid).toBe(true);
   });
 });

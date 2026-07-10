@@ -397,3 +397,74 @@ describe("co2js swdVersion (dependency bump)", () => {
     expect(v3["energy-consumption"]).toBeGreaterThan(v4["energy-consumption"]);
   });
 });
+
+// Final-audit fixes: fromWire scope-unit hint, legacy 1.x re-ingest, period gate
+describe("fromWire scope-unit + legacy re-ingest (final-audit fixes)", () => {
+  it("preserves a declared carbon-unit for scopes when carbon-footprint is absent", () => {
+    const wire = {
+      version: "2.0",
+      updated: "2026-04-01T00:00:00Z",
+      capabilities: "basic",
+      provider: "P",
+      "measurement-method": "m",
+      "methodology-uri": "https://x/m",
+      "reporting-period": "2026-03",
+      target: "example.com",
+      "carbon-unit": "kgCO2e",
+      "scope-1": 5,
+    } as any;
+    const out = normalize(fromWire(wire));
+    // Value-unit consistency: 5 kgCO2e must survive, however represented.
+    const unit = out["carbon-unit"];
+    const scope = out["scope-1"] as number;
+    const inGrams = unit === "kgCO2e" ? scope * 1000 : unit === "gCO2e" ? scope : NaN;
+    expect(inGrams).toBe(5000);
+    expect(validateDocument(out).valid).toBe(true);
+  });
+
+  it("re-ingests a historical 1.1 document via the draft compatibility rules", () => {
+    const legacy = {
+      version: "1.1",
+      updated: "2026-01-01T00:00:00Z",
+      capabilities: "extended",
+      provider: "Legacy",
+      "measurement-method": "m",
+      "methodology-uri": "https://x/m",
+      "reporting-period": "2026-01",
+      "target-path": "/api",
+      "energy-consumption": -1, // sentinel -> dropped
+      "energy-unit": "kWh",
+      "carbon-footprint": 4200,
+      "carbon-unit": "gCO2e",
+      "carbon-intensity-gCO2-per-kWh": 276, // old key -> new name
+    } as any;
+    const raw = fromWire(legacy);
+    expect(raw.target).toBe("/api");
+    expect(raw.energy).toBeUndefined();
+    expect(raw.carbon).toEqual({ value: 4200, unit: "gCO2e" });
+    expect(raw.carbonIntensity).toBe(276);
+    expect(raw.extra?.["target-path"]).toBeUndefined();
+    expect(raw.extra?.["carbon-intensity-gCO2-per-kWh"]).toBeUndefined();
+    const out = normalize(raw);
+    expect(out.target).toBe("/api");
+    expect(out).not.toHaveProperty("energy-consumption");
+    expect(out["carbon-intensity-gCO2e-per-kWh"]).toBe(276);
+    expect(validateDocument(out).valid).toBe(true);
+  });
+
+  it("gate rejects a malformed reporting-period on hand-built documents", () => {
+    const doc = {
+      version: "2.0",
+      updated: "2026-01-01T00:00:00Z",
+      capabilities: "basic",
+      provider: "P",
+      "measurement-method": "m",
+      "methodology-uri": "https://x/m",
+      "reporting-period": "not-a-date",
+      target: "example.com",
+    } as any;
+    const r = validateDocument(doc);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some((e) => /reporting-period/.test(e))).toBe(true);
+  });
+});

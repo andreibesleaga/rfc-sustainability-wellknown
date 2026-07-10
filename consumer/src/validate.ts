@@ -29,13 +29,17 @@ function validateMetrics(obj: unknown): ValidationResult {
   // MUST also be present." This cross-field dependency cannot be expressed in
   // JTD (or CDDL), so the schema gate above can't catch it — check it here so a
   // conformance-checking client actually enforces the full prose MUST.
-  if (
-    obj &&
-    typeof obj === "object" &&
-    "sci-score" in obj &&
-    (obj as Record<string, unknown>)["functional-unit"] === undefined
-  ) {
-    errors.push("sci-score is present but functional-unit is missing (draft MUST)");
+  // Exception (draft §Versioning compatibility rule): a NEGATIVE sci-score is
+  // the historical "not reported" sentinel and reads as absent, so it carries
+  // no functional-unit dependency — a legacy document with sci-score: -1 and
+  // no functional-unit is conformantly processable, not invalid.
+  if (obj && typeof obj === "object" && "sci-score" in obj) {
+    const rec = obj as Record<string, unknown>;
+    const sci = rec["sci-score"];
+    const reported = !(typeof sci === "number" && sci < 0);
+    if (reported && rec["functional-unit"] === undefined) {
+      errors.push("sci-score is present but functional-unit is missing (draft MUST)");
+    }
   }
 
   return { valid: errors.length === 0, errors };
@@ -43,6 +47,12 @@ function validateMetrics(obj: unknown): ValidationResult {
 
 /** Validate a full document (single object or array), incl. cross-entry array rules. */
 export function validateDocument(doc: unknown): ValidationResult {
+  // An empty array conveys no report at all — the publisher side answers the
+  // equivalent situation with 404 rather than serving []; treat it as invalid
+  // instead of handing callers a vacuous "valid" document.
+  if (Array.isArray(doc) && doc.length === 0) {
+    return { valid: false, errors: ["empty array conveys no report"] };
+  }
   const items = Array.isArray(doc) ? doc : [doc];
   const errors: string[] = [];
   items.forEach((item, i) => {

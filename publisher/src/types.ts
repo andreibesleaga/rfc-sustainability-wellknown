@@ -81,6 +81,12 @@ export interface RawMetrics {
    */
   target?: string;
   carbonAccounting?: CarbonAccounting;
+  /**
+   * Unit the scope values are expressed in when no `carbon` measurement is
+   * present to carry it (a wire document may declare `carbon-unit` for its
+   * scopes without a `carbon-footprint`). Ignored when `carbon.unit` is set.
+   */
+  carbonUnitHint?: CarbonUnit;
   scope1?: number;
   scope2?: number;
   scope3?: number;

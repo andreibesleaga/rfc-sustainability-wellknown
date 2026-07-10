@@ -33,7 +33,7 @@ REPORTS = [
     {
         "version": "2.0",
         "updated": "2026-06-01T00:00:00Z",
-        "capabilities": "basic",
+        "capabilities": "extended",
         "provider": "Example Corp (sustain@example.org)",
         "measurement-method": "cloud-billing",
         "methodology-uri": "https://example.com/sustainability/methodology",

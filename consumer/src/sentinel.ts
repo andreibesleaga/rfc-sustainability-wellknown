@@ -29,20 +29,29 @@ export const NUMERIC_KEYS = [
   "renewable-energy",
 ] as const;
 
-/** True when a value in a non-negative member reads as "not reported" (any negative number). */
-export function isNotReported(value: unknown): boolean {
-  return typeof value === "number" && value < 0;
+/**
+ * True when a value in a non-negative member reads as "not reported" (any
+ * negative number). For `renewable-energy` — bounded 0-100 inclusive by the
+ * draft — a value above 100 is likewise outside the member's stated range and
+ * SHOULD be treated as not reported (draft §Value Constraints), so pass the
+ * member key to get the range-aware check.
+ */
+export function isNotReported(value: unknown, key?: string): boolean {
+  if (typeof value !== "number") return false;
+  if (value < 0) return true;
+  return key === "renewable-energy" && value > 100;
 }
 
 /**
- * Returns a copy with every negative value in a NON-NEGATIVE member removed
- * (the draft's legacy-compatibility rule applied). Negative scope-1/2/3 values
- * are real data (net accounting) and are left untouched.
+ * Returns a copy with every out-of-range value in a NON-NEGATIVE member
+ * removed (the draft's legacy-compatibility / out-of-range rule applied).
+ * Negative scope-1/2/3 values are real data (net accounting) and are left
+ * untouched.
  */
 export function withoutSentinels(doc: SustainabilityMetrics): Partial<SustainabilityMetrics> {
   const out: Record<string, unknown> = { ...doc };
   for (const key of NUMERIC_KEYS) {
-    if (isNotReported(out[key])) delete out[key];
+    if (isNotReported(out[key], key)) delete out[key];
   }
   return out as Partial<SustainabilityMetrics>;
 }

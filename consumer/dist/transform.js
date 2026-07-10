@@ -65,8 +65,11 @@ function flatten(doc) {
             const value = m[metric];
             if (typeof value !== "number")
                 continue; // absent
-            if (value < 0 && NON_NEGATIVE.includes(metric))
-                continue; // "not reported" (legacy compat)
+            // Out-of-range in a bounded member = "not reported" (legacy compat /
+            // draft §Value Constraints): negatives in the non-negative members, and
+            // a renewable-energy percentage above 100.
+            if (NON_NEGATIVE.includes(metric) && (0, sentinel_1.isNotReported)(value, metric))
+                continue;
             const unit = unitField && m[unitField] !== undefined ? String(m[unitField]) : defaultUnit;
             rows.push({
                 provider: m.provider,
@@ -113,6 +116,21 @@ function aggregate(entries, opts) {
     delete out["energy-unit"];
     delete out["carbon-footprint"];
     delete out["carbon-unit"];
+    // Per-entry metrics that cannot be meaningfully aggregated must not leak
+    // from the first entry into the summary: scopes are expressed in that
+    // entry's carbon-unit (relabeling them under the summary's output unit would
+    // silently misstate them by the conversion factor), and sci-score /
+    // renewable-energy / intensity / annual-estimate are per-period figures (a
+    // first-entry legacy sentinel would even leak a negative into the summary).
+    // The summary carries the aggregated totals plus the invariant metadata.
+    delete out["scope-1"];
+    delete out["scope-2"];
+    delete out["scope-3"];
+    delete out["sci-score"];
+    delete out["functional-unit"];
+    delete out["carbon-intensity-gCO2e-per-kWh"];
+    delete out["estimated-annual-emissions-kgCO2e"];
+    delete out["renewable-energy"];
     if (energies.length > 0) {
         out["energy-consumption"] = Math.round(combine(energies) * 100) / 100;
         out["energy-unit"] = energyUnit;

@@ -279,8 +279,9 @@ you.
 ## 5. Conformance-checking any origin
 
 `runConformanceChecks(origin)` (also exposed as the CLI's `--strict` flag) runs
-a small battery of checks against a target origin: a Basic request returns a
-single object, the response carries an ETag, a conditional GET with that ETag
+a small battery of six checks against a target origin: a Basic request returns
+a single object, the 200 response uses the `application/json` media type (a
+draft MUST), the response carries an ETag, a conditional GET with that ETag
 returns `304`, a non-GET/HEAD method returns `405` with an `Allow` header, and
 an Extended `granularity` request returns a valid (sorted, schema-conformant)
 array. It's usable as a library, standalone of the CLI:

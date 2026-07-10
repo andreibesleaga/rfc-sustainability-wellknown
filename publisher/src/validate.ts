@@ -5,6 +5,7 @@
  * output (the "never publish corrupt data" rule).
  */
 import Ajv, { ValidateFunction } from "ajv/dist/jtd";
+import { PERIOD_RE } from "./normalize";
 import { RESPONSE_JTD_SCHEMA } from "./schema";
 import { SustainabilityDocument, SustainabilityMetrics } from "./types";
 
@@ -88,6 +89,15 @@ export function validateMetrics(obj: unknown): ValidationResult {
     // functional-unit MUST also be present." JTD cannot express dependencies.
     if (rec["sci-score"] !== undefined && rec["functional-unit"] === undefined) {
       errors.push("/sci-score requires functional-unit to be present");
+    }
+
+    // Draft §Mandatory Response Fields: reporting-period uses the calendar
+    // forms YYYY, YYYY-MM, or YYYY-MM-DD. All Publisher paths normalize first
+    // (which checks this), but validateDocument/assertValid are exported API —
+    // guard hand-built documents here too (defense in depth).
+    const period = rec["reporting-period"];
+    if (typeof period === "string" && !PERIOD_RE.test(period)) {
+      errors.push(`/reporting-period is not a valid YYYY[-MM[-DD]] value ("${period}")`);
     }
   }
   return { valid: errors.length === 0, errors };

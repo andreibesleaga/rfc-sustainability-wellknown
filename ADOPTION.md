@@ -308,8 +308,8 @@ than disturbs every answer below.)*
   datatracker readiness, hostile-implementer) — every confirmed finding fixed in -02, as
   reflected in the current draft text and the CI checks below.
 - **Dual formal schemas** (JTD + CDDL) with independent Python and Ruby validators —
-  all repository and in-draft examples pass both (10/10 and 6/6).
-- A **production reference gateway** (TypeScript, 79 passing tests) with adapters for
+  5 repository examples and 6 in-draft examples, each passing both independent validators.
+- A **production reference gateway** (TypeScript, a 100+-test suite — plus a reference client with its own 100+-test suite) with adapters for
   static/computed, Kepler/Prometheus, Climatiq, CO2.js and the carbon.txt hosted API
   (Green Web Foundation), Salesforce NZC, Microsoft Sustainability Manager, and Watershed —
   every adapter's output validates against both schemas, and the gateway enforces the

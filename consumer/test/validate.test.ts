@@ -168,3 +168,21 @@ describe("assertValid / ValidationError", () => {
     }
   });
 });
+
+describe("final-audit fixes: legacy sci-score sentinel + empty array", () => {
+  it("accepts a legacy sci-score sentinel (-1) without functional-unit (compat rule)", () => {
+    const r = validateDocument(metrics({ "sci-score": -1 } as any));
+    expect(r.valid).toBe(true);
+  });
+
+  it("still rejects a reported sci-score without functional-unit", () => {
+    const r = validateDocument(metrics({ "sci-score": 1.2 } as any));
+    expect(r.valid).toBe(false);
+  });
+
+  it("rejects an empty array (conveys no report)", () => {
+    const r = validateDocument([]);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some((e) => /empty array/i.test(e))).toBe(true);
+  });
+});

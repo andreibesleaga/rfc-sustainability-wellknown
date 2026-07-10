@@ -156,3 +156,26 @@ describe("withoutSentinels", () => {
     expect(out).not.toBe(doc);
   });
 });
+
+describe("final-audit fix: renewable-energy out-of-range-high reads as not reported", () => {
+  it("isNotReported catches renewable-energy above 100 (range-aware)", () => {
+    expect(isNotReported(150, "renewable-energy")).toBe(true);
+    expect(isNotReported(50, "renewable-energy")).toBe(false);
+    expect(isNotReported(150, "carbon-footprint")).toBe(false); // only renewable is upper-bounded
+  });
+
+  it("withoutSentinels strips an out-of-range renewable-energy but keeps a valid one", () => {
+    const base = {
+      version: "2.0",
+      updated: "2026-01-01T00:00:00Z",
+      capabilities: "basic",
+      provider: "p",
+      "measurement-method": "m",
+      "methodology-uri": "https://x/m",
+      "reporting-period": "2026-01",
+      target: "example.com",
+    } as any;
+    expect(withoutSentinels({ ...base, "renewable-energy": 150 })).not.toHaveProperty("renewable-energy");
+    expect(withoutSentinels({ ...base, "renewable-energy": 50 })["renewable-energy"]).toBe(50);
+  });
+});

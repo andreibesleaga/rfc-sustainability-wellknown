@@ -33,9 +33,13 @@ def secure_sustainability_report(reports):
 
         # Clone and fuzz numeric values. An unreported metric is simply omitted
         # (-03 removed the negative "not reported" sentinel), so every numeric
-        # value present is noised. scope-1/2/3 MAY legitimately be negative
-        # (removals / net accounting); multiplicative noise preserves the sign
-        # and the arithmetic relationships between related fields.
+        # value in the list below is noised. The list deliberately covers only
+        # the additive family (energy, footprint, scopes) — derived/annualized
+        # members (intensity, annual estimate) are left un-noised so the
+        # cross-member arithmetic survives (footprint = energy x intensity;
+        # scopes sum to footprint), per the draft's "consistent across
+        # arithmetically related fields" rule. scope-1/2/3 MAY legitimately be
+        # negative (removals / net accounting); multiplication preserves sign.
         secured = entry.copy()
         for key in [
             "energy-consumption",
@@ -43,8 +47,6 @@ def secure_sustainability_report(reports):
             "scope-1",
             "scope-2",
             "scope-3",
-            "carbon-intensity-gCO2e-per-kWh",
-            "estimated-annual-emissions-kgCO2e",
         ]:
             if key in secured and isinstance(secured[key], (int, float)):
                 secured[key] = round(secured[key] * fuzz, 2)

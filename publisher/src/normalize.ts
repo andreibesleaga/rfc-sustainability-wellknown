@@ -220,7 +220,7 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   // be negative (removals/offsets under net accounting), so no range check.
   const hasScopes =
     raw.scope1 !== undefined || raw.scope2 !== undefined || raw.scope3 !== undefined;
-  const scopeSourceUnit: CarbonUnit = raw.carbon?.unit ?? "gCO2e";
+  const scopeSourceUnit: CarbonUnit = raw.carbon?.unit ?? raw.carbonUnitHint ?? "gCO2e";
   if (hasScopes && carbonUnit === undefined) {
     // Scopes are parameterized by carbon-unit even when carbon-footprint is
     // absent; publishers SHOULD state the unit explicitly, so emit it here.

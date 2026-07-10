@@ -20,11 +20,18 @@ import { SustainabilityMetrics } from "./types";
  * as "not reported" under the compatibility rule.
  */
 export declare const NUMERIC_KEYS: readonly ["energy-consumption", "carbon-footprint", "sci-score", "carbon-intensity-gCO2e-per-kWh", "estimated-annual-emissions-kgCO2e", "renewable-energy"];
-/** True when a value in a non-negative member reads as "not reported" (any negative number). */
-export declare function isNotReported(value: unknown): boolean;
 /**
- * Returns a copy with every negative value in a NON-NEGATIVE member removed
- * (the draft's legacy-compatibility rule applied). Negative scope-1/2/3 values
- * are real data (net accounting) and are left untouched.
+ * True when a value in a non-negative member reads as "not reported" (any
+ * negative number). For `renewable-energy` — bounded 0-100 inclusive by the
+ * draft — a value above 100 is likewise outside the member's stated range and
+ * SHOULD be treated as not reported (draft §Value Constraints), so pass the
+ * member key to get the range-aware check.
+ */
+export declare function isNotReported(value: unknown, key?: string): boolean;
+/**
+ * Returns a copy with every out-of-range value in a NON-NEGATIVE member
+ * removed (the draft's legacy-compatibility / out-of-range rule applied).
+ * Negative scope-1/2/3 values are real data (net accounting) and are left
+ * untouched.
  */
 export declare function withoutSentinels(doc: SustainabilityMetrics): Partial<SustainabilityMetrics>;

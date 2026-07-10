@@ -10,6 +10,8 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 
+(current repo draft/soft version is: v03; previous draft v02 is at: [v0.1.0-draft-02](https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/v0.1.0-draft-02).
+
 ---
 
 ## What this defines

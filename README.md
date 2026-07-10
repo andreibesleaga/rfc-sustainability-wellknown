@@ -6,11 +6,13 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream** — revision `-02` is the **submitted** revision: posted to the Datatracker (2026-07-03) and **submitted to the ISE** for publication as an Informational RFC (ISE "Submission Received" state as of 2026-07-08; frozen while under review). Revision `-03` is the **prepared next revision** — a revision to be posted when the submission window reopens after the IETF meeting 126 (where the draft is to be presented in SUSTAIN RG). The draft replaces `draft-besleaga-green-sustainability-wellknown`. IANA `sustainability` well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)).
+**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream** — revision `-02` is the **submitted** revision: posted to the Datatracker and **submitted to the ISE** for publication as an Informational RFC. Revision `-03` is the **prepared next revision** — to be posted after IETF meeting 126 (where the draft is to be presented in SUSTAIN RG). The draft replaces `draft-besleaga-green-sustainability-wellknown`. 
+
+IANA `sustainability` well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)).
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 
-(current repo draft/soft version is: v03; previous draft v02 is at: [v0.1.0-draft-02](https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/v0.1.0-draft-02).
+(current repo work-in-progress draft/soft version is: v03; previous draft v02 is at tag: [v0.1.0-draft-02](https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/v0.1.0-draft-02).
 
 ---
 

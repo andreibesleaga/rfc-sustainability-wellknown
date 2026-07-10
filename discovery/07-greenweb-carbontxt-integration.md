@@ -74,8 +74,9 @@ API extracts them from linked CSRD reports / model cards into `document_data`.
   `averageIntensity.data[ISO3]` (Ember) and `marginalIntensity.data[ISO3]` (UNFCCC), in
   gCO2/kWh. `hosting.check(domain)` → green boolean + evidence.
 - **The energy gap**: CO2.js returns **carbon, not energy**. There is no public
-  `perByteEnergy()`. To populate the draft's mandatory `energy-consumption` we recover the
-  intensity-independent operational energy and re-apply the reported intensity (see §6).
+  `perByteEnergy()`. To populate the draft's `energy-consumption` (optional, defaulting to
+  `kWh` when no `energy-unit` accompanies it) we recover the intensity-independent
+  operational energy and re-apply the reported intensity (see §6).
 - **Licensing**: code Apache-2.0; bundled data Ember/UNFCCC **CC BY-SA 4.0**, Electricity Maps
   **ODbL**. Attribution required; consuming via `@tgwf/co2` (not redistributing a modified
   dataset) and calling the APIs keeps obligations to attribution. See `publisher/NOTICE`.
@@ -84,9 +85,9 @@ API extracts them from linked CSRD reports / model cards into `document_data`.
 
 | Draft field | Source | How |
 |---|---|---|
-| `energy-consumption` + `energy-unit` | CO2.js SWD operational energy (or measured) | bytes → operational kWh; or supplied directly |
-| `carbon-footprint` + `carbon-unit` | CO2.js / energy × intensity | grams CO2e |
-| `carbon-intensity-gCO2-per-kWh` | CO2.js `averageIntensity`/`marginalIntensity`[zone], or explicit | gCO2/kWh used for the calculation |
+| `energy-consumption` + `energy-unit` (optional; unit defaults to `kWh`) | CO2.js SWD operational energy (or measured) | bytes → operational kWh; or supplied directly |
+| `carbon-footprint` + `carbon-unit` (optional; unit defaults to `gCO2e`) | CO2.js / energy × intensity | grams CO2e |
+| `carbon-intensity-gCO2e-per-kWh` | CO2.js `averageIntensity`/`marginalIntensity`[zone], or explicit | gCO2e/kWh used for the calculation |
 | `renewable-energy` | Greencheck (`generation_from_fossil` → `100 − fossil%`) or supplied | percentage |
 | `measurement-method` | `"third-party-modeled"` | modeled estimate |
 | `disclosure-uri` | the carbon.txt URL (resolved by the API) | link to the disclosure index |

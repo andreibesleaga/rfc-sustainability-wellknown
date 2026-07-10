@@ -22,5 +22,16 @@ export interface FetchOptions extends FetchParams {
     timeoutMs?: number;
     /** Reject a response body larger than this many bytes, without buffering it (default {@link DEFAULT_MAX_BYTES}). */
     maxBytes?: number;
+    /**
+     * Legacy-compatibility pre-pass (default true). Draft §Versioning and
+     * Extensibility: a client that encounters a document without a `target`
+     * member SHOULD treat it as an origin-wide report — so before validation,
+     * a parsed document (object, or every entry of an array) lacking `target`
+     * gets the request origin's host injected as `target`, letting historical
+     * "1.0"/"1.1" documents validate and stay usable. Such a result is flagged
+     * with `legacy: true`. Set to false for strict mode: legacy documents then
+     * fail validation instead.
+     */
+    legacyCompat?: boolean;
 }
 export declare function fetchSustainability(origin: string, options?: FetchOptions): Promise<FetchResult>;

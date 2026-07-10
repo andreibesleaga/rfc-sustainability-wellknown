@@ -7,6 +7,8 @@ export interface SustainabilityClientOptions {
     timeoutMs?: number;
     /** Per-response body byte cap applied to every fetch; see fetchSustainability. */
     maxBytes?: number;
+    /** Legacy-compatibility pre-pass applied to every fetch (default true); see fetchSustainability. */
+    legacyCompat?: boolean;
 }
 export declare class SustainabilityClient {
     private readonly options;

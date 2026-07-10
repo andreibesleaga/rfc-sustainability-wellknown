@@ -53,9 +53,15 @@ export function validateDocument(doc: unknown): ValidationResult {
     }
   });
 
+  // Note on out-of-range values: the draft says a client encountering a value
+  // outside a member's stated range (e.g. a negative energy-consumption)
+  // SHOULD treat that member as not reported rather than reject the document —
+  // so no negative-value rejection happens here; that treatment lives in
+  // sentinel.ts (the legacy-compatibility module).
+
   // Draft §Payload Format: array entries MUST be sorted ascending by
   // reporting-period, MUST NOT overlap, and MUST share the same period
-  // precision and (where present) the same target-path.
+  // precision and the same target value.
   if (Array.isArray(doc) && doc.length > 1 && errors.length === 0) {
     const entries = doc as SustainabilityMetrics[];
     const periods = entries.map((m) => String(m["reporting-period"] ?? ""));
@@ -70,8 +76,9 @@ export function validateDocument(doc: unknown): ValidationResult {
         break;
       }
     }
-    if (new Set(entries.map((m) => m["target-path"] ?? "")).size > 1) {
-      errors.push("array entries carry differing target-path values");
+    // target is mandatory (schema-gated above), so compare the actual values.
+    if (new Set(entries.map((m) => m.target)).size > 1) {
+      errors.push("array entries carry differing target values");
     }
   }
 

@@ -48,10 +48,20 @@ class SecureSustainabilityReportTests(unittest.TestCase):
         self.assertGreaterEqual(out[0]["carbon-footprint"], 990.0)
         self.assertLessEqual(out[0]["carbon-footprint"], 1010.0)
 
-    def test_negative_sentinel_never_noised(self):
-        data = [entry("2026-01", energy=-1, carbon=500.0)]
+    def test_negative_scope_is_noised_and_sign_preserved(self):
+        # -03: no "not reported" sentinel; scope values MAY legitimately be
+        # negative (removals / net accounting) and are noised like any other
+        # value — multiplication preserves the sign and the sums.
+        data = [entry("2026-01", energy=100.0, carbon=300.0,
+                      **{"scope-1": -50.0, "scope-2": 250.0, "scope-3": 100.0})]
         out = secure_sustainability_report(data)
-        self.assertEqual(out[0]["energy-consumption"], -1)
+        fuzz = _fuzz_factor_for("2026-01")
+        self.assertNotEqual(fuzz, 1.0)  # guard: noise is observable for this period
+        self.assertEqual(out[0]["scope-1"], round(-50.0 * fuzz, 2))
+        self.assertNotEqual(out[0]["scope-1"], -50.0)  # noise was applied
+        self.assertLess(out[0]["scope-1"], 0)  # sign preserved
+        total = out[0]["scope-1"] + out[0]["scope-2"] + out[0]["scope-3"]
+        self.assertAlmostEqual(total, out[0]["carbon-footprint"], delta=0.05)
 
     def test_single_fuzz_factor_keeps_scopes_consistent(self):
         data = [entry("2026-01", energy=10, carbon=300, **{"scope-1": 100, "scope-2": 100, "scope-3": 100})]

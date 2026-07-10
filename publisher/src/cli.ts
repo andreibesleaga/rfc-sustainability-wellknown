@@ -8,6 +8,10 @@
  *   "publisher":{ "normalize": {...}, "security": {...}, "cacheTtlMs": 0 },
  *   "server":   { "port": 8080, "maxAge": 86400 }
  * }
+ *
+ * `publisher.normalize.target` sets the mandatory `target` member (the
+ * reporting subject) for adapters that do not supply one themselves; for an
+ * origin-wide report use the origin's host (e.g. "example.com").
  */
 import {
   carbonTxtApiAdapter,

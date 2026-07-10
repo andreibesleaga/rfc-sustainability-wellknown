@@ -54,8 +54,17 @@ $out = secureSustainabilityReport([entry('2026-01', 100.0, 1000.0)]);
 check('noise bounded within ~1%', $out[0]['energy-consumption'] >= 99.0 && $out[0]['energy-consumption'] <= 101.0
     && $out[0]['carbon-footprint'] >= 990.0 && $out[0]['carbon-footprint'] <= 1010.0);
 
-$out = secureSustainabilityReport([entry('2026-01', -1, 500.0)]);
-check('negative sentinel never noised', $out[0]['energy-consumption'] === -1.0);
+// -03: no "not reported" sentinel; scope values MAY legitimately be negative
+// (removals / net accounting) and are noised like any other value —
+// multiplication preserves the sign and the sums.
+$out = secureSustainabilityReport([entry('2026-01', 100.0, 300.0, ['scope-1' => -50.0, 'scope-2' => 250.0, 'scope-3' => 100.0])]);
+$fuzz = fuzzFactorFor('2026-01');
+check('negative scope is noised and sign preserved',
+    $fuzz !== 1.0 // guard: noise is observable for this period
+    && $out[0]['scope-1'] === round(-50.0 * $fuzz, 2)
+    && $out[0]['scope-1'] !== -50.0 // noise was applied
+    && $out[0]['scope-1'] < 0 // sign preserved
+    && abs(($out[0]['scope-1'] + $out[0]['scope-2'] + $out[0]['scope-3']) - $out[0]['carbon-footprint']) < 0.05);
 
 $out = secureSustainabilityReport([entry('2026-01', 10.0, 300.0, ['scope-1' => 100.0, 'scope-2' => 100.0, 'scope-3' => 100.0])]);
 $total = $out[0]['scope-1'] + $out[0]['scope-2'] + $out[0]['scope-3'];

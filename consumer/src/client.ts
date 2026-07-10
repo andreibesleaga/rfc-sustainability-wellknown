@@ -10,11 +10,14 @@ export interface SustainabilityClientOptions {
   timeoutMs?: number;
   /** Per-response body byte cap applied to every fetch; see fetchSustainability. */
   maxBytes?: number;
+  /** Legacy-compatibility pre-pass applied to every fetch (default true); see fetchSustainability. */
+  legacyCompat?: boolean;
 }
 
 interface CacheEntry {
   etag: string;
   document: SustainabilityDocument;
+  legacy?: boolean;
 }
 
 export class SustainabilityClient {
@@ -40,17 +43,18 @@ export class SustainabilityClient {
       fetchImpl: this.options.fetchImpl,
       timeoutMs: this.options.timeoutMs,
       maxBytes: this.options.maxBytes,
+      legacyCompat: this.options.legacyCompat,
     } satisfies FetchOptions);
 
     if (result.status === "not-modified" && cached) {
-      return { status: "ok", document: cached.document, etag: cached.etag };
+      return { status: "ok", document: cached.document, etag: cached.etag, ...(cached.legacy ? { legacy: true } : {}) };
     }
     if (result.status === "ok" && result.etag) {
       if (this.cache.size >= this.maxCacheEntries && !this.cache.has(key)) {
         const oldest = this.cache.keys().next().value;
         if (oldest !== undefined) this.cache.delete(oldest);
       }
-      this.cache.set(key, { etag: result.etag, document: result.document });
+      this.cache.set(key, { etag: result.etag, document: result.document, legacy: result.legacy });
     }
     return result;
   }

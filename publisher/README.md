@@ -78,6 +78,9 @@ const publisher = new Publisher(
     gridIntensity: 276,           // gCO2e/kWh → carbon-footprint computed for you
     capabilities: "extended",     // the intensity field is an optional (Extended) field
   }),
+  // `target` = the mandatory reporting subject; use the origin host for
+  // origin-wide reports (adapters that scope by path set it themselves).
+  { normalize: { target: "example.com" } },
 );
 
 const app = express();
@@ -133,13 +136,26 @@ The CLI loads a JSON config:
 {
   "adapter":  { "type": "computed", "options": { /* adapter options */ } },
   "publisher": {
-    "normalize": { "version": "1.1", "energyUnit": "kWh", "carbonUnit": "gCO2e" },
+    "normalize": { "version": "2.0", "target": "example.com", "energyUnit": "kWh", "carbonUnit": "gCO2e" },
     "security":  { "maxObjects": 366, "enforceDailyFloor": true, "applyNoise": false },
     "cacheTtlMs": 86400000
   },
   "server": { "port": 8080, "maxAge": 86400, "extraPaths": ["/sustainability"] }
 }
 ```
+
+`normalize.target` sets the draft's mandatory `target` member — the reporting subject of
+the document. For an origin-wide report the origin's host (e.g. `"example.com"`) is the
+recommended value; an adapter that scopes a response to a requested path prefix sets
+`raw.target` itself, which takes precedence. If neither is configured, the publisher
+fails loudly rather than emit a document without a reporting subject.
+
+Since draft -03, `energy-consumption`/`energy-unit` and `carbon-footprint`/`carbon-unit`
+are **optional**: a metric that is not reported is simply omitted (there is no negative
+"not reported" sentinel anymore). When a unit member is absent, the defaults `kWh` and
+`gCO2e` apply — this publisher always emits the unit explicitly alongside a reported
+value. Gross metrics must be non-negative and `renewable-energy` must be 0–100;
+`scope-1/2/3` may be negative (removals under net accounting).
 
 Adapter `type` is one of: `static`, `static-file`, `computed`, `kepler-prometheus`,
 `climatiq`, `co2js`, `carbontxt-api`, `salesforce-nzc`, `ms-sustainability`, `watershed`.
@@ -162,7 +178,8 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
 - **Hardware fingerprinting**: optional ~1% noise (`security.applyNoise`, off by default).
   When enabled it is applied once at document-generation time, deterministically per
   reporting period, with a single factor per report so related fields stay consistent
-  (per the draft's Hardware Fingerprinting rules); the sentinel is never noised.
+  (per the draft's Hardware Fingerprinting rules); the multiplicative factor preserves
+  the sign of negative scope values (removals).
 - **Trust**: link a signed W3C Verifiable Credential via the adapter's attestation field
   (`verifiable-attestation-uri`).
 

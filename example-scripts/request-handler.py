@@ -31,13 +31,18 @@ WELL_KNOWN_PATH = "/.well-known/sustainability"
 # metrics actually live (billing export, monitoring system, enterprise platform).
 REPORTS = [
     {
-        "version": "1.1",
+        "version": "2.0",
         "updated": "2026-06-01T00:00:00Z",
         "capabilities": "basic",
         "provider": "Example Corp (sustain@example.org)",
         "measurement-method": "cloud-billing",
         "methodology-uri": "https://example.com/sustainability/methodology",
         "reporting-period": f"2026-{m:02d}",
+        # Mandatory reporting subject; these are origin-wide reports, so the
+        # origin's host is used (the illustrative selector below ignores
+        # `target` scoping — a path-scoped deployment would echo the matched
+        # path prefix here instead).
+        "target": "example.com",
         "energy-consumption": 1000 + m * 10,
         "energy-unit": "kWh",
         "carbon-footprint": (1000 + m * 10) * 270,

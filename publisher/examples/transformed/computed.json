@@ -1,16 +1,17 @@
 {
-  "version": "1.1",
-  "updated": "2026-07-09T09:57:40Z",
+  "version": "2.0",
+  "updated": "2026-07-10T07:39:05Z",
   "capabilities": "extended",
   "provider": "Example Corp (sustain@example.org)",
   "measurement-method": "hardware-estimated",
   "methodology-uri": "https://example.com/sustainability/methodology",
   "reporting-period": "2026-02",
+  "target": "example.com",
   "energy-consumption": 1250,
   "energy-unit": "kWh",
   "carbon-footprint": 345000,
   "carbon-unit": "gCO2e",
   "carbon-accounting": "location-based",
-  "carbon-intensity-gCO2-per-kWh": 276,
+  "carbon-intensity-gCO2e-per-kWh": 276,
   "renewable-energy": 45
 }

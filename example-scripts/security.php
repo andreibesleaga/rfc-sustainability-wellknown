@@ -36,10 +36,22 @@ function secureSustainabilityReport(array $reports): array {
         // 4. Anti-Fingerprinting: ~1% noise, deterministic per reporting period
         $fuzz = fuzzFactorFor($entry['reporting-period'] ?? '');
 
-        $numericKeys = ['energy-consumption', 'carbon-footprint', 'scope-1', 'scope-2', 'scope-3'];
+        // An unreported metric is simply omitted (-03 removed the negative
+        // "not reported" sentinel), so every numeric value present is noised.
+        // scope-1/2/3 MAY legitimately be negative (removals / net accounting);
+        // multiplicative noise preserves the sign and the arithmetic
+        // relationships between related fields.
+        $numericKeys = [
+            'energy-consumption',
+            'carbon-footprint',
+            'scope-1',
+            'scope-2',
+            'scope-3',
+            'carbon-intensity-gCO2e-per-kWh',
+            'estimated-annual-emissions-kgCO2e',
+        ];
         foreach ($numericKeys as $key) {
-            // Negative = "not reported" sentinel; do not apply noise to it.
-            if (isset($entry[$key]) && is_numeric($entry[$key]) && $entry[$key] >= 0) {
+            if (isset($entry[$key]) && is_numeric($entry[$key])) {
                 $entry[$key] = round($entry[$key] * $fuzz, 2);
             }
         }

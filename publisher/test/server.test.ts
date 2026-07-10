@@ -32,7 +32,7 @@ describe("standalone server", () => {
         gridIntensity: 276,
         capabilities: "extended",
       }),
-      { cacheTtlMs: 60000 },
+      { cacheTtlMs: 60000, normalize: { target: "example.com" } },
     );
     srv = await makeServer(publisher);
   });
@@ -78,13 +78,14 @@ describe("404 when no metadata", () => {
 describe("security safeguards", () => {
   it("caps arrays at 366 objects", () => {
     const many: SustainabilityMetrics[] = Array.from({ length: 500 }, (_, i) => ({
-      version: "1.1",
+      version: "2.0",
       updated: "2026-01-01T00:00:00Z",
       capabilities: "extended",
       provider: "p",
       "measurement-method": "m",
       "methodology-uri": "u",
       "reporting-period": "2026-01-01",
+      target: "example.com",
       "energy-consumption": 1,
       "energy-unit": "kWh",
       "carbon-footprint": 1,
@@ -96,13 +97,14 @@ describe("security safeguards", () => {
   it("drops sub-daily entries (traffic-analysis floor)", () => {
     const reports: SustainabilityMetrics[] = [
       {
-        version: "1.1",
+        version: "2.0",
         updated: "2026-01-01T00:00:00Z",
         capabilities: "extended",
         provider: "p",
         "measurement-method": "m",
         "methodology-uri": "u",
         "reporting-period": "2026-01-01T12:00:00Z",
+        target: "example.com",
         "energy-consumption": 1,
         "energy-unit": "kWh",
         "carbon-footprint": 1,
@@ -112,26 +114,37 @@ describe("security safeguards", () => {
     expect(secureReports(reports).length).toBe(0);
   });
 
-  it("does not apply anti-fingerprinting noise to the -1 'not reported' sentinel", () => {
+  it("applies multiplicative noise to negative scope values (sign preserved)", () => {
+    // -03 removed the negative "not reported" sentinel; scopes MAY be negative
+    // (removals under net accounting) and get the same multiplicative fuzz as
+    // every other reported value — multiplication preserves the sign.
     const reports: SustainabilityMetrics[] = [
       {
-        version: "1.1",
+        version: "2.0",
         updated: "2026-01-01T00:00:00Z",
         capabilities: "extended",
         provider: "p",
         "measurement-method": "m",
         "methodology-uri": "u",
         "reporting-period": "2026-01",
-        "energy-consumption": -1, // not reported
-        "energy-unit": "kWh",
-        "carbon-footprint": 100, // reported
+        target: "example.com",
+        "carbon-footprint": 100,
         "carbon-unit": "gCO2e",
+        "scope-3": -50, // removals: negative and reported
       },
     ];
     const [out] = secureReports(reports, { applyNoise: true, enforceDailyFloor: false });
-    expect(out["energy-consumption"]).toBe(-1); // sentinel preserved exactly
-    // reported value still processed (within the ~1% fuzz band)
+    // negative value noised within the ~1% band, sign preserved
+    expect(out["scope-3"]).toBeGreaterThanOrEqual(-50.5);
+    expect(out["scope-3"]).toBeLessThanOrEqual(-49.5);
+    expect(out["scope-3"]).toBeLessThan(0);
+    // positive value still processed (within the ~1% fuzz band)
     expect(out["carbon-footprint"]).toBeGreaterThanOrEqual(99);
     expect(out["carbon-footprint"]).toBeLessThanOrEqual(101);
+    // and the noise factor is identical across members (sums stay consistent)
+    expect((out["scope-3"] as number) / -50).toBeCloseTo(
+      (out["carbon-footprint"] as number) / 100,
+      2,
+    );
   });
 });

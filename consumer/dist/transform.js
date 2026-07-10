@@ -4,6 +4,7 @@ exports.toCsvRows = toCsvRows;
 exports.toNdjson = toNdjson;
 exports.flatten = flatten;
 exports.aggregate = aggregate;
+const sentinel_1 = require("./sentinel");
 const units_1 = require("./units");
 function asArray(doc) {
     return Array.isArray(doc) ? doc : [doc];
@@ -11,7 +12,7 @@ function asArray(doc) {
 const CSV_COLUMNS = [
     "provider",
     "reporting-period",
-    "target-path",
+    "target",
     "energy-consumption",
     "energy-unit",
     "carbon-footprint",
@@ -35,30 +36,42 @@ function toNdjson(doc) {
         .map((m) => JSON.stringify(m))
         .join("\n");
 }
-/** One row per numeric metric (incl. scopes), for time-series ingestion. */
+/** The non-negative members, as a plain string list for membership checks. */
+const NON_NEGATIVE = sentinel_1.NUMERIC_KEYS;
+/**
+ * One row per numeric metric (incl. scopes), for time-series ingestion.
+ *
+ * Negative values are skipped only for the NON-NEGATIVE members (sentinel.ts's
+ * legacy-compatibility rule: they read as "not reported"); a negative scope
+ * value is real data (net accounting) and flows through. Absent unit members
+ * fall back to the draft's defaults (kWh / gCO2e).
+ */
 function flatten(doc) {
     const rows = [];
+    // [metric, unit-member ?? "", default/literal unit label]
     const numeric = [
-        ["energy-consumption", "energy-unit"],
-        ["carbon-footprint", "carbon-unit"],
-        ["scope-1", "carbon-unit"],
-        ["scope-2", "carbon-unit"],
-        ["scope-3", "carbon-unit"],
-        ["sci-score", ""],
-        ["carbon-intensity-gCO2-per-kWh", "gCO2e/kWh"],
-        ["estimated-annual-emissions-kgCO2", "kgCO2"],
-        ["renewable-energy", "%"],
+        ["energy-consumption", "energy-unit", "kWh"],
+        ["carbon-footprint", "carbon-unit", "gCO2e"],
+        ["scope-1", "carbon-unit", "gCO2e"],
+        ["scope-2", "carbon-unit", "gCO2e"],
+        ["scope-3", "carbon-unit", "gCO2e"],
+        ["sci-score", "", ""],
+        ["carbon-intensity-gCO2e-per-kWh", "", "gCO2e/kWh"],
+        ["estimated-annual-emissions-kgCO2e", "", "kgCO2e"],
+        ["renewable-energy", "", "%"],
     ];
     for (const m of asArray(doc)) {
-        for (const [metric, unitField] of numeric) {
+        for (const [metric, unitField, defaultUnit] of numeric) {
             const value = m[metric];
-            if (typeof value !== "number" || value < 0)
-                continue; // absent or "not reported"
-            const unit = unitField && unitField in m ? String(m[unitField]) : unitField;
+            if (typeof value !== "number")
+                continue; // absent
+            if (value < 0 && NON_NEGATIVE.includes(metric))
+                continue; // "not reported" (legacy compat)
+            const unit = unitField && m[unitField] !== undefined ? String(m[unitField]) : defaultUnit;
             rows.push({
                 provider: m.provider,
                 "reporting-period": m["reporting-period"],
-                "target-path": m["target-path"],
+                target: m.target,
                 metric,
                 value,
                 unit,
@@ -69,27 +82,44 @@ function flatten(doc) {
 }
 /**
  * Combine a trend array into one summary object. Refuses to silently mix
- * units — everything is normalized to the requested (or the first entry's)
- * unit before combining.
+ * units — everything is normalized to the requested (or the first reporting
+ * entry's) unit before combining. Entries not reporting a metric (member
+ * absent, or negative under the legacy-compatibility rule) simply don't
+ * contribute; an absent unit member means the draft's default (kWh / gCO2e).
+ * When no entry reports a metric at all, the summary omits it.
  */
 function aggregate(entries, opts) {
     if (entries.length === 0)
         throw new Error("aggregate: empty input");
-    const energyUnit = opts.energyUnit ?? entries[0]["energy-unit"];
-    const carbonUnit = opts.carbonUnit ?? entries[0]["carbon-unit"];
-    const energies = entries.map((e) => e["energy-consumption"] < 0 ? 0 : (0, units_1.convertEnergy)(e["energy-consumption"], e["energy-unit"], energyUnit));
-    const carbons = entries.map((e) => e["carbon-footprint"] < 0 ? 0 : (0, units_1.convertCarbon)(e["carbon-footprint"], e["carbon-unit"], carbonUnit));
+    const reported = (key) => entries.filter((e) => typeof e[key] === "number" && e[key] >= 0);
+    const energyEntries = reported("energy-consumption");
+    const carbonEntries = reported("carbon-footprint");
+    // Output units: requested, else the first reporting entry's declared unit,
+    // else the draft default (which also applies per-entry when the unit member
+    // is absent alongside a present value).
+    const energyUnit = opts.energyUnit ?? energyEntries[0]?.["energy-unit"] ?? "kWh";
+    const carbonUnit = opts.carbonUnit ?? carbonEntries[0]?.["carbon-unit"] ?? "gCO2e";
+    const energies = energyEntries.map((e) => (0, units_1.convertEnergy)(e["energy-consumption"], e["energy-unit"] ?? "kWh", energyUnit));
+    const carbons = carbonEntries.map((e) => (0, units_1.convertCarbon)(e["carbon-footprint"], e["carbon-unit"] ?? "gCO2e", carbonUnit));
     const sum = (xs) => xs.reduce((a, b) => a + b, 0);
-    const energy = opts.by === "sum" ? sum(energies) : sum(energies) / energies.length;
-    const carbon = opts.by === "sum" ? sum(carbons) : sum(carbons) / carbons.length;
+    const combine = (xs) => (opts.by === "sum" ? sum(xs) : sum(xs) / xs.length);
     const first = entries[0];
     const last = entries[entries.length - 1];
-    return {
+    const out = {
         ...first,
         "reporting-period": `${first["reporting-period"]}..${last["reporting-period"]}`,
-        "energy-consumption": Math.round(energy * 100) / 100,
-        "energy-unit": energyUnit,
-        "carbon-footprint": Math.round(carbon * 100) / 100,
-        "carbon-unit": carbonUnit,
     };
+    delete out["energy-consumption"];
+    delete out["energy-unit"];
+    delete out["carbon-footprint"];
+    delete out["carbon-unit"];
+    if (energies.length > 0) {
+        out["energy-consumption"] = Math.round(combine(energies) * 100) / 100;
+        out["energy-unit"] = energyUnit;
+    }
+    if (carbons.length > 0) {
+        out["carbon-footprint"] = Math.round(combine(carbons) * 100) / 100;
+        out["carbon-unit"] = carbonUnit;
+    }
+    return out;
 }

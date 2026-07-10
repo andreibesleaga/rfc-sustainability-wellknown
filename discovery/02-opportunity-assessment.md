@@ -49,7 +49,7 @@ and future systems satisfy it without rebuilding anything.
 | Risk | Mitigation |
 |---|---|
 | Greenwashing / false claims | `verifiable-attestation-uri` → signed W3C VC; `methodology-uri` mandatory. |
-| Spec not yet an RFC | Draft is stable at draft-besleaga-sustainability-wellknown-02; well-known registration only needs Specification Required + Expert Review (RFC 8615). |
+| Spec not yet an RFC | Revision -02 is submitted and under ISE review; a -03 revision (simplified omission-based data model, schema label "2.0") is prepared for posting when the submission window reopens. Well-known registration only needs Specification Required + Expert Review (RFC 8615). |
 | Enterprise connectors need credentials | Replay/fixture mode ships now; live connectors documented and credential-gated. |
 | Adoption inertia | Zero-credential static/computed path lowers the barrier to first publish. |
 

@@ -27,6 +27,17 @@ export interface FetchOptions extends FetchParams {
   timeoutMs?: number;
   /** Reject a response body larger than this many bytes, without buffering it (default {@link DEFAULT_MAX_BYTES}). */
   maxBytes?: number;
+  /**
+   * Legacy-compatibility pre-pass (default true). Draft §Versioning and
+   * Extensibility: a client that encounters a document without a `target`
+   * member SHOULD treat it as an origin-wide report — so before validation,
+   * a parsed document (object, or every entry of an array) lacking `target`
+   * gets the request origin's host injected as `target`, letting historical
+   * "1.0"/"1.1" documents validate and stay usable. Such a result is flagged
+   * with `legacy: true`. Set to false for strict mode: legacy documents then
+   * fail validation instead.
+   */
+  legacyCompat?: boolean;
 }
 
 /** Internal marker: the response body exceeded the configured byte cap. */
@@ -129,9 +140,29 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
     return { status: "invalid", errors: ["response body is not valid JSON"] };
   }
 
+  // Legacy-compatibility pre-pass (see FetchOptions.legacyCompat): a document
+  // without `target` SHOULD be treated as origin-wide, so inject the request
+  // origin's host before the schema gate — the historical (-02, "1.0"/"1.1")
+  // absence of `target-path` conveyed exactly that.
+  let legacy = false;
+  if (options.legacyCompat !== false) {
+    const host = url.host;
+    const lacksTarget = (o: unknown): o is Record<string, unknown> =>
+      typeof o === "object" && o !== null && !Array.isArray(o) && !("target" in o);
+    if (Array.isArray(parsed)) {
+      if (parsed.length > 0 && parsed.every(lacksTarget)) {
+        for (const entry of parsed) (entry as Record<string, unknown>).target = host;
+        legacy = true;
+      }
+    } else if (lacksTarget(parsed)) {
+      parsed.target = host;
+      legacy = true;
+    }
+  }
+
   const result = validateDocument(parsed);
   if (!result.valid) return { status: "invalid", errors: result.errors };
 
   const etag = res.headers.get("etag") ?? undefined;
-  return { status: "ok", document: parsed as SustainabilityDocument, etag };
+  return { status: "ok", document: parsed as SustainabilityDocument, etag, ...(legacy ? { legacy } : {}) };
 }

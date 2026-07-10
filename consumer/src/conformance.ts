@@ -43,7 +43,12 @@ export async function runConformanceChecks(
 ): Promise<ConformanceReport> {
   const checks: ConformanceCheck[] = [];
   const { timeoutMs, maxBytes } = options;
-  const fetchOpts = { fetchImpl, timeoutMs, maxBytes };
+  // legacyCompat is disabled here on purpose: a conformance checker must see
+  // the document as served. With the pre-pass on, a document missing the
+  // mandatory `target` member would get the origin host injected and pass the
+  // schema gate — masking exactly the non-conformance this battery exists to
+  // detect. (The Basic check below thus inherently requires `target`.)
+  const fetchOpts = { fetchImpl, timeoutMs, maxBytes, legacyCompat: false };
   /** Signal for the raw (non-fetchSustainability) probes below, so they can't hang either. */
   const rawSignal = () => (timeoutMs !== undefined ? AbortSignal.timeout(timeoutMs) : undefined);
 

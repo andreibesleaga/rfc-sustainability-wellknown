@@ -73,9 +73,11 @@ export function secureReports(
       const secured: SustainabilityMetrics = { ...r };
       for (const key of NUMERIC_KEYS) {
         const v = secured[key];
-        // A negative value is the "not reported" sentinel (draft §Unreported
-        // Numeric Metrics); noise MUST NOT be applied to it.
-        if (typeof v === "number" && v >= 0) {
+        // Multiplicative noise applies to every reported value regardless of
+        // sign (scopes MAY be negative under net accounting): multiplication
+        // preserves sign and keeps arithmetically related fields consistent.
+        // An unreported metric is simply absent (-03 removed the sentinel).
+        if (typeof v === "number") {
           secured[key] = Math.round(v * fuzz * 100) / 100;
         }
       }

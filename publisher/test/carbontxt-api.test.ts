@@ -9,7 +9,10 @@ const FX = (name: string) => resolve(process.cwd(), "test/fixtures", name);
 const domainFixture = () => readJson(FX("carbontxt-api-domain.json"));
 
 async function docOf(adapter: any) {
-  return new Publisher(adapter, { cacheTtlMs: 0 }).getDocument();
+  return new Publisher(adapter, {
+    cacheTtlMs: 0,
+    normalize: { target: "acme.example" },
+  }).getDocument();
 }
 
 describe("carbontxt-api adapter", () => {

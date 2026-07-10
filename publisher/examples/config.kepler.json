@@ -12,6 +12,9 @@
       "capabilities": "extended"
     }
   },
-  "publisher": { "cacheTtlMs": 3600000 },
+  "publisher": {
+    "normalize": { "target": "example.com" },
+    "cacheTtlMs": 3600000
+  },
   "server": { "port": 8080 }
 }

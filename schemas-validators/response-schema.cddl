@@ -1,40 +1,42 @@
-; Root response: Can be a single object or a list of objects for trends
-sustainability-response = sustainability-metrics / [* sustainability-metrics]
+; Root: a single object, or an array of objects for trends
+sustainability-response =
+  sustainability-metrics / [* sustainability-metrics]
 
 sustainability-metrics = {
   ; Versioning and provenance
   version: tstr,
   updated: tstr,
-  provider: tstr,
-
   capabilities: "basic" / "extended",
+  provider: tstr,
 
   ; Mandatory methodology disclosure
   measurement-method: tstr,
   methodology-uri: tstr,
 
-  ; Timeframe of the report (RFC3339 formatted string)
+  ; Timeframe of the report (YYYY, YYYY-MM, or RFC3339 full-date)
   reporting-period: tstr,
 
-  ; Energy metrics (Units are fixed as literals to ensure interoperability)
-  energy-consumption: number,
-  energy-unit: "Wh" / "kWh" / "MWh" / "GWh",
+  ; Reporting subject (origin host, path prefix, entity, ...)
+  target: tstr,
 
-  ; Carbon metrics
-  carbon-footprint: number,
-  carbon-unit: "gCO2e" / "kgCO2e" / "mtCO2e",
+  ; Energy metrics; when energy-unit is absent, kWh applies
+  ? energy-consumption: number,   ; non-negative
+  ? energy-unit: "Wh" / "kWh" / "MWh" / "GWh",
 
-  ; Optional fields for extended capabilities
+  ; Carbon metrics; when carbon-unit is absent, gCO2e applies
+  ? carbon-footprint: number,     ; gross, non-negative
+  ? carbon-unit: "gCO2e" / "kgCO2e" / "mtCO2e",
+
+  ; Other optional metric and linkage members
   ? carbon-accounting: "location-based" / "market-based",
-  ? target-path: tstr,
-  ? scope-1: number,
-  ? scope-2: number,
-  ? scope-3: number,
-  ? sci-score: number,
+  ? scope-1: number,              ; MAY be negative (removals)
+  ? scope-2: number,              ; MAY be negative (removals)
+  ? scope-3: number,              ; MAY be negative (removals)
+  ? sci-score: number,            ; non-negative
   ? functional-unit: tstr,
-  ? carbon-intensity-gCO2-per-kWh: number,
-  ? estimated-annual-emissions-kgCO2: number,
-  ? renewable-energy: number,
+  ? carbon-intensity-gCO2e-per-kWh: number,   ; non-negative
+  ? estimated-annual-emissions-kgCO2e: number, ; non-negative
+  ? renewable-energy: number,     ; percentage, 0-100
   ? verifiable-attestation-uri: tstr,
   ? disclosure-uri: tstr,
 

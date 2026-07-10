@@ -18,7 +18,9 @@ import { validateDocument } from "../src/validate";
 const FX = (name: string) => resolve(process.cwd(), "test/fixtures", name);
 
 async function docOf(adapter: any) {
-  const pub = new Publisher(adapter, { cacheTtlMs: 0 });
+  // `target` (the mandatory -03 reporting subject) via the normalize fallback,
+  // exactly as an operator would configure it for origin-wide reports.
+  const pub = new Publisher(adapter, { cacheTtlMs: 0, normalize: { target: "example.com" } });
   return pub.getDocument();
 }
 

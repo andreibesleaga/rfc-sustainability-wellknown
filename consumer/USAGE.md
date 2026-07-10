@@ -27,12 +27,24 @@ tagged `FetchResult`:
 
 ```ts
 type FetchResult =
-  | { status: "ok"; document: SustainabilityDocument; etag?: string }
+  | { status: "ok"; document: SustainabilityDocument; etag?: string; legacy?: boolean }
   | { status: "not-modified" }
   | { status: "not-found" }
   | { status: "invalid"; errors: string[] }   // fetched but failed validation
   | { status: "http-error"; httpStatus: number };
 ```
+
+**Legacy compatibility** (`legacyCompat`, default `true`): per the draft's
+field-driven compatibility rules (§Versioning and Extensibility), a document
+without the mandatory `target` member SHOULD be treated as an origin-wide
+report — so before validation, `fetchSustainability` injects the request
+origin's host as `target` into a target-less document (or every entry of a
+target-less array) and flags the result with `legacy: true`. Historical
+`"1.0"`/`"1.1"` documents therefore still validate and stay usable. Pass
+`legacyCompat: false` for strict mode: legacy documents then come back as
+`status: "invalid"`. (The other compatibility rule — a negative value in a
+non-negative member reads as "not reported" — is applied on demand via
+`withoutSentinels()`/`isNotReported()`, never silently by the fetch path.)
 
 ### 1a. Plain `fetch()` — no extra dependency
 
@@ -142,7 +154,9 @@ console.log(monthly.length, "months returned");
 ```
 
 `maxCacheEntries` (default 256) bounds the client's internal ETag cache — useful
-when polling a large, dynamic set of origins.
+when polling a large, dynamic set of origins. The client also accepts
+`legacyCompat` (default `true`) and threads it through to every underlying
+`fetchSustainability` call — see §1.
 
 ## 3. Transformation utilities
 
@@ -181,14 +195,18 @@ import { flatten } from "sustainability-wellknown-consumer";
 
 if (result.status === "ok") {
   for (const row of flatten(result.document)) {
-    // { provider, "reporting-period", "target-path"?, metric, value, unit }
+    // { provider, "reporting-period", target, metric, value, unit }
     timeSeriesDb.write(row.metric, row.value, { unit: row.unit, period: row["reporting-period"] });
   }
 }
 ```
 
-`flatten` skips absent and "not reported" (negative-sentinel) values, so a
-time-series backend never ingests a `-1` as a real measurement.
+`flatten` skips absent values, applies the draft's default units (`kWh`/`gCO2e`)
+when a value is present without its unit member, and — for the non-negative
+members only — skips negative values (the legacy 1.x "not reported" sentinel),
+so a time-series backend never ingests a `-1` as a real measurement. Negative
+`scope-1`/`scope-2`/`scope-3` values are real net-accounting data since -03 and
+flow through.
 
 ### `aggregate` — collapse a fetched year-trend into one annual figure
 
@@ -207,8 +225,13 @@ console.log(`2026 total: ${annual["energy-consumption"]} MWh, ${annual["carbon-f
 ```
 
 `aggregate` normalizes every entry to a common unit before combining (the
-requested unit, or the first entry's unit if none is given) — it never silently
-mixes `kWh` and `MWh` figures.
+requested unit, or the first *reporting* entry's unit if none is given) — it
+never silently mixes `kWh` and `MWh` figures. Since -03 the energy/carbon
+quartet is optional: entries that don't report a metric (absent member, or
+negative under the legacy rule) simply don't contribute — an `average` divides
+by the number of reporting entries, never producing `NaN` — a value carried
+without its unit member gets the draft's default (`kWh`/`gCO2e`), and when no
+entry reports a metric at all the summary omits it.
 
 ## 4. Disclosure links (passive by design)
 

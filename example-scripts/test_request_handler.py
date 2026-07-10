@@ -99,6 +99,11 @@ class RequestHandlerE2ETests(unittest.TestCase):
         self.assertEqual(headers["Access-Control-Allow-Origin"], "*")
         doc = json.loads(body)
         self.assertIsInstance(doc, dict)
+        # -03: `target` (the reporting subject) is mandatory; these are
+        # origin-wide reports, so it carries the origin's host. `version`
+        # is an informational label; "2.0" denotes the -03 field set.
+        self.assertEqual(doc["target"], "example.com")
+        self.assertEqual(doc["version"], "2.0")
         _validate_schema(doc)
 
     def test_extended_with_granularity_returns_sorted_array(self):
@@ -109,6 +114,8 @@ class RequestHandlerE2ETests(unittest.TestCase):
         self.assertGreater(len(doc), 1)
         periods = [d["reporting-period"] for d in doc]
         self.assertEqual(periods, sorted(periods))
+        # -03: all entries of a trend array MUST share the same `target`.
+        self.assertEqual({d["target"] for d in doc}, {"example.com"})
         _validate_schema(doc)
 
     def test_head_matches_get_headers_with_no_body(self):

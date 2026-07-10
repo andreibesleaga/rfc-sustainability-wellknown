@@ -99,10 +99,23 @@ validators check. In particular:
   is present, `functional-unit` MUST also be present." This is a cross-field
   conditional dependency, which neither CDDL nor JTD can express, so a document
   carrying `sci-score` **without** `functional-unit` passes both validators.
-- **Numeric ranges** — e.g. `renewable-energy` being within `0`–`100`. The
-  formal schemas type these as numbers but do not enforce the min/max bounds.
+- **Numeric ranges** — the non-negativity rules on the gross-quantity members
+  (`energy-consumption`, `carbon-footprint`, `sci-score`,
+  `carbon-intensity-gCO2e-per-kWh`, `estimated-annual-emissions-kgCO2e`) and the
+  `0`–`100` bound on `renewable-energy`. The formal schemas type these as
+  numbers but do not enforce the bounds. (`scope-1/2/3` MAY legitimately be
+  negative, per the draft, to express removals/net accounting.)
+- **Default units** — when `energy-consumption` is present without
+  `energy-unit`, the default `kWh` applies; when `carbon-footprint` (or a scope)
+  is present without `carbon-unit`, the default `gCO2e` applies. The schemas
+  cannot bind a default to an absent member; consumers apply it when reading.
+- **Minimum-reporting rule** — a document SHOULD carry at least one reported
+  numeric metric or a disclosure/attestation URI; with none, the mandatory
+  `methodology-uri` MUST lead to the substantive disclosure. Not expressible in
+  either schema language.
 
 These rules are checked at the **application layer**: this repo's `publisher/`
 and `consumer/` implementations validate the `sci-score` ⇒ `functional-unit`
-dependency and the numeric ranges. Treat a "PASS" from the formal validators as
-"structurally valid", not "fully conformant to every prose MUST in the draft".
+dependency and the numeric ranges, and apply the unit defaults. Treat a "PASS"
+from the formal validators as "structurally valid", not "fully conformant to
+every prose MUST in the draft".

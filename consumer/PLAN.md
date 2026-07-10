@@ -278,3 +278,49 @@ priority, but noting the rest for completeness/transparency:
   producer (library + CLI + middleware + server configs), and — once this
   plan ships — consumer (library + CLI), which is the complete set for an
   Internet-Draft's reference-implementation evidence.
+
+## 10. Revision for draft -03 / wire format "2.0" (consumer 0.2.0)
+
+*Appended when the package was migrated to the -03 wire format; sections 0–9
+above describe the original v0 (0.1.0, -02/"1.1") plan and are preserved
+verbatim. Where they conflict, this section governs.*
+
+- **Field-set changes (draft -03, §Mandatory/Optional Response Fields):**
+  `target` (free-form reporting subject) is now the 8th **mandatory** member,
+  replacing the optional `target-path`; the energy/carbon quartet
+  (`energy-consumption`/`energy-unit`/`carbon-footprint`/`carbon-unit`) is now
+  **optional** (15 optional members total), with default units `kWh`/`gCO2e`
+  applying when a value is present without its unit member; the intensity and
+  annual-emissions members are renamed to `carbon-intensity-gCO2e-per-kWh` and
+  `estimated-annual-emissions-kgCO2e`. Documents now declare the informational
+  label `"2.0"` (clients MUST NOT reject or branch on it).
+- **`sentinel.ts` is repurposed as the legacy-compatibility module** (same
+  filename and exported names — `isNotReported`, `withoutSentinels`, plus the
+  now-exported `NUMERIC_KEYS` — for API continuity). -03 defines **no in-band
+  "not reported" marker**: omission is the only way to convey an unreported
+  metric. The module now implements the draft's field-driven compatibility
+  rule: a negative value in a member defined as **non-negative**
+  (`energy-consumption`, `carbon-footprint`, `sci-score`,
+  `carbon-intensity-gCO2e-per-kWh`, `estimated-annual-emissions-kgCO2e`,
+  `renewable-energy`) reads as "not reported" — subsuming the historical 1.x
+  sentinel. `scope-1`/`scope-2`/`scope-3` MAY legitimately be negative since
+  -03 (net accounting) and are never stripped.
+- **`fetchSustainability` gains a `legacyCompat` option (default true):** the
+  draft's second compatibility rule — a document without `target` SHOULD be
+  treated as an origin-wide report — is implemented as a pre-validation
+  pre-pass injecting the request origin's host as `target` (result flagged
+  `legacy: true`). `legacyCompat: false` is strict mode (legacy documents fail
+  validation); `SustainabilityClient` threads the option through, and
+  `runConformanceChecks` always runs strict so a missing mandatory `target`
+  is detected rather than papered over.
+- **Validation:** the JTD gate picks up the new required/optional split from
+  the (updated) embedded schema; the cross-entry array rule now compares the
+  mandatory `target` values. Out-of-range values are deliberately **not**
+  rejected — the draft says clients SHOULD treat them as not reported instead
+  (sentinel.ts's job).
+- **Transforms:** CSV/flatten use `target` and the renamed CO2e keys; flatten
+  only skips negatives for the non-negative members and applies the default
+  units; `aggregate` handles sparse documents (skips non-reporting entries,
+  no `NaN` averages, omits unreported metrics from the summary).
+- **Versioning:** consumer 0.2.0 implements the -03/"2.0" model; the published
+  0.1.0 implements -02/"1.1".

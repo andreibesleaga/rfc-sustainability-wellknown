@@ -164,6 +164,8 @@ describe("runConformanceChecks()", () => {
         gridIntensity: 350,
         capabilities: "extended",
       }),
+      // -03: `target` is mandatory; publisher's normalize() needs it configured.
+      { normalize: { target: "conformance.example" } },
     );
     const origin = await startPublisherServer(publisher);
 

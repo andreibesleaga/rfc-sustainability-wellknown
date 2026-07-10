@@ -12,7 +12,7 @@ export { fetchSustainability, WELL_KNOWN_PATH } from "./fetch";
 export type { FetchOptions } from "./fetch";
 export { SustainabilityClient } from "./client";
 export type { SustainabilityClientOptions } from "./client";
-export { isNotReported, withoutSentinels } from "./sentinel";
+export { isNotReported, withoutSentinels, NUMERIC_KEYS } from "./sentinel";
 export { convertEnergy, convertCarbon } from "./units";
 export { toCsvRows, toNdjson, flatten, aggregate } from "./transform";
 export type { FlatRecord, AggregateOptions } from "./transform";

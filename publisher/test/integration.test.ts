@@ -26,7 +26,7 @@ function demoPublisher() {
       gridIntensity: 276,
       capabilities: "extended",
     }),
-    { cacheTtlMs: 60_000 },
+    { cacheTtlMs: 60_000, normalize: { target: "example.com" } },
   );
 }
 
@@ -268,6 +268,7 @@ describe("Publisher caching", () => {
           measurementMethod: "cloud-billing",
           methodologyUri: "https://x/y",
           reportingPeriod: "2026-01",
+          target: "example.com",
           energy: { value: 10, unit: "kWh" },
           carbon: { value: 2, unit: "kgCO2e" },
         };
@@ -296,7 +297,7 @@ describe("co2js adapter end-to-end through a server", () => {
         gridZone: "GBR",
         disclosureUri: "https://edge.example/.well-known/carbon.txt",
       }),
-      { cacheTtlMs: 0 },
+      { cacheTtlMs: 0, normalize: { target: "edge.example" } },
     );
     const server = createSustainabilityServer(pub);
     const { base, close } = await listen(server);

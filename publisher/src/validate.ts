@@ -29,9 +29,22 @@ const NUMERIC_FIELDS = [
   "scope-2",
   "scope-3",
   "sci-score",
-  "carbon-intensity-gCO2-per-kWh",
-  "estimated-annual-emissions-kgCO2",
+  "carbon-intensity-gCO2e-per-kWh",
+  "estimated-annual-emissions-kgCO2e",
   "renewable-energy",
+] as const;
+
+/**
+ * Gross-quantity members that MUST NOT be negative (draft §Value Constraints
+ * and Omitted Metrics). Scopes are deliberately absent: scope-1/2/3 MAY be
+ * negative to convey removals/offsets under net accounting.
+ */
+const NON_NEGATIVE_FIELDS = [
+  "energy-consumption",
+  "carbon-footprint",
+  "sci-score",
+  "carbon-intensity-gCO2e-per-kWh",
+  "estimated-annual-emissions-kgCO2e",
 ] as const;
 
 /** Validate a single metrics object against the JTD schema. */
@@ -56,6 +69,26 @@ export function validateMetrics(obj: unknown): ValidationResult {
         errors.push(`/${field} is not a finite number (${String(v)})`);
       }
     }
+
+    // Range rules (draft §Value Constraints and Omitted Metrics) are prose
+    // rules JTD cannot express; enforce them here so no invalid document can
+    // ship regardless of which adapter/normalization path produced it.
+    for (const field of NON_NEGATIVE_FIELDS) {
+      const v = rec[field];
+      if (typeof v === "number" && v < 0) {
+        errors.push(`/${field} must not be negative (got ${v}); omit unreported metrics`);
+      }
+    }
+    const renewable = rec["renewable-energy"];
+    if (typeof renewable === "number" && (renewable < 0 || renewable > 100)) {
+      errors.push(`/renewable-energy must be between 0 and 100 inclusive (got ${renewable})`);
+    }
+
+    // Draft §Optional Response Fields: "If sci-score is present,
+    // functional-unit MUST also be present." JTD cannot express dependencies.
+    if (rec["sci-score"] !== undefined && rec["functional-unit"] === undefined) {
+      errors.push("/sci-score requires functional-unit to be present");
+    }
   }
   return { valid: errors.length === 0, errors };
 }
@@ -74,8 +107,8 @@ export function validateDocument(doc: SustainabilityDocument): ValidationResult 
 
   // Cross-entry array rules (draft §Payload Format): entries MUST be sorted
   // ascending by reporting-period, MUST NOT overlap, and MUST share the same
-  // period precision and (where present) the same target-path. The per-object
-  // JTD schema cannot express these, so they are checked here.
+  // period precision and the same target value. The per-object JTD schema
+  // cannot express these, so they are checked here.
   if (Array.isArray(doc) && doc.length > 1) {
     const periods = doc.map((m) => String(m["reporting-period"] ?? ""));
     if (new Set(periods.map((p) => p.length)).size > 1) {
@@ -89,8 +122,8 @@ export function validateDocument(doc: SustainabilityDocument): ValidationResult 
         break;
       }
     }
-    if (new Set(doc.map((m) => m["target-path"] ?? "")).size > 1) {
-      errors.push("array entries carry differing target-path values");
+    if (new Set(doc.map((m) => m.target ?? "")).size > 1) {
+      errors.push("array entries carry differing target values");
     }
   }
 

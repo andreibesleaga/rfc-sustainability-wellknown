@@ -41,19 +41,19 @@ const WIRE_KEYS = new Set([
   "measurement-method",
   "methodology-uri",
   "reporting-period",
+  "target",
   "energy-consumption",
   "energy-unit",
   "carbon-footprint",
   "carbon-unit",
-  "target-path",
   "carbon-accounting",
   "scope-1",
   "scope-2",
   "scope-3",
   "sci-score",
   "functional-unit",
-  "carbon-intensity-gCO2-per-kWh",
-  "estimated-annual-emissions-kgCO2",
+  "carbon-intensity-gCO2e-per-kWh",
+  "estimated-annual-emissions-kgCO2e",
   "renewable-energy",
   "verifiable-attestation-uri",
   "disclosure-uri",
@@ -65,24 +65,37 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
     measurementMethod: m["measurement-method"],
     methodologyUri: m["methodology-uri"],
     reportingPeriod: m["reporting-period"],
-    energy: { value: m["energy-consumption"], unit: m["energy-unit"] as EnergyUnit },
-    carbon: { value: m["carbon-footprint"], unit: m["carbon-unit"] as CarbonUnit },
     capabilities: m.capabilities,
     updated: m.updated,
   };
-  if (m["target-path"] !== undefined) raw.targetPath = String(m["target-path"]);
+  // Energy/carbon are optional since -03: only re-ingest members actually
+  // present (a `{ value: undefined }` would poison normalize with NaN). When
+  // the value is present without its unit, the draft's defaults apply.
+  if (m["energy-consumption"] !== undefined) {
+    raw.energy = {
+      value: Number(m["energy-consumption"]),
+      unit: (m["energy-unit"] ?? "kWh") as EnergyUnit,
+    };
+  }
+  if (m["carbon-footprint"] !== undefined) {
+    raw.carbon = {
+      value: Number(m["carbon-footprint"]),
+      unit: (m["carbon-unit"] ?? "gCO2e") as CarbonUnit,
+    };
+  }
+  if (m.target !== undefined) raw.target = String(m.target);
   if (m["carbon-accounting"] !== undefined) raw.carbonAccounting = m["carbon-accounting"] as any;
   if (m["scope-1"] !== undefined) raw.scope1 = Number(m["scope-1"]);
   if (m["scope-2"] !== undefined) raw.scope2 = Number(m["scope-2"]);
   if (m["scope-3"] !== undefined) raw.scope3 = Number(m["scope-3"]);
   if (m["sci-score"] !== undefined) raw.sciScore = Number(m["sci-score"]);
   if (m["functional-unit"] !== undefined) raw.functionalUnit = String(m["functional-unit"]);
-  if (m["carbon-intensity-gCO2-per-kWh"] !== undefined) {
-    raw.carbonIntensity = Number(m["carbon-intensity-gCO2-per-kWh"]);
+  if (m["carbon-intensity-gCO2e-per-kWh"] !== undefined) {
+    raw.carbonIntensity = Number(m["carbon-intensity-gCO2e-per-kWh"]);
   }
   if (m["renewable-energy"] !== undefined) raw.renewableEnergy = Number(m["renewable-energy"]);
-  if (m["estimated-annual-emissions-kgCO2"] !== undefined) {
-    raw.estimatedAnnualEmissionsKg = Number(m["estimated-annual-emissions-kgCO2"]);
+  if (m["estimated-annual-emissions-kgCO2e"] !== undefined) {
+    raw.estimatedAnnualEmissionsKg = Number(m["estimated-annual-emissions-kgCO2e"]);
   }
   if (m["verifiable-attestation-uri"] !== undefined) {
     raw.verifiableAttestationUri = String(m["verifiable-attestation-uri"]);

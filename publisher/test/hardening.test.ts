@@ -20,6 +20,7 @@ const okRaw = (over: Partial<RawMetrics> = {}): RawMetrics => ({
   measurementMethod: "m",
   methodologyUri: "https://x/m",
   reportingPeriod: "2026-02",
+  target: "example.com",
   energy: { value: 10, unit: "kWh" },
   carbon: { value: 5, unit: "kgCO2e" },
   ...over,
@@ -27,28 +28,54 @@ const okRaw = (over: Partial<RawMetrics> = {}): RawMetrics => ({
 
 // #1 fromWire preserves carbon-intensity + vendor extensions
 describe("fromWire round-trip (fix 1)", () => {
-  it("preserves carbon-intensity-gCO2-per-kWh and unknown vendor fields", () => {
+  it("preserves target, carbon-intensity-gCO2e-per-kWh and unknown vendor fields", () => {
     const wire: SustainabilityMetrics = {
-      version: "1.1",
+      version: "2.0",
       updated: "2026-03-01T00:00:00Z",
       capabilities: "extended",
       provider: "P",
       "measurement-method": "m",
       "methodology-uri": "https://x/m",
       "reporting-period": "2026-02",
+      target: "example.com",
       "energy-consumption": 10,
       "energy-unit": "kWh",
       "carbon-footprint": 2760,
       "carbon-unit": "gCO2e",
-      "carbon-intensity-gCO2-per-kWh": 276,
+      "carbon-intensity-gCO2e-per-kWh": 276,
       "x-vendor-note": "hello",
     };
     const raw = fromWire(wire);
+    expect(raw.target).toBe("example.com");
     expect(raw.carbonIntensity).toBe(276);
     expect(raw.extra?.["x-vendor-note"]).toBe("hello");
     const out = normalize(raw);
-    expect(out["carbon-intensity-gCO2-per-kWh"]).toBe(276);
+    expect(out.target).toBe("example.com");
+    expect(out["carbon-intensity-gCO2e-per-kWh"]).toBe(276);
     expect((out as any)["x-vendor-note"]).toBe("hello");
+  });
+
+  it("re-ingests a sparse -03 document without fabricating energy/carbon", () => {
+    const wire: SustainabilityMetrics = {
+      version: "2.0",
+      updated: "2026-04-01T00:00:00Z",
+      capabilities: "basic",
+      provider: "P",
+      "measurement-method": "m",
+      "methodology-uri": "https://x/m",
+      "reporting-period": "2026-03",
+      target: "partial.example",
+      "carbon-footprint": 4200, // no carbon-unit: default gCO2e applies
+      "scope-2": 4200,
+    };
+    const raw = fromWire(wire);
+    expect(raw.energy).toBeUndefined();
+    expect(raw.carbon).toEqual({ value: 4200, unit: "gCO2e" });
+    const out = normalize(raw);
+    expect(out).not.toHaveProperty("energy-consumption");
+    expect(out).not.toHaveProperty("energy-unit");
+    expect(out["carbon-footprint"]).toBe(4200);
+    expect(validateDocument(out).valid).toBe(true);
   });
 });
 
@@ -67,7 +94,7 @@ describe("ifNoneMatchMatches (fix 2)", () => {
 describe("Publisher cache is bounded (fix 3)", () => {
   it("never exceeds maxCacheEntries under unique-query spam", async () => {
     const pub = new Publisher(
-      { name: "c", capabilities: "extended", fetch: async (q) => okRaw({ targetPath: q?.target }) },
+      { name: "c", capabilities: "extended", fetch: async (q) => okRaw({ target: q?.target }) },
       { cacheTtlMs: 60_000, maxCacheEntries: 8 },
     );
     for (let i = 0; i < 50; i++) await pub.getSerialized({ target: `/p${i}` });
@@ -188,13 +215,14 @@ describe("carbonTxtResult rejects a poisoned Host (fix 9)", () => {
 describe("security floor-before-cap (fix 10)", () => {
   it("yields up to 366 daily objects even when sub-daily entries precede them", () => {
     const daily = (i: number): SustainabilityMetrics => ({
-      version: "1.1",
+      version: "2.0",
       updated: "2026-01-01T00:00:00Z",
       capabilities: "basic",
       provider: "p",
       "measurement-method": "m",
       "methodology-uri": "u",
       "reporting-period": "2026-01-01",
+      target: "example.com",
       "energy-consumption": 1,
       "energy-unit": "kWh",
       "carbon-footprint": 1,
@@ -261,7 +289,7 @@ describe("open schema (extensibility fix)", () => {
     expect(validateDocument(doc).valid).toBe(true);
   });
   it("still rejects a document missing a mandatory member", () => {
-    const bad: any = { version: "1.1", provider: "p" }; // missing most mandatory
+    const bad: any = { version: "2.0", provider: "p" }; // missing most mandatory
     expect(validateDocument(bad).valid).toBe(false);
   });
 });
@@ -269,13 +297,14 @@ describe("open schema (extensibility fix)", () => {
 // draft -02 pre-submission hardening: deterministic noise, sort, truncation
 describe("security conforms to draft -02 review hardening", () => {
   const rep = (period: string, energy = 10): SustainabilityMetrics => ({
-    version: "1.1",
+    version: "2.0",
     updated: "2026-04-01T00:00:00Z",
     capabilities: "basic",
     provider: "p",
     "measurement-method": "m",
     "methodology-uri": "u",
     "reporting-period": period,
+    target: "example.com",
     "energy-consumption": energy,
     "energy-unit": "kWh",
     "carbon-footprint": energy * 100,
@@ -332,18 +361,18 @@ describe("draft -02 conformance sweep fixes", () => {
 
   it("validateDocument enforces cross-entry array rules", () => {
     const entry = (period: string, target?: string) => ({
-      version: "1.1",
+      version: "2.0",
       updated: "2026-04-01T00:00:00Z",
       capabilities: "basic",
       provider: "p",
       "measurement-method": "m",
       "methodology-uri": "u",
       "reporting-period": period,
+      target: target ?? "example.com",
       "energy-consumption": 1,
       "energy-unit": "kWh",
       "carbon-footprint": 1,
       "carbon-unit": "gCO2e",
-      ...(target ? { "target-path": target } : {}),
     });
     expect(validateDocument([entry("2026-01"), entry("2026-02")] as any).valid).toBe(true);
     expect(validateDocument([entry("2026-02"), entry("2026-01")] as any).valid).toBe(false); // unsorted
@@ -359,7 +388,7 @@ describe("co2js swdVersion (dependency bump)", () => {
     const mk = (over: any) =>
       new Publisher(
         co2jsAdapter({ provider: "P", methodologyUri: "https://x/m", reportingPeriod: "2026-02", bytes: 5e9, green: false, gridZone: "USA", ...over }),
-        { cacheTtlMs: 0 },
+        { cacheTtlMs: 0, normalize: { target: "example.com" } },
       ).getDocument();
     const v4: any = await mk({});
     const v3: any = await mk({ swdVersion: 3 });

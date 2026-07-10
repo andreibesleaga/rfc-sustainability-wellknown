@@ -96,7 +96,7 @@ trivial field rename:
   one period total (`1.82 + 0.41 + 0.95 = 3.18`); the tenant's cloud-usage emissions are
   classified as **Scope 3** (`scope-3` = total) from the customer's perspective, per the
   adapter's design.
-- **carbon.txt / CO2.js**: `energy × carbon-intensity-gCO2-per-kWh ≈ carbon-footprint` by
+- **carbon.txt / CO2.js**: `energy × carbon-intensity-gCO2e-per-kWh ≈ carbon-footprint` by
   construction — the adapters recover CO2.js's intensity-independent operational energy
   and re-apply the *reported* intensity, so the two numbers are always self-consistent.
 

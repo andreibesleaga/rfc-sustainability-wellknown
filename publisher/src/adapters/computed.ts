@@ -32,7 +32,7 @@ export interface ComputedAdapterConfig {
 
 export function computedAdapter(config: ComputedAdapterConfig): SourceAdapter {
   // Default "extended": this adapter always emits the optional
-  // carbon-intensity-gCO2-per-kWh field, and a response declaring "basic"
+  // carbon-intensity-gCO2e-per-kWh field, and a response declaring "basic"
   // SHOULD NOT include optional fields (draft §Mandatory Response Fields).
   return {
     name: "computed",

@@ -119,7 +119,7 @@ function nowIso(): string {
  * Throws if mandatory inputs are missing or the period is malformed.
  */
 export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): SustainabilityMetrics {
-  const version = opts.version ?? "1.1";
+  const version = opts.version ?? "2.0";
 
   if (!raw.provider) throw new Error("normalize: provider is required");
   if (!raw.measurementMethod) throw new Error("normalize: measurementMethod is required");
@@ -130,9 +130,19 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
     );
   }
 
-  // --- Energy ---
-  let energyValue: number;
-  let energyUnit: EnergyUnit;
+  // --- Target (mandatory reporting subject, draft §Mandatory Response Fields) ---
+  const target = raw.target ?? opts.target;
+  if (target === undefined || target === "") {
+    throw new Error(
+      "normalize: `target` (the reporting subject) is mandatory. Configure it via " +
+        "NormalizeOptions.target — for an origin-wide report the origin's host " +
+        '(e.g. "example.com") is recommended — or have the adapter set raw.target.',
+    );
+  }
+
+  // --- Energy (optional since -03: absent input ⇒ member omitted, not an error) ---
+  let energyValue: number | undefined;
+  let energyUnit: EnergyUnit | undefined;
   if (raw.energy) {
     energyUnit = opts.energyUnit ?? raw.energy.unit;
     energyValue = convertEnergy(raw.energy.value, raw.energy.unit, energyUnit);
@@ -140,24 +150,41 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
     const kwh = joulesToKwh(raw.energyJoules);
     energyUnit = opts.energyUnit ?? "kWh";
     energyValue = convertEnergy(kwh, "kWh", energyUnit);
-  } else {
-    throw new Error("normalize: provide either energy {value,unit} or energyJoules");
+  }
+  if (energyValue !== undefined && energyValue < 0) {
+    throw new Error(
+      `normalize: energy-consumption must not be negative (got ${energyValue}); ` +
+        "omit the metric instead (draft, Value Constraints and Omitted Metrics)",
+    );
   }
 
-  // --- Carbon ---
-  let carbonValue: number;
-  let carbonUnit: CarbonUnit;
+  // --- Carbon (optional since -03: absent input ⇒ member omitted, not an error).
+  // carbonIntensity alone cannot yield a carbon figure without energy: in that
+  // case carbon-footprint/carbon-unit are simply omitted (the intensity itself
+  // is still published below) rather than throwing. ---
+  // Check the intensity before deriving carbon from it, so a negative
+  // intensity is reported as such (not as a derived negative footprint).
+  if (typeof raw.carbonIntensity === "number" && raw.carbonIntensity < 0) {
+    throw new Error(
+      `normalize: carbon-intensity-gCO2e-per-kWh must not be negative (got ${raw.carbonIntensity}); ` +
+        "omit the metric instead (draft, Value Constraints and Omitted Metrics)",
+    );
+  }
+  let carbonValue: number | undefined;
+  let carbonUnit: CarbonUnit | undefined;
   if (raw.carbon) {
     carbonUnit = opts.carbonUnit ?? raw.carbon.unit;
     carbonValue = convertCarbon(raw.carbon.value, raw.carbon.unit, carbonUnit);
-  } else if (typeof raw.carbonIntensity === "number") {
-    const energyKwh = convertEnergy(energyValue, energyUnit, "kWh");
+  } else if (typeof raw.carbonIntensity === "number" && energyValue !== undefined) {
+    const energyKwh = convertEnergy(energyValue, energyUnit as EnergyUnit, "kWh");
     const grams = carbonFromEnergy(energyKwh, raw.carbonIntensity);
     carbonUnit = opts.carbonUnit ?? "gCO2e";
     carbonValue = convertCarbon(grams, "gCO2e", carbonUnit);
-  } else {
+  }
+  if (carbonValue !== undefined && carbonValue < 0) {
     throw new Error(
-      "normalize: provide either carbon {value,unit} or carbonIntensity (to compute from energy)",
+      `normalize: carbon-footprint must not be negative (got ${carbonValue}); ` +
+        "omit the metric instead (draft, Value Constraints and Omitted Metrics)",
     );
   }
 
@@ -169,20 +196,38 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
     "measurement-method": raw.measurementMethod,
     "methodology-uri": raw.methodologyUri,
     "reporting-period": raw.reportingPeriod,
-    "energy-consumption": round(energyValue),
-    "energy-unit": energyUnit,
-    "carbon-footprint": round(carbonValue),
-    "carbon-unit": carbonUnit,
+    target,
   };
 
+  // Publishers SHOULD state units explicitly (draft §Optional Response Fields),
+  // so the unit members are always emitted alongside their value — but only
+  // then: an energy-unit without energy-consumption "has no effect and SHOULD
+  // be omitted".
+  if (energyValue !== undefined) {
+    out["energy-consumption"] = round(energyValue);
+    out["energy-unit"] = energyUnit as EnergyUnit;
+  }
+  if (carbonValue !== undefined) {
+    out["carbon-footprint"] = round(carbonValue);
+    out["carbon-unit"] = carbonUnit as CarbonUnit;
+  }
+
   // Optional fields (only set when present)
-  if (raw.targetPath !== undefined) out["target-path"] = raw.targetPath;
   if (raw.carbonAccounting !== undefined) out["carbon-accounting"] = raw.carbonAccounting;
   // Scope values are expressed in carbon-unit (draft §Optional Response
   // Fields): they arrive in the source carbon unit and must follow the same
-  // conversion as carbon-footprint when an output unit is forced.
+  // conversion as carbon-footprint when an output unit is forced. Scopes MAY
+  // be negative (removals/offsets under net accounting), so no range check.
+  const hasScopes =
+    raw.scope1 !== undefined || raw.scope2 !== undefined || raw.scope3 !== undefined;
   const scopeSourceUnit: CarbonUnit = raw.carbon?.unit ?? "gCO2e";
-  const toScope = (v: number) => round(convertCarbon(v, scopeSourceUnit, carbonUnit));
+  if (hasScopes && carbonUnit === undefined) {
+    // Scopes are parameterized by carbon-unit even when carbon-footprint is
+    // absent; publishers SHOULD state the unit explicitly, so emit it here.
+    carbonUnit = opts.carbonUnit ?? scopeSourceUnit;
+    out["carbon-unit"] = carbonUnit;
+  }
+  const toScope = (v: number) => round(convertCarbon(v, scopeSourceUnit, carbonUnit as CarbonUnit));
   if (raw.scope1 !== undefined) out["scope-1"] = toScope(raw.scope1);
   if (raw.scope2 !== undefined) out["scope-2"] = toScope(raw.scope2);
   if (raw.scope3 !== undefined) out["scope-3"] = toScope(raw.scope3);
@@ -192,24 +237,43 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   if (raw.sciScore !== undefined && raw.functionalUnit === undefined) {
     throw new Error("normalize: sci-score requires functional-unit (draft, Optional Response Fields)");
   }
-  if (raw.sciScore !== undefined) out["sci-score"] = round(raw.sciScore);
+  if (raw.sciScore !== undefined) {
+    if (raw.sciScore < 0) {
+      throw new Error(
+        `normalize: sci-score must not be negative (got ${raw.sciScore}); ` +
+          "omit the metric instead (draft, Value Constraints and Omitted Metrics)",
+      );
+    }
+    out["sci-score"] = round(raw.sciScore);
+  }
   if (raw.functionalUnit !== undefined) out["functional-unit"] = raw.functionalUnit;
   if (raw.carbonIntensity !== undefined) {
-    out["carbon-intensity-gCO2-per-kWh"] = round(raw.carbonIntensity);
+    if (raw.carbonIntensity < 0) {
+      throw new Error(
+        `normalize: carbon-intensity-gCO2e-per-kWh must not be negative (got ${raw.carbonIntensity}); ` +
+          "omit the metric instead (draft, Value Constraints and Omitted Metrics)",
+      );
+    }
+    out["carbon-intensity-gCO2e-per-kWh"] = round(raw.carbonIntensity);
   }
   if (raw.estimatedAnnualEmissionsKg !== undefined) {
-    out["estimated-annual-emissions-kgCO2"] = round(raw.estimatedAnnualEmissionsKg);
+    if (raw.estimatedAnnualEmissionsKg < 0) {
+      throw new Error(
+        `normalize: estimated-annual-emissions-kgCO2e must not be negative (got ${raw.estimatedAnnualEmissionsKg}); ` +
+          "omit the metric instead (draft, Value Constraints and Omitted Metrics)",
+      );
+    }
+    out["estimated-annual-emissions-kgCO2e"] = round(raw.estimatedAnnualEmissionsKg);
   }
   if (raw.renewableEnergy !== undefined) {
-    // Draft §Optional Response Fields: renewable-energy is a percentage (0-100).
-    // Per the draft's sentinel rule (§Unreported Numeric Metrics), a negative
-    // value in an optional numeric field means "not reported" — so a negative
-    // is a legal sentinel (the consumer strips it), NOT an error. Only a value
-    // above 100 is genuinely impossible, so fail loudly on that alone rather
-    // than publish an out-of-range percentage.
-    if (raw.renewableEnergy > 100) {
+    // Draft §Optional Response Fields: renewable-energy MUST be between 0 and
+    // 100 inclusive. Since -03 there is no negative "not reported" sentinel —
+    // an unreported metric is simply omitted — so any out-of-range value is an
+    // error, never a marker.
+    if (raw.renewableEnergy < 0 || raw.renewableEnergy > 100) {
       throw new Error(
-        `normalize: renewable-energy must be a percentage <= 100 (got ${raw.renewableEnergy})`,
+        `normalize: renewable-energy must be a percentage between 0 and 100 (got ${raw.renewableEnergy}); ` +
+          "omit the metric if it is not reported (draft, Value Constraints and Omitted Metrics)",
       );
     }
     out["renewable-energy"] = round(raw.renewableEnergy);

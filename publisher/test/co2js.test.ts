@@ -8,7 +8,10 @@ import { validateDocument } from "../src/validate";
 const FX = (name: string) => resolve(process.cwd(), "test/fixtures", name);
 
 async function docOf(adapter: any) {
-  return new Publisher(adapter, { cacheTtlMs: 0 }).getDocument();
+  return new Publisher(adapter, {
+    cacheTtlMs: 0,
+    normalize: { target: "example.com" },
+  }).getDocument();
 }
 
 describe("co2js adapter", () => {
@@ -27,10 +30,10 @@ describe("co2js adapter", () => {
     expect(validateDocument(doc).valid).toBe(true);
     expect(doc["measurement-method"]).toBe("third-party-modeled");
     expect(doc["energy-unit"]).toBe("kWh");
-    expect(doc["carbon-intensity-gCO2-per-kWh"]).toBeGreaterThan(0);
+    expect(doc["carbon-intensity-gCO2e-per-kWh"]).toBeGreaterThan(0);
     expect(doc["disclosure-uri"]).toBe("https://example.com/.well-known/carbon.txt");
     // self-consistency
-    expect(doc["energy-consumption"] * doc["carbon-intensity-gCO2-per-kWh"]).toBeCloseTo(
+    expect(doc["energy-consumption"] * doc["carbon-intensity-gCO2e-per-kWh"]).toBeCloseTo(
       doc["carbon-footprint"],
       1,
     );
@@ -69,7 +72,7 @@ describe("co2js adapter", () => {
     );
     expect(validateDocument(doc).valid).toBe(true);
     expect(doc["energy-consumption"]).toBe(1000);
-    expect(doc["carbon-footprint"]).toBeCloseTo(1000 * doc["carbon-intensity-gCO2-per-kWh"], 1);
+    expect(doc["carbon-footprint"]).toBeCloseTo(1000 * doc["carbon-intensity-gCO2e-per-kWh"], 1);
   });
 
   it("explicit gridIntensity overrides the zone dataset", async () => {
@@ -83,7 +86,7 @@ describe("co2js adapter", () => {
         gridIntensity: 100,
       }),
     );
-    expect(doc["carbon-intensity-gCO2-per-kWh"]).toBe(100);
+    expect(doc["carbon-intensity-gCO2e-per-kWh"]).toBe(100);
     expect(validateDocument(doc).valid).toBe(true);
   });
 
@@ -97,7 +100,7 @@ describe("co2js adapter", () => {
         green: false,
       }),
     );
-    expect(doc["carbon-intensity-gCO2-per-kWh"]).toBeGreaterThan(0);
+    expect(doc["carbon-intensity-gCO2e-per-kWh"]).toBeGreaterThan(0);
     expect(validateDocument(doc).valid).toBe(true);
   });
 

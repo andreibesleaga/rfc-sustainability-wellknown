@@ -4,6 +4,23 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
+### **Version 02 to Version 03 (`draft-besleaga-sustainability-wellknown`) — prepared, not yet posted**
+
+A **breaking data-model revision** (documents built to it carry the informational schema label `"2.0"`; `-02` and earlier used `"1.0"`/`"1.1"`). Previously published example payloads do **not** all remain valid against the new schema; interoperability with historical documents is preserved through field-driven compatibility rules in "Versioning and Extensibility" (a negative value in a non-negative member reads as "not reported"; a missing `target` member reads as an origin-wide report).
+
+* **Sentinel removed:** The negative "not reported" sentinel is gone; an unreported metric is conveyed by **omitting** the member. Negative values are no longer special: the gross-quantity members (`energy-consumption`, `carbon-footprint`, `sci-score`, `carbon-intensity-gCO2e-per-kWh`, `estimated-annual-emissions-kgCO2e`) MUST be non-negative, `renewable-energy` is bounded 0–100, and `scope-1/2/3` MAY be negative to express removals/net accounting (closing the prior gap for net-negative scope reporters).
+* **Energy/carbon members now optional:** `energy-consumption`, `energy-unit`, `carbon-footprint`, `carbon-unit` moved from mandatory to optional. When a value member is present without its unit member, wire-level defaults apply: `kWh` (energy) and `gCO2e` (carbon; also parameterizes the scopes).
+* **Minimum-reporting rule added:** A document SHOULD carry at least one reported numeric metric or a `disclosure-uri`/`verifiable-attestation-uri`; one carrying none is conformant only because the publisher MUST ensure the mandatory `methodology-uri` leads to the substantive disclosure.
+* **`target-path` → `target`, now mandatory and generalized:** The renamed member is a free-form identifier of the **reporting subject** — an origin host (RECOMMENDED for origin-wide reports), a path prefix, an organizational entity, a cloud tenant/provider scope, a software data source, or a carbon.txt-listed site. A response scoped by the `target` query parameter echoes the matched prefix in the member; "absence means origin-wide" is removed. Array entries share one `target` value.
+* **CO2e renames:** `carbon-intensity-gCO2-per-kWh` → `carbon-intensity-gCO2e-per-kWh`; `estimated-annual-emissions-kgCO2` → `estimated-annual-emissions-kgCO2e` (all carbon quantities now uniformly CO2e); the annual figure is documented as an extrapolation.
+* **`capabilities` redefined:** now describes query-parameter support only (`basic` = minimum service, `extended` = Extended parameters supported); a `basic` document MAY carry optional members. Mandatory set is now 8 of 23: `version`, `updated`, `capabilities`, `provider`, `measurement-method`, `methodology-uri`, `reporting-period`, `target`.
+* **Examples:** all declare `"2.0"` and a `target`; the Not-Reported-Sentinel example became a "Partial Reporting" example (omission + default units); the detailed example gains a worked vendor-extension member (`vendor-example-pue`).
+* **New applicability paragraph** (Introduction): the convention is web-ready, machine-to-machine/API-ready, human-readable, and automated-agent/AI-ready as designed.
+* **Structural/editorial:** privacy material consolidated (Security §Privacy-and-Information-Leakage defers to Privacy Considerations); HTTPS requirement stated once and cross-referenced; corrected the `target` bullet's cross-reference (Privacy Considerations, Path Disclosure); `HEAD` now MUST; RFC 3339 cited formally at `updated`; ESRS E1 and the EU ESPR (Digital Product Passport) cited formally; CDDL/JTD expanded on first use; member ordering aligned across prose/CDDL/JTD; noted that range constraints and unit defaults are prose rules the formal schemas cannot express.
+* **Historical correction:** the `weekly` granularity value (introduced in the legacy `draft-besleaga-green-sustainability-wellknown-01`) was removed before the present series began; the defined values are `monthly` and `daily`. (The "Version 00 to Version 01" legacy entry below still lists `weekly` as it was introduced then — that is the historical record, not the current value set.)
+
+---
+
 ### **Version 01 to Version 02 (`draft-besleaga-sustainability-wellknown`)**
 
 Editorial and normative clarifications to improve interoperability and readiness for Independent-stream publication. No fields are added or removed, and all previously published example payloads remain valid.

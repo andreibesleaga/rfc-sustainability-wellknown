@@ -10,7 +10,9 @@
  *   - explicit `energy` + (`carbon` or `gridIntensity`) in config, or
  *   - a `compute` (CO2.js) sub-config (bytes → carbon), or
  *   - emissions extracted by the API into `document_data` (best-effort).
- * If none resolve, it throws — the metrics document cannot omit energy/carbon.
+ * If none resolve, it throws — since -03 a document MAY omit energy/carbon,
+ * but this adapter exists to publish numbers, so it deliberately fails loudly
+ * rather than emit a metrics-free document from a metrics-oriented config.
  *
  * Replay mode (`fixture`) makes it fully offline/deterministic for tests.
  *

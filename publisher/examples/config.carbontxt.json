@@ -30,6 +30,7 @@
     }
   },
   "publisher": {
+    "normalize": { "target": "acme.example" },
     "security": { "applyNoise": false },
     "cacheTtlMs": 0
   },

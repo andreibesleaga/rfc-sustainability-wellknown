@@ -64,6 +64,9 @@ describe("interop: consumer <-> real publisher package", () => {
   it.runIf(hasPublisherDist)(
     "(a) Basic fetch of a computedAdapter-backed publisher returns a single, valid object",
     async () => {
+      // Since -03, `target` (the reporting subject) is mandatory: publisher's
+      // normalize() throws without one (raw.target ?? NormalizeOptions.target),
+      // so every Publisher here is constructed with { normalize: { target } }.
       const publisher = new Publisher(
         computedAdapter({
           provider: "Interop Test Corp (sustain@interop.example)",
@@ -72,6 +75,7 @@ describe("interop: consumer <-> real publisher package", () => {
           gridIntensity: 420,
           capabilities: "extended",
         }),
+        { normalize: { target: "interop.example" } },
       );
       const origin = await startPublisherServer(publisher);
 
@@ -82,11 +86,14 @@ describe("interop: consumer <-> real publisher package", () => {
       const doc = result.document as SustainabilityMetrics;
       expect(doc.provider).toBe("Interop Test Corp (sustain@interop.example)");
       expect(doc.capabilities).toBe("extended");
+      // -03 wire format: informational "2.0" label and the mandatory target member.
+      expect(doc.version).toBe("2.0");
+      expect(doc.target).toBe("interop.example");
       // Basic-vs-extended shape is already enforced by validateDocument() inside
       // fetchSustainability (result.status would be "invalid" otherwise), but
       // assert a couple of extended-only fields made it through the real
       // adapter -> normalize -> validate -> wire pipeline.
-      expect(doc["carbon-intensity-gCO2-per-kWh"]).toBe(420);
+      expect(doc["carbon-intensity-gCO2e-per-kWh"]).toBe(420);
       expect(typeof doc["carbon-footprint"]).toBe("number");
     },
   );
@@ -109,6 +116,7 @@ describe("interop: consumer <-> real publisher package", () => {
           capabilities: "extended",
           reportingPeriod: "2026-05",
         }),
+        { normalize: { target: "interop.example" } },
       );
       const origin = await startPublisherServer(publisher);
 
@@ -130,6 +138,7 @@ describe("interop: consumer <-> real publisher package", () => {
         measurementMethod: "hardware-metered",
         methodologyUri: "https://interop.example/methodology",
         reportingPeriod: period,
+        target: "trend.example", // raw.target: the adapter itself sets the reporting subject
         energy: { value: kwh, unit: "kWh" },
         carbonIntensity: 350,
       });
@@ -148,6 +157,8 @@ describe("interop: consumer <-> real publisher package", () => {
       const docs = result.document as SustainabilityMetrics[];
       expect(docs.length).toBe(3);
       expect(docs.map((d) => d["reporting-period"])).toEqual(["2026-01", "2026-02", "2026-03"]);
+      // Array entries MUST share the same target value (draft, Payload Format).
+      expect(new Set(docs.map((d) => d.target))).toEqual(new Set(["trend.example"]));
 
       // And getTrend() (client Tier 2) should also see it as a trend array.
       const client = new SustainabilityClient();
@@ -167,6 +178,7 @@ describe("interop: consumer <-> real publisher package", () => {
           gridIntensity: 300,
           capabilities: "extended",
         }),
+        { normalize: { target: "cache.example" } },
       );
       const origin = await startPublisherServer(publisher);
 
@@ -212,6 +224,7 @@ describe("interop: consumer <-> real publisher package", () => {
           gridIntensity: 500,
           capabilities: "extended",
         }),
+        { normalize: { target: "target.example" } },
       );
       const origin = await startPublisherServer(publisher);
 
@@ -237,6 +250,7 @@ describe("interop: consumer <-> real publisher package", () => {
           energy: { value: 10, unit: "kWh" },
           gridIntensity: 400,
         }),
+        { normalize: { target: "method.example" } },
       );
       const origin = await startPublisherServer(publisher);
 

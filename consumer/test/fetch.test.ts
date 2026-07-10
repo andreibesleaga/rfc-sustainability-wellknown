@@ -84,13 +84,14 @@ describe("fetchSustainability() against a plain http server", () => {
       res.writeHead(200, { "Content-Type": "application/json", ETag: TEST_ETAG });
       res.end(
         JSON.stringify({
-          version: "1.1",
+          version: "2.0",
           updated: "2026-01-01T00:00:00Z",
           capabilities: "basic",
           provider: "Test Co",
           "measurement-method": "cloud-billing",
           "methodology-uri": "https://example.com/methodology",
           "reporting-period": "2026-01",
+          target: "test.example",
           "energy-consumption": 1,
           "energy-unit": "kWh",
           "carbon-footprint": 1,
@@ -173,6 +174,93 @@ describe("fetchSustainability() against a plain http server", () => {
     });
 
     const result = await fetchSustainability(origin);
+    expect(result.status).toBe("invalid");
+    if (result.status === "invalid") {
+      expect(result.errors.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("legacy-compatibility pre-pass (draft §Versioning and Extensibility)", () => {
+  /** A historical -02 ("1.1") document: no `target`, negative sentinel, old CO2e key names. */
+  const LEGACY_DOC = {
+    version: "1.1",
+    updated: "2026-01-01T00:00:00Z",
+    capabilities: "basic",
+    provider: "Legacy Co",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://legacy.example/methodology",
+    "reporting-period": "2026-01",
+    "energy-consumption": -1, // 1.x "not reported" sentinel
+    "energy-unit": "kWh",
+    "carbon-footprint": 345,
+    "carbon-unit": "kgCO2e",
+    // Old (-02) key names: unknown members to a 2.0 client — must be ignored, not rejected.
+    "carbon-intensity-gCO2-per-kWh": 400,
+    "estimated-annual-emissions-kgCO2": 4100,
+  };
+
+  it("injects the origin host as `target` for a legacy document and flags the result", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(LEGACY_DOC));
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.legacy).toBe(true);
+    expect(Array.isArray(result.document)).toBe(false);
+    const doc = result.document as Record<string, unknown>;
+    // The injected target is the request origin's host (incl. the port here).
+    expect(doc.target).toBe(new URL(origin).host);
+    // The rest of the legacy document flows through untouched (the sentinel is
+    // NOT stripped by fetch — that interpretation is sentinel.ts's, on demand).
+    expect(doc["energy-consumption"]).toBe(-1);
+    expect(doc["carbon-intensity-gCO2-per-kWh"]).toBe(400);
+  });
+
+  it("injects `target` into every entry of a legacy trend array", async () => {
+    const legacyTrend = [
+      { ...LEGACY_DOC, "reporting-period": "2026-01" },
+      { ...LEGACY_DOC, "reporting-period": "2026-02" },
+    ];
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(legacyTrend));
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.legacy).toBe(true);
+    const docs = result.document as Array<Record<string, unknown>>;
+    expect(docs).toHaveLength(2);
+    const host = new URL(origin).host;
+    for (const d of docs) expect(d.target).toBe(host);
+  });
+
+  it("does not flag a 2.0 document that already carries target", async () => {
+    const raw = fs.readFileSync(path.join(EXAMPLES_DIR, "example-response.json"), "utf8");
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(raw);
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.legacy).toBeUndefined();
+    expect((result.document as Record<string, unknown>).target).toBe("example.com");
+  });
+
+  it("with legacyCompat:false (strict mode), a legacy document fails validation", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(LEGACY_DOC));
+    });
+
+    const result = await fetchSustainability(origin, { legacyCompat: false });
     expect(result.status).toBe("invalid");
     if (result.status === "invalid") {
       expect(result.errors.length).toBeGreaterThan(0);

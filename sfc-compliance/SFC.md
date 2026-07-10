@@ -55,7 +55,7 @@ GHG Protocol vocabulary:
 | Energy (C1) | `EnergyAttested.kWhConsumed` | `energy-consumption` + `energy-unit` | computed/kepler/enterprise adapters |
 | Scope 2 carbon (C3) | `CarbonAttested.scope2KgCO2e` | `scope-2` (+ `carbon-footprint`) | normalize scopes |
 | Scope 3 carbon (C3) | `CarbonAttested.scope3KgCO2e` | `scope-3` | normalize scopes |
-| Grid intensity | `gridIntensityRef` | `carbon-intensity-gCO2-per-kWh` | `carbonFromEnergy`, intensity field |
+| Grid intensity | `gridIntensityRef` | `carbon-intensity-gCO2e-per-kWh` | `carbonFromEnergy`, intensity field |
 | Net-Zero offsets (C3) | `offsetsKgCO2e`, `netZero` | (link via) `verifiable-attestation-uri`; `renewable-energy` | attestation link |
 | Measurement method | `measurementMethod` (e.g. ccri-hybrid) | `measurement-method` | passthrough |
 | Provenance / offsets proof | `evidenceCid` (IPFS) | `methodology-uri` / `verifiable-attestation-uri` | passthrough |

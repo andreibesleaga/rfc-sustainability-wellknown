@@ -36,12 +36,24 @@ function secureSustainabilityReport(reports) {
       // 4. Anti-Fingerprinting: ~1% noise, deterministic per reporting period
       const fuzz = fuzzFactorFor(String(report["reporting-period"] ?? ""));
 
+      // An unreported metric is simply omitted (-03 removed the negative
+      // "not reported" sentinel), so every numeric value present is noised.
+      // scope-1/2/3 MAY legitimately be negative (removals / net accounting);
+      // multiplicative noise preserves the sign and the arithmetic
+      // relationships between related fields.
       const secured = { ...report };
-      const numericKeys = ["energy-consumption", "carbon-footprint", "scope-1", "scope-2", "scope-3"];
+      const numericKeys = [
+        "energy-consumption",
+        "carbon-footprint",
+        "scope-1",
+        "scope-2",
+        "scope-3",
+        "carbon-intensity-gCO2e-per-kWh",
+        "estimated-annual-emissions-kgCO2e",
+      ];
 
       numericKeys.forEach((key) => {
-        // Negative = "not reported" sentinel; do not apply noise to it.
-        if (typeof secured[key] === "number" && secured[key] >= 0) {
+        if (typeof secured[key] === "number") {
           secured[key] = parseFloat((secured[key] * fuzz).toFixed(2));
         }
       });

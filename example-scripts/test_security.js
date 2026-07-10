@@ -61,9 +61,20 @@ test("noise bounded within ~1%", () => {
   assert.ok(out[0]["carbon-footprint"] >= 990 && out[0]["carbon-footprint"] <= 1010);
 });
 
-test("negative sentinel never noised", () => {
-  const out = secureSustainabilityReport([entry("2026-01", -1, 500)]);
-  assert.strictEqual(out[0]["energy-consumption"], -1);
+test("negative scope is noised and sign preserved", () => {
+  // -03: no "not reported" sentinel; scope values MAY legitimately be negative
+  // (removals / net accounting) and are noised like any other value —
+  // multiplication preserves the sign and the sums.
+  const out = secureSustainabilityReport([
+    entry("2026-01", 100, 300, { "scope-1": -50, "scope-2": 250, "scope-3": 100 }),
+  ]);
+  const fuzz = fuzzFactorFor("2026-01");
+  assert.notStrictEqual(fuzz, 1); // guard: noise is observable for this period
+  assert.strictEqual(out[0]["scope-1"], parseFloat((-50 * fuzz).toFixed(2)));
+  assert.notStrictEqual(out[0]["scope-1"], -50); // noise was applied
+  assert.ok(out[0]["scope-1"] < 0); // sign preserved
+  const total = out[0]["scope-1"] + out[0]["scope-2"] + out[0]["scope-3"];
+  assert.ok(Math.abs(total - out[0]["carbon-footprint"]) < 0.05);
 });
 
 test("single fuzz factor keeps scopes consistent", () => {

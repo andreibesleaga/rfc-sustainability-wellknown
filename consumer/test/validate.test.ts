@@ -4,13 +4,14 @@ import { SustainabilityMetrics } from "../src/types";
 
 function metrics(overrides: Partial<SustainabilityMetrics> = {}): SustainabilityMetrics {
   return {
-    version: "1.1",
+    version: "2.0",
     updated: "2026-01-01T00:00:00Z",
     capabilities: "basic",
     provider: "example.com",
     "measurement-method": "metered",
     "methodology-uri": "https://example.com/methodology",
     "reporting-period": "2026-01",
+    target: "example.com",
     "energy-consumption": 100,
     "energy-unit": "kWh",
     "carbon-footprint": 50,
@@ -26,12 +27,31 @@ describe("validateDocument: single object", () => {
     expect(r.errors).toEqual([]);
   });
 
-  it("rejects a document missing a mandatory field", () => {
+  it("rejects a document missing a mandatory field (provider)", () => {
     const doc = metrics() as Record<string, unknown>;
     delete doc["provider"];
     const r = validateDocument(doc);
     expect(r.valid).toBe(false);
     expect(r.errors.length).toBeGreaterThan(0);
+  });
+
+  it("rejects a document missing the mandatory target member (-03)", () => {
+    const doc = metrics() as Record<string, unknown>;
+    delete doc["target"];
+    const r = validateDocument(doc);
+    expect(r.valid).toBe(false);
+    expect(r.errors.length).toBeGreaterThan(0);
+  });
+
+  it("accepts a sparse document without the energy/carbon quartet (optional since -03)", () => {
+    const doc = metrics() as Record<string, unknown>;
+    delete doc["energy-consumption"];
+    delete doc["energy-unit"];
+    delete doc["carbon-footprint"];
+    delete doc["carbon-unit"];
+    const r = validateDocument(doc);
+    expect(r.valid).toBe(true);
+    expect(r.errors).toEqual([]);
   });
 
   it("accepts unknown/vendor extension fields (open schema, additionalProperties: true) and preserves them", () => {
@@ -57,11 +77,11 @@ describe("validateDocument: single object", () => {
 });
 
 describe("validateDocument: array (trend) rules", () => {
-  it("accepts a valid ascending, non-overlapping, uniform-precision, uniform-target-path array", () => {
+  it("accepts a valid ascending, non-overlapping, uniform-precision, uniform-target array", () => {
     const doc = [
-      metrics({ "reporting-period": "2026-01", "target-path": "/api" }),
-      metrics({ "reporting-period": "2026-02", "target-path": "/api" }),
-      metrics({ "reporting-period": "2026-03", "target-path": "/api" }),
+      metrics({ "reporting-period": "2026-01", target: "/api" }),
+      metrics({ "reporting-period": "2026-02", target: "/api" }),
+      metrics({ "reporting-period": "2026-03", target: "/api" }),
     ];
     const r = validateDocument(doc);
     expect(r.valid).toBe(true);
@@ -98,14 +118,14 @@ describe("validateDocument: array (trend) rules", () => {
     expect(r.errors.some((e) => /precision/i.test(e))).toBe(true);
   });
 
-  it("rejects a mixed target-path array", () => {
+  it("rejects a mixed-target array (entries MUST share the same target value)", () => {
     const doc = [
-      metrics({ "reporting-period": "2026-01", "target-path": "/api/a" }),
-      metrics({ "reporting-period": "2026-02", "target-path": "/api/b" }),
+      metrics({ "reporting-period": "2026-01", target: "/api/a" }),
+      metrics({ "reporting-period": "2026-02", target: "/api/b" }),
     ];
     const r = validateDocument(doc);
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => /target-path/i.test(e))).toBe(true);
+    expect(r.errors.some((e) => /target/i.test(e))).toBe(true);
   });
 
   it("does not run cross-entry array checks when a per-entry schema error already exists (avoids noisy cascades)", () => {

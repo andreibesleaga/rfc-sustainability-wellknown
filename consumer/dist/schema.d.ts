@@ -29,6 +29,11 @@ export declare const RESPONSE_JTD_SCHEMA: {
         readonly "reporting-period": {
             readonly type: "string";
         };
+        readonly target: {
+            readonly type: "string";
+        };
+    };
+    readonly optionalProperties: {
         readonly "energy-consumption": {
             readonly type: "float64";
         };
@@ -40,11 +45,6 @@ export declare const RESPONSE_JTD_SCHEMA: {
         };
         readonly "carbon-unit": {
             readonly enum: readonly ["gCO2e", "kgCO2e", "mtCO2e"];
-        };
-    };
-    readonly optionalProperties: {
-        readonly "target-path": {
-            readonly type: "string";
         };
         readonly "carbon-accounting": {
             readonly enum: readonly ["location-based", "market-based"];
@@ -64,10 +64,10 @@ export declare const RESPONSE_JTD_SCHEMA: {
         readonly "functional-unit": {
             readonly type: "string";
         };
-        readonly "carbon-intensity-gCO2-per-kWh": {
+        readonly "carbon-intensity-gCO2e-per-kWh": {
             readonly type: "float64";
         };
-        readonly "estimated-annual-emissions-kgCO2": {
+        readonly "estimated-annual-emissions-kgCO2e": {
             readonly type: "float64";
         };
         readonly "renewable-energy": {

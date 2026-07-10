@@ -1,6 +1,6 @@
 {
   "name": "sustainability-wellknown-publisher",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Production publisher/gateway that serves a draft-conformant /.well-known/sustainability document from pluggable metric sources (static/computed, Kepler/Prometheus, Climatiq, Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed).",
   "license": "BSD-3-Clause",
   "author": "Andrei Nicolae Besleaga",

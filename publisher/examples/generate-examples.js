@@ -30,8 +30,10 @@ const ORIG = path.join(__dirname, "originals");
 const OUT = path.join(__dirname, "transformed");
 const readJson = (name) => JSON.parse(fs.readFileSync(path.join(ORIG, name), "utf8"));
 
-async function generate(name, adapter) {
-  const pub = new Publisher(adapter, { cacheTtlMs: 0 });
+async function generate(name, adapter, target) {
+  // `target` (the mandatory reporting subject, -03) is supplied via the
+  // normalize options — the origin host for these origin-wide examples.
+  const pub = new Publisher(adapter, { cacheTtlMs: 0, normalize: { target } });
   const doc = await pub.getDocument();
   fs.writeFileSync(path.join(OUT, `${name}.json`), JSON.stringify(doc, null, 2) + "\n");
   console.log(`wrote transformed/${name}.json`);
@@ -54,6 +56,7 @@ async function main() {
       fixture: climatiqFixture,
       capabilities: "extended",
     }),
+    "dcanalytics.example",
   );
 
   // 2. CO2.js — bytes transferred + green hosting -> SWD carbon/energy estimate.
@@ -72,6 +75,7 @@ async function main() {
       disclosureUri: "https://example.com/.well-known/carbon.txt",
       capabilities: "extended",
     }),
+    "example.com",
   );
 
   // 3. carbon.txt hosted API — disclosure index -> disclosure-uri/methodology-uri links.
@@ -86,6 +90,7 @@ async function main() {
       compute: { bytes: 2000000000, green: true, gridZone: "DEU" },
       capabilities: "extended",
     }),
+    "acme.example",
   );
 
   // 4. Kepler/Prometheus — joules counters -> energy (kWh) + carbon via grid intensity.
@@ -101,6 +106,7 @@ async function main() {
       fixture: keplerFixture,
       capabilities: "extended",
     }),
+    "example.com",
   );
 
   // 5. Salesforce Net Zero Cloud — AnnualEmssnInventory SOQL row -> scopes + energy.
@@ -115,6 +121,7 @@ async function main() {
       fieldMap: { scope2: "AllocScope2MktBasedEmssn", energy: "EnergyUsageDataCenters" },
       fixture: sfFixture,
     }),
+    "globalretail.example",
   );
 
   // 6. Microsoft Sustainability Manager — paginated OData emissions -> aggregated total.
@@ -135,6 +142,7 @@ async function main() {
       energyKwh: 11070,
       fixturePages: [msPage1, msPage2],
     }),
+    "contoso.example",
   );
 
   // 7. Watershed — CEDA-backed footprint -> scopes + energy + renewable share.
@@ -150,6 +158,7 @@ async function main() {
       reportingPeriod: "2026-01",
       fixture: wsFixture,
     }),
+    "northwind.example",
   );
 
   // 8. computed — metered energy + grid intensity -> carbon-footprint.
@@ -167,25 +176,29 @@ async function main() {
       renewableEnergy: computedInputs.renewableEnergy,
       capabilities: "extended",
     }),
+    "example.com",
   );
 
   // 9. static-file — a pre-existing conformant wire document, re-ingested via
   //    fromWire() and re-normalized (round-trip fidelity, not a passthrough).
   const staticSrc = path.join(ORIG, "static-source-document.json");
   const staticDoc = {
-    version: "1.1",
+    version: "2.0",
     updated: "2026-06-01T00:00:00Z",
     capabilities: "basic",
     provider: "Small Business Hosting (hello@smallbiz.example)",
     "measurement-method": "cloud-billing",
     "methodology-uri": "https://smallbiz.example/sustainability/methodology",
     "reporting-period": "2026-05",
+    target: "smallbiz.example",
     "energy-consumption": 340,
     "energy-unit": "kWh",
     "carbon-footprint": 91800,
     "carbon-unit": "gCO2e",
   };
   fs.writeFileSync(staticSrc, JSON.stringify(staticDoc, null, 2) + "\n");
+  // No normalize-target fallback here: the wire document itself carries the
+  // mandatory `target`, and the round-trip must preserve it via fromWire().
   await generate("static-file", staticFileAdapter({ file: staticSrc, format: "wire" }));
 
   console.log("\nAll transformed examples regenerated.");

@@ -55,6 +55,9 @@ const publisher = new Publisher(
     gridIntensity: 276,
     capabilities: "extended",
   }),
+  // Mandatory reporting subject (draft `target` member): the origin host for
+  // an origin-wide report. Adapter-supplied raw.target takes precedence.
+  { normalize: { target: "example.com" } },
 );
 
 const app = express();
@@ -81,7 +84,9 @@ Koa, Next.js API routes, AWS Lambda / Cloud Functions, Cloudflare Workers, a pla
 ```ts
 import { Publisher, computedAdapter } from "sustainability-wellknown-publisher";
 
-const publisher = new Publisher(computedAdapter({ /* ... */ }));
+const publisher = new Publisher(computedAdapter({ /* ... */ }), {
+  normalize: { target: "example.com" }, // mandatory reporting subject
+});
 const doc = await publisher.getDocument({ period: "2026-02" }); // validated, ready to serve/store
 ```
 
@@ -180,6 +185,10 @@ function myAdapter(): SourceAdapter {
         measurementMethod: "hardware-metered",
         methodologyUri: "https://mycompany.example/methodology",
         reportingPeriod: row.period,        // "YYYY", "YYYY-MM", or "YYYY-MM-DD"
+        // Set `target` when you scope to a requested path prefix; otherwise the
+        // publisher-level normalize.target fallback (below) is used. Both
+        // energy and carbon are optional since -03 — omit what you don't have.
+        target: query.target,
         energy: { value: row.kwh, unit: "kWh" },
         carbon: { value: row.gCO2e, unit: "gCO2e" },
       };
@@ -187,7 +196,7 @@ function myAdapter(): SourceAdapter {
   };
 }
 
-const publisher = new Publisher(myAdapter());
+const publisher = new Publisher(myAdapter(), { normalize: { target: "mycompany.example" } });
 ```
 
 Study `src/adapters/computed.ts` (simplest) and `src/adapters/enterprise/watershed.ts`
@@ -262,8 +271,10 @@ The three option bags accepted by `new Publisher(adapter, options)`:
 
 - **`PublisherOptions`** (`src/publisher.ts`): `cacheTtlMs` (default 86 400 000 =
   24h; `0` disables caching), `maxCacheEntries` (default 256, bounds the
-  per-query-variant cache), `security` (see below), `normalize` (`carbonUnit` to
-  force a specific output unit).
+  per-query-variant cache), `security` (see below), `normalize` (`target` — the
+  mandatory reporting subject fallback, use the origin host for origin-wide
+  reports; `version` — informational label, default `"2.0"`; `energyUnit`/
+  `carbonUnit` to force specific output units).
 - **`SecurityOptions`** (`src/security.ts`): `maxObjects` (default 366),
   `enforceDailyFloor` (default `true`), `applyNoise` (default `false`; when
   `true`, deterministic per-period ~1% noise per the draft's Hardware

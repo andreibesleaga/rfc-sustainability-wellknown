@@ -37,12 +37,24 @@ fragmentation.
   the metadata does not add to the footprint it reports, and it caches cleanly (ETag, 24h).
 - **Formally specified.** Dual JTD (RFC 8927) and CDDL (RFC 8610) schemas make conformance
   testable and unambiguous; this repo's validators and gateway prove it.
+- **Four-way ready, by design.** The same unchanged document is web-ready (a plain HTTPS
+  GET with standard caching and conditional requests), API/M2M-ready (a stable JSON wire
+  format with formal schemas and deterministic semantics), human-readable (self-describing
+  member names plus a mandatory methodology link), and AI/agent-ready (machine-discoverable
+  at a fixed location, schema-validatable, safe to ingest without negotiation).
 - **Interoperable, precisely.** One vendor-neutral field model normalizes data that is
-  otherwise trapped in incompatible enterprise APIs — and the -02 revision pinned down every
-  interop edge a hostile review could raise: single-object vs array shape rules, `target-path`
-  echo (absence = origin-wide), byte-wise segment-boundary `target` matching against a
-  published prefix set, sorted/non-overlapping/uniform trend arrays, most-recent-first
-  truncation, UTC periods, and a not-reported sentinel that never silently degrades data.
+  otherwise trapped in incompatible enterprise APIs — and the submitted -02 revision pinned
+  down every interop edge a hostile review could raise: single-object vs array shape rules,
+  scope-attribution echo for path-scoped responses, byte-wise segment-boundary `target`
+  matching against a published prefix set, sorted/non-overlapping/uniform trend arrays,
+  most-recent-first truncation, UTC periods, and machine-detectable not-reported semantics
+  that never silently degrade data. The prepared -03 revision simplifies the model further:
+  an unreported metric is simply *omitted* (no in-band sentinel), the energy/carbon value
+  and unit members become optional with wire-level defaults (`kWh`/`gCO2e`), a mandatory
+  free-form `target` member names the reporting subject (origin host, path prefix, entity,
+  tenant, or carbon.txt-listed site), and all carbon members align on the CO2e naming
+  convention — with field-driven compatibility rules keeping historical 1.x documents
+  processable.
 - **Foolproof extensibility without process weight.** Forward compatibility rests on the
   must-ignore rule plus open schemas (the RFC 9457 model), not on version negotiation or a
   new IANA field registry: the published RFC accommodates all future fields as-is, and the
@@ -173,7 +185,7 @@ substantial organization in this space. An honest per-project comparison (facts 
 | **carbon.txt** | TOML *disclosure index* at `/carbon.txt` (alt `/.well-known/carbon.txt`, DNS-TXT/header delegation): typed links (`csrd-report`, `certificate`, `sustainability-page`, `ai-model-card`, …) to where an org's evidence lives. "Connect, not collect." Community convention; **not IANA-registered; never submitted to the IETF.** | Links to documents — **the file itself carries zero kWh/gCO2e numbers**. Its validator's CSRD plugin can extract org-level ESRS datapoints from linked, audited iXBRL filings. | **High on ambition, partial on substance**: same discovery instinct, different payload (document index vs live numeric metrics), no query semantics, no metrics schema, no IANA path. Composes with this draft in both directions via `disclosure-uri`. |
 | **CO2.js** | JS estimation library (bytes → gCO2e; SWD v4 / OneByte models). Adopted by Firefox Profiler, WebPageTest, Ecograder, Website Carbon, Sitespeed.io (~10k npm downloads/week). | Consumes bytes + grid datasets; produces estimates. **Defines no discovery mechanism or wire format.** | **None on wire format; pure producer.** This repo's gateway ships a CO2.js adapter that emits draft-conformant documents. |
 | **Green Web Dataset / greencheck** | The verified green-*hosting* directory (since 2006; ~300 verified providers; millions of green domains; ODbL). | A boolean + provider identity + evidence links per domain — **no energy/carbon quantities**. | None on metrics. Certifies who hosts you, not what you emit. |
-| **Grid-aware Websites / IP-to-CO2 API / Grid Intensity CLI** | Grid-intensity tooling (adapt sites to grid conditions; country intensity by IP). | Grid averages — inputs to carbon math. | None; the IP-to-CO2 API is a natural *input* for this draft's `carbon-intensity-gCO2-per-kWh` field. |
+| **Grid-aware Websites / IP-to-CO2 API / Grid Intensity CLI** | Grid-intensity tooling (adapt sites to grid conditions; country intensity by IP). | Grid averages — inputs to carbon math. | None; the IP-to-CO2 API is a natural *input* for this draft's `carbon-intensity-gCO2e-per-kWh` field. |
 | **Branch magazine / Fellowships** | Community and editorial programs. | — | None. |
 
 Adjacent but **not** GWF: the **Technology Carbon Standard (TCS)** is Scott Logic's
@@ -229,10 +241,13 @@ non-proprietary metrics.
    transport *before* per-vendor proprietary endpoints proliferate is precisely RFC 9547's
    recommendation, and is cheaper than harmonizing after the fact.
 3. *"Self-asserted numbers are greenwashing; GWF's model is evidence-reviewed."* — Mandatory
-   `measurement-method` + `methodology-uri`, the machine-readable not-reported sentinel,
-   the normative MUST-NOT-treat-as-proof rule, and the attestation/disclosure link-outs
-   make self-assertion *auditable*; note that TCS-via-carbon.txt numbers are also
-   self-published estimates. Verification composes on top; no format can conjure it in-band.
+   `measurement-method` + `methodology-uri`, the omission-based not-reported model (a metric
+   not reported is simply absent — a member present always carries a real value, and
+   field-driven compatibility rules keep even historical sentinel-bearing 1.x documents
+   machine-interpretable), the normative MUST-NOT-treat-as-proof rule, and the
+   attestation/disclosure link-outs make self-assertion *auditable*; note that
+   TCS-via-carbon.txt numbers are also self-published estimates. Verification composes on
+   top; no format can conjure it in-band.
 4. *"One author, no adoption, no institutional weight."* — Which is exactly what IANA
    registration and an RFC add and a community convention cannot: name-collision
    protection, a stable citable reference that outlives any NGO's funding cycle, and
@@ -258,11 +273,15 @@ never positioning against it.
 
 ## 8. Possible objections — each pre-empted in the -02 text
 
+*(-02 is the submitted revision under ISE review; a -03 revision with a simplified
+omission-based data model — schema label `"2.0"` — is prepared, and strengthens rather
+than disturbs every answer below.)*
+
 | Objection | Answer (and where the draft already settles it) |
 |---|---|
 | "Methodologies differ; numbers aren't comparable." | The draft is explicitly a **discovery and semantics** layer, not a methodology mandate; `measurement-method` + `methodology-uri` disclose how each number was derived (§Goals and Non-Goals). |
-| "Self-declared data could be greenwashing." | The endpoint *asserts, it does not verify*, and says so: clients MUST NOT treat the document as proof; `verifiable-attestation-uri` and `disclosure-uri` link to independent evidence; a document with **both** required metrics unreported is NOT RECOMMENDED unless it carries a disclosure link — so the guaranteed floor is "real numbers, or a machine-followable pointer to them" (§Security, §Unreported Numeric Metrics). |
-| "What can a client actually rely on?" | A stable location, a fixed JSON shape with fixed unit vocabularies, machine-detectable not-reported semantics, `target-path` echo for scope attribution, and deterministic array rules — exactly what aggregators, crawlers, and procurement tooling lack today. |
+| "Self-declared data could be greenwashing." | The endpoint *asserts, it does not verify*, and says so: clients MUST NOT treat the document as proof; `verifiable-attestation-uri` and `disclosure-uri` link to independent evidence; and a minimum-reporting floor guarantees "real numbers, or a machine-followable pointer to them" (§Security; in the prepared -03, §Value Constraints and Omitted Metrics ties that floor to the mandatory `methodology-uri`). |
+| "What can a client actually rely on?" | A stable location, a fixed JSON shape with fixed unit vocabularies, machine-detectable not-reported semantics, a scope-attribution echo for path-scoped responses (the optional `target-path` member in the submitted -02; the mandatory `target` reporting-subject member in the prepared -03), and deterministic array rules — exactly what aggregators, crawlers, and procurement tooling lack today. |
 | "A query API on a well-known URI?" | WebFinger precedent; permitted by RFC 8615 §3; the parameters are optional with a mandatory no-parameter Basic fallback, and -02 fully specifies every parameter interaction (single-object rule, aggregation-or-404, array conditions) — no underspecified corners left (§Optional Extended Query Parameters). |
 | "The generic name 'sustainability' is registry squatting." | The metadata is genuinely site-wide (origin-level) — the exact pattern well-known URIs exist for; resource scoping uses a query parameter, not path segments; the IANA section says registration is sought for interoperable discovery, **not** to signal endorsement — pre-answering the expert's own published concern (§IANA Considerations). |
 | "Permanent status isn't justified for an ISE doc." | Agreed — the draft requests **provisional** outright, with the RFC 8615 promotion path noted. There is nothing to downgrade (§IANA Considerations). |
@@ -277,11 +296,12 @@ never positioning against it.
 
 ## 9. Readiness evidence (in this repository)
 
-- Stable draft at **draft-besleaga-sustainability-wellknown-02**, posted to the Datatracker
-  and submitted to the ISE (Independent Submission; continues and replaces the -00–-05
-  series, with the datatracker "Replaces" relationship recorded). Builds strict-clean
-  (`xml2rfc --strict`, 0 warnings; idnits **0 errors**); all 20 references verified against
-  authoritative sources, none unused.
+- Submitted draft at **draft-besleaga-sustainability-wellknown-02**, posted to the
+  Datatracker and under ISE review (Independent Submission; continues and replaces the
+  -00–-05 series, with the datatracker "Replaces" relationship recorded); a **-03** revision
+  with the simplified omission-based data model is prepared for posting when the submission
+  window reopens. Both build strict-clean (`xml2rfc --strict`, 0 warnings; idnits
+  **0 errors**); all references verified against authoritative sources, none unused.
 - **Two full pre-submission audit rounds**: a five-stream web-verified ISE-readiness audit
   (registry landscape, reference integrity, extensibility, ecosystem positioning,
   mailing-list precedent) and a three-reviewer adversarial pass (technical consistency,

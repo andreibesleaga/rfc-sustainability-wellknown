@@ -14,6 +14,14 @@ is the normal case for early ecosystem adoption, not a hypothetical. Built
 basic-first and M2M-oriented: every API is one line to call from a script (a cron
 job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad input.
 
+> **Version note:** consumer **0.2.0** (this tree) implements the **-03** draft
+> revision's `"2.0"` wire format — 8 mandatory fields (including the free-form
+> `target` reporting subject), 15 optional fields (the energy/carbon quartet is
+> now optional, with default units `kWh`/`gCO2e`), the renamed
+> `carbon-intensity-gCO2e-per-kWh`/`estimated-annual-emissions-kgCO2e` members,
+> and the draft's two field-driven legacy-compatibility rules. The published
+> **0.1.0** implements the earlier -02 (`"1.1"`) model.
+
 ## Install & build
 
 ```bash
@@ -60,9 +68,9 @@ the transformation helpers, disclosure-link handling, and the conformance checke
 | `types` | `SustainabilityMetrics`/`SustainabilityDocument`, `FetchParams`, `FetchResult`, `EnergyUnit`, `CarbonUnit` — wire-format types mirroring the draft's field set |
 | `schema` | `RESPONSE_JTD_SCHEMA` — the JTD (RFC 8927) schema for a single metrics object, an exact embedded copy of `schemas-validators/response-schema.json` |
 | `validate` | `validateDocument()`/`assertValid()` — defensive validation of an incoming document: JTD schema gate plus the draft's cross-entry array rules |
-| `fetch` | `fetchSustainability(origin, options)` — the one-call, zero-extra-dependency fetch-and-validate function |
-| `client` | `SustainabilityClient` — a class for repeated polling, with ETag-based conditional-request caching |
-| `sentinel` | `isNotReported()`, `withoutSentinels()` — the negative-value "not reported" sentinel (draft §Unreported Numeric Metrics) |
+| `fetch` | `fetchSustainability(origin, options)` — the one-call, zero-extra-dependency fetch-and-validate function; its `legacyCompat` option (default true) treats a document without `target` as origin-wide, per the draft's compatibility rule |
+| `client` | `SustainabilityClient` — a class for repeated polling, with ETag-based conditional-request caching (threads `legacyCompat` through) |
+| `sentinel` | `isNotReported()`, `withoutSentinels()`, `NUMERIC_KEYS` — the legacy-compatibility module: a negative value in a non-negative member reads as "not reported" (draft §Versioning and Extensibility; subsumes the historical 1.x sentinel — negative scopes are real data and are never stripped) |
 | `units` | `convertEnergy()`, `convertCarbon()` — unit conversion, matching `publisher/src/normalize.ts`'s tables exactly (parity-tested) |
 | `transform` | `toCsvRows()`, `toNdjson()`, `flatten()`, `aggregate()` — format transformations for a validated document |
 | `disclosure` | `resolveDisclosureLinks()` (passive), `fetchDisclosure()` (explicit opt-in) — disclosure/attestation link helpers |

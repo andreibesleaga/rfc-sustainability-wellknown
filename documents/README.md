@@ -4,16 +4,28 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 
 ## Current Internet-Draft
 
-**`draft-besleaga-sustainability-wellknown-02`** — *The 'sustainability' Well-Known URI*.
+**`draft-besleaga-sustainability-wellknown`** — *The 'sustainability' Well-Known URI*.
 Individual submission on the IETF **Independent Submission Stream** (Informational).
-Revision `-02` is posted to the Datatracker (2026-07-03) and has been submitted to the
-Independent Submissions Editor (ISE) for publication as an Informational RFC.
+
+Two revisions matter right now:
+
+- **`-02`** is the **submitted** revision: posted to the Datatracker (2026-07-03) and with
+  the Independent Submissions Editor (ISE) for review (state "Submission Received" since
+  2026-07-08). It is frozen while under review.
+- **`-03`** is the **prepared next revision** (not yet posted — the submission window is
+  closed until after the IETF meeting). It is a **breaking data-model revision** (schema
+  label `"2.0"`): the negative "not reported" sentinel is removed in favor of member
+  omission, `energy-consumption`/`energy-unit`/`carbon-footprint`/`carbon-unit` become
+  optional (with default units), a mandatory free-form `target` member identifies the
+  reporting subject (replacing the optional `target-path`), and two carbon members are
+  renamed to the CO2e convention. See the draft's own "Since -02" changelog appendix.
 
 | File | Role |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-02.md` | Markdown source (kramdown-rfc front matter + body). Edit this. |
-| `draft-besleaga-sustainability-wellknown-02.xml` | xml2rfc v3 XML — the **authoritative** form for submission. |
-| `draft-besleaga-sustainability-wellknown-02.txt` | Rendered plain-text form. |
+| `draft-besleaga-sustainability-wellknown-03.md` | Markdown source of the prepared next revision. Edit this. |
+| `draft-besleaga-sustainability-wellknown-03.xml` | xml2rfc v3 XML of `-03` — the authoritative form for the future submission. |
+| `draft-besleaga-sustainability-wellknown-03.txt` | Rendered plain-text form of `-03`. |
+| `draft-besleaga-sustainability-wellknown-02.*` | **Submitted** revision, under ISE review (frozen). |
 | `draft-besleaga-sustainability-wellknown-01.*` | Previous revision (posted 2026-07-02). |
 | `draft-besleaga-sustainability-wellknown-00.*` | Earlier revision. |
 
@@ -46,10 +58,10 @@ Requires `kramdown-rfc` (Ruby gem `kramdown-rfc2629`) and `xml2rfc`:
 
 ```bash
 cd documents
-kramdown-rfc draft-besleaga-sustainability-wellknown-02.md \
-  > draft-besleaga-sustainability-wellknown-02.xml
-xml2rfc --strict --text draft-besleaga-sustainability-wellknown-02.xml \
-  -o draft-besleaga-sustainability-wellknown-02.txt
+kramdown-rfc draft-besleaga-sustainability-wellknown-03.md \
+  > draft-besleaga-sustainability-wellknown-03.xml
+xml2rfc --strict --text draft-besleaga-sustainability-wellknown-03.xml \
+  -o draft-besleaga-sustainability-wellknown-03.txt
 ```
 
 `xml2rfc --strict` is expected to complete with no warnings. CI runs the same build (see

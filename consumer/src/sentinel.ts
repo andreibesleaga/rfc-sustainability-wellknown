@@ -1,26 +1,44 @@
 /**
- * Draft §Unreported Numeric Metrics: a negative value in a numeric field means
- * "not reported", not a real negative measurement.
+ * Legacy-compatibility helpers (draft §Versioning and Extensibility).
+ *
+ * Since -03 ("2.0") there is no in-band "not reported" marker: omitting a
+ * member is the only way to convey that a metric is unreported. Historical
+ * "1.0"/"1.1" documents, however, used a negative value as a "not reported"
+ * sentinel. The draft resolves this with a field-driven compatibility rule
+ * that subsumes the old sentinel: a client that encounters a negative value
+ * in a member defined as NON-NEGATIVE MUST treat that member as not reported
+ * (rather than reject the document).
+ *
+ * `scope-1`/`scope-2`/`scope-3` are deliberately NOT in the list below: since
+ * -03 they MAY legitimately be negative (net accounting / removals, draft
+ * §Value Constraints and Omitted Metrics) and must never be stripped.
  */
 import { SustainabilityMetrics } from "./types";
 
-const NUMERIC_KEYS = [
+/**
+ * The members the draft defines as non-negative ("gross quantities", plus the
+ * 0–100 `renewable-energy` percentage). A negative value in any of these reads
+ * as "not reported" under the compatibility rule.
+ */
+export const NUMERIC_KEYS = [
   "energy-consumption",
   "carbon-footprint",
-  "scope-1",
-  "scope-2",
-  "scope-3",
   "sci-score",
-  "carbon-intensity-gCO2-per-kWh",
-  "estimated-annual-emissions-kgCO2",
+  "carbon-intensity-gCO2e-per-kWh",
+  "estimated-annual-emissions-kgCO2e",
   "renewable-energy",
 ] as const;
 
+/** True when a value in a non-negative member reads as "not reported" (any negative number). */
 export function isNotReported(value: unknown): boolean {
   return typeof value === "number" && value < 0;
 }
 
-/** Returns a copy with every "not reported" sentinel field removed (present only). */
+/**
+ * Returns a copy with every negative value in a NON-NEGATIVE member removed
+ * (the draft's legacy-compatibility rule applied). Negative scope-1/2/3 values
+ * are real data (net accounting) and are left untouched.
+ */
 export function withoutSentinels(doc: SustainabilityMetrics): Partial<SustainabilityMetrics> {
   const out: Record<string, unknown> = { ...doc };
   for (const key of NUMERIC_KEYS) {

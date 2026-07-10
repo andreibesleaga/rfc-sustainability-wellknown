@@ -21,21 +21,22 @@ export interface SustainabilityMetrics {
   "measurement-method": string;
   "methodology-uri": string;
   "reporting-period": string;
-  "energy-consumption": number;
-  "energy-unit": EnergyUnit;
-  "carbon-footprint": number;
-  "carbon-unit": CarbonUnit;
+  /** Reporting subject: origin host, path prefix, entity, product, … (free-form). */
+  target: string;
 
-  // Optional
-  "target-path"?: string;
+  // Optional (absence = "not reported"; defaults kWh / gCO2e apply to the units)
+  "energy-consumption"?: number;
+  "energy-unit"?: EnergyUnit;
+  "carbon-footprint"?: number;
+  "carbon-unit"?: CarbonUnit;
   "carbon-accounting"?: CarbonAccounting;
   "scope-1"?: number;
   "scope-2"?: number;
   "scope-3"?: number;
   "sci-score"?: number;
   "functional-unit"?: string;
-  "carbon-intensity-gCO2-per-kWh"?: number;
-  "estimated-annual-emissions-kgCO2"?: number;
+  "carbon-intensity-gCO2e-per-kWh"?: number;
+  "estimated-annual-emissions-kgCO2e"?: number;
   "renewable-energy"?: number;
   "verifiable-attestation-uri"?: string;
   "disclosure-uri"?: string;
@@ -72,11 +73,13 @@ export interface RawMetrics {
   capabilities?: Capabilities;
   updated?: string;
   /**
-   * Echoed as `target-path`. Adapters that scope a response to a requested
-   * `query.target` MUST set this (draft: absence means the metrics are
-   * origin-wide).
+   * Emitted as the mandatory `target` member: the free-form reporting subject
+   * of the metrics (origin host, path prefix, entity, product, …). Adapters
+   * that scope a response to a requested `query.target` MUST set this to the
+   * matched prefix. When absent, the normalizer falls back to
+   * {@link NormalizeOptions.target}.
    */
-  targetPath?: string;
+  target?: string;
   carbonAccounting?: CarbonAccounting;
   scope1?: number;
   scope2?: number;
@@ -111,8 +114,14 @@ export interface SourceAdapter {
 }
 
 export interface NormalizeOptions {
-  /** Schema version string emitted in payloads. Default "1.1". */
+  /** Schema version string emitted in payloads. Default "2.0". */
   version?: string;
+  /**
+   * Fallback reporting subject emitted as the mandatory `target` member when
+   * the adapter does not set one. For an origin-wide report the origin's host
+   * (e.g. "example.com") is RECOMMENDED by the draft.
+   */
+  target?: string;
   /** Force a target energy unit; default keeps the adapter's unit (kWh for joules). */
   energyUnit?: EnergyUnit;
   /** Force a target carbon unit; default keeps the adapter's unit (gCO2e when computed). */

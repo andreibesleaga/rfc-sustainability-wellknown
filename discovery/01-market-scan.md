@@ -43,7 +43,7 @@ architecture reports in the project brief):
 
 This is exactly the field set the IETF draft normalizes to (energy-consumption / -unit,
 carbon-footprint / -unit, scope-1/2/3, reporting-period, provider, measurement-method,
-methodology-uri).
+methodology-uri, and the mandatory `target` member naming the reporting subject).
 
 ## 3. The gap
 

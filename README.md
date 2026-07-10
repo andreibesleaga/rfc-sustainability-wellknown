@@ -1,5 +1,5 @@
 # Internet Draft Proposal
-## IETF Internet-Draft (I-D) — (work in progress)
+## IETF Internet-Draft (I-D)
 ### The 'sustainability' Well-Known URI
 
 Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/)

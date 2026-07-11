@@ -12,7 +12,7 @@ IANA `sustainability` well-known URI registration requested ([protocol-registrie
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 
-(current repo work-in-progress draft/soft version is: v03; previous draft v02 is at tag: [v0.1.0-draft-02](https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/v0.1.0-draft-02).
+(currently work-in-progress draft/soft v03; previous draft v02: [v0.1.0-draft-02](https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/v0.1.0-draft-02). overall system document with diagrams: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md)).
 
 ---
 

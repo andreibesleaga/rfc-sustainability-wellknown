@@ -468,3 +468,53 @@ describe("fromWire scope-unit + legacy re-ingest (final-audit fixes)", () => {
     expect(r.errors.some((e) => /reporting-period/.test(e))).toBe(true);
   });
 });
+
+// Final pre-tag fixes: gate updated/target shape, fromWire value policy, ms carbon-only
+describe("final pre-tag hardening", () => {
+  const base = {
+    version: "2.0",
+    updated: "2026-01-01T00:00:00Z",
+    capabilities: "basic",
+    provider: "P",
+    "measurement-method": "m",
+    "methodology-uri": "https://x/m",
+    "reporting-period": "2026-01",
+    target: "example.com",
+  } as any;
+
+  it("gate rejects a garbage updated and an empty target", () => {
+    expect(validateDocument({ ...base, updated: "not-a-date" }).valid).toBe(false);
+    expect(validateDocument({ ...base, target: "" }).valid).toBe(false);
+    expect(validateDocument(base).valid).toBe(true);
+  });
+
+  it("fromWire throws on a non-number value in a numeric member (corrupt file)", () => {
+    expect(() => fromWire({ ...base, "energy-consumption": "5" })).toThrow(/finite number/);
+    expect(() => fromWire({ ...base, "scope-1": "abc" })).toThrow(/finite number/);
+  });
+
+  it("fromWire drops out-of-range renewable and legacy sci-score without functional-unit", () => {
+    const raw = fromWire({ ...base, "renewable-energy": 150, "sci-score": 3 });
+    expect(raw.renewableEnergy).toBeUndefined(); // out of range -> not reported
+    expect(raw.sciScore).toBeUndefined(); // legacy: no functional-unit -> dropped
+    const ok = fromWire({ ...base, "renewable-energy": 45, "sci-score": 3, "functional-unit": "req" });
+    expect(ok.renewableEnergy).toBe(45);
+    expect(ok.sciScore).toBe(3);
+  });
+
+  it("ms-sustainability publishes carbon-only when no energy source is configured", async () => {
+    const a = msSustainabilityAdapter({
+      provider: "P",
+      methodologyUri: "https://x/m",
+      reportingPeriod: "2026-02",
+      emissionsField: "totalEmissions",
+      fixturePages: [{ value: [{ totalEmissions: 1.5 }] }] as any,
+    });
+    const raw = await a.fetch({});
+    expect(raw).toMatchObject({ carbon: { value: 1.5, unit: "mtCO2e" } });
+    expect((raw as any).energy).toBeUndefined();
+    const doc = normalize(raw as any, { target: "example.com" });
+    expect(doc).not.toHaveProperty("energy-consumption");
+    expect(validateDocument(doc).valid).toBe(true);
+  });
+});

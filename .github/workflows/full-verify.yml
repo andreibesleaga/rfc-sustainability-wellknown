@@ -26,14 +26,14 @@ jobs:
       - name: Build and strict-check the latest draft
         run: |
           set -e
-          cd documents
+          cd internet-drafts
           md=$(ls draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
           base="${md%.md}"
           kramdown-rfc "$md" > "$base.xml"
           xml2rfc --strict --text "$base.xml" -o "$base.txt"
       - name: idnits (0 errors required)
         run: |
-          cd documents
+          cd internet-drafts
           md=$(ls draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
           base="${md%.md}"
           npx --yes @ietf-tools/idnits "$base.xml" | tee /tmp/idnits.out

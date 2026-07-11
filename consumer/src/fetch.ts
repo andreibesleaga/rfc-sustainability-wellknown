@@ -146,7 +146,10 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
   // absence of `target-path` conveyed exactly that.
   let legacy = false;
   if (options.legacyCompat !== false) {
-    const host = url.host;
+    // Draft §Mandatory Minimum: clients that follow a redirect MUST attribute
+    // the returned metrics to the origin of the FINAL response — so the
+    // injected origin-wide subject comes from res.url, not the request URL.
+    const host = res.url ? new URL(res.url).host : url.host;
     const lacksTarget = (o: unknown): o is Record<string, unknown> =>
       typeof o === "object" && o !== null && !Array.isArray(o) && !("target" in o);
     if (Array.isArray(parsed)) {

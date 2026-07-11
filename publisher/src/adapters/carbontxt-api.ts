@@ -124,7 +124,7 @@ async function callApi(config: CarbonTxtApiConfig): Promise<CarbonTxtApiResponse
 export function carbonTxtApiAdapter(config: CarbonTxtApiConfig): SourceAdapter {
   return {
     name: "carbontxt-api",
-    capabilities: config.capabilities ?? "extended",
+    capabilities: config.capabilities ?? "basic",
     async fetch(): Promise<RawMetrics> {
       const resp = await callApi(config);
 
@@ -159,7 +159,7 @@ export function carbonTxtApiAdapter(config: CarbonTxtApiConfig): SourceAdapter {
           energy: config.energy,
           ...(config.carbon ? { carbon: config.carbon } : {}),
           ...(typeof config.gridIntensity === "number" ? { carbonIntensity: config.gridIntensity } : {}),
-          capabilities: config.capabilities ?? "extended",
+          capabilities: config.capabilities ?? "basic",
         };
       } else if (extracted.energy && extracted.carbon) {
         base = {
@@ -169,7 +169,7 @@ export function carbonTxtApiAdapter(config: CarbonTxtApiConfig): SourceAdapter {
           reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
           energy: extracted.energy,
           carbon: extracted.carbon,
-          capabilities: config.capabilities ?? "extended",
+          capabilities: config.capabilities ?? "basic",
         };
       } else if (config.compute) {
         base = (await co2jsAdapter({

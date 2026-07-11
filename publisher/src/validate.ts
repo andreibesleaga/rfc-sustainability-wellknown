@@ -48,6 +48,9 @@ const NON_NEGATIVE_FIELDS = [
   "estimated-annual-emissions-kgCO2e",
 ] as const;
 
+/** RFC 3339 date-time shape for the mandatory `updated` member. */
+const UPDATED_RE = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
+
 /** Validate a single metrics object against the JTD schema. */
 export function validateMetrics(obj: unknown): ValidationResult {
   const valid = validateObject(obj) as boolean;
@@ -98,6 +101,17 @@ export function validateMetrics(obj: unknown): ValidationResult {
     const period = rec["reporting-period"];
     if (typeof period === "string" && !PERIOD_RE.test(period)) {
       errors.push(`/reporting-period is not a valid YYYY[-MM[-DD]] value ("${period}")`);
+    }
+
+    // Same defense-in-depth for the other shaped mandatory members: `updated`
+    // is an RFC 3339 date-time, and `target` (the reporting subject) must not
+    // be an empty string — JTD types both as bare strings.
+    const updated = rec["updated"];
+    if (typeof updated === "string" && !UPDATED_RE.test(updated)) {
+      errors.push(`/updated is not an RFC 3339 date-time ("${updated}")`);
+    }
+    if (rec["target"] === "") {
+      errors.push("/target must not be empty (it names the reporting subject)");
     }
   }
   return { valid: errors.length === 0, errors };

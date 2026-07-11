@@ -1,0 +1,56 @@
+classDiagram
+    class SustainabilityDocument {
+        <<union>>
+        single SustainabilityMetrics object
+        OR array of SustainabilityMetrics — a trend
+    }
+    note for SustainabilityDocument "Array rules — MUST: ascending reporting-period,
+    non-overlapping, uniform period precision,
+    same target in every entry; max 366 entries recommended.
+    A single object == a one-element array."
+
+    SustainabilityDocument "1" *-- "1..366" SustainabilityMetrics
+
+    class SustainabilityMetrics {
+        <<8 mandatory members>>
+        +version : string — informational label "2.0"; never reject or branch on it
+        +updated : string — RFC 3339 date-time of generation
+        +capabilities : "basic" | "extended" — query-parameter support only
+        +provider : string — entity operating the origin
+        +measurement-method : string — free-form; recommended values exist
+        +methodology-uri : string — link to calculation methodology
+        +reporting-period : string — YYYY | YYYY-MM | YYYY-MM-DD
+        +target : string — reporting subject: origin host, path prefix, entity, tenant, product
+    }
+
+    class OptionalMetrics {
+        <<15 optional members — omission is the ONLY not-reported mechanism>>
+        +energy-consumption : number — MUST NOT be negative
+        +energy-unit : "Wh" | "kWh" | "MWh" | "GWh" — default kWh when absent
+        +carbon-footprint : number — gross, MUST NOT be negative
+        +carbon-unit : "gCO2e" | "kgCO2e" | "mtCO2e" — default gCO2e, also scales scopes
+        +carbon-accounting : "location-based" | "market-based"
+        +scope-1 : number — MAY be negative: removals, net accounting
+        +scope-2 : number — MAY be negative
+        +scope-3 : number — MAY be negative
+        +sci-score : number — non-negative; REQUIRES functional-unit
+        +functional-unit : string — e.g. per-request
+        +carbon-intensity-gCO2e-per-kWh : number — non-negative
+        +estimated-annual-emissions-kgCO2e : number — non-negative
+        +renewable-energy : number — percent, 0..100 inclusive
+        +verifiable-attestation-uri : string — W3C Verifiable Credential link
+        +disclosure-uri : string — disclosure index, e.g. carbon.txt
+    }
+
+    SustainabilityMetrics "1" o-- "0..1" OptionalMetrics : MAY carry
+
+    class VendorExtensions {
+        <<open schema>>
+        +any additional member : any — clients MUST ignore unknown members
+        +namespacing : vendor- prefix, domain-qualified, or URI key
+    }
+    SustainabilityMetrics "1" o-- "0..*" VendorExtensions : extensible via
+
+    note for OptionalMetrics "Minimum-reporting rule — SHOULD: at least one numeric
+    metric or a disclosure/attestation URI; else the mandatory
+    methodology-uri MUST lead to the substantive disclosure."

@@ -1,4 +1,4 @@
-# documents/
+# internet-drafts/
 
 Source and rendered forms of the Internet-Draft, plus supplementary material.
 
@@ -38,12 +38,12 @@ are the earlier revisions of this work under its **previous name**. The document
 to drop the `green` token (which could imply a scope tied to the IETF GREEN Working Group);
 the current draft **Replaces** that series. These files are retained for history only.
 
-An earlier per-request HTTP-header approach to carbon transparency was discussed and set
-aside in favor of this well-known URI's out-of-band design, which avoids the per-request
-"rebound effect" (metadata increasing the footprint it reports). That discussion is
-recorded on the GREEN working group mailing list; it was never filed as a separate
-Internet-Draft, so there is no second formal "Replaces" relationship — only the rename
-noted above.
+An earlier per-request HTTP-header approach to carbon transparency was explored first —
+filed as `draft-besleaga-green-sustainability-header-00` (now expired) — and set aside in
+favor of this well-known URI's out-of-band design, which avoids the per-request "rebound
+effect" (metadata increasing the footprint it reports). The Datatracker records a formal
+"Replaces" relationship for that header draft too, alongside the rename noted above; the
+design discussion is also recorded on the GREEN working group mailing list.
 
 ## Supplementary
 
@@ -57,7 +57,7 @@ noted above.
 Requires `kramdown-rfc` (Ruby gem `kramdown-rfc2629`) and `xml2rfc`:
 
 ```bash
-cd documents
+cd internet-drafts
 kramdown-rfc draft-besleaga-sustainability-wellknown-03.md \
   > draft-besleaga-sustainability-wellknown-03.xml
 xml2rfc --strict --text draft-besleaga-sustainability-wellknown-03.xml \

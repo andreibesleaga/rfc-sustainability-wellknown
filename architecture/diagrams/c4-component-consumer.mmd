@@ -1,0 +1,36 @@
+flowchart TB
+    %% C4 Level 3 - Component diagram of consumer/src (flowchart rendering of C4 component semantics)
+
+    ORIGIN(("Any /.well-known/sustainability origin"))
+
+    subgraph CONS["consumer/src (npm: sustainability-wellknown-consumer)"]
+        FETCH["fetch.ts — fetchSustainability()<br/>30s timeout · 10MB byte cap (streaming) ·<br/>query params target/period/granularity ·<br/>If-None-Match · legacy-compat pre-pass<br/>(missing target ⇒ inject final-response host, flag legacy)"]
+        VAL2["validate.ts<br/>JTD schema gate (ajv/jtd) + sci↔functional-unit MUST +<br/>cross-entry array rules (ascending, uniform precision,<br/>single target, empty array = invalid)"]
+        SCH2["schema.ts<br/>embedded RESPONSE_JTD_SCHEMA<br/>(byte-equal to schemas-validators/, CI-checked)"]
+        SENT["sentinel.ts — legacy compatibility<br/>isNotReported(): negative in non-negative member (or<br/>renewable > 100) reads as 'not reported';<br/>scopes exempt (may be negative)"]
+        UNITS["units.ts<br/>convertEnergy / convertCarbon"]
+        TRANS["transform.ts<br/>toCsvRows · toNdjson · flatten (one row/metric,<br/>default units kWh/gCO2e) · aggregate (sum/average,<br/>unit-normalized)"]
+        CLIENT2["client.ts — SustainabilityClient<br/>ETag cache per origin+params (bounded 256);<br/>304 ⇒ replay cached document; getTrend()"]
+        CONF["conformance.ts — runConformanceChecks()<br/>6 checks: basic single object · application/json ·<br/>ETag present · fresh ETag ⇒ 304 · POST ⇒ 405+Allow ·<br/>granularity ⇒ valid (sorted array when honored);<br/>legacyCompat OFF (sees the document as served)"]
+        DISC["disclosure.ts<br/>resolveDisclosureLinks (passive — never auto-fetches);<br/>fetchDisclosure only on explicit opt-in"]
+        CLI3["cli.ts / bin/sustainability-fetch<br/>--format=json|csv|ndjson · --strict = conformance battery ·<br/>exit codes per status"]
+        TYPES["types.ts — wire-format types,<br/>FetchResult status union: ok · not-modified · not-found ·<br/>invalid · http-error · timeout · too-large"]
+    end
+
+    APP(("Caller / aggregator code"))
+
+    FETCH -- "GET / conditional GET" --> ORIGIN
+    CONF -- "raw probes (POST, media type)" --> ORIGIN
+    FETCH --> VAL2
+    SCH2 -.-> VAL2
+    VAL2 -- "FetchResult" --> APP
+    CLIENT2 --> FETCH
+    CLI3 --> FETCH
+    CLI3 --> CONF
+    CONF --> FETCH
+    APP --> TRANS
+    TRANS --> SENT
+    TRANS --> UNITS
+    APP --> DISC
+    TYPES -.-> FETCH
+    CLI3 --> TRANS

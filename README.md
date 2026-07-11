@@ -63,7 +63,7 @@ The normative specification is the Internet‑Draft; this repo provides non‑no
 
 ```
 rfc-sustainability-wellknown/
-├── documents/               # RFC draft source files and supporting documents
+├── internet-drafts/               # RFC draft source files and supporting documents
 ├── example-responses/       # Valid JSON response examples (all validators pass)
 ├── schemas-validators/      # Formal schemas (CDDL, JTD) and validation tooling
 ├── example-scripts/         # Server-side security middleware + reference request handler (Python, JS, PHP), with tests
@@ -78,7 +78,7 @@ rfc-sustainability-wellknown/
 
 ---
 
-## documents/
+## internet-drafts/
 
 Draft in multiple formats plus supplementary documents.
 
@@ -242,7 +242,7 @@ the schema stays extensible without a version bump or a new IANA registry.
 
 The `verifiable-attestation-uri` field links to a W3C Verifiable Credential (VC) signed by a trusted third-party auditor. 
 
-Example VC structure is documented in [documents/draft-verifiable-credential.md](documents/draft-verifiable-credential.md). 
+Example VC structure is documented in [internet-drafts/draft-verifiable-credential.md](internet-drafts/draft-verifiable-credential.md). 
 This allows automated tools to cryptographically verify published sustainability claims against external authoritative reports.
 
 ---
@@ -273,7 +273,7 @@ same lifecycle against the current (`-03`-model) sources.
 
 ## CHANGELOG
 
-Changes and updates between versions of the draft are documented (summarized) in [documents/CHANGELOG.md](documents/CHANGELOG.md).
+Changes and updates between versions of the draft are documented (summarized) in [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md).
 
 --- 
 

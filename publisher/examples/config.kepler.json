@@ -9,7 +9,7 @@
       "query": "sum(increase(kepler_node_platform_joules_total[30d]))",
       "gridIntensity": 230,
       "functionalUnit": "per-cluster-month",
-      "capabilities": "extended"
+      "capabilities": "basic"
     }
   },
   "publisher": {

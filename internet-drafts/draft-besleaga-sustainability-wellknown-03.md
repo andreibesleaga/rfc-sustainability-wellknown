@@ -58,11 +58,11 @@ informative:
     target: https://sdgs.un.org/2030agenda
     date: 2015
   W3C-WSG:
-    title: "Web Sustainability Guidelines (WSG) 1.0 (W3C Community Group Report)"
+    title: "Web Sustainability Guidelines (WSG) (W3C Group Draft Note)"
     author:
-      - org: W3C Sustainable Web Design Community Group
-    target: https://w3c.github.io/sustainableweb-wsg/
-    date: 2023
+      - org: W3C Sustainable Web Interest Group
+    target: https://www.w3.org/TR/web-sustainability-guidelines/
+    date: 2026
   CARBON-TXT:
     title: "carbon.txt: A TOML convention for discovering an origin's sustainability disclosures"
     author:
@@ -100,7 +100,7 @@ While initial proposals for carbon transparency focused on per-request HTTP head
 
 This document continues and replaces draft-besleaga-green-sustainability-wellknown. The rename reflects that this is an individual Independent Submission and is not scoped to any IETF Working Group. This revision reworks the data model: it removes the in-band "not reported" sentinel in favor of member omission, reduces the mandatory member set, introduces a mandatory `target` member identifying the reporting subject, and renames two carbon members to the CO2e convention. Documents built to this revision carry the informational label `"2.0"`; the changes are breaking with respect to the historical `"1.0"`/`"1.1"` field set and are summarized in the Changelog.
 
-The convention is designed to be usable, unchanged, in four consumption contexts: by web clients, as a plain HTTPS GET on a fixed well-known URI with standard HTTP caching and conditional requests; by machine-to-machine and API integrations, as a stable JSON wire format with formal CDDL and JTD schemas and well-defined query and response semantics; by human readers, through self-describing member names and a mandatory link to the measurement methodology; and by automated agents and AI systems, as a document that is machine-discoverable at a fixed location, schema-validatable, and safe to ingest without content negotiation or prior arrangement.
+The convention is designed to be usable, unchanged, in four consumption contexts: by web clients, as a plain HTTPS GET on a fixed well-known URI with standard HTTP caching and conditional requests; by machine-to-machine and API integrations, as a stable JSON wire format with formal Concise Data Definition Language (CDDL) and JSON Type Definition (JTD) schemas and well-defined query and response semantics; by human readers, through self-describing member names and a mandatory link to the measurement methodology; and by automated agents and AI systems, as a document that is machine-discoverable at a fixed location, schema-validatable, and safe to ingest without content negotiation or prior arrangement.
 
 ## Requirements Language
 
@@ -180,7 +180,7 @@ In an array response, the entries MUST be sorted in ascending order of `reportin
 * **provider** (string): Information about the provider publishing the metadata.
 * **measurement-method** (string): Short description or reference to the methodology used. This is a free-form string; the values `hardware-metered`, `hardware-estimated`, `cloud-billing`, and `third-party-modeled` are RECOMMENDED.
 * **methodology-uri** (string): Link to the full methodology specification (calculation methodology). See also the minimum-reporting rule in Value Constraints and Omitted Metrics.
-* **reporting-period** (string): The timeframe covered by the object, expressed using the same {{RFC3339}} date formats as the `period` parameter (`YYYY`, `YYYY-MM`, or `YYYY-MM-DD`).
+* **reporting-period** (string): The timeframe covered by the object, expressed using the same date forms as the `period` parameter (`YYYY`, `YYYY-MM`, or the {{RFC3339}} `full-date` `YYYY-MM-DD`).
 * **target** (string): The reporting subject of this object: a free-form identifier of the entity or scope to which the metrics are attributed. Typical values are an origin or domain (for an origin-wide report the origin's host, e.g., `"example.com"`, is RECOMMENDED), a resource path prefix (e.g., `"/api/v1"`), an organizational entity, a cloud tenant or provider scope, a software product or data source (e.g., `"ms-sustainability-odata"`), or a site listed in a linked carbon.txt file {{CARBON-TXT}}. When the response is scoped by the `target` query parameter, this member MUST carry the matched path prefix (see Optional Extended Query Parameters). This response member and the `target` query parameter are distinct: the parameter requests scoping; the member identifies the subject of the data actually returned.
 
 ### Optional Response Fields
@@ -219,7 +219,7 @@ A Sustainability Metadata Document SHOULD contain at least one reported numeric 
 
 This document is designed so that new fields can be introduced over time without breaking deployed clients and without requiring a revision of this specification.
 
-* Forward compatibility rests on a single rule: clients MUST ignore members they do not recognize. Because no field defined here is security-critical, silently ignoring an unknown member is safe. The formal schemas (Concise Data Definition Language (CDDL) and JSON Type Definition (JTD)) are correspondingly open and permit additional members.
+* Forward compatibility rests on a single rule: clients MUST ignore members they do not recognize. Because no field defined here is security-critical, silently ignoring an unknown member is safe. The formal schemas (CDDL and JTD) are correspondingly open and permit additional members.
 * Interoperability does not depend on the `version` member. As stated in its definition, `version` is an informational label; clients MUST NOT reject a document, or change their processing, because of an unrecognized `version` value.
 * New fields may be introduced by a future specification, or privately by an implementer. To avoid collisions, vendor or private members SHOULD be namespaced, for example with a `vendor-` prefix, a domain-qualified name, or a URI key. Implementers introducing a field of general interest are encouraged to publish its definition so that others can interoperate.
 * The values `"1.0"` and `"1.1"` denote the historical field set used before this revision, in which `energy-consumption`, `energy-unit`, `carbon-footprint`, and `carbon-unit` were mandatory, a negative value in a numeric metric was a "not reported" sentinel, and the reporting subject was conveyed by the optional `target-path` member (whose absence meant an origin-wide report). The value `"2.0"` denotes the field set of this revision. Documents declaring any of these labels remain valid, and clients MUST NOT reject a document, or branch their processing, on the label itself. Instead, two field-driven compatibility rules make historical documents processable: a client that encounters a negative value in a member defined here as non-negative MUST treat that member as not reported (this subsumes the historical sentinel), and a client that encounters a document without a `target` member SHOULD treat it as an origin-wide report (as the historical absence of `target-path` conveyed). Introducing further fields does not, by itself, require a new `version` value.
@@ -451,7 +451,7 @@ As above, the array holds one object per month; only the first two are shown for
 ## Highly Detailed Combined Extended Request
 Request: `GET /.well-known/sustainability?target=/app/storage&period=2026-03-20`
 
-This example utilizes almost all optional fields, including GHG Protocol Scopes, a verifiable attestation link to combat greenwashing, and a namespaced vendor-extension member (`vendor-example-pue`, a power-usage-effectiveness figure) that clients not recognizing it simply ignore (see Versioning and Extensibility).
+This example utilizes all optional fields, including GHG Protocol Scopes, a verifiable attestation link to combat greenwashing, and a namespaced vendor-extension member (`vendor-example-pue`, a power-usage-effectiveness figure) that clients not recognizing it simply ignore (see Versioning and Extensibility).
 
 ~~~ json
 {

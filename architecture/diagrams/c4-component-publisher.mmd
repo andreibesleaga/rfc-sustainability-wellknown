@@ -1,0 +1,65 @@
+flowchart TB
+    %% C4 Level 3 - Component diagram of publisher/src (flowchart rendering of C4 component semantics)
+
+    subgraph SOURCES["External metric sources"]
+        SF["Salesforce Net Zero Cloud"]
+        MS["MS Sustainability Manager"]
+        WS["Watershed API"]
+        KP["Kepler / Prometheus"]
+        CQ["Climatiq estimate API"]
+        GW["GWF Greencheck + carbon.txt API"]
+        FS["Local JSON file / config"]
+    end
+
+    subgraph PUB["publisher/src (npm: sustainability-wellknown-publisher)"]
+        subgraph ADP["adapters/ — SourceAdapter.fetch(query) → RawMetrics | RawMetrics[]"]
+            A1["static / static-file"]
+            A2["computed"]
+            A3["kepler-prometheus"]
+            A4["climatiq"]
+            A5["co2js (bytes → carbon)"]
+            A6["carbontxt-api"]
+            A7["enterprise/: salesforce-nzc,<br/>ms-sustainability, watershed"]
+        end
+        NORM["normalize.ts<br/>units (J→kWh, Wh↔GWh, g↔mt), carbon = energy × intensity,<br/>defaults, PERIOD_RE, mandatory target, range checks"]
+        SEC["security.ts — secureReports()<br/>daily floor · sort ascending · cap 366 (keep newest) ·<br/>optional deterministic ~1% noise"]
+        VAL["validate.ts — JTD gate (ajv/jtd)<br/>+ prose rules: non-negative, 0–100, sci↔functional-unit,<br/>finite numbers, cross-entry array rules"]
+        SCH["schema.ts<br/>embedded RESPONSE_JTD_SCHEMA<br/>(byte-equal to schemas-validators/, CI-checked)"]
+        PUBL["publisher.ts — Publisher<br/>orchestrates build(); single-vs-array shape rule;<br/>bounded in-memory cache (TTL 24h, 256 keys) + SHA-1 ETag"]
+        HANDLER["handler.ts — handleRequest()<br/>200/304/404/503, Cache-Control, CORS, If-None-Match"]
+        CTXT["carbontxt.ts<br/>emit / parse / discover carbon.txt (TOML)"]
+        subgraph HTTP["HTTP exposure"]
+            SRV["server.ts — standalone Node http server<br/>(405 + Allow: GET, HEAD; extraPaths)"]
+            EXP["middleware/express.ts"]
+            FAS["middleware/fastify.ts"]
+            CLI["cli.ts — config file → adapter factory →<br/>serve or --once print"]
+        end
+        UTIL["util.ts — fromWire(), lastFullMonth(), readJson()"]
+    end
+
+    CLIENT(("HTTP client"))
+
+    SF --> A7
+    MS --> A7
+    WS --> A7
+    KP --> A3
+    CQ --> A4
+    GW --> A5
+    GW --> A6
+    FS --> A1
+    FS --> A2
+
+    PUBL -- "fetch(query)" --> ADP
+    ADP -- "RawMetrics" --> NORM
+    NORM -- "SustainabilityMetrics[]" --> SEC
+    SEC --> VAL
+    SCH -.-> VAL
+    VAL -- "assertValid (fail ⇒ throw ⇒ 503)" --> PUBL
+    PUBL -- "SerializedDocument {body, etag}" --> HANDLER
+    HANDLER --> SRV
+    HANDLER --> EXP
+    HANDLER --> FAS
+    CLI --> SRV
+    CTXT --> HANDLER
+    UTIL -.-> CLI
+    SRV -- "200 + ETag / 304 / 404 / 405 / 503" --> CLIENT

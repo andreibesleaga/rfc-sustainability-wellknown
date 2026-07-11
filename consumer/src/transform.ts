@@ -21,7 +21,9 @@ const CSV_COLUMNS = [
 export function toCsvRows(doc: SustainabilityDocument): string[] {
   const q = (v: unknown) => {
     const s = v === undefined ? "" : String(v);
-    return s.includes(",") ? `"${s.replace(/"/g, '""')}"` : s;
+    // RFC 4180: quote any value containing a comma, a double quote, or a
+    // line break (a raw newline would split the row; a raw quote mis-parses).
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const rows = [CSV_COLUMNS.join(",")];
   for (const m of asArray(doc)) {
@@ -80,8 +82,15 @@ export function flatten(doc: SustainabilityDocument): FlatRecord[] {
       // draft §Value Constraints): negatives in the non-negative members, and
       // a renewable-energy percentage above 100.
       if (NON_NEGATIVE.includes(metric) && isNotReported(value, metric)) continue;
+      // sci-score is expressed in gCO2e per the declared functional-unit
+      // (draft §Optional Response Fields) — label it truthfully rather than
+      // emitting an empty unit into time-series backends.
       const unit =
-        unitField && m[unitField] !== undefined ? String(m[unitField as keyof SustainabilityMetrics]) : defaultUnit;
+        metric === "sci-score"
+          ? `gCO2e/${m["functional-unit"] ?? "functional-unit"}`
+          : unitField && m[unitField] !== undefined
+            ? String(m[unitField as keyof SustainabilityMetrics])
+            : defaultUnit;
       rows.push({
         provider: m.provider,
         "reporting-period": m["reporting-period"],
@@ -135,29 +144,27 @@ export function aggregate(entries: SustainabilityMetrics[], opts: AggregateOptio
 
   const first = entries[0];
   const last = entries[entries.length - 1];
-  const out: SustainabilityMetrics = {
-    ...first,
-    "reporting-period": `${first["reporting-period"]}..${last["reporting-period"]}`,
-  };
-  delete out["energy-consumption"];
-  delete out["energy-unit"];
-  delete out["carbon-footprint"];
-  delete out["carbon-unit"];
-  // Per-entry metrics that cannot be meaningfully aggregated must not leak
-  // from the first entry into the summary: scopes are expressed in that
+  // Whitelist-copy ONLY the invariant metadata (uniform across a valid trend
+  // array). Per-entry metrics cannot be meaningfully aggregated and must not
+  // leak from the first entry into the summary: scopes are expressed in that
   // entry's carbon-unit (relabeling them under the summary's output unit would
-  // silently misstate them by the conversion factor), and sci-score /
-  // renewable-energy / intensity / annual-estimate are per-period figures (a
-  // first-entry legacy sentinel would even leak a negative into the summary).
-  // The summary carries the aggregated totals plus the invariant metadata.
-  delete out["scope-1"];
-  delete out["scope-2"];
-  delete out["scope-3"];
-  delete out["sci-score"];
-  delete out["functional-unit"];
-  delete out["carbon-intensity-gCO2e-per-kWh"];
-  delete out["estimated-annual-emissions-kgCO2e"];
-  delete out["renewable-energy"];
+  // silently misstate them by the conversion factor); sci-score / renewable /
+  // intensity / annual-estimate are per-period figures; and unknown VENDOR
+  // members have unknown aggregability, so they are excluded too (a spread
+  // would carry them over verbatim).
+  const out: SustainabilityMetrics = {
+    version: first.version,
+    updated: last.updated, // the summary is as fresh as its newest entry
+    capabilities: first.capabilities,
+    provider: first.provider,
+    "measurement-method": first["measurement-method"],
+    "methodology-uri": first["methodology-uri"],
+    "reporting-period": `${first["reporting-period"]}..${last["reporting-period"]}`,
+    target: first.target,
+  };
+  if (first["carbon-accounting"] !== undefined) {
+    out["carbon-accounting"] = first["carbon-accounting"];
+  }
   if (energies.length > 0) {
     out["energy-consumption"] = Math.round(combine(energies) * 100) / 100;
     out["energy-unit"] = energyUnit;

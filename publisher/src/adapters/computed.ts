@@ -31,12 +31,14 @@ export interface ComputedAdapterConfig {
 }
 
 export function computedAdapter(config: ComputedAdapterConfig): SourceAdapter {
-  // Default "extended": this adapter always emits the optional
-  // carbon-intensity-gCO2e-per-kWh field, and a response declaring "basic"
-  // SHOULD NOT include optional fields (draft §Mandatory Response Fields).
+  // Default "basic": since -03, `capabilities` describes Extended
+  // query-parameter support only (member presence is orthogonal — a "basic"
+  // document MAY carry optional members). This adapter ignores the query
+  // parameters, so "basic" is the honest default; set config.capabilities to
+  // "extended" only when the deployment in front of it honors the parameters.
   return {
     name: "computed",
-    capabilities: config.capabilities ?? "extended",
+    capabilities: config.capabilities ?? "basic",
     async fetch(): Promise<RawMetrics> {
       const raw: RawMetrics = {
         provider: config.provider,
@@ -44,7 +46,7 @@ export function computedAdapter(config: ComputedAdapterConfig): SourceAdapter {
         methodologyUri: config.methodologyUri,
         reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
         carbonIntensity: config.gridIntensity,
-        capabilities: config.capabilities ?? "extended",
+        capabilities: config.capabilities ?? "basic",
       };
       if (config.energy) raw.energy = config.energy;
       if (config.energyJoules !== undefined) raw.energyJoules = config.energyJoules;

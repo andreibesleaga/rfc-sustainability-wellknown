@@ -1,0 +1,40 @@
+flowchart TB
+    CLIENT(("Consumers<br/>browsers · M2M · aggregators · AI agents"))
+
+    subgraph T1["Topology 1 — Standalone gateway"]
+        SA["Node process: createSustainabilityServer(publisher)<br/>publisher/src/server.ts + cli.ts<br/>serves /.well-known/sustainability (+ optional carbon.txt)"]
+        SRC1["Any adapter source"]
+        SRC1 --> SA
+    end
+
+    subgraph T2["Topology 2 — Embedded middleware"]
+        APP2["Existing Express / Fastify app"]
+        MW["expressSustainability() / fastifySustainability()<br/>mounted at /.well-known/sustainability"]
+        SRC2["Any adapter source"]
+        SRC2 --> MW
+        MW --- APP2
+    end
+
+    subgraph T3["Topology 3 — Static file + web server"]
+        GEN["Pre-generated sustainability.json<br/>(publisher CLI --once, or hand-written;<br/>validated by schemas-validators/)"]
+        NG["nginx location block / Apache Alias<br/>server-configurations/: application/json,<br/>Cache-Control max-age=86400, auto ETag/Last-Modified,<br/>CORS *, GET/HEAD only (405 + Allow)"]
+        GEN --> NG
+    end
+
+    subgraph T4["Topology 4 — Reverse proxy in front of the gateway"]
+        RP["nginx / Apache / CDN edge<br/>proxies only /.well-known/sustainability<br/>(+ rate limiting for dynamic period/granularity)"]
+        GW4["Standalone gateway (Topology 1)<br/>on an internal port"]
+        RP --> GW4
+    end
+
+    subgraph T5["Topology 5 — Serverless / edge function"]
+        FN["Function handler wraps handleRequest(publisher, query)<br/>framework-agnostic HandlerResult {status, headers, body}"]
+        SRC5["Any adapter source"]
+        SRC5 --> FN
+    end
+
+    CLIENT -- "HTTPS GET" --> SA
+    CLIENT -- "HTTPS GET" --> APP2
+    CLIENT -- "HTTPS GET" --> NG
+    CLIENT -- "HTTPS GET" --> RP
+    CLIENT -- "HTTPS GET" --> FN

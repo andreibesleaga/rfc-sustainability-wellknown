@@ -1,7 +1,7 @@
 {
   "version": "2.0",
-  "updated": "2026-07-10T07:39:05Z",
-  "capabilities": "extended",
+  "updated": "2026-07-11T08:41:29Z",
+  "capabilities": "basic",
   "provider": "Example Corp (sustain@example.org)",
   "measurement-method": "hardware-estimated",
   "methodology-uri": "https://example.com/sustainability/methodology",

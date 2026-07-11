@@ -54,7 +54,7 @@ async function main() {
       region: "US",
       energy: { value: 2500, unit: "kWh" },
       fixture: climatiqFixture,
-      capabilities: "extended",
+      capabilities: "basic",
     }),
     "dcanalytics.example",
   );
@@ -73,7 +73,7 @@ async function main() {
       greencheckFixture,
       renewableEnergy: 45,
       disclosureUri: "https://example.com/.well-known/carbon.txt",
-      capabilities: "extended",
+      capabilities: "basic",
     }),
     "example.com",
   );
@@ -88,7 +88,7 @@ async function main() {
       domain: "acme.example",
       fixture: carbontxtFixture,
       compute: { bytes: 2000000000, green: true, gridZone: "DEU" },
-      capabilities: "extended",
+      capabilities: "basic",
     }),
     "acme.example",
   );
@@ -104,7 +104,7 @@ async function main() {
       gridIntensity: 230,
       functionalUnit: "per-cluster-month",
       fixture: keplerFixture,
-      capabilities: "extended",
+      capabilities: "basic",
     }),
     "example.com",
   );
@@ -174,7 +174,7 @@ async function main() {
       gridIntensity: computedInputs.gridIntensity,
       carbonAccounting: computedInputs.carbonAccounting,
       renewableEnergy: computedInputs.renewableEnergy,
-      capabilities: "extended",
+      capabilities: "basic",
     }),
     "example.com",
   );

@@ -32,9 +32,18 @@ export interface WatershedConfig {
   apiKey?: string;
   /** Path to the footprint resource on the API. */
   footprintPath?: string;
+  /**
+   * Unit the upstream values are declared in (default kgCO2e, matching the
+   * fixture field names like totalEmissionsKgCo2e). NOTE: setting this
+   * REINTERPRETS the raw values under the new unit — it does not convert
+   * them; only use it when your Watershed export genuinely reports in a
+   * different unit despite the field naming.
+   */
   carbonUnit?: CarbonUnit;
   measurementMethod?: string;
   fixture?: WatershedFootprint;
+  /** Declared service level; "basic" unless the deployment honors Extended query parameters. */
+  capabilities?: "basic" | "extended";
 }
 
 /**
@@ -58,7 +67,7 @@ export function watershedAdapter(config: WatershedConfig): SourceAdapter {
 
   return {
     name: "watershed",
-    capabilities: "extended",
+    capabilities: config.capabilities ?? "basic",
     async fetch(): Promise<RawMetrics> {
       let fp: WatershedFootprint;
       if (config.fixture) {
@@ -102,7 +111,7 @@ export function watershedAdapter(config: WatershedConfig): SourceAdapter {
         reportingPeriod: resolvePeriod(config.reportingPeriod, fp.reportingPeriod),
         energy: { value: fp.energyKwh, unit: "kWh" },
         carbon: { value: total, unit: carbonUnit },
-        capabilities: "extended",
+        capabilities: config.capabilities ?? "basic",
       };
       if (fp.scope1Kg !== undefined) raw.scope1 = fp.scope1Kg;
       if (fp.scope2Kg !== undefined) raw.scope2 = fp.scope2Kg;

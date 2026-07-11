@@ -35,8 +35,9 @@ sustainability-publisher --config config.json --once > /var/www/metadata/sustain
 ```
 
 Flags: `--config <path>` (required), `--port <n>` (default 8080), `--once` (print
-and exit instead of serving), `--emit-carbon-txt` (also print a matching
-carbon.txt to stderr). See `bin/sustainability-publisher.js` / `src/cli.ts`.
+and exit instead of serving), `--emit-carbon-txt` (print a matching
+carbon.txt to stdout INSTEAD of the metrics document; requires
+`server.carbonTxt.sustainabilityUrl` in the config). See `bin/sustainability-publisher.js` / `src/cli.ts`.
 
 ## 2. Embedded middleware in an existing app
 
@@ -53,7 +54,7 @@ const publisher = new Publisher(
     methodologyUri: "https://example.com/methodology",
     energy: { value: 1250, unit: "kWh" },
     gridIntensity: 276,
-    capabilities: "extended",
+    capabilities: "basic",  // no Extended query-param support (-03 semantics)
   }),
   // Mandatory reporting subject (draft `target` member): the origin host for
   // an origin-wide report. Adapter-supplied raw.target takes precedence.

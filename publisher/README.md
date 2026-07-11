@@ -5,8 +5,9 @@ document, as defined by
 [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
 
 It ingests metrics from pluggable **source adapters**, normalizes them to the draft's
-field model, **validates every payload against this repository's JTD and CDDL schemas
-before serving** (publish-only-if-valid), and exposes the Basic and Extended service
+field model, **validates every payload against this repository's JTD schema at runtime
+before serving** (publish-only-if-valid; the CDDL schema cross-checks the same
+documents independently in CI), and exposes the Basic and Extended service
 levels with the draft's mandated DoS and privacy safeguards.
 
 It ships three ways to deploy:
@@ -76,7 +77,7 @@ const publisher = new Publisher(
     reportingPeriod: "2026-02",
     energy: { value: 1250, unit: "kWh" },
     gridIntensity: 276,           // gCO2e/kWh → carbon-footprint computed for you
-    capabilities: "extended",     // the intensity field is an optional (Extended) field
+    capabilities: "basic",        // "basic" = no Extended query-param support (-03 semantics)
   }),
   // `target` = the mandatory reporting subject; use the origin host for
   // origin-wide reports (adapters that scope by path set it themselves).

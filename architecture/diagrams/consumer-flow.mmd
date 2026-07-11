@@ -1,0 +1,31 @@
+flowchart TD
+    START["fetchSustainability(origin, options)"] --> URL["Build URL: origin + /.well-known/sustainability<br/>+ target / period / granularity params<br/>+ If-None-Match when ETag known"]
+    URL --> REQ["GET with AbortSignal.timeout (default 30s)"]
+
+    REQ -- "timeout / abort" --> TMO(["status: timeout"])
+    REQ --> ST{"HTTP status?"}
+    ST -- "304" --> NM(["status: not-modified<br/>(SustainabilityClient replays cached document)"])
+    ST -- "404" --> NF(["status: not-found"])
+    ST -- "other non-2xx" --> HE(["status: http-error"])
+    ST -- "2xx" --> CL{"Content-Length ><br/>maxBytes (10MB)?"}
+
+    CL -- "yes" --> TL(["status: too-large<br/>(body never buffered)"])
+    CL -- "no" --> READ["Stream body with running byte cap<br/>(abort mid-stream if cap exceeded)"]
+    READ -- "cap exceeded" --> TL
+    READ --> PARSE{"JSON.parse ok?"}
+    PARSE -- "no" --> INV(["status: invalid"])
+
+    PARSE -- "yes" --> LC{"legacyCompat (default on)<br/>and document lacks target?"}
+    LC -- "yes" --> INJ["Inject final-response origin host as target<br/>(redirects attribute to FINAL origin);<br/>flag result legacy: true<br/>(historical 1.x 'absence = origin-wide' rule)"]
+    LC -- "no" --> VAL
+    INJ --> VAL
+
+    VAL{"validateDocument()<br/>JTD schema + sci↔functional-unit +<br/>cross-entry array rules<br/>(ascending periods, uniform precision,<br/>single target, empty array invalid)"}
+    VAL -- "fail" --> INV
+    VAL -- "pass" --> OK(["status: ok<br/>{document, etag?, legacy?}"])
+
+    OK --> USE["Downstream use"]
+    USE --> T1["toCsvRows / toNdjson"]
+    USE --> T2["flatten — one row per metric,<br/>default units kWh / gCO2e,<br/>out-of-range values skipped as 'not reported'<br/>(negative scopes kept: real net accounting)"]
+    USE --> T3["aggregate — sum/average trend,<br/>unit-normalized"]
+    USE --> T4["resolveDisclosureLinks — passive;<br/>disclosure/attestation URIs never auto-fetched"]

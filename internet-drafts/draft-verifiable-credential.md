@@ -25,10 +25,11 @@ Here is an Example Draft structure for the Verifiable Credential, following the 
   "issuanceDate": "2026-03-21T10:00:00Z",
   "credentialSubject": {
     "id": "did:web:example.com",
-    "version": "1.1",
+    "version": "2.0",
     "capabilities": "extended",
     "provider": "Example Corp",
     "reporting-period": "2025",
+    "target": "example.com",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/sustainability/methodology",
     "energy-consumption": 13540.0,
@@ -48,7 +49,7 @@ Here is an Example Draft structure for the Verifiable Credential, following the 
 
 ## Key Components Explained
 * **issuer**: This is the Decentralized Identifier (DID) of the authoritative entity (e.g., a certified carbon auditor) that verified the data.
-* **credentialSubject**: This block mirrors the mandatory fields defined in the draft, such as energy-consumption, carbon-footprint, and reporting-period. It serves as the "claims" being made.
+* **credentialSubject**: This block mirrors fields defined in the draft — the mandatory members (such as reporting-period and the `target` reporting subject) plus reported metrics like energy-consumption and carbon-footprint. It serves as the "claims" being made.
 * **proof**: This is the cryptographic signature. It ensures that if even a single digit of the energy consumption is changed in the .well-known file, the VC signature will no longer match, alerting the client to a potential misrepresentation.
 
 ## Anti-Greenwashing

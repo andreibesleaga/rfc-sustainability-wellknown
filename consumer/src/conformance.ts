@@ -3,7 +3,7 @@
  * origin — usable against this repo's own implementations or any third
  * party's, not just via the CLI's --strict flag.
  */
-import { fetchSustainability } from "./fetch";
+import { DEFAULT_TIMEOUT_MS, fetchSustainability } from "./fetch";
 import { WELL_KNOWN_PATH } from "./fetch";
 
 export interface ConformanceCheck {
@@ -50,7 +50,9 @@ export async function runConformanceChecks(
   // detect. (The Basic check below thus inherently requires `target`.)
   const fetchOpts = { fetchImpl, timeoutMs, maxBytes, legacyCompat: false };
   /** Signal for the raw (non-fetchSustainability) probes below, so they can't hang either. */
-  const rawSignal = () => (timeoutMs !== undefined ? AbortSignal.timeout(timeoutMs) : undefined);
+  // Raw probes get the same default timeout as fetchSustainability — a
+  // hanging origin must not stall the battery on undici's ~5-minute defaults.
+  const rawSignal = () => AbortSignal.timeout(timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
   checks.push(
     await check("Basic request returns a schema-valid single object", async () => {
@@ -99,10 +101,16 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    await check("Extended granularity request returns a sorted array", async () => {
+    await check("Extended granularity request returns a valid response (sorted array when honored)", async () => {
       const r = await fetchSustainability(origin, { ...fetchOpts, period: new Date().getUTCFullYear().toString(), granularity: "monthly" });
       if (r.status === "not-found") return true; // server may have no data for this year; not a conformance failure
       if (r.status !== "ok") return `expected ok or not-found, got ${r.status}`;
+      // The draft's array-when-finer-granularity rule is a SHOULD: a server
+      // ignoring the parameter and returning its Basic single object is
+      // conformant, so a non-array does not fail the check — but say so.
+      if (!Array.isArray(r.document)) {
+        return true; // single object: granularity not honored (allowed; Basic fallback)
+      }
       return true; // shape/order already enforced by validateDocument() inside fetchSustainability
     }),
   );

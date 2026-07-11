@@ -117,8 +117,21 @@ describe("co2js adapter", () => {
     );
     const grey: any = await docOf(co2jsAdapter({ ...base, green: false }));
     expect(validateDocument(green).valid).toBe(true);
-    // green hosting reduces the data-centre energy share → lower operational energy
-    expect(green["energy-consumption"]).toBeLessThan(grey["energy-consumption"]);
+    // Operational energy does not depend on who supplies the electricity —
+    // it MUST be identical whether the host is green or not. The green
+    // discount applies to CARBON (via the effective intensity), and
+    // energy × intensity === carbon stays exact in both documents.
+    expect(green["energy-consumption"]).toBe(grey["energy-consumption"]);
+    expect(green["carbon-footprint"]).toBeLessThan(grey["carbon-footprint"]);
+    expect(green["carbon-intensity-gCO2e-per-kWh"]).toBeLessThan(
+      grey["carbon-intensity-gCO2e-per-kWh"],
+    );
+    for (const d of [green, grey]) {
+      expect(d["carbon-footprint"]).toBeCloseTo(
+        d["energy-consumption"] * d["carbon-intensity-gCO2e-per-kWh"],
+        1,
+      );
+    }
   });
 
   it("perVisit mode is valid", async () => {

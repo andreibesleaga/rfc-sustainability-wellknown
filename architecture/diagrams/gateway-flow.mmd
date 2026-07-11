@@ -1,0 +1,43 @@
+flowchart TD
+    Q["Incoming query<br/>{target?, period?, granularity?}"] --> AD
+
+    subgraph SRC["Any data source"]
+        S1["Enterprise platform<br/>(Salesforce NZC / MS Sustainability / Watershed)"]
+        S2["Energy telemetry<br/>(Kepler / Prometheus)"]
+        S3["Carbon models & APIs<br/>(Climatiq · CO2.js · GWF carbon.txt API)"]
+        S4["Static / computed config"]
+    end
+
+    S1 --> AD
+    S2 --> AD
+    S3 --> AD
+    S4 --> AD
+
+    AD["SourceAdapter.fetch(query)"] -- "RawMetrics | RawMetrics[]" --> N
+
+    N["normalize()<br/>· joules → kWh, unit conversion (Wh…GWh, g…mtCO2e)<br/>· carbon = energy × grid intensity when absent<br/>· defaults: version 2.0, capabilities basic, updated now<br/>· mandatory target (adapter value or configured fallback)<br/>· reject negative gross metrics, renewable outside 0–100,<br/>  sci-score without functional-unit, bad periods"]
+
+    N -- "SustainabilityMetrics[]" --> G1
+
+    subgraph SAFE["secureReports() — draft safeguards"]
+        G1["Daily floor: drop entries with<br/>reporting-period finer than 24h"] --> G2
+        G2["Sort ascending by reporting-period"] --> G3
+        G3["DoS cap: max 366 objects,<br/>keep most recent"] --> G4
+        G4["Optional anti-fingerprinting noise:<br/>~±1% multiplicative, deterministic per period,<br/>consistent across related fields"]
+    end
+
+    G4 --> SHAPE{"granularity<br/>requested?"}
+    SHAPE -- "yes" --> ARR["Array response (trend)"]
+    SHAPE -- "no" --> ONE["Single object<br/>(most recent entry)"]
+    G4 --> EMPTY{"0 entries left?"}
+    EMPTY -- "yes" --> R404["404 Not Found"]
+
+    ARR --> V
+    ONE --> V
+
+    V{"JTD validation gate<br/>assertValid(): schema + prose rules +<br/>cross-entry array rules"}
+    V -- "fail" --> R503["503 Service Unavailable<br/>(never publish corrupt data; onError logged)"]
+    V -- "pass" --> CACHE["Serialize + SHA-1 ETag<br/>bounded in-memory cache<br/>(TTL 24h, ≤256 query variants)"]
+
+    CACHE --> H["handler.ts → HTTP<br/>200 + ETag + Cache-Control + CORS<br/>If-None-Match match ⇒ 304"]
+    H --> OUT(("/.well-known/sustainability<br/>one standard endpoint"))

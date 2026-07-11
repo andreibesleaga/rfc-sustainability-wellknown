@@ -26,7 +26,7 @@
         "green": true,
         "gridZone": "DEU"
       },
-      "capabilities": "extended"
+      "capabilities": "basic"
     }
   },
   "publisher": {

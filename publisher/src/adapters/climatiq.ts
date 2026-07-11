@@ -44,7 +44,7 @@ const ENERGY_UNIT_PARAM: Record<EnergyUnit, string> = {
 export function climatiqAdapter(config: ClimatiqConfig): SourceAdapter {
   return {
     name: "climatiq",
-    capabilities: config.capabilities ?? "extended",
+    capabilities: config.capabilities ?? "basic",
     async fetch(): Promise<RawMetrics> {
       let resp: ClimatiqEstimateResponse;
       if (config.fixture) {
@@ -98,7 +98,7 @@ export function climatiqAdapter(config: ClimatiqConfig): SourceAdapter {
         reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
         energy: config.energy,
         carbon: { value: grams, unit: "gCO2e" },
-        capabilities: config.capabilities ?? "extended",
+        capabilities: config.capabilities ?? "basic",
       };
     },
   };

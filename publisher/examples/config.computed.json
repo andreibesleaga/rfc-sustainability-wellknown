@@ -10,7 +10,7 @@
       "gridIntensity": 276,
       "carbonAccounting": "location-based",
       "renewableEnergy": 45,
-      "capabilities": "extended"
+      "capabilities": "basic"
     }
   },
   "publisher": {

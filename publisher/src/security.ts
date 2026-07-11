@@ -17,6 +17,14 @@ export interface SecurityOptions {
   applyNoise?: boolean;
 }
 
+// The noise list deliberately covers only the additive family (energy,
+// footprint, scopes): the same multiplicative factor keeps scopes summing to
+// the footprint and E x I = C intact (intensity stays truthful un-noised).
+// carbon-intensity / estimated-annual / sci-score / renewable-energy are left
+// un-noised by owner decision — note that a publisher pairing a noised
+// footprint with an un-noised annual estimate lets a reader reconstruct the
+// pre-noise footprint (annual/365); deployments that care should omit the
+// annual member or extend this list themselves.
 const NUMERIC_KEYS = [
   "energy-consumption",
   "carbon-footprint",

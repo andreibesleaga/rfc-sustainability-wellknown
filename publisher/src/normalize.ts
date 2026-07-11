@@ -98,7 +98,8 @@ export function computeSci(
 
 /**
  * Draft period shape: `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`. Month is bounded to
- * 01-12 and day to 01-31 so impossible dates like "2026-13-40" are rejected
+ * 01-12 and day to 01-31 so shapes like "2026-13-40" are rejected (note:
+ * day-in-month validity is not checked — "2026-02-30" passes)
  * (a plain `\d{2}` would accept them). Exported as the single source of truth;
  * adapters import this rather than duplicating the pattern.
  */

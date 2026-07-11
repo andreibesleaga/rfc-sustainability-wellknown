@@ -1,0 +1,36 @@
+sequenceDiagram
+    autonumber
+    participant C as Client (browser / M2M / AI agent)
+    participant S as Server (origin)
+
+    Note over C,S: 1 — Basic service (Mandatory Minimum)
+    C->>S: GET /.well-known/sustainability
+    S-->>C: 200 OK · application/json · ETag: "abc" · Cache-Control: public, max-age=86400<br/>single JSON object (most recent completed period, origin-wide target)
+
+    Note over C,S: 2 — Conditional revalidation (RFC 9110/9111)
+    C->>S: GET /.well-known/sustainability · If-None-Match: "abc"
+    S-->>C: 304 Not Modified (empty body, ETag echoed)
+
+    Note over C,S: 3 — Method restriction
+    C->>S: POST /.well-known/sustainability
+    S-->>C: 405 Method Not Allowed · Allow: GET, HEAD
+
+    Note over C,S: 4 — Extended service: trend query
+    C->>S: GET /.well-known/sustainability?period=2025&granularity=monthly
+    S-->>C: 200 OK · JSON array (≤366 entries, ascending reporting-period,<br/>uniform precision, single target)
+
+    Note over C,S: 5 — Extended service: scoped single period
+    C->>S: GET ...?target=/api/v1&period=2026-03
+    S-->>C: 200 OK · single object · target member echoes "/api/v1"
+
+    Note over C,S: 6 — No data for a valid request
+    C->>S: GET ...?period=1999
+    S-->>C: 404 Not Found
+
+    Note over C,S: 7 — Basic-only server ignores Extended parameters
+    C->>S: GET ...?period=2025&granularity=monthly (to a "basic" server)
+    S-->>C: 200 OK · Basic single object (parameters ignored, never an error)
+
+    Note over C,S: 8 — Publish-only-if-valid (reference publisher)
+    C->>S: GET /.well-known/sustainability
+    S-->>C: 503 Service Unavailable (adapter/validation failure —<br/>corrupt data is never published)

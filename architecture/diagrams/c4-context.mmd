@@ -1,0 +1,54 @@
+flowchart TB
+    %% C4 Level 1 — System Context (graph-TD equivalent of C4Context; Mermaid's
+    %% experimental C4Context layout was unreadable at this element count).
+    %% C4 element styling: person = dark blue, system-in-scope = blue,
+    %% external system = grey, boundaries = dashed subgraphs.
+
+    OP["Site / Service Operator<br/>[Person]<br/>configures adapters, publishes the origin's metrics"]
+    HUMAN["Human Reader<br/>[Person]<br/>reads the self-describing JSON in a browser"]
+
+    subgraph CONSUMERS["Consumers"]
+        REG["Regulators / Auditors<br/>[External System]<br/>CSRD / ESRS E1 / MiCA disclosure checking"]
+        AGG["Aggregators / Crawlers<br/>[External System]<br/>cross-origin sustainability datasets"]
+        CAT["Carbon-aware Tooling<br/>[External System]<br/>schedulers, dashboards, M2M clients"]
+        AI["AI Agents<br/>[External System]<br/>schema-validatable ingestion at a fixed URI"]
+    end
+
+    CONSLIB["Consumer Library + CLI<br/>[Software System]<br/>sustainability-wellknown-consumer:<br/>fetch · validate · transform · conformance-check"]
+
+    subgraph ORIGIN["HTTPS Origin (RFC 8615)"]
+        WEB["Web Server / CDN<br/>[Software System]<br/>nginx / Apache: static file or reverse proxy"]
+        PUB["Publisher Gateway<br/>[Software System]<br/>sustainability-wellknown-publisher:<br/>any data source → one standard<br/>/.well-known/sustainability endpoint"]
+    end
+
+    subgraph SOURCES["Enterprise & telemetry data sources"]
+        ENT["Enterprise Carbon Platforms<br/>[External System]<br/>Salesforce Net Zero Cloud ·<br/>MS Sustainability Manager · Watershed"]
+        TEL["Energy Telemetry & Models<br/>[External System]<br/>Kepler/Prometheus · Climatiq ·<br/>CO2.js · static/computed values"]
+    end
+
+    IANA["IANA Well-Known URIs Registry<br/>[External System]<br/>'sustainability' suffix (RFC 8615), requested"]
+    CTXT["carbon.txt Ecosystem<br/>[External System]<br/>Green Web Foundation disclosure index (TOML)"]
+
+    OP -- "configures & runs" --> PUB
+    OP -- "registration requested (well-known-uris #95)" --> IANA
+    PUB -- "pulls org-level metrics (HTTPS APIs)" --> ENT
+    PUB -- "pulls energy/carbon data (PromQL / HTTPS)" --> TEL
+    WEB -- "reverse-proxies /.well-known/sustainability" --> PUB
+    PUB <-- "bidirectional discovery:<br/>serves carbon.txt · links via disclosure-uri" --> CTXT
+
+    HUMAN -- "GET (browser, HTTPS)" --> WEB
+    REG -- "GET /.well-known/sustainability" --> WEB
+    AI -- "GET · schema-validate · ingest" --> WEB
+    AGG -- "crawls origins with" --> CONSLIB
+    CAT -- "embeds" --> CONSLIB
+    CONSLIB -- "GET / conditional GET (ETag)" --> WEB
+
+    classDef person fill:#08427b,color:#fff,stroke:#052e56
+    classDef system fill:#1168bd,color:#fff,stroke:#0b4884
+    classDef ext fill:#999999,color:#fff,stroke:#6b6b6b
+    class OP,HUMAN person
+    class PUB,WEB,CONSLIB system
+    class REG,AGG,CAT,AI,ENT,TEL,IANA,CTXT ext
+    style CONSUMERS stroke-dasharray:5 5,fill:none
+    style ORIGIN stroke-dasharray:5 5,fill:none
+    style SOURCES stroke-dasharray:5 5,fill:none

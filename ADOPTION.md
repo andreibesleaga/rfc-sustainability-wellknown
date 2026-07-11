@@ -167,7 +167,7 @@ RFC 5742 conflict-review question before it is asked.
 | **Green Web Foundation carbon.txt** | A TOML **disclosure index** — links to where an origin's sustainability evidence lives ("connect, not collect"). | **Complementary by construction**: carbon.txt indexes *where disclosures live*; this endpoint publishes *the numeric metrics themselves*. They compose in both directions — the draft's optional `disclosure-uri` points at a carbon.txt, and a carbon.txt can list this endpoint; the reference publisher even serves a bidirectional carbon.txt. No namespace collision (different suffixes). |
 | **CO2.js (GWF)** | An estimation library (bytes → CO2e). | **Producer, not competitor** — the reference publisher ships a CO2.js adapter that generates the numbers this endpoint publishes. |
 | **GSF SCI / ISO/IEC 21031:2024** | A methodology/metric standard. | **Carried, not redefined** — the optional `sci-score` + `functional-unit` fields transport an SCI value; the draft mandates no methodology. |
-| **W3C Web Sustainability Guidelines** | Best-practice guidance (Community Group report). | **Supported** — publishing via this endpoint is a concrete way to meet WSG's transparency guidance. |
+| **W3C Web Sustainability Guidelines** | Best-practice guidance (now a W3C Group Draft Note of the Sustainable Web Interest Group). | **Supported** — publishing via this endpoint is a concrete way to meet WSG's transparency guidance. |
 
 Net: nothing in the IETF, IRTF, or the ecosystem does what this draft does, and everything
 adjacent either composes with it or is explicitly out of its scope. Nothing can "break" it,
@@ -209,9 +209,11 @@ Datatracker sweep (carbon/sustain, all streams, active + expired), verified 2026
 | CATS WG | Chartered | Computing-aware traffic steering; charter contains no energy/carbon metrics. |
 
 **One-sentence position:** everything active at the IETF in this space is
-network-operator-internal; the only two artifacts ever proposing *web-facing, per-site*
-carbon disclosure are the expired 2023 header draft and this one — and the GREEN charter
-explicitly carves disclosure/metadata formats out of its scope.
+network-operator-internal; the only artifacts ever proposing *web-facing, per-site*
+carbon disclosure are the expired 2023 header draft, this document's own set-aside
+per-request-header predecessor (`draft-besleaga-green-sustainability-header-00`, expired,
+formally replaced by this draft), and this one — and the GREEN charter explicitly carves
+disclosure/metadata formats out of its scope.
 
 ### 7.3 The honest verdict — "why this draft, against a funded organization's full-stack work?"
 

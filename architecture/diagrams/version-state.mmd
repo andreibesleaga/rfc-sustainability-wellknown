@@ -1,0 +1,31 @@
+stateDiagram-v2
+    state "Schema / data-model lifecycle" as SCHEMA {
+        state "1.0 (historical): 4 metric members mandatory, negative value = not-reported sentinel, optional target-path (absent = origin-wide)" as V10
+        state "1.1 (historical): adds optional disclosure-uri" as V11
+        state "2.0 (current, -03): 8 mandatory + 15 optional members, omission is the only not-reported mechanism, mandatory target, CO2e renames, energy/carbon optional with kWh/gCO2e defaults" as V20
+        state "Client processing of ANY document (field-driven, never version-driven): negative value in a non-negative member = not reported (subsumes the sentinel); missing target = origin-wide report; unknown members ignored; version label never rejected or branched on" as COMPAT
+
+        [*] --> V10
+        V10 --> V11 : add disclosure-uri
+        V11 --> V20 : BREAKING revision (draft -03)
+        V20 --> COMPAT : consumed under
+        V11 --> COMPAT : consumed under
+        V10 --> COMPAT : consumed under
+    }
+
+    state "Internet-Draft revision lifecycle" as DRAFT {
+        state "draft-besleaga-green-sustainability-wellknown -00 .. -05 (former name)" as GREEN
+        state "-00 .. -01 renamed series (replaces the green- draft)" as EARLY
+        state "-02 SUBMITTED: posted 2026-07-03, ISE 'Submission Received', frozen under review (schema 1.1 model)" as SUBMITTED
+        state "-03 PREPARED: schema 2.0 revision, in-repo, awaiting the post-IETF-126 submission window (SUSTAIN RG presentation)" as PREPARED
+        state "-03 posted, ISE review continues" as POSTED
+        state "Informational RFC + IANA 'sustainability' well-known URI (provisional, promotable to permanent)" as RFC
+
+        [*] --> GREEN
+        GREEN --> EARLY : rename (Independent Submission, no WG affiliation implied)
+        EARLY --> SUBMITTED
+        SUBMITTED --> PREPARED : rework data model to 2.0
+        PREPARED --> POSTED : submission window reopens
+        POSTED --> RFC : ISE approval + RFC Editor
+        RFC --> [*]
+    }

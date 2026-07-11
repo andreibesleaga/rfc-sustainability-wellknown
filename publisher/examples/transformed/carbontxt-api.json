@@ -1,17 +1,17 @@
 {
   "version": "2.0",
-  "updated": "2026-07-10T07:39:05Z",
-  "capabilities": "extended",
+  "updated": "2026-07-11T08:41:29Z",
+  "capabilities": "basic",
   "provider": "ACME Hosting (compliance@acme.example)",
   "measurement-method": "third-party-modeled",
   "methodology-uri": "https://acme.example/sustainability",
   "reporting-period": "2026-02",
   "target": "acme.example",
-  "energy-consumption": 0.49,
+  "energy-consumption": 0.6,
   "energy-unit": "kWh",
   "carbon-footprint": 167.6094,
   "carbon-unit": "gCO2e",
-  "carbon-intensity-gCO2e-per-kWh": 342.06,
+  "carbon-intensity-gCO2e-per-kWh": 279.349,
   "verifiable-attestation-uri": "https://acme.example/iso14001.pdf",
   "disclosure-uri": "https://acme.example/carbon.txt"
 }

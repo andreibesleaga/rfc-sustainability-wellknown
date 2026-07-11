@@ -38,6 +38,8 @@ export interface MsSustainabilityConfig {
   measurementMethod?: string;
   /** Replay mode: recorded OData pages, walked in order. */
   fixturePages?: ODataPage[];
+  /** Declared service level; "basic" unless the deployment honors Extended query parameters. */
+  capabilities?: "basic" | "extended";
 }
 
 // Both call sites invoke num() only for a field that is present (!== undefined),
@@ -59,7 +61,7 @@ export function msSustainabilityAdapter(config: MsSustainabilityConfig): SourceA
 
   return {
     name: "ms-sustainability",
-    capabilities: "extended",
+    capabilities: config.capabilities ?? "basic",
     async fetch(): Promise<RawMetrics> {
       const pages: ODataPage[] = [];
 
@@ -118,23 +120,30 @@ export function msSustainabilityAdapter(config: MsSustainabilityConfig): SourceA
         );
       }
 
-      const energyKwh = energyFound ? energy : config.energyKwh;
-      if (energyKwh === undefined) {
+      // Energy is OPTIONAL since -03: when the operator configured an energy
+      // source (energyField) it must resolve — a configured-but-missing field
+      // is a misconfiguration and fails loud. When no energy source is
+      // configured at all (the real Microsoft emissions entities carry none),
+      // publish a carbon-only document instead of forcing the operator to
+      // invent a number.
+      if (config.energyField && !energyFound) {
         throw new Error(
-          "msSustainabilityAdapter: no energy in records; set energyField or energyKwh",
+          `msSustainabilityAdapter: no record carried energy field "${config.energyField}"`,
         );
       }
+      const energyKwh = energyFound ? energy : config.energyKwh;
 
-      return {
+      const raw: RawMetrics = {
         provider: config.provider,
         measurementMethod: config.measurementMethod ?? "cloud-billing",
         methodologyUri: config.methodologyUri,
         reportingPeriod: config.reportingPeriod,
-        energy: { value: energyKwh, unit: "kWh" },
         carbon: { value: carbon, unit: carbonUnit },
         scope3: carbon, // tenant/cloud usage emissions are Scope 3 to the customer
-        capabilities: "extended",
+        capabilities: config.capabilities ?? "basic",
       };
+      if (energyKwh !== undefined) raw.energy = { value: energyKwh, unit: "kWh" };
+      return raw;
     },
   };
 }

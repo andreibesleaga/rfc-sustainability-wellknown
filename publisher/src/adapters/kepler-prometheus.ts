@@ -67,7 +67,7 @@ export function keplerPrometheusAdapter(config: KeplerPrometheusConfig): SourceA
   const query = config.query ?? "sum(kepler_node_platform_joules_total)";
   return {
     name: "kepler-prometheus",
-    capabilities: config.capabilities ?? "extended",
+    capabilities: config.capabilities ?? "basic",
     async fetch(): Promise<RawMetrics> {
       let resp: PromQueryResponse;
       if (config.fixture) {
@@ -89,7 +89,7 @@ export function keplerPrometheusAdapter(config: KeplerPrometheusConfig): SourceA
         energyJoules: joules,
         carbonIntensity: config.gridIntensity,
         functionalUnit: config.functionalUnit,
-        capabilities: config.capabilities ?? "extended",
+        capabilities: config.capabilities ?? "basic",
       };
     },
   };

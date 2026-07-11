@@ -52,6 +52,8 @@ export interface SalesforceNzcConfig {
   fieldMap?: Partial<SalesforceFieldMap>;
   measurementMethod?: string;
   fixture?: SoqlResponse;
+  /** Declared service level; "basic" unless the deployment honors Extended query parameters. */
+  capabilities?: "basic" | "extended";
 }
 
 function num(v: unknown): number | undefined {
@@ -70,7 +72,7 @@ export function salesforceNzcAdapter(config: SalesforceNzcConfig): SourceAdapter
 
   return {
     name: "salesforce-nzc",
-    capabilities: "extended",
+    capabilities: config.capabilities ?? "basic",
     async fetch(): Promise<RawMetrics | RawMetrics[]> {
       let resp: SoqlResponse;
       if (config.fixture) {
@@ -132,7 +134,7 @@ export function salesforceNzcAdapter(config: SalesforceNzcConfig): SourceAdapter
           scope1,
           scope2,
           scope3,
-          capabilities: "extended",
+          capabilities: config.capabilities ?? "basic",
         };
       };
 

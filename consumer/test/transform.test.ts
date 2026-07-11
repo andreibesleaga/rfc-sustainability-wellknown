@@ -159,11 +159,11 @@ describe("flatten", () => {
     expect(row.unit).toBe("kgCO2e");
   });
 
-  it("uses an empty unit string for the unitless sci-score metric", () => {
+  it("labels sci-score in gCO2e per the declared functional-unit", () => {
     const rows = flatten(metrics({ "sci-score": 1.2, "functional-unit": "req" }));
     const row = rows.find((r) => r.metric === "sci-score")!;
     expect(row.value).toBe(1.2);
-    expect(row.unit).toBe("");
+    expect(row.unit).toBe("gCO2e/req");
   });
 
   it("produces rows across every entry of an array document", () => {
@@ -347,5 +347,27 @@ describe("final-audit fix: aggregate drops non-aggregatable per-entry metrics", 
     expect(summary).not.toHaveProperty("renewable-energy");
     expect(summary["carbon-footprint"]).toBe(10000); // 5+5 kg -> g
     expect(validateDocument(summary).valid).toBe(true);
+  });
+});
+
+describe("final pre-tag fixes: CSV escaping + aggregate vendor exclusion", () => {
+  it("quotes CSV values containing quotes or newlines (RFC 4180)", () => {
+    const rows = toCsvRows(metrics({ provider: 'Acme "Green" Hosting' } as any));
+    expect(rows[1]).toContain('"Acme ""Green"" Hosting"');
+    const rows2 = toCsvRows(metrics({ provider: "line1\nline2" } as any));
+    expect(rows2[1]).toContain('"line1\nline2"');
+    expect(rows2).toHaveLength(2); // the newline must not split the row
+  });
+
+  it("aggregate excludes unknown vendor members and stale per-entry metrics from the summary", () => {
+    const entries = [
+      metrics({ "reporting-period": "2026-01", "vendor-x": "leak?", "scope-1": 5 } as any),
+      metrics({ "reporting-period": "2026-02" } as any),
+    ];
+    const summary = aggregate(entries as any, { by: "sum" });
+    expect(summary).not.toHaveProperty("vendor-x");
+    expect(summary).not.toHaveProperty("scope-1");
+    // freshest updated wins
+    expect(summary.updated).toBe(entries[1].updated);
   });
 });

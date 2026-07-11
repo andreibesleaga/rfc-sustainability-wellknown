@@ -267,3 +267,44 @@ describe("legacy-compatibility pre-pass (draft §Versioning and Extensibility)",
     }
   });
 });
+
+describe("final pre-tag fix: redirect attribution (draft MUST)", () => {
+  it("legacy target injection uses the FINAL response origin's host after a redirect", async () => {
+    const legacyDoc = {
+      version: "1.1",
+      updated: "2026-01-01T00:00:00Z",
+      capabilities: "basic",
+      provider: "L",
+      "measurement-method": "m",
+      "methodology-uri": "https://l/m",
+      "reporting-period": "2026-01",
+      "energy-consumption": 5,
+      "energy-unit": "kWh",
+      "carbon-footprint": 10,
+      "carbon-unit": "gCO2e",
+    };
+    const finalSrv = createServer((_req, res) => {
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify(legacyDoc));
+    });
+    await new Promise<void>((r) => finalSrv.listen(0, "127.0.0.1", r));
+    const finalHost = `127.0.0.1:${(finalSrv.address() as AddressInfo).port}`;
+    const redirSrv = createServer((_req, res) => {
+      res.statusCode = 302;
+      res.setHeader("Location", `http://${finalHost}/.well-known/sustainability`);
+      res.end();
+    });
+    await new Promise<void>((r) => redirSrv.listen(0, "127.0.0.1", r));
+    const redirOrigin = `http://127.0.0.1:${(redirSrv.address() as AddressInfo).port}`;
+
+    const result = await fetchSustainability(redirOrigin);
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") {
+      expect(result.legacy).toBe(true);
+      // MUST attribute to the origin of the FINAL response, not the request origin
+      expect((result.document as any).target).toBe(finalHost);
+    }
+    finalSrv.close();
+    redirSrv.close();
+  });
+});

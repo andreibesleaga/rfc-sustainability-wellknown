@@ -1,0 +1,53 @@
+flowchart TB
+    %% C4 Level 2 — Container diagram (graph-TD equivalent of C4Container; Mermaid's
+    %% experimental C4 layout was unreadable at this element count).
+    %% person = dark blue · container = blue · external = grey · boundaries = dashed.
+
+    CLIENT["Consumer<br/>[Person / System]<br/>regulator · aggregator · carbon-aware tool ·<br/>AI agent · browser"]
+    DS["Metric Sources<br/>[External Systems]<br/>enterprise platforms · Kepler/Prometheus ·<br/>Climatiq · CO2.js · GWF carbon.txt API ·<br/>static/computed values"]
+
+    subgraph REPO["rfc-sustainability-wellknown reference implementation [System]"]
+        subgraph PUBB["Publisher Gateway — publisher/ (npm: sustainability-wellknown-publisher)"]
+            ADP["Source Adapters<br/>[Container: TypeScript]<br/>10 pluggable adapters:<br/>SourceAdapter.fetch(query) → RawMetrics"]
+            PIPE["Publishing Pipeline<br/>[Container: TypeScript]<br/>normalize → secureReports (DoS cap,<br/>daily floor, noise) → JTD validation gate →<br/>bounded in-memory cache + ETag"]
+            HTTPL["HTTP Layer<br/>[Container: Node http / Express / Fastify]<br/>framework-agnostic handler · standalone server ·<br/>middleware · CLI — 200/304/404/405/503"]
+            CTM["carbon.txt Module<br/>[Container: TypeScript]<br/>emit / parse / discover a bidirectional carbon.txt"]
+        end
+
+        subgraph CONSB["Consumer — consumer/ (npm: sustainability-wellknown-consumer)"]
+            FETCH["Fetch + Validate Library<br/>[Container: TypeScript]<br/>fetchSustainability: timeout & byte caps ·<br/>legacy-compat pre-pass · JTD + cross-entry rules"]
+            SCLI["SustainabilityClient<br/>[Container: TypeScript]<br/>ETag-cached polling"]
+            TR["Transforms<br/>[Container: TypeScript]<br/>CSV · NDJSON · flatten · aggregate"]
+            FCLI["sustainability-fetch CLI<br/>[Container: Node bin]<br/>--strict = 6-check conformance battery<br/>against any origin"]
+        end
+
+        SCHEMAS["Formal Schemas + Validators<br/>[Container: CDDL (RFC 8610) + JTD (RFC 8927)]<br/>schemas-validators/: dual Python/Ruby validators;<br/>schema copies embedded in both packages,<br/>byte-equality checked in CI"]
+        WEBC["Web Server Deployments<br/>[Container: nginx / Apache config]<br/>server-configurations/: static file or<br/>reverse proxy with the draft's headers"]
+        EXS["Example Scripts<br/>[Container: Python / JS / PHP]<br/>example-scripts/: zero-dependency safeguards +<br/>reference request handler"]
+    end
+
+    DS -- "metrics pulled (HTTPS / PromQL / config)" --> ADP
+    ADP -- "RawMetrics" --> PIPE
+    PIPE -- "SerializedDocument {body, etag}" --> HTTPL
+    CTM --- HTTPL
+    SCHEMAS -. "embedded JTD schema" .-> PIPE
+    SCHEMAS -. "embedded JTD schema" .-> FETCH
+    SCHEMAS -. "validates" .-> EXS
+    WEBC -- "reverse-proxies to<br/>(or serves static JSON itself)" --> HTTPL
+
+    CLIENT -- "GET /.well-known/sustainability (HTTPS)" --> WEBC
+    CLIENT -- "runs" --> FCLI
+    FCLI --> FETCH
+    SCLI -- "wraps with ETag cache" --> FETCH
+    FETCH -- "validated document" --> TR
+    FETCH -- "GET / conditional GET (HTTPS)" --> WEBC
+
+    classDef person fill:#08427b,color:#fff,stroke:#052e56
+    classDef cont fill:#1168bd,color:#fff,stroke:#0b4884
+    classDef ext fill:#999999,color:#fff,stroke:#6b6b6b
+    class CLIENT person
+    class ADP,PIPE,HTTPL,CTM,FETCH,SCLI,TR,FCLI,SCHEMAS,WEBC,EXS cont
+    class DS ext
+    style REPO stroke-dasharray:5 5,fill:none
+    style PUBB stroke-dasharray:3 3,fill:none
+    style CONSB stroke-dasharray:3 3,fill:none

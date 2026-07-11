@@ -10,7 +10,7 @@
       "gridZone": "USA",
       "renewableEnergy": 45,
       "disclosureUri": "https://example.com/.well-known/carbon.txt",
-      "capabilities": "extended"
+      "capabilities": "basic"
     }
   },
   "publisher": {

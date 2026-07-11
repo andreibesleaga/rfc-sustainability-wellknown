@@ -2,7 +2,7 @@
 
 Product-discovery suite for the `/.well-known/sustainability` publisher/gateway. These
 documents are **non-normative** background; the normative wire contract is the
-Internet-Draft in [`../documents/`](../documents/).
+Internet-Draft in [`../internet-drafts/`](../internet-drafts/).
 
 1. [Market scan](01-market-scan.md) — the carbon-software ecosystem, the common-denominator fields, and the missing disclosure surface.
 2. [Opportunity assessment](02-opportunity-assessment.md) — drivers, why a well-known URI + gateway, differentiators, risks.

@@ -3,11 +3,11 @@ name: draft
 on:
   push:
     paths:
-      - "documents/**"
+      - "internet-drafts/**"
       - ".github/workflows/draft.yml"
   pull_request:
     paths:
-      - "documents/**"
+      - "internet-drafts/**"
 
 jobs:
   build-id:
@@ -27,7 +27,7 @@ jobs:
       - name: Determine latest draft
         id: draft
         run: |
-          latest=$(ls documents/draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
+          latest=$(ls internet-drafts/draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
           echo "md=$latest" >> "$GITHUB_OUTPUT"
           echo "Latest draft: $latest"
       - name: Build XML + text
@@ -52,5 +52,5 @@ jobs:
         with:
           name: internet-draft
           path: |
-            documents/*.xml
-            documents/*.txt
+            internet-drafts/*.xml
+            internet-drafts/*.txt

@@ -66,11 +66,27 @@ const WIRE_KEYS = new Set([
 ]);
 
 /**
- * Members the draft defines as non-negative. Per the compatibility rules in
- * §Versioning and Extensibility, a negative value here is the historical
- * "not reported" sentinel and is dropped (treated as absent) on re-ingest.
+ * Re-ingest value policy (one rule per class, applied consistently):
+ *  - A NON-NUMBER in a present numeric member is a corrupt file — fail loud
+ *    (never silently drop a typo'd metric).
+ *  - A NEGATIVE value in a non-negative member is the historical "not
+ *    reported" sentinel and is dropped (draft §Versioning compatibility rule).
+ *  - An OUT-OF-RANGE value (renewable-energy > 100) is likewise treated as
+ *    not reported and dropped (draft §Value Constraints, client leniency).
+ *  - scope-1/2/3 MAY legitimately be negative and are numeric-checked only.
  */
-const isReported = (v: unknown): boolean => typeof v === "number" && v >= 0;
+function numOrThrow(v: unknown, member: string): number {
+  if (typeof v !== "number" || !Number.isFinite(v)) {
+    throw new Error(`fromWire: ${member} is not a finite number (${JSON.stringify(v)})`);
+  }
+  return v;
+}
+const isReported = (v: unknown, member: string): boolean => {
+  const n = numOrThrow(v, member);
+  if (n < 0) return false; // historical sentinel -> not reported
+  if (member === "renewable-energy" && n > 100) return false; // out of range
+  return true;
+};
 
 export function fromWire(m: SustainabilityMetrics): RawMetrics {
   const raw: RawMetrics = {
@@ -87,13 +103,13 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
   // the value is present without its unit, the draft's defaults apply. A
   // negative value in a non-negative member is the historical sentinel and
   // reads as "not reported" (dropped), per the draft's compatibility rules.
-  if (m["energy-consumption"] !== undefined && isReported(m["energy-consumption"])) {
+  if (m["energy-consumption"] !== undefined && isReported(m["energy-consumption"], "energy-consumption")) {
     raw.energy = {
       value: Number(m["energy-consumption"]),
       unit: (m["energy-unit"] ?? "kWh") as EnergyUnit,
     };
   }
-  if (m["carbon-footprint"] !== undefined && isReported(m["carbon-footprint"])) {
+  if (m["carbon-footprint"] !== undefined && isReported(m["carbon-footprint"], "carbon-footprint")) {
     raw.carbon = {
       value: Number(m["carbon-footprint"]),
       unit: (m["carbon-unit"] ?? "gCO2e") as CarbonUnit,
@@ -110,22 +126,30 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
   if (m.target !== undefined) raw.target = String(m.target);
   else if (legacy["target-path"] !== undefined) raw.target = String(legacy["target-path"]);
   if (m["carbon-accounting"] !== undefined) raw.carbonAccounting = m["carbon-accounting"] as any;
-  if (m["scope-1"] !== undefined) raw.scope1 = Number(m["scope-1"]);
-  if (m["scope-2"] !== undefined) raw.scope2 = Number(m["scope-2"]);
-  if (m["scope-3"] !== undefined) raw.scope3 = Number(m["scope-3"]);
-  if (m["sci-score"] !== undefined && isReported(m["sci-score"])) {
+  // Scopes MAY be negative (removals/net accounting) — numeric-check only.
+  if (m["scope-1"] !== undefined) raw.scope1 = numOrThrow(m["scope-1"], "scope-1");
+  if (m["scope-2"] !== undefined) raw.scope2 = numOrThrow(m["scope-2"], "scope-2");
+  if (m["scope-3"] !== undefined) raw.scope3 = numOrThrow(m["scope-3"], "scope-3");
+  // A legacy document may carry sci-score without functional-unit (the
+  // coupling rule postdates the 1.x era): drop the sci-score on re-ingest
+  // rather than letting normalize fail the whole document.
+  if (
+    m["sci-score"] !== undefined &&
+    isReported(m["sci-score"], "sci-score") &&
+    m["functional-unit"] !== undefined
+  ) {
     raw.sciScore = Number(m["sci-score"]);
   }
   if (m["functional-unit"] !== undefined) raw.functionalUnit = String(m["functional-unit"]);
   const intensity = m["carbon-intensity-gCO2e-per-kWh"] ?? legacy["carbon-intensity-gCO2-per-kWh"];
-  if (intensity !== undefined && isReported(intensity)) {
+  if (intensity !== undefined && isReported(intensity, "carbon-intensity-gCO2e-per-kWh")) {
     raw.carbonIntensity = Number(intensity);
   }
-  if (m["renewable-energy"] !== undefined && isReported(m["renewable-energy"])) {
+  if (m["renewable-energy"] !== undefined && isReported(m["renewable-energy"], "renewable-energy")) {
     raw.renewableEnergy = Number(m["renewable-energy"]);
   }
   const annual = m["estimated-annual-emissions-kgCO2e"] ?? legacy["estimated-annual-emissions-kgCO2"];
-  if (annual !== undefined && isReported(annual)) {
+  if (annual !== undefined && isReported(annual, "estimated-annual-emissions-kgCO2e")) {
     raw.estimatedAnnualEmissionsKg = Number(annual);
   }
   if (m["verifiable-attestation-uri"] !== undefined) {

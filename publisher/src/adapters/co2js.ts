@@ -109,7 +109,7 @@ export function co2jsAdapter(config: Co2jsConfig): SourceAdapter {
   }
   return {
     name: "co2js",
-    capabilities: config.capabilities ?? "extended",
+    capabilities: config.capabilities ?? "basic",
     async fetch(): Promise<RawMetrics> {
       const estimator = new Co2({
         model: config.model ?? "swd",
@@ -117,20 +117,30 @@ export function co2jsAdapter(config: Co2jsConfig): SourceAdapter {
       });
       const green = await resolveGreen(config);
 
-      // CO2.js returns carbon at its own (default) grid intensity. Recover the
-      // intensity-independent operational energy, then re-apply the intensity we
-      // actually report so energy × intensity === carbon (self-consistent).
-      const trace = config.perVisit
+      // CO2.js returns carbon at its own (default) grid intensity, with the
+      // green-hosting discount already applied INSIDE trace.co2 (the reported
+      // gridIntensity stays the full grid value). Operational energy does not
+      // depend on who supplies the electricity, so it MUST be derived from a
+      // green:false trace; the green discount then applies to carbon only, and
+      // the reported intensity is the effective one, keeping
+      // energy × intensity === carbon exactly.
+      const baseTrace = config.perVisit
+        ? estimator.perVisitTrace(config.bytes, false)
+        : estimator.perByteTrace(config.bytes, false);
+      const greenTrace = config.perVisit
         ? estimator.perVisitTrace(config.bytes, green)
         : estimator.perByteTrace(config.bytes, green);
-      const gi = trace.variables.gridIntensity;
+      const gi = baseTrace.variables.gridIntensity;
       const modelDefault = gi?.dataCenter?.value ?? gi?.device?.value ?? gi?.network?.value ?? 0;
       if (!(modelDefault > 0)) {
         throw new Error("co2jsAdapter: CO2.js did not expose a usable grid intensity");
       }
-      const operationalEnergyKwh = trace.co2 / modelDefault;
+      const operationalEnergyKwh = baseTrace.co2 / modelDefault;
+      // 1 when not green; < 1 when the host's renewable share discounts carbon.
+      const greenRatio = baseTrace.co2 > 0 ? greenTrace.co2 / baseTrace.co2 : 1;
 
       const gridIntensity = resolveGridIntensity(config, modelDefault);
+      const effectiveIntensity = gridIntensity * greenRatio;
 
       // Energy: measured if supplied, else the bytes-derived operational energy.
       const energy: { value: number; unit: EnergyUnit } = config.energy ?? {
@@ -138,7 +148,7 @@ export function co2jsAdapter(config: Co2jsConfig): SourceAdapter {
         unit: "kWh",
       };
       const energyKwh = convertEnergy(energy.value, energy.unit, "kWh");
-      const carbonGrams = energyKwh * gridIntensity;
+      const carbonGrams = energyKwh * effectiveIntensity;
 
       const raw: RawMetrics = {
         provider: config.provider,
@@ -147,8 +157,8 @@ export function co2jsAdapter(config: Co2jsConfig): SourceAdapter {
         reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
         energy,
         carbon: { value: carbonGrams, unit: "gCO2e" },
-        carbonIntensity: gridIntensity,
-        capabilities: config.capabilities ?? "extended",
+        carbonIntensity: effectiveIntensity,
+        capabilities: config.capabilities ?? "basic",
       };
       if (config.renewableEnergy !== undefined) raw.renewableEnergy = config.renewableEnergy;
       if (config.disclosureUri !== undefined) raw.disclosureUri = config.disclosureUri;

@@ -18,7 +18,7 @@ This repository contains the initial documents and other supporting examples, to
 
 ## What this defines
 
-A universal `/.well-known/sustainability` URI that allows any web server or digital service to publish aggregated energy consumption and carbon footprint metrics in a machine-readable JSON format. Out-of-band, asynchronous reporting, no overhead.
+A universal `/.well-known/sustainability` URI that allows any organization to publish reports, through a web server or digital service, with aggregated energy consumption and carbon footprint metrics, in a human and machine-readable, minimal, backward and forward compatible, extensible, JSON format.
 
 **Not limited to conventional websites, and not limited to a server's own electricity bill.** 
 

@@ -32,7 +32,8 @@ export interface FetchOptions extends FetchParams {
    * Extensibility: a client that encounters a document without a `target`
    * member SHOULD treat it as an origin-wide report — so before validation,
    * a parsed document (object, or every entry of an array) lacking `target`
-   * gets the request origin's host injected as `target`, letting historical
+   * gets the final-response origin's host injected as `target` (redirects
+   * are attributed to the final origin, per the draft), letting historical
    * "1.0"/"1.1" documents validate and stay usable. Such a result is flagged
    * with `legacy: true`. Set to false for strict mode: legacy documents then
    * fail validation instead.

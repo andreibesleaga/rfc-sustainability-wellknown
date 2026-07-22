@@ -31,14 +31,17 @@ type FetchResult =
   | { status: "not-modified" }
   | { status: "not-found" }
   | { status: "invalid"; errors: string[] }   // fetched but failed validation
-  | { status: "http-error"; httpStatus: number };
+  | { status: "http-error"; httpStatus: number }
+  | { status: "timeout"; timeoutMs: number }     // no complete response in time
+  | { status: "too-large"; detail: string };     // body exceeded maxBytes
 ```
 
 **Legacy compatibility** (`legacyCompat`, default `true`): per the draft's
 field-driven compatibility rules (§Versioning and Extensibility), a document
 without the mandatory `target` member SHOULD be treated as an origin-wide
-report — so before validation, `fetchSustainability` injects the request
-origin's host as `target` into a target-less document (or every entry of a
+report — so before validation, `fetchSustainability` injects the final-response
+origin's host as `target` (redirects are attributed to the final origin,
+per the draft) into a target-less document (or every entry of a
 target-less array) and flags the result with `legacy: true`. Historical
 `"1.0"`/`"1.1"` documents therefore still validate and stay usable. Pass
 `legacyCompat: false` for strict mode: legacy documents then come back as

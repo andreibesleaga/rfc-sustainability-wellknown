@@ -36,8 +36,10 @@ In addition to tracking the evolution of the draft through standard IETF version
 ### Query Parameters
 Servers MUST support a "Basic" service level (no parameters, aggregating the entire origin for the most recently completed published reporting period; a full calendar month is RECOMMENDED). Servers MAY support "Extended" capabilities to filter data:
 * `target`: Specific resource path prefix (e.g., `?target=/api/v1`); a server scoping a response to it echoes the matched prefix in the mandatory `target` member, and SHOULD honor only a published set of prefixes.
-* `period`: Timeframe as a calendar-date precision form — Year `YYYY`, Month `YYYY-MM`, or Day `YYYY-MM-DD` (only the last is an RFC 3339 `full-date`); interpreted in UTC. Without a finer `granularity`, a `period` request yields a single object, never an array.
+* `period`: Timeframe as a calendar-date precision form — Year `YYYY`, Month `YYYY-MM`, or Day `YYYY-MM-DD` (only the last is an RFC 3339 `full-date`); interpreted in UTC. Without a finer `granularity`, a `period` request yields a single object (or 404 per the no-data rule), never an array.
 * `granularity`: Time slices within a period (`monthly`, `daily`). When finer than the period, returns an array of objects sorted ascending (max cap of 366 objects RECOMMENDED; truncation keeps the most recent).
+
+**Key distinction:** the *origin* is where the document is published; the `target` member is what the metrics are about — they coincide for origin-wide reports (the origin's host), but `target` may equally name an organization, a path, a cloud tenant, a device, or a data source.
 
 ### Data Model (Schema v2.0)
 The response schema defines 8 mandatory + 15 optional members (23 total):

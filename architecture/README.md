@@ -229,8 +229,9 @@ Two service levels:
   scoping, honored only for a deliberately published prefix set — a
   path-disclosure and cache-key-space defense), `period` (`YYYY` / `YYYY-MM` /
   `YYYY-MM-DD`), and `granularity` (`monthly` / `daily`). A granularity finer
-  than the period yields a sorted **array** (trend); a `period` alone MUST
-  yield a single (possibly aggregated) object. Servers that do not support the
+  than the period yields a sorted **array** (trend); a `period` alone MUST NOT
+  yield an array — a single (possibly aggregated) object, or 404 per the
+  no-data rule. Servers that do not support the
   parameters MUST ignore them and return the Basic response — never an error.
 
 Caching is first-class: `Cache-Control: public, max-age=86400` is recommended,

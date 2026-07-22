@@ -37,7 +37,7 @@
       </address>
     </author>
 
-    <date year="2026" month="July" day="11"/>
+    <date year="2026" month="July" day="22"/>
 
     
     
@@ -48,7 +48,7 @@
 
 <?line 85?>
 
-<t>This document defines the "sustainability" well-known URI. This URI provides a uniform, out-of-band convention for web servers and digital services to publish their aggregated environmental impact, energy consumption, and carbon footprint metrics.</t>
+<t>This document defines the "sustainability" well-known URI. This URI provides a uniform, out-of-band convention for web servers and digital services to publish aggregated environmental impact, energy consumption, and carbon footprint metrics for a declared reporting subject — typically the publishing origin itself.</t>
 
 <t>By utilizing an asynchronous reporting model, this approach allows for transparent environmental accounting without the bandwidth and energy overhead associated with per-request HTTP headers.</t>
 
@@ -67,7 +67,7 @@
 
 <section anchor="introduction"><name>Introduction</name>
 
-<t>The digital economy consumes a significant and growing percentage of global electricity. Emerging regulatory frameworks, such as the EU Corporate Sustainability Reporting Directive (CSRD) <xref target="EU-CSRD"/>, as well as industry standards like the Green Software Foundation's Software Carbon Intensity <xref target="GSF-SCI"/> and the W3C Web Sustainability Guidelines <xref target="W3C-WSG"/>, increasingly require organizations to disclose the environmental impact of their digital services.</t>
+<t>The digital economy consumes a significant and growing percentage of global electricity. Emerging regulatory frameworks, such as the EU Corporate Sustainability Reporting Directive (CSRD) <xref target="EU-CSRD"/>, as well as industry standards like the Green Software Foundation's Software Carbon Intensity <xref target="GSF-SCI"/> and the W3C Web Sustainability Guidelines <xref target="W3C-WSG"/>, increasingly call for organizations to disclose the environmental impact of their digital services.</t>
 
 <t>These transparency efforts align with the United Nations 2030 Agenda for Sustainable Development <xref target="UN-SDG"/>, specifically supporting energy efficiency and sustainable infrastructure targets, encouraging companies to integrate sustainability information into their reporting cycles. The need for better data on the environmental impact of Internet systems, and the current gaps in that data, are documented in the report of the IAB Workshop on Environmental Impact of Internet Applications and Systems <xref target="RFC9547"/>.</t>
 
@@ -86,7 +86,7 @@
 
 <section anchor="goals"><name>Goals</name>
 <t><list style="symbols">
-  <t>Provide a single, discoverable location for environmental metrics for an origin.</t>
+  <t>Provide a single, discoverable location, per origin, for environmental metrics about a declared reporting subject (by default the origin itself).</t>
   <t>Define a minimal, machine-readable JSON structure, suitable for broad adoption.</t>
   <t>Ensure interoperability between clients and servers.</t>
   <t>Support alignment with the GHG Protocol <xref target="GHG-PROTOCOL"/>, the EU CSRD <xref target="EU-CSRD"/> and the ESRS E1 climate standard <xref target="ESRS-E1"/>, and product-level disclosure regimes such as the Digital Product Passport established by the EU Ecodesign for Sustainable Products Regulation <xref target="EU-ESPR"/>.</t>
@@ -105,7 +105,7 @@
 </section>
 <section anchor="relationship-to-other-work"><name>Relationship to Other Work</name>
 
-<t>This document specifies an application-layer discovery mechanism for aggregated, origin-level environmental metrics. It defines discovery and data semantics only, over HTTP <xref target="RFC9110"/>, and does not profile or constrain the underlying measurement methodology.</t>
+<t>This document specifies an application-layer discovery mechanism for aggregated environmental metrics published at the origin level. It defines discovery and data semantics only, over HTTP <xref target="RFC9110"/>, and does not profile or constrain the underlying measurement methodology.</t>
 
 <t>In particular, it does not define, profile, or update network-equipment energy metrics, YANG data models, or network-domain energy monitoring and capability discovery. Such work is the subject of the IETF GREEN Working Group and, earlier, of the EMAN framework <xref target="RFC7326"/>; the GREEN charter explicitly excludes carbon accounting and reporting. This document therefore does not overlap with, update, or obsolete any IETF-stream document, and is complementary to that network-layer work. Sustainability at the level of the Internet as a whole is also a topic of research in the IRTF (for example, the Sustainability and the Internet Research Group), which defers protocol standardization to the IETF; this document is an individual Independent Submission and is not a product of, nor endorsed by, any IETF Working Group or IRTF Research Group.</t>
 
@@ -123,18 +123,19 @@
   <t><strong>Origin</strong>: The combination of scheme, host, and optional port (e.g., <spanx style="verb">https://example.com</spanx>).</t>
   <t><strong>Sustainability Metadata Document</strong>: The JSON document returned from <spanx style="verb">/.well-known/sustainability</spanx>.</t>
   <t><strong>Provider</strong>: The entity operating the origin and publishing the sustainability metadata.</t>
+  <t><strong>Reporting subject</strong>: The entity or scope that a Sustainability Metadata Document's metrics describe, identified by the mandatory <spanx style="verb">target</spanx> member of each object. The origin is <em>where</em> the document is published; the reporting subject is <em>what</em> the data is about — most commonly the origin itself, but possibly a resource path, an organizational entity, a device, a cloud tenant, or a data source.</t>
 </list></t>
 
 </section>
 <section anchor="mandatory-minimum-supported-service"><name>Mandatory Minimum Supported Service</name>
 
-<t>The resource SHOULD be served over HTTPS. The HTTP methods, status codes, and header fields used in this document are defined in HTTP Semantics <xref target="RFC9110"/>. A <spanx style="verb">GET</spanx> request MUST receive a <spanx style="verb">200 OK</spanx> with a JSON body when metadata is available; a <spanx style="verb">HEAD</spanx> request MUST receive the same status and header fields with no message body. If no metadata is published, servers SHOULD respond with <spanx style="verb">404 Not Found</spanx>. A request using any method other than <spanx style="verb">GET</spanx> or <spanx style="verb">HEAD</spanx> SHOULD receive <spanx style="verb">405 Method Not Allowed</spanx> with an <spanx style="verb">Allow: GET, HEAD</spanx> header (<xref target="RFC9110"/>, Section 15.5.6). Successful (<spanx style="verb">200 OK</spanx>) responses MUST use the <spanx style="verb">application/json</spanx> media type, SHOULD follow I-JSON <xref target="RFC7493"/> for maximum compatibility, and SHOULD include appropriate caching directives (see Operational Considerations). A server MAY redirect the well-known URI; clients that follow a redirect MUST attribute the returned metrics to the origin of the final response, and providers SHOULD NOT redirect to a different origin.</t>
+<t>The resource SHOULD be served over HTTPS. The HTTP methods, status codes, and header fields used in this document are defined in HTTP Semantics <xref target="RFC9110"/>. A <spanx style="verb">GET</spanx> request MUST receive a <spanx style="verb">200 OK</spanx> with a JSON body when metadata is available; a <spanx style="verb">HEAD</spanx> request MUST receive the same status and header fields with no message body. If no metadata is published, servers SHOULD respond with <spanx style="verb">404 Not Found</spanx>. A request using any method other than <spanx style="verb">GET</spanx> or <spanx style="verb">HEAD</spanx> SHOULD receive <spanx style="verb">405 Method Not Allowed</spanx> with an <spanx style="verb">Allow: GET, HEAD</spanx> header (<xref target="RFC9110"/>, Section 15.5.6). Successful (<spanx style="verb">200 OK</spanx>) responses MUST use the <spanx style="verb">application/json</spanx> media type, SHOULD follow I-JSON <xref target="RFC7493"/> for maximum compatibility, and SHOULD include appropriate caching directives (see Operational Considerations). A server MAY redirect the well-known URI; clients that follow a redirect MUST attribute the returned document to the origin of the final response, and providers SHOULD NOT redirect to a different origin.</t>
 
 <t>A compliant server MUST support the following "Basic" service level:</t>
 
 <t><list style="symbols">
   <t><strong>No Parameters</strong>: Requests to the root URI with no query strings.</t>
-  <t><strong>Scope</strong>: Metrics MUST represent the aggregate impact of the entire origin (the <spanx style="verb">target</spanx> member carries the origin-wide reporting subject; see Mandatory Response Fields).</t>
+  <t><strong>Scope</strong>: The response to a parameterless request MUST cover the provider's complete published reporting subject for the origin, identified by the <spanx style="verb">target</spanx> member (see Mandatory Response Fields). When the reporting subject is the origin itself — the common case — the metrics MUST represent the aggregate impact of the entire origin, not a subset of its resources.</t>
   <t><strong>Default Period</strong>: The server MUST return the most recently completed reporting period it publishes; a full calendar month is RECOMMENDED.</t>
   <t><strong>Format</strong>: The server MUST return a single JSON object.</t>
 </list></t>
@@ -156,7 +157,7 @@ Calendar periods are interpreted in UTC unless the methodology document states o
   <t><strong>granularity</strong>: Defines the time "slices" within a period. This document defines the values <spanx style="verb">monthly</spanx> and <spanx style="verb">daily</spanx>; a server SHOULD ignore an unrecognized value or a granularity that is not finer than the requested period. When the granularity is finer than the period, the server SHOULD return an array of objects.</t>
 </list></t>
 
-<t>A <spanx style="verb">period</spanx> request without a (finer) <spanx style="verb">granularity</spanx> requests a single object covering exactly that period. If the server holds only finer-grained data for the requested period, it SHOULD either aggregate it into a single object (summing energy and carbon after conversion to a single declared unit) or respond per the no-data rule below; it MUST NOT return an array unless a <spanx style="verb">granularity</spanx> finer than the period was requested. For a requested period that has not yet completed, the server SHOULD report the completed portion to date.</t>
+<t>A <spanx style="verb">period</spanx> request without a (finer) <spanx style="verb">granularity</spanx> requests a single object covering exactly that period. If the server holds only finer-grained data for the requested period, it SHOULD either aggregate it into a single object (summing energy and carbon after conversion to a single declared unit; other metrics SHOULD be recomputed for the aggregated period or omitted) or respond per the no-data rule below; it MUST NOT return an array unless a <spanx style="verb">granularity</spanx> finer than the period was requested. For a requested period that has not yet completed, the server SHOULD report the completed portion to date.</t>
 
 <t>Servers that do not support the Extended parameters MUST ignore any such parameters and return the Basic response, rather than failing the request. If a supported parameter carries a malformed value (for example, a <spanx style="verb">period</spanx> that is not a valid date), the server MAY respond with <spanx style="verb">400 Bad Request</spanx>, or ignore the offending parameter and process the remainder of the request. When a server supports the requested parameters but has no data for a valid requested <spanx style="verb">period</spanx> or <spanx style="verb">target</spanx> parameter value, it SHOULD respond with <spanx style="verb">404 Not Found</spanx>.</t>
 
@@ -174,7 +175,7 @@ Calendar periods are interpreted in UTC unless the methodology document states o
   <t><strong>capabilities</strong> (string): A self-declared indicator of the service level. It MUST be either "basic" or "extended". "basic" denotes that only the Mandatory Minimum Supported Service is provided; "extended" denotes that one or more of the Optional Extended Query Parameters are supported. The value describes query-parameter support, not member presence: a document declaring "basic" MAY carry any optional members. The value is determined per response and MAY, at the provider's discretion, reflect the overall server, an individual response, or a specific reporting subject (the <spanx style="verb">target</spanx> member). A value of "extended" does not, by itself, guarantee support for any particular Extended parameter; clients determine actual support from the server's behavior.</t>
   <t><strong>provider</strong> (string): Information about the provider publishing the metadata.</t>
   <t><strong>measurement-method</strong> (string): Short description or reference to the methodology used. This is a free-form string; the values <spanx style="verb">hardware-metered</spanx>, <spanx style="verb">hardware-estimated</spanx>, <spanx style="verb">cloud-billing</spanx>, and <spanx style="verb">third-party-modeled</spanx> are RECOMMENDED.</t>
-  <t><strong>methodology-uri</strong> (string): Link to the full methodology specification (calculation methodology). See also the minimum-reporting rule in Value Constraints and Omitted Metrics.</t>
+  <t><strong>methodology-uri</strong> (string): Link to the full methodology specification (calculation methodology). In general, the methodology document SHOULD describe the measurement or estimation method in enough detail to interpret the published figures, and is the designated place for: any non-UTC interpretation of calendar periods, the precise meaning of a <spanx style="verb">functional-unit</spanx>, the extrapolation behind <spanx style="verb">estimated-annual-emissions-kgCO2e</spanx>, the net-accounting basis of any negative scope values, and any anti-fingerprinting noise applied (see Privacy Considerations). See also the minimum-reporting rule in Value Constraints and Omitted Metrics.</t>
   <t><strong>reporting-period</strong> (string): The timeframe covered by the object, expressed using the same date forms as the <spanx style="verb">period</spanx> parameter (<spanx style="verb">YYYY</spanx>, <spanx style="verb">YYYY-MM</spanx>, or the <xref target="RFC3339"/> <spanx style="verb">full-date</spanx> <spanx style="verb">YYYY-MM-DD</spanx>).</t>
   <t><strong>target</strong> (string): The reporting subject of this object: a free-form identifier of the entity or scope to which the metrics are attributed. Typical values are an origin or domain (for an origin-wide report the origin's host, e.g., <spanx style="verb">"example.com"</spanx>, is RECOMMENDED), a resource path prefix (e.g., <spanx style="verb">"/api/v1"</spanx>), an organizational entity, a cloud tenant or provider scope, a software product or data source (e.g., <spanx style="verb">"ms-sustainability-odata"</spanx>), or a site listed in a linked carbon.txt file <xref target="CARBON-TXT"/>. When the response is scoped by the <spanx style="verb">target</spanx> query parameter, this member MUST carry the matched path prefix (see Optional Extended Query Parameters). This response member and the <spanx style="verb">target</spanx> query parameter are distinct: the parameter requests scoping; the member identifies the subject of the data actually returned.</t>
 </list></t>
@@ -187,7 +188,7 @@ Calendar periods are interpreted in UTC unless the methodology document states o
 <t><list style="symbols">
   <t><strong>energy-consumption</strong> (numeric): Total energy consumed by the reporting subject during the reporting period. The value MUST NOT be negative. It is expressed in the unit given by <spanx style="verb">energy-unit</spanx>; when <spanx style="verb">energy-unit</spanx> is absent, the value is in kilowatt-hours (<spanx style="verb">kWh</spanx>).</t>
   <t><strong>energy-unit</strong> (string): The unit of energy for <spanx style="verb">energy-consumption</spanx> (MUST be one of: <spanx style="verb">Wh</spanx>, <spanx style="verb">kWh</spanx>, <spanx style="verb">MWh</spanx>, or <spanx style="verb">GWh</spanx>). When this member is absent, the default <spanx style="verb">kWh</spanx> applies. Publishers SHOULD state the unit explicitly; an <spanx style="verb">energy-unit</spanx> member without an accompanying <spanx style="verb">energy-consumption</spanx> member has no effect and SHOULD be omitted.</t>
-  <t><strong>carbon-footprint</strong> (numeric): Total gross emissions impact, expressed in the unit given by <spanx style="verb">carbon-unit</spanx>; when <spanx style="verb">carbon-unit</spanx> is absent, the value is in grams of CO2 equivalent (<spanx style="verb">gCO2e</spanx>). The value MUST NOT be negative; see Value Constraints and Omitted Metrics for the treatment of removals and net accounting.</t>
+  <t><strong>carbon-footprint</strong> (numeric): Total gross emissions impact attributable to the reporting subject during the reporting period, expressed in the unit given by <spanx style="verb">carbon-unit</spanx>; when <spanx style="verb">carbon-unit</spanx> is absent, the value is in grams of CO2 equivalent (<spanx style="verb">gCO2e</spanx>). The value MUST NOT be negative; see Value Constraints and Omitted Metrics for the treatment of removals and net accounting.</t>
   <t><strong>carbon-unit</strong> (string): The unit of carbon measurement (MUST be one of: <spanx style="verb">gCO2e</spanx>, <spanx style="verb">kgCO2e</spanx>, or <spanx style="verb">mtCO2e</spanx>). When this member is absent, the default <spanx style="verb">gCO2e</spanx> applies, both to <spanx style="verb">carbon-footprint</spanx> and to every other member expressed "in the unit given by <spanx style="verb">carbon-unit</spanx>". A <spanx style="verb">carbon-unit</spanx> member without any member it parameterizes has no effect and SHOULD be omitted.</t>
   <t><strong>carbon-accounting</strong> (string): "location-based" or "market-based" (following <xref target="GHG-PROTOCOL"/>).</t>
   <t><strong>scope-1</strong> (numeric): Estimated Scope 1 (direct) carbon emissions.</t>
@@ -209,11 +210,11 @@ Calendar periods are interpreted in UTC unless the methodology document states o
 </section>
 <section anchor="value-constraints-and-omitted-metrics"><name>Value Constraints and Omitted Metrics</name>
 
-<t>A metric that is not reported for the scope or period covered by an object is omitted from that object. This document defines no in-band "not reported" marker: the absence of a member is the only way to convey that a metric is unreported, and a member that is present always carries an actual value. Consumers that require a value not present in this document SHOULD look to the linked disclosure or reporting resources.</t>
+<t>A metric that is not reported for the scope or period covered by an object is omitted from that object. This document defines no in-band "not reported" marker: the absence of a member is the only way to convey that a metric is unreported, and a member that is present always carries an actual value. Consumers that require a value not present in a Sustainability Metadata Document SHOULD look to the linked disclosure or reporting resources.</t>
 
-<t>Numeric members that report gross quantities — <spanx style="verb">energy-consumption</spanx>, <spanx style="verb">carbon-footprint</spanx>, <spanx style="verb">sci-score</spanx>, <spanx style="verb">carbon-intensity-gCO2e-per-kWh</spanx>, and <spanx style="verb">estimated-annual-emissions-kgCO2e</spanx> — MUST NOT be negative, and <spanx style="verb">renewable-energy</spanx> MUST be between 0 and 100 inclusive. <spanx style="verb">carbon-footprint</spanx> reports gross emissions; carbon removals, offsets, and net accounting are conveyed, where the declared <spanx style="verb">carbon-accounting</spanx> methodology supports them, through <spanx style="verb">scope-1</spanx>, <spanx style="verb">scope-2</spanx>, and <spanx style="verb">scope-3</spanx>, which MAY be negative for that purpose (a publisher reporting a negative scope value SHOULD explain the net-accounting basis in the <spanx style="verb">methodology-uri</spanx> document), or through the linked attestation or disclosure resources. A client encountering a value outside a member's stated range SHOULD treat that member as not reported rather than reject the document; for a negative value in a member defined here as non-negative, this treatment is mandatory per the compatibility rules in Versioning and Extensibility.</t>
+<t>Numeric members that report gross quantities — <spanx style="verb">energy-consumption</spanx>, <spanx style="verb">carbon-footprint</spanx>, <spanx style="verb">sci-score</spanx>, <spanx style="verb">carbon-intensity-gCO2e-per-kWh</spanx>, and <spanx style="verb">estimated-annual-emissions-kgCO2e</spanx> — MUST NOT be negative, and <spanx style="verb">renewable-energy</spanx> MUST be between 0 and 100 inclusive. <spanx style="verb">carbon-footprint</spanx> reports gross emissions; carbon removals, offsets, and net accounting are conveyed, where the declared <spanx style="verb">carbon-accounting</spanx> methodology supports them, through <spanx style="verb">scope-1</spanx>, <spanx style="verb">scope-2</spanx>, and <spanx style="verb">scope-3</spanx>, which MAY be negative for that purpose (a publisher reporting a negative scope value SHOULD explain the net-accounting basis in the <spanx style="verb">methodology-uri</spanx> document), or through the linked attestation or disclosure resources. A client encountering a value outside a member's stated range SHOULD treat that member as not reported rather than reject the document; for a negative value in a member defined here as non-negative, this treatment is mandatory per the compatibility rules in Versioning and Extensibility. Likewise, a client that encounters an unrecognized value in an enumerated string member defined here (<spanx style="verb">capabilities</spanx>, <spanx style="verb">energy-unit</spanx>, <spanx style="verb">carbon-unit</spanx>, or <spanx style="verb">carbon-accounting</spanx>) SHOULD NOT reject the document; it SHOULD treat that member — and, for a unit member, the numeric member(s) it parameterizes — as not reported. Note that the CDDL and JTD schemas close these value sets; a future specification extending one of them updates the schemas accordingly.</t>
 
-<t>A Sustainability Metadata Document SHOULD contain at least one reported numeric metric (for example, <spanx style="verb">energy-consumption</spanx> or <spanx style="verb">carbon-footprint</spanx>) or at least one of <spanx style="verb">disclosure-uri</spanx> or <spanx style="verb">verifiable-attestation-uri</spanx>. A document containing none of these is conformant only by virtue of the mandatory <spanx style="verb">methodology-uri</spanx>: in that case the publisher MUST ensure that the resource identified by <spanx style="verb">methodology-uri</spanx> provides the substantive disclosure — a clear, reasonably detailed description of the measurement or estimation method and of the reported values, or a direct pointer to where those values are published. A document that neither reports metrics nor leads a consumer to them conveys no information and defeats the purpose of publication.</t>
+<t>A Sustainability Metadata Document (in an array response, at least one of its objects) SHOULD contain at least one reported numeric metric (for example, <spanx style="verb">energy-consumption</spanx> or <spanx style="verb">carbon-footprint</spanx>) or at least one of <spanx style="verb">disclosure-uri</spanx> or <spanx style="verb">verifiable-attestation-uri</spanx>. A document containing none of these is conformant only by virtue of the mandatory <spanx style="verb">methodology-uri</spanx>: in that case the publisher MUST ensure that the resource identified by <spanx style="verb">methodology-uri</spanx> provides the substantive disclosure: it MUST describe, clearly and in reasonable detail, the measurement or estimation method, and MUST either state the metric values themselves or point directly to where they are published. A document that neither reports metrics nor leads a consumer to them conveys no information and defeats the purpose of publication.</t>
 
 </section>
 <section anchor="versioning-and-extensibility"><name>Versioning and Extensibility</name>
@@ -419,7 +420,7 @@ sustainability-metrics = {
 
 <t>Request: <spanx style="verb">GET /.well-known/sustainability?target=/api/v1&amp;period=2026&amp;granularity=monthly</spanx></t>
 
-<t>As above, the array holds one object per month; only the first two are shown for brevity.</t>
+<t>As above, the array holds one object per completed month.</t>
 
 <figure><sourcecode type="json"><![CDATA[
 [
@@ -538,7 +539,7 @@ sustainability-metrics = {
 
 <t><list style="symbols">
   <t>Servers SHOULD keep their published documents current with this specification.</t>
-  <t>Clients MUST tolerate unknown fields and future versions.</t>
+  <t>Clients MUST ignore members they do not recognize and MUST NOT reject a document over its <spanx style="verb">version</spanx> label (see Versioning and Extensibility).</t>
   <t>Implementers SHOULD publish example payloads and test vectors.</t>
   <t>Aggregators SHOULD document how they map provider fields to their internal models.</t>
 </list></t>
@@ -766,7 +767,7 @@ This registration enables interoperable discovery of sustainability metadata.</t
 </references>
 
 
-<?line 613?>
+<?line 614?>
 
 <section anchor="changelog"><name>Changelog</name>
 
@@ -791,7 +792,7 @@ This registration enables interoperable discovery of sustainability metadata.</t
   <t>Replaced the "Not-Reported Sentinel" example with a "Partial Reporting" example (carbon reported, energy omitted, default units, <spanx style="verb">basic</spanx> with optional members); added <spanx style="verb">target</spanx> to all examples; added a worked vendor-extension member (<spanx style="verb">vendor-example-pue</spanx>) to the detailed example.</t>
   <t>Added an applicability paragraph to the Introduction describing the convention's web, machine-to-machine/API, human-reader, and automated-agent/AI readiness.</t>
   <t>Consolidated the privacy material: the Security Considerations "Privacy and Information Leakage" subsection now defers to the Privacy Considerations section; the HTTPS requirement is stated once (Mandatory Minimum Supported Service) and cross-referenced from Integrity and Transport Security; corrected the <spanx style="verb">target</spanx> bullet's cross-reference to point at Privacy Considerations, Path Disclosure.</t>
-  <t>Editorial: <spanx style="verb">HEAD</spanx> responses now use MUST (parallel to <spanx style="verb">GET</spanx>); the <spanx style="verb">updated</spanx> member cites RFC 3339 formally; expanded the CDDL and JTD abbreviations on first use; cited ESRS E1 formally and tied Digital Product Passports to the EU ESPR; forward-referenced the "Sustainability Metadata Document" definition at first use; aligned the prose/CDDL/JTD member ordering; noted that the formal schemas cannot express the range constraints and unit defaults; removed trailing whitespace.</t>
+  <t>Editorial: <spanx style="verb">HEAD</spanx> responses now use MUST (parallel to <spanx style="verb">GET</spanx>); the <spanx style="verb">updated</spanx> member cites RFC 3339 formally; expanded the CDDL and JTD abbreviations on first use; cited ESRS E1 formally and tied Digital Product Passports to the EU ESPR; updated the W3C-WSG reference to its current Group Draft Note form; forward-referenced the "Sustainability Metadata Document" definition at first use; aligned the prose/CDDL/JTD member ordering; noted that the formal schemas cannot express the range constraints and unit defaults; removed trailing whitespace.</t>
   <t>For the historical record: the <spanx style="verb">weekly</spanx> granularity value, introduced in the predecessor draft draft-besleaga-green-sustainability-wellknown-01, was removed before the present document series began; the defined <spanx style="verb">granularity</spanx> values are <spanx style="verb">monthly</spanx> and <spanx style="verb">daily</spanx> (this note keeps the in-document changelog in lockstep with the repository CHANGELOG, corrected in the same pass).</t>
 </list></t>
 
@@ -849,402 +850,414 @@ This registration enables interoperable discovery of sustainability metadata.</t
   </back>
 
 <!-- ##markdown-source:
-H4sIAAAAAAAAA+1963LbWJrYfz3FKU5lh3QBFHWx2y1V74xaUru1a8teSV5n
-MukKIfKQwpgkOAAomdPVW3mIPGGeJN/1XEBQkj2bTaWSqak2RQLn+t2vaZru
-1Hk9s0emc3Nnze+rVVVn+SK7zWd5vf69+WRns/SfF8XDwny8uujsZLe3pb2H
-p6+jBzeeGxejRTaHYcdlNqnTW1vNbDbN0nj89AFe+4xvpYODnVFW22lRro9M
-vpgUO9Xqdp5XVV4s6vXS4pdju7Twn0W9ky/LI1OXMNj+YPD9YH/ns10/FOX4
-aMeY1FwsalsubJ2e4eT0Vbxc+uo0K2+LhTkZjYrVos4XU/o23gh9db6w5XRt
-zieTfJTbxWi9s5Ot6rui5NnyRXVkTvrmsm9+lG3C98bw/k8W49Lm5jIfFbPM
-mh/Pr9+en7w5oSeKcpot8r9lNezxCFbt94e/2nmWz45MRgP09QT/mFtr+/Dm
-zs6iKOfw7r3FdVz9dLq/t/e9fDw4ONCPr/e+O5SP3x1+f6Df7r90D7zaG/iP
-L/Xj9/vf6WDfv34lH7/fc8/Cx72jnR28qmAZb35+k364en/z/vT92yPaRghe
-b0prF3fFqoKPWWU+lEVdwLnAKZnTolwWJUBAcCG4d3Nl4Xv667qGv7NybLpX
-9j6v7Nicj3M8u16HZvKXgv9L8XiPzKeinOEgVbEqR7aCU65gRSuYBwfnX39c
-VfnCVhUsYrUY5TMDW/IQM7PmzN7bWbGc69XUWTm19ZG5q+tldbS7O72bLmUv
-eDW7I91MWsma6bUxfHNkAGIP8aSuf0qvTy/iQ7ouJvVDVloFToTkRYUI1oVn
-e+Z6aUc5gCGBjOnq6Pnf4DDgQC+u3+9enJ+a/b3Bwd7R/mD/8LGjodswbsqf
-YPNjGrh1j9Uo70/xjUpe6E/cC7vR9vYPBUJeHhIInX9MT6+vzuKdnuWlHSHU
-mO75xx6+tb+7f/jqELdR2ilsqjLuGE1MNuABhYkujvzYJs9XZbG02cJ8yMpZ
-nuEV0s3LVbdu1a7KdGa/9C2+m8E/u3aW747zctctc7f4S7zn/XRvH775eJle
-n71pQH6ZLSrEElwwgKF5QKgD+gUYsT84GJiTKaB99hjUPbLBj4u8htu/pIuo
-2q9uPK36qwWBJk6Y0XzR+vdewp+fDk7TT9eN1X+ytw3qad6s8jGcCKCM6cLz
-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
-TmmfCpQH3u08kP2d/wV0LK4h4dsAAA==
+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
 
 -->
 

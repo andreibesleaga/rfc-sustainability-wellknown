@@ -18,6 +18,11 @@ This repository contains the initial documents and other supporting examples, to
 
 ## What this defines
 
+> **The one distinction to hold onto:** the *origin* is **where** the document is
+> published; the `target` member is **what** the metrics are about. For the common
+> origin-wide case they coincide (the origin's host), but `target` may equally name
+> an organization, a path, a cloud tenant, a device, or a data source.
+
 A universal `/.well-known/sustainability` URI that allows any organization to publish reports, through a web server or digital service, with aggregated energy consumption and carbon footprint metrics, in a human and machine-readable, minimal, backward and forward compatible, extensible, JSON format.
 
 **Not limited to conventional websites, and not limited to a server's own electricity bill.** 
@@ -27,7 +32,7 @@ A well-known URI is scoped to an HTTP(S) *origin* (RFC 8615) — any device or s
 Separately, the `provider` field names "the entity operating the origin," `measurement-method` is free-form, and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) already publish *organization-level* figures through this same endpoint — so it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — exactly the shape of this schema's optional fields, for an entity that is not a website at all.
 
 #### Goals
-* Provide a single, discoverable location, for environmental metrics, for an origin entity.
+* Provide a single, discoverable location, per origin, for environmental metrics about a declared reporting subject (`target` — by default the origin itself).
 * Define a minimal, machine and human readable JSON structure, suitable for broad adoption.
 * Ensure interoperability between clients and servers.
 * Mitigate security and privacy risks associated with publishing the data.

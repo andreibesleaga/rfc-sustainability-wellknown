@@ -84,7 +84,7 @@ informative:
 
 --- abstract
 
-This document defines the "sustainability" well-known URI. This URI provides a uniform, out-of-band convention for web servers and digital services to publish their aggregated environmental impact, energy consumption, and carbon footprint metrics.
+This document defines the "sustainability" well-known URI. This URI provides a uniform, out-of-band convention for web servers and digital services to publish aggregated environmental impact, energy consumption, and carbon footprint metrics for a declared reporting subject — typically the publishing origin itself.
 
 By utilizing an asynchronous reporting model, this approach allows for transparent environmental accounting without the bandwidth and energy overhead associated with per-request HTTP headers.
 
@@ -92,7 +92,7 @@ By utilizing an asynchronous reporting model, this approach allows for transpare
 
 # Introduction
 
-The digital economy consumes a significant and growing percentage of global electricity. Emerging regulatory frameworks, such as the EU Corporate Sustainability Reporting Directive (CSRD) {{EU-CSRD}}, as well as industry standards like the Green Software Foundation's Software Carbon Intensity {{GSF-SCI}} and the W3C Web Sustainability Guidelines {{W3C-WSG}}, increasingly require organizations to disclose the environmental impact of their digital services.
+The digital economy consumes a significant and growing percentage of global electricity. Emerging regulatory frameworks, such as the EU Corporate Sustainability Reporting Directive (CSRD) {{EU-CSRD}}, as well as industry standards like the Green Software Foundation's Software Carbon Intensity {{GSF-SCI}} and the W3C Web Sustainability Guidelines {{W3C-WSG}}, increasingly call for organizations to disclose the environmental impact of their digital services.
 
 These transparency efforts align with the United Nations 2030 Agenda for Sustainable Development {{UN-SDG}}, specifically supporting energy efficiency and sustainable infrastructure targets, encouraging companies to integrate sustainability information into their reporting cycles. The need for better data on the environmental impact of Internet systems, and the current gaps in that data, are documented in the report of the IAB Workshop on Environmental Impact of Internet Applications and Systems {{RFC9547}}.
 
@@ -109,7 +109,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 ## Goals and Non-Goals
 
 ### Goals
-* Provide a single, discoverable location for environmental metrics for an origin.
+* Provide a single, discoverable location, per origin, for environmental metrics about a declared reporting subject (by default the origin itself).
 * Define a minimal, machine-readable JSON structure, suitable for broad adoption.
 * Ensure interoperability between clients and servers.
 * Support alignment with the GHG Protocol {{GHG-PROTOCOL}}, the EU CSRD {{EU-CSRD}} and the ESRS E1 climate standard {{ESRS-E1}}, and product-level disclosure regimes such as the Digital Product Passport established by the EU Ecodesign for Sustainable Products Regulation {{EU-ESPR}}.
@@ -122,7 +122,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ## Relationship to Other Work
 
-This document specifies an application-layer discovery mechanism for aggregated, origin-level environmental metrics. It defines discovery and data semantics only, over HTTP {{RFC9110}}, and does not profile or constrain the underlying measurement methodology.
+This document specifies an application-layer discovery mechanism for aggregated environmental metrics published at the origin level. It defines discovery and data semantics only, over HTTP {{RFC9110}}, and does not profile or constrain the underlying measurement methodology.
 
 In particular, it does not define, profile, or update network-equipment energy metrics, YANG data models, or network-domain energy monitoring and capability discovery. Such work is the subject of the IETF GREEN Working Group and, earlier, of the EMAN framework {{?RFC7326}}; the GREEN charter explicitly excludes carbon accounting and reporting. This document therefore does not overlap with, update, or obsolete any IETF-stream document, and is complementary to that network-layer work. Sustainability at the level of the Internet as a whole is also a topic of research in the IRTF (for example, the Sustainability and the Internet Research Group), which defers protocol standardization to the IETF; this document is an individual Independent Submission and is not a product of, nor endorsed by, any IETF Working Group or IRTF Research Group.
 
@@ -138,15 +138,16 @@ This document defines the "sustainability" well-known URI and requests its regis
 * **Origin**: The combination of scheme, host, and optional port (e.g., `https://example.com`).
 * **Sustainability Metadata Document**: The JSON document returned from `/.well-known/sustainability`.
 * **Provider**: The entity operating the origin and publishing the sustainability metadata.
+* **Reporting subject**: The entity or scope that a Sustainability Metadata Document's metrics describe, identified by the mandatory `target` member of each object. The origin is *where* the document is published; the reporting subject is *what* the data is about — most commonly the origin itself, but possibly a resource path, an organizational entity, a device, a cloud tenant, or a data source.
 
 ## Mandatory Minimum Supported Service
 
-The resource SHOULD be served over HTTPS. The HTTP methods, status codes, and header fields used in this document are defined in HTTP Semantics {{RFC9110}}. A `GET` request MUST receive a `200 OK` with a JSON body when metadata is available; a `HEAD` request MUST receive the same status and header fields with no message body. If no metadata is published, servers SHOULD respond with `404 Not Found`. A request using any method other than `GET` or `HEAD` SHOULD receive `405 Method Not Allowed` with an `Allow: GET, HEAD` header ({{RFC9110}}, Section 15.5.6). Successful (`200 OK`) responses MUST use the `application/json` media type, SHOULD follow I-JSON {{RFC7493}} for maximum compatibility, and SHOULD include appropriate caching directives (see Operational Considerations). A server MAY redirect the well-known URI; clients that follow a redirect MUST attribute the returned metrics to the origin of the final response, and providers SHOULD NOT redirect to a different origin.
+The resource SHOULD be served over HTTPS. The HTTP methods, status codes, and header fields used in this document are defined in HTTP Semantics {{RFC9110}}. A `GET` request MUST receive a `200 OK` with a JSON body when metadata is available; a `HEAD` request MUST receive the same status and header fields with no message body. If no metadata is published, servers SHOULD respond with `404 Not Found`. A request using any method other than `GET` or `HEAD` SHOULD receive `405 Method Not Allowed` with an `Allow: GET, HEAD` header ({{RFC9110}}, Section 15.5.6). Successful (`200 OK`) responses MUST use the `application/json` media type, SHOULD follow I-JSON {{RFC7493}} for maximum compatibility, and SHOULD include appropriate caching directives (see Operational Considerations). A server MAY redirect the well-known URI; clients that follow a redirect MUST attribute the returned document to the origin of the final response, and providers SHOULD NOT redirect to a different origin.
 
 A compliant server MUST support the following "Basic" service level:
 
 * **No Parameters**: Requests to the root URI with no query strings.
-* **Scope**: Metrics MUST represent the aggregate impact of the entire origin (the `target` member carries the origin-wide reporting subject; see Mandatory Response Fields).
+* **Scope**: The response to a parameterless request MUST cover the provider's complete published reporting subject for the origin, identified by the `target` member (see Mandatory Response Fields). When the reporting subject is the origin itself — the common case — the metrics MUST represent the aggregate impact of the entire origin, not a subset of its resources.
 * **Default Period**: The server MUST return the most recently completed reporting period it publishes; a full calendar month is RECOMMENDED.
 * **Format**: The server MUST return a single JSON object.
 
@@ -163,7 +164,7 @@ Servers MAY support "Extended" capabilities via the following parameters:
   Calendar periods are interpreted in UTC unless the methodology document states otherwise.
 * **granularity**: Defines the time "slices" within a period. This document defines the values `monthly` and `daily`; a server SHOULD ignore an unrecognized value or a granularity that is not finer than the requested period. When the granularity is finer than the period, the server SHOULD return an array of objects.
 
-A `period` request without a (finer) `granularity` requests a single object covering exactly that period. If the server holds only finer-grained data for the requested period, it SHOULD either aggregate it into a single object (summing energy and carbon after conversion to a single declared unit) or respond per the no-data rule below; it MUST NOT return an array unless a `granularity` finer than the period was requested. For a requested period that has not yet completed, the server SHOULD report the completed portion to date.
+A `period` request without a (finer) `granularity` requests a single object covering exactly that period. If the server holds only finer-grained data for the requested period, it SHOULD either aggregate it into a single object (summing energy and carbon after conversion to a single declared unit; other metrics SHOULD be recomputed for the aggregated period or omitted) or respond per the no-data rule below; it MUST NOT return an array unless a `granularity` finer than the period was requested. For a requested period that has not yet completed, the server SHOULD report the completed portion to date.
 
 Servers that do not support the Extended parameters MUST ignore any such parameters and return the Basic response, rather than failing the request. If a supported parameter carries a malformed value (for example, a `period` that is not a valid date), the server MAY respond with `400 Bad Request`, or ignore the offending parameter and process the remainder of the request. When a server supports the requested parameters but has no data for a valid requested `period` or `target` parameter value, it SHOULD respond with `404 Not Found`.
 
@@ -179,7 +180,7 @@ In an array response, the entries MUST be sorted in ascending order of `reportin
 * **capabilities** (string): A self-declared indicator of the service level. It MUST be either "basic" or "extended". "basic" denotes that only the Mandatory Minimum Supported Service is provided; "extended" denotes that one or more of the Optional Extended Query Parameters are supported. The value describes query-parameter support, not member presence: a document declaring "basic" MAY carry any optional members. The value is determined per response and MAY, at the provider's discretion, reflect the overall server, an individual response, or a specific reporting subject (the `target` member). A value of "extended" does not, by itself, guarantee support for any particular Extended parameter; clients determine actual support from the server's behavior.
 * **provider** (string): Information about the provider publishing the metadata.
 * **measurement-method** (string): Short description or reference to the methodology used. This is a free-form string; the values `hardware-metered`, `hardware-estimated`, `cloud-billing`, and `third-party-modeled` are RECOMMENDED.
-* **methodology-uri** (string): Link to the full methodology specification (calculation methodology). See also the minimum-reporting rule in Value Constraints and Omitted Metrics.
+* **methodology-uri** (string): Link to the full methodology specification (calculation methodology). In general, the methodology document SHOULD describe the measurement or estimation method in enough detail to interpret the published figures, and is the designated place for: any non-UTC interpretation of calendar periods, the precise meaning of a `functional-unit`, the extrapolation behind `estimated-annual-emissions-kgCO2e`, the net-accounting basis of any negative scope values, and any anti-fingerprinting noise applied (see Privacy Considerations). See also the minimum-reporting rule in Value Constraints and Omitted Metrics.
 * **reporting-period** (string): The timeframe covered by the object, expressed using the same date forms as the `period` parameter (`YYYY`, `YYYY-MM`, or the {{RFC3339}} `full-date` `YYYY-MM-DD`).
 * **target** (string): The reporting subject of this object: a free-form identifier of the entity or scope to which the metrics are attributed. Typical values are an origin or domain (for an origin-wide report the origin's host, e.g., `"example.com"`, is RECOMMENDED), a resource path prefix (e.g., `"/api/v1"`), an organizational entity, a cloud tenant or provider scope, a software product or data source (e.g., `"ms-sustainability-odata"`), or a site listed in a linked carbon.txt file {{CARBON-TXT}}. When the response is scoped by the `target` query parameter, this member MUST carry the matched path prefix (see Optional Extended Query Parameters). This response member and the `target` query parameter are distinct: the parameter requests scoping; the member identifies the subject of the data actually returned.
 
@@ -189,7 +190,7 @@ The JSON object MAY contain the following OPTIONAL keys to align with the {{GHG-
 
 * **energy-consumption** (numeric): Total energy consumed by the reporting subject during the reporting period. The value MUST NOT be negative. It is expressed in the unit given by `energy-unit`; when `energy-unit` is absent, the value is in kilowatt-hours (`kWh`).
 * **energy-unit** (string): The unit of energy for `energy-consumption` (MUST be one of: `Wh`, `kWh`, `MWh`, or `GWh`). When this member is absent, the default `kWh` applies. Publishers SHOULD state the unit explicitly; an `energy-unit` member without an accompanying `energy-consumption` member has no effect and SHOULD be omitted.
-* **carbon-footprint** (numeric): Total gross emissions impact, expressed in the unit given by `carbon-unit`; when `carbon-unit` is absent, the value is in grams of CO2 equivalent (`gCO2e`). The value MUST NOT be negative; see Value Constraints and Omitted Metrics for the treatment of removals and net accounting.
+* **carbon-footprint** (numeric): Total gross emissions impact attributable to the reporting subject during the reporting period, expressed in the unit given by `carbon-unit`; when `carbon-unit` is absent, the value is in grams of CO2 equivalent (`gCO2e`). The value MUST NOT be negative; see Value Constraints and Omitted Metrics for the treatment of removals and net accounting.
 * **carbon-unit** (string): The unit of carbon measurement (MUST be one of: `gCO2e`, `kgCO2e`, or `mtCO2e`). When this member is absent, the default `gCO2e` applies, both to `carbon-footprint` and to every other member expressed "in the unit given by `carbon-unit`". A `carbon-unit` member without any member it parameterizes has no effect and SHOULD be omitted.
 * **carbon-accounting** (string): "location-based" or "market-based" (following {{GHG-PROTOCOL}}).
 * **scope-1** (numeric): Estimated Scope 1 (direct) carbon emissions.
@@ -209,11 +210,11 @@ Fields not defined in this specification MAY be present; clients MUST ignore any
 
 ### Value Constraints and Omitted Metrics
 
-A metric that is not reported for the scope or period covered by an object is omitted from that object. This document defines no in-band "not reported" marker: the absence of a member is the only way to convey that a metric is unreported, and a member that is present always carries an actual value. Consumers that require a value not present in this document SHOULD look to the linked disclosure or reporting resources.
+A metric that is not reported for the scope or period covered by an object is omitted from that object. This document defines no in-band "not reported" marker: the absence of a member is the only way to convey that a metric is unreported, and a member that is present always carries an actual value. Consumers that require a value not present in a Sustainability Metadata Document SHOULD look to the linked disclosure or reporting resources.
 
-Numeric members that report gross quantities — `energy-consumption`, `carbon-footprint`, `sci-score`, `carbon-intensity-gCO2e-per-kWh`, and `estimated-annual-emissions-kgCO2e` — MUST NOT be negative, and `renewable-energy` MUST be between 0 and 100 inclusive. `carbon-footprint` reports gross emissions; carbon removals, offsets, and net accounting are conveyed, where the declared `carbon-accounting` methodology supports them, through `scope-1`, `scope-2`, and `scope-3`, which MAY be negative for that purpose (a publisher reporting a negative scope value SHOULD explain the net-accounting basis in the `methodology-uri` document), or through the linked attestation or disclosure resources. A client encountering a value outside a member's stated range SHOULD treat that member as not reported rather than reject the document; for a negative value in a member defined here as non-negative, this treatment is mandatory per the compatibility rules in Versioning and Extensibility.
+Numeric members that report gross quantities — `energy-consumption`, `carbon-footprint`, `sci-score`, `carbon-intensity-gCO2e-per-kWh`, and `estimated-annual-emissions-kgCO2e` — MUST NOT be negative, and `renewable-energy` MUST be between 0 and 100 inclusive. `carbon-footprint` reports gross emissions; carbon removals, offsets, and net accounting are conveyed, where the declared `carbon-accounting` methodology supports them, through `scope-1`, `scope-2`, and `scope-3`, which MAY be negative for that purpose (a publisher reporting a negative scope value SHOULD explain the net-accounting basis in the `methodology-uri` document), or through the linked attestation or disclosure resources. A client encountering a value outside a member's stated range SHOULD treat that member as not reported rather than reject the document; for a negative value in a member defined here as non-negative, this treatment is mandatory per the compatibility rules in Versioning and Extensibility. Likewise, a client that encounters an unrecognized value in an enumerated string member defined here (`capabilities`, `energy-unit`, `carbon-unit`, or `carbon-accounting`) SHOULD NOT reject the document; it SHOULD treat that member — and, for a unit member, the numeric member(s) it parameterizes — as not reported. Note that the CDDL and JTD schemas close these value sets; a future specification extending one of them updates the schemas accordingly.
 
-A Sustainability Metadata Document SHOULD contain at least one reported numeric metric (for example, `energy-consumption` or `carbon-footprint`) or at least one of `disclosure-uri` or `verifiable-attestation-uri`. A document containing none of these is conformant only by virtue of the mandatory `methodology-uri`: in that case the publisher MUST ensure that the resource identified by `methodology-uri` provides the substantive disclosure — a clear, reasonably detailed description of the measurement or estimation method and of the reported values, or a direct pointer to where those values are published. A document that neither reports metrics nor leads a consumer to them conveys no information and defeats the purpose of publication.
+A Sustainability Metadata Document (in an array response, at least one of its objects) SHOULD contain at least one reported numeric metric (for example, `energy-consumption` or `carbon-footprint`) or at least one of `disclosure-uri` or `verifiable-attestation-uri`. A document containing none of these is conformant only by virtue of the mandatory `methodology-uri`: in that case the publisher MUST ensure that the resource identified by `methodology-uri` provides the substantive disclosure: it MUST describe, clearly and in reasonable detail, the measurement or estimation method, and MUST either state the metric values themselves or point directly to where they are published. A document that neither reports metrics nor leads a consumer to them conveys no information and defeats the purpose of publication.
 
 ### Versioning and Extensibility
 
@@ -409,7 +410,7 @@ Request: `GET /.well-known/sustainability?target=/api/v1&period=2026-03-15`
 
 Request: `GET /.well-known/sustainability?target=/api/v1&period=2026&granularity=monthly`
 
-As above, the array holds one object per month; only the first two are shown for brevity.
+As above, the array holds one object per completed month.
 
 ~~~ json
 [
@@ -519,7 +520,7 @@ Because this endpoint can be dynamic, servers SHOULD implement heavy caching for
 To maximize interoperability:
 
 * Servers SHOULD keep their published documents current with this specification.
-* Clients MUST tolerate unknown fields and future versions.
+* Clients MUST ignore members they do not recognize and MUST NOT reject a document over its `version` label (see Versioning and Extensibility).
 * Implementers SHOULD publish example payloads and test vectors.
 * Aggregators SHOULD document how they map provider fields to their internal models.
 
@@ -632,7 +633,7 @@ This revision is a **breaking change** to the data model and wire format; docume
 * Replaced the "Not-Reported Sentinel" example with a "Partial Reporting" example (carbon reported, energy omitted, default units, `basic` with optional members); added `target` to all examples; added a worked vendor-extension member (`vendor-example-pue`) to the detailed example.
 * Added an applicability paragraph to the Introduction describing the convention's web, machine-to-machine/API, human-reader, and automated-agent/AI readiness.
 * Consolidated the privacy material: the Security Considerations "Privacy and Information Leakage" subsection now defers to the Privacy Considerations section; the HTTPS requirement is stated once (Mandatory Minimum Supported Service) and cross-referenced from Integrity and Transport Security; corrected the `target` bullet's cross-reference to point at Privacy Considerations, Path Disclosure.
-* Editorial: `HEAD` responses now use MUST (parallel to `GET`); the `updated` member cites RFC 3339 formally; expanded the CDDL and JTD abbreviations on first use; cited ESRS E1 formally and tied Digital Product Passports to the EU ESPR; forward-referenced the "Sustainability Metadata Document" definition at first use; aligned the prose/CDDL/JTD member ordering; noted that the formal schemas cannot express the range constraints and unit defaults; removed trailing whitespace.
+* Editorial: `HEAD` responses now use MUST (parallel to `GET`); the `updated` member cites RFC 3339 formally; expanded the CDDL and JTD abbreviations on first use; cited ESRS E1 formally and tied Digital Product Passports to the EU ESPR; updated the W3C-WSG reference to its current Group Draft Note form; forward-referenced the "Sustainability Metadata Document" definition at first use; aligned the prose/CDDL/JTD member ordering; noted that the formal schemas cannot express the range constraints and unit defaults; removed trailing whitespace.
 * For the historical record: the `weekly` granularity value, introduced in the predecessor draft draft-besleaga-green-sustainability-wellknown-01, was removed before the present document series began; the defined `granularity` values are `monthly` and `daily` (this note keeps the in-document changelog in lockstep with the repository CHANGELOG, corrected in the same pass).
 
 ## Since -01

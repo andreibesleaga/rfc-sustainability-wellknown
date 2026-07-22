@@ -18,7 +18,8 @@ Two revisions matter right now:
   omission, `energy-consumption`/`energy-unit`/`carbon-footprint`/`carbon-unit` become
   optional (with default units), a mandatory free-form `target` member identifies the
   reporting subject (replacing the optional `target-path`), and two carbon members are
-  renamed to the CO2e convention. See the draft's own "Since -02" changelog appendix.
+  renamed to the CO2e convention, and `capabilities` is redefined to describe
+  Extended query-parameter support only. See the draft's own "Since -02" changelog appendix.
 
 | File | Role |
 |---|---|

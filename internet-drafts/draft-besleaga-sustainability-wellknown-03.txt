@@ -4,8 +4,8 @@
 
 Network Working Group                                     A. N. Besleaga
 Internet-Draft                                               Independent
-Intended status: Informational                              22 July 2026
-Expires: 23 January 2027
+Intended status: Informational                              23 July 2026
+Expires: 24 January 2027
 
 
                   The 'sustainability' Well-Known URI
@@ -38,7 +38,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 23 January 2027.
+   This Internet-Draft will expire on 24 January 2027.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Besleaga                 Expires 23 January 2027                [Page 1]
+Besleaga                 Expires 24 January 2027                [Page 1]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Besleaga                 Expires 23 January 2027                [Page 2]
+Besleaga                 Expires 24 January 2027                [Page 2]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -165,7 +165,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027                [Page 3]
+Besleaga                 Expires 24 January 2027                [Page 3]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -221,7 +221,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027                [Page 4]
+Besleaga                 Expires 24 January 2027                [Page 4]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -277,7 +277,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027                [Page 5]
+Besleaga                 Expires 24 January 2027                [Page 5]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -333,7 +333,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027                [Page 6]
+Besleaga                 Expires 24 January 2027                [Page 6]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -389,7 +389,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027                [Page 7]
+Besleaga                 Expires 24 January 2027                [Page 7]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -445,7 +445,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027                [Page 8]
+Besleaga                 Expires 24 January 2027                [Page 8]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -501,7 +501,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027                [Page 9]
+Besleaga                 Expires 24 January 2027                [Page 9]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -557,7 +557,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 10]
+Besleaga                 Expires 24 January 2027               [Page 10]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -613,7 +613,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 11]
+Besleaga                 Expires 24 January 2027               [Page 11]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -669,7 +669,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 12]
+Besleaga                 Expires 24 January 2027               [Page 12]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -725,7 +725,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 13]
+Besleaga                 Expires 24 January 2027               [Page 13]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -781,7 +781,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 14]
+Besleaga                 Expires 24 January 2027               [Page 14]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -837,7 +837,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 15]
+Besleaga                 Expires 24 January 2027               [Page 15]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -893,7 +893,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 16]
+Besleaga                 Expires 24 January 2027               [Page 16]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -949,7 +949,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 17]
+Besleaga                 Expires 24 January 2027               [Page 17]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1005,7 +1005,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 18]
+Besleaga                 Expires 24 January 2027               [Page 18]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1061,7 +1061,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 19]
+Besleaga                 Expires 24 January 2027               [Page 19]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1117,7 +1117,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 20]
+Besleaga                 Expires 24 January 2027               [Page 20]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1173,7 +1173,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 21]
+Besleaga                 Expires 24 January 2027               [Page 21]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1229,7 +1229,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 22]
+Besleaga                 Expires 24 January 2027               [Page 22]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1285,7 +1285,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 23]
+Besleaga                 Expires 24 January 2027               [Page 23]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1341,7 +1341,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 24]
+Besleaga                 Expires 24 January 2027               [Page 24]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1397,7 +1397,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 25]
+Besleaga                 Expires 24 January 2027               [Page 25]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1453,7 +1453,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 26]
+Besleaga                 Expires 24 January 2027               [Page 26]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1509,7 +1509,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 27]
+Besleaga                 Expires 24 January 2027               [Page 27]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1565,7 +1565,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 28]
+Besleaga                 Expires 24 January 2027               [Page 28]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1621,7 +1621,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 29]
+Besleaga                 Expires 24 January 2027               [Page 29]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1677,7 +1677,7 @@ A.1.  Since -02
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 30]
+Besleaga                 Expires 24 January 2027               [Page 30]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1733,7 +1733,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 31]
+Besleaga                 Expires 24 January 2027               [Page 31]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1789,7 +1789,7 @@ A.2.  Since -01
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 32]
+Besleaga                 Expires 24 January 2027               [Page 32]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1845,7 +1845,7 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 33]
+Besleaga                 Expires 24 January 2027               [Page 33]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1901,7 +1901,7 @@ A.4.  draft-besleaga-sustainability-wellknown-00 (replaces draft-
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 34]
+Besleaga                 Expires 24 January 2027               [Page 34]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -1957,7 +1957,7 @@ Author's Address
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 35]
+Besleaga                 Expires 24 January 2027               [Page 35]
 
 Internet-Draft        Sustainability Well-Known URI            July 2026
 
@@ -2013,4 +2013,4 @@ Internet-Draft        Sustainability Well-Known URI            July 2026
 
 
 
-Besleaga                 Expires 23 January 2027               [Page 36]
+Besleaga                 Expires 24 January 2027               [Page 36]

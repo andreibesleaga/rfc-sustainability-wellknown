@@ -135,7 +135,7 @@ This document complements existing disclosure conventions rather than replacing 
 
 This document defines the "sustainability" well-known URI and requests its registration in the "Well-Known URIs" registry (see the IANA Considerations section). A client requests metrics by issuing an HTTP GET (or HEAD) request. When published, the metadata MUST be located at the path `/.well-known/sustainability` on the origin.
 
-* **Origin**: The combination of scheme, host, and optional port (e.g., `https://example.com`); see also the web origin concept {{RFC6454}}.
+* **Origin**: The combination of scheme, host, and optional port (e.g., `https://example.com`); see also the web origin concept {{?RFC6454}}.
 * **Sustainability Metadata Document**: The JSON document returned from `/.well-known/sustainability`.
 * **Provider**: The entity operating the origin and publishing the sustainability metadata.
 * **Reporting subject**: The entity or scope that a Sustainability Metadata Document's metrics describe, identified by the mandatory `target` member of each object. The origin is *where* the document is published; the reporting subject is *what* the data is about -- most commonly the origin itself, but possibly a resource path, an organizational entity, a device, a cloud tenant, or a data source.

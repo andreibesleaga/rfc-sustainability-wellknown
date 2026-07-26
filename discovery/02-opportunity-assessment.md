@@ -19,7 +19,7 @@
 | Per-request HTTP carbon headers | Rebound effect: metadata on every request adds the footprint it reports; DoS/fingerprinting risk. |
 | Per-vendor authenticated APIs | N×M integration; no discovery; locked behind credentials. |
 | Annual PDF / spreadsheet | Not machine-readable; stale; unverifiable. |
-| **`/.well-known/sustainability` + gateway** | One discoverable URL; out-of-band and cached (no rebound); validated; vendor-neutral. |
+| **`/.well-known/sustainability-data` + gateway** | One discoverable URL; out-of-band and cached (no rebound); validated; vendor-neutral. |
 
 The well-known URI is the **contract**; the gateway is the **adapter** that lets existing
 and future systems satisfy it without rebuilding anything.

@@ -1,5 +1,5 @@
 flowchart TD
-    START["fetchSustainability(origin, options)"] --> URL["Build URL: origin + /.well-known/sustainability<br/>+ target / period / granularity params<br/>+ If-None-Match when ETag known"]
+    START["fetchSustainability(origin, options)"] --> URL["Build URL: origin + /.well-known/sustainability-data<br/>+ target / period / granularity params<br/>+ If-None-Match when ETag known"]
     URL --> REQ["GET with AbortSignal.timeout (default 30s)"]
 
     REQ -- "timeout / abort" --> TMO(["status: timeout"])

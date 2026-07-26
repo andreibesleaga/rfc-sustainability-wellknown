@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Minimal, zero-dependency reference request handler for `/.well-known/sustainability`,
+Minimal, zero-dependency reference request handler for `/.well-known/sustainability-data`,
 using only the Python standard library (`http.server`). Complements `security.py`
 (which only implements the array safeguards) by showing the surrounding request
 logic: method handling, query-parameter parsing, Basic vs Extended routing, the
@@ -13,9 +13,9 @@ source adapters, see `publisher/` in this repository.
 Run:
     python3 request-handler.py [port]        # default port 8080
 Try:
-    curl -s http://localhost:8080/.well-known/sustainability | python3 -m json.tool
-    curl -s "http://localhost:8080/.well-known/sustainability?period=2026&granularity=monthly"
-    curl -i -X POST http://localhost:8080/.well-known/sustainability   # 405 + Allow
+    curl -s http://localhost:8080/.well-known/sustainability-data | python3 -m json.tool
+    curl -s "http://localhost:8080/.well-known/sustainability-data?period=2026&granularity=monthly"
+    curl -i -X POST http://localhost:8080/.well-known/sustainability-data   # 405 + Allow
 """
 import hashlib
 import json
@@ -25,7 +25,7 @@ from urllib.parse import parse_qs, urlparse
 
 from security import secure_sustainability_report
 
-WELL_KNOWN_PATH = "/.well-known/sustainability"
+WELL_KNOWN_PATH = "/.well-known/sustainability-data"
 
 # Illustrative in-memory dataset. A real deployment reads this from wherever its
 # metrics actually live (billing export, monitoring system, enterprise platform).
@@ -43,6 +43,7 @@ REPORTS = [
         # `target` scoping — a path-scoped deployment would echo the matched
         # path prefix here instead).
         "target": "example.com",
+        "target-type": "origin",  # OPTIONAL enum; "origin" because `target` is the origin host
         "energy-consumption": 1000 + m * 10,
         "energy-unit": "kWh",
         "carbon-footprint": (1000 + m * 10) * 270,

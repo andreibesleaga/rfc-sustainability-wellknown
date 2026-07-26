@@ -1,4 +1,4 @@
-# Deep Research — Green Web Foundation, carbon.txt, and CO2.js: integration with `/.well-known/sustainability`
+# Deep Research — Green Web Foundation, carbon.txt, and CO2.js: integration with `/.well-known/sustainability-data`
 
 *Companion research for the draft (draft-besleaga-sustainability-wellknown). Non-normative. Explains how the Green Web Foundation (GWF)
 ecosystem — the **carbon.txt** disclosure convention, its **hosted API**, and the **CO2.js**
@@ -12,7 +12,7 @@ The GWF ecosystem and this draft solve **two halves of the same problem**:
 - **carbon.txt** answers *"where are this origin's sustainability disclosures, and who hosts
   it?"* — a discoverable TOML file that **links to evidence** (reports, certificates, AI
   model cards) and declares upstream providers. It carries **no quantitative metrics**.
-- **`/.well-known/sustainability`** answers *"what are this origin's actual energy and carbon
+- **`/.well-known/sustainability-data`** answers *"what are this origin's actual energy and carbon
   numbers?"* — a schema-validated JSON **metrics** document.
 
 They are complementary, not competing. The draft adds one optional, format-agnostic field —
@@ -81,7 +81,7 @@ API extracts them from linked CSRD reports / model cards into `document_data`.
   **ODbL**. Attribution required; consuming via `@tgwf/co2` (not redistributing a modified
   dataset) and calling the APIs keeps obligations to attribution. See `publisher/NOTICE`.
 
-## 5. Field mapping (GWF ecosystem → `/.well-known/sustainability`)
+## 5. Field mapping (GWF ecosystem → `/.well-known/sustainability-data`)
 
 | Draft field | Source | How |
 |---|---|---|
@@ -108,7 +108,7 @@ Three additions, offline-deterministic via fixtures (see `publisher/`):
    intensity (explicit → zone dataset → model default). Supports **measured-energy** (use the
    supplied energy) and **derived-energy** (bytes-based) modes.
 2. **carbon.txt helper** (`src/carbontxt.ts`) — `emitCarbonTxt()` produces a minimal carbon.txt
-   whose first disclosure points back to `/.well-known/sustainability` (bidirectional
+   whose first disclosure points back to `/.well-known/sustainability-data` (bidirectional
    discovery); `parseCarbonTxt()` (via `@iarna/toml`); `discoverCarbonTxt()` follows the
    HTTP lookup precedence (root → well-known → `CarbonTxt-Location`).
 3. **`carbontxt-api` adapter** (`src/adapters/carbontxt-api.ts`) — calls the GWF hosted API,
@@ -125,7 +125,7 @@ server, Express, Fastify) so an origin exposes both surfaces from one process.
   its carbon.txt via `disclosure-uri`; the carbon.txt lists the metrics document as a
   disclosure. The publisher does both today.
 - **Propose to GWF** a carbon.txt `doc_type` for machine-readable metrics (or a convention to
-  list `/.well-known/sustainability`), making the round-trip first-class on their side too.
+  list `/.well-known/sustainability-data`), making the round-trip first-class on their side too.
 - **Keep the draft reference informative.** carbon.txt is unregistered and pre-1.0; the draft
   names it as the canonical example of a generic `disclosure-uri`, not a normative dependency —
   preserving adoption odds while delivering real-world interoperability.

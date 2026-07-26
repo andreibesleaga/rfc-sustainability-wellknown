@@ -1,6 +1,6 @@
 # 01 — Market Scan
 
-*Discovery for the `/.well-known/sustainability` publisher/gateway. Non-normative.*
+*Discovery for the `/.well-known/sustainability-data` publisher/gateway. Non-normative.*
 
 ## 1. The landscape
 
@@ -56,7 +56,7 @@ aggregator, or regulator can GET to learn an origin's energy and carbon profile.
 ## 4. The wedge
 
 `draft-besleaga-sustainability-wellknown` defines that missing surface:
-`GET /.well-known/sustainability` → a small, validated JSON document. The **publisher/
+`GET /.well-known/sustainability-data` → a small, validated JSON document. The **publisher/
 gateway** in this repo is the missing middleware: it reads from any of the sources above
 (or a static file) and publishes a conformant document, turning the fragmented calculation
 layer into a uniform, public disclosure layer.

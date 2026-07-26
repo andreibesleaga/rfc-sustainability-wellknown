@@ -6,7 +6,7 @@ package — pick whichever fits your deployment, or mix them across environments
 
 | Mode | When to use it | Section |
 |---|---|---|
-| **Standalone server** | You just want `/.well-known/sustainability` running; no existing Node app | [§1](#1-standalone-server-cli) |
+| **Standalone server** | You just want `/.well-known/sustainability-data` running; no existing Node app | [§1](#1-standalone-server-cli) |
 | **Embedded middleware** | You already have an Express/Fastify app and want to add the endpoint to it | [§2](#2-embedded-middleware-in-an-existing-app) |
 | **Library / programmatic** | You're on a different framework (Koa, Next.js, a serverless function, a plain `http` server, a cron job, a test) | [§3](#3-library-programmatic-usage-any-framework) |
 
@@ -24,7 +24,7 @@ per adapter) and it serves the endpoint directly.
 ```bash
 npm install -g sustainability-wellknown-publisher   # or use npx, see §6
 sustainability-publisher --config config.json --port 8080
-curl http://localhost:8080/.well-known/sustainability
+curl http://localhost:8080/.well-known/sustainability-data
 ```
 
 Or print one document and exit (for a cron job that writes a static file, feeding
@@ -105,7 +105,7 @@ import { Publisher, handleRequest, parseQuery, computedAdapter } from "sustainab
 
 const publisher = new Publisher(computedAdapter({ /* ... */ }));
 
-// Next.js (Pages Router) API route, app/.well-known/sustainability/route.ts (App Router
+// Next.js (Pages Router) API route, app/.well-known/sustainability-data/route.ts (App Router
 // equivalent is analogous), AWS Lambda (API Gateway proxy integration), Cloudflare
 // Workers `fetch` handler, Koa middleware, or a plain node:http server — all follow
 // this same shape: parse the incoming query string, call handleRequest, map the
@@ -189,6 +189,8 @@ function myAdapter(): SourceAdapter {
         // Set `target` when you scope to a requested path prefix; otherwise the
         // publisher-level normalize.target fallback (below) is used. Both
         // energy and carbon are optional since -03 — omit what you don't have.
+        // Optionally classify the subject with the -04 `target-type` hint
+        // (e.g. targetType: "path" when scoping to a path prefix).
         target: query.target,
         energy: { value: row.kwh, unit: "kWh" },
         carbon: { value: row.gCO2e, unit: "gCO2e" },
@@ -274,8 +276,11 @@ The three option bags accepted by `new Publisher(adapter, options)`:
   24h; `0` disables caching), `maxCacheEntries` (default 256, bounds the
   per-query-variant cache), `security` (see below), `normalize` (`target` — the
   mandatory reporting subject fallback, use the origin host for origin-wide
-  reports; `version` — informational label, default `"2.0"`; `energyUnit`/
-  `carbonUnit` to force specific output units).
+  reports; `targetType` — optional `target-type` hint classifying the subject,
+  one of `origin`/`path`/`organization`/`service`/`product`/`device`/`tenant`/
+  `data-source` (draft -04; any other value throws); `version` — informational
+  label, default `"2.0"`; `energyUnit`/`carbonUnit` to force specific output
+  units).
 - **`SecurityOptions`** (`src/security.ts`): `maxObjects` (default 366),
   `enforceDailyFloor` (default `true`), `applyNoise` (default `false`; when
   `true`, deterministic per-period ~1% noise per the draft's Hardware

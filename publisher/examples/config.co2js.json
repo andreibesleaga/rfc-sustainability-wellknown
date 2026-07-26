@@ -22,7 +22,7 @@
     "port": 8080,
     "maxAge": 86400,
     "carbonTxt": {
-      "sustainabilityUrl": "https://example.com/.well-known/sustainability",
+      "sustainabilityUrl": "https://example.com/.well-known/sustainability-data",
       "lastUpdated": "2026-06-27",
       "upstreamServices": [{ "domain": "aws.amazon.com", "service_type": "shared-hosting" }]
     }

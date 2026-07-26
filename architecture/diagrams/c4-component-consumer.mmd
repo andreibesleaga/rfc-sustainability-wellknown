@@ -1,7 +1,7 @@
 flowchart TB
     %% C4 Level 3 - Component diagram of consumer/src (flowchart rendering of C4 component semantics)
 
-    ORIGIN(("Any /.well-known/sustainability origin"))
+    ORIGIN(("Any /.well-known/sustainability-data origin"))
 
     subgraph CONS["consumer/src (npm: sustainability-wellknown-consumer)"]
         FETCH["fetch.ts — fetchSustainability()<br/>30s timeout · 10MB byte cap (streaming) ·<br/>query params target/period/granularity ·<br/>If-None-Match · legacy-compat pre-pass<br/>(missing target ⇒ inject final-response host, flag legacy)"]

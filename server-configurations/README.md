@@ -1,6 +1,6 @@
 # server-configurations
 
-Server configuration snippets for publishing the `/.well-known/sustainability` endpoint as defined in [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
+Server configuration snippets for publishing the `/.well-known/sustainability-data` endpoint as defined in [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
 
 ## Files
 
@@ -91,7 +91,7 @@ the full custom JSON 405 treatment described above.)
 limit_req_zone $binary_remote_addr zone=sust_limit:10m rate=1r/s;
 
 # In server {}:
-location = /.well-known/sustainability {
+location = /.well-known/sustainability-data {
     alias /path/to/sustainability.json;
     ...
 }

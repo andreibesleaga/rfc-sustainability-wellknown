@@ -1,6 +1,6 @@
 ; Root: a single object, or an array of objects for trends
 sustainability-response =
-  sustainability-metrics / [* sustainability-metrics]
+  sustainability-metrics / [+ sustainability-metrics]
 
 sustainability-metrics = {
   ; Versioning and provenance
@@ -29,9 +29,9 @@ sustainability-metrics = {
 
   ; Other optional metric and linkage members
   ? carbon-accounting: "location-based" / "market-based",
-  ? scope-1: number,              ; MAY be negative (removals)
-  ? scope-2: number,              ; MAY be negative (removals)
-  ? scope-3: number,              ; MAY be negative (removals)
+  ? scope-1: number,              ; may be negative (removals)
+  ? scope-2: number,              ; may be negative (removals)
+  ? scope-3: number,              ; may be negative (removals)
   ? sci-score: number,            ; non-negative
   ? functional-unit: tstr,
   ? carbon-intensity-gCO2e-per-kWh: number,   ; non-negative
@@ -40,6 +40,11 @@ sustainability-metrics = {
   ? verifiable-attestation-uri: tstr,
   ? disclosure-uri: tstr,
 
-  ; Vendor extensions; clients MUST ignore unknown members
+  ; Classification hint for the reporting subject in target
+  ? target-type: "origin" / "path" / "organization" / "service"
+               / "product" / "device" / "tenant" / "data-source",
+
+  ; Extension members (reverse-domain names); clients
+  ; ignore unknown members
   * tstr => any
 }

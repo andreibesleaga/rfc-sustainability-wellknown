@@ -1,6 +1,6 @@
 # sustainability-wellknown-publisher
 
-A production-grade gateway that serves a **fully draft-conformant** `/.well-known/sustainability`
+A production-grade gateway that serves a **fully draft-conformant** `/.well-known/sustainability-data`
 document, as defined by
 [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
 
@@ -15,7 +15,7 @@ It ships three ways to deploy:
 - **Express** middleware (`expressSustainability`)
 - **Fastify** plugin (`fastifySustainability`)
 - a **standalone HTTP server** / CLI that any web server (nginx, Apache, a CDN) can
-  reverse-proxy `/.well-known/sustainability` to (see `../server-configurations/`).
+  reverse-proxy `/.well-known/sustainability-data` to (see `../server-configurations/`).
 
 ## Pipeline (the four layers)
 
@@ -50,7 +50,7 @@ node bin/sustainability-publisher.js --config examples/config.computed.json --on
 
 # Or serve it:
 node bin/sustainability-publisher.js --config examples/config.computed.json --port 8080
-curl -s http://localhost:8080/.well-known/sustainability | jq
+curl -s http://localhost:8080/.well-known/sustainability-data | jq
 ```
 
 For every adapter with a real upstream shape to show (Climatiq, CO2.js, the carbon.txt
@@ -85,7 +85,7 @@ const publisher = new Publisher(
 );
 
 const app = express();
-app.use(expressSustainability(publisher));   // serves GET /.well-known/sustainability
+app.use(expressSustainability(publisher));   // serves GET /.well-known/sustainability-data
 app.listen(8080);
 ```
 
@@ -137,7 +137,7 @@ The CLI loads a JSON config:
 {
   "adapter":  { "type": "computed", "options": { /* adapter options */ } },
   "publisher": {
-    "normalize": { "version": "2.0", "target": "example.com", "energyUnit": "kWh", "carbonUnit": "gCO2e" },
+    "normalize": { "version": "2.0", "target": "example.com", "targetType": "origin", "energyUnit": "kWh", "carbonUnit": "gCO2e" },
     "security":  { "maxObjects": 366, "enforceDailyFloor": true, "applyNoise": false },
     "cacheTtlMs": 86400000
   },
@@ -150,6 +150,15 @@ the document. For an origin-wide report the origin's host (e.g. `"example.com"`)
 recommended value; an adapter that scopes a response to a requested path prefix sets
 `raw.target` itself, which takes precedence. If neither is configured, the publisher
 fails loudly rather than emit a document without a reporting subject.
+
+`normalize.targetType` (or an adapter-supplied `raw.targetType`, which wins) emits the
+optional `target-type` member added in draft -04: an enumerated hint classifying the
+kind of subject `target` names — one of `origin`, `path`, `organization`, `service`,
+`product`, `device`, `tenant`, `data-source`. The publisher throws on any other value
+(fail-loud on its own output); when re-ingesting a foreign document, `fromWire()`
+instead **drops** an unrecognized `target-type` per the draft's tolerance rule for
+enumerated members. Array (trend) responses must share one `target-type` value — the
+validation gate enforces this alongside the shared-`target` rule.
 
 Since draft -03, `energy-consumption`/`energy-unit` and `carbon-footprint`/`carbon-unit`
 are **optional**: a metric that is not reported is simply omitted (there is no negative
@@ -165,7 +174,7 @@ Adapter `type` is one of: `static`, `static-file`, `computed`, `kepler-prometheu
 
 Set `server.carbonTxt` (or the `carbonTxt` option on the middleware) to also serve a
 [carbon.txt](https://carbontxt.org/) at `/carbon.txt` and `/.well-known/carbon.txt` whose
-first disclosure points back to this origin's `/.well-known/sustainability` — a two-way link
+first disclosure points back to this origin's `/.well-known/sustainability-data` — a two-way link
 with the Green Web Foundation disclosure ecosystem. `sustainability-publisher --config c.json
 --emit-carbon-txt` prints the file. The `co2js` and `carbontxt-api` adapters and the
 carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@iarna/toml`
@@ -193,9 +202,12 @@ repo's **independent** Python (JTD) and Ruby (CDDL) validators in CI — see
 `.github/workflows/publisher.yml`.
 
 > Note on extensibility: the bundled JTD/CDDL schemas are open per the draft (unknown
-> members are permitted and clients MUST ignore them). Vendor-namespaced fields supplied
-> by an adapter via `raw.extra` pass through `normalize` and the validation gate onto the
-> wire; the gateway itself emits only spec-defined fields unless an adapter adds extras.
+> members are permitted and clients MUST ignore them). Extension members supplied by an
+> adapter via `raw.extra` pass through `normalize` and the validation gate onto the wire;
+> the gateway itself emits only spec-defined fields unless an adapter adds extras. Since
+> draft -04, member names without a "." are reserved for the specification — name your
+> extension members using reverse-domain notation rooted in a domain you control (e.g.
+> `com.example.pue`), not an `X-`/`vendor-` prefix.
 
 ## License
 

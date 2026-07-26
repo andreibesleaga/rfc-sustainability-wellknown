@@ -51,7 +51,17 @@ const NON_NEGATIVE_FIELDS = [
 /** RFC 3339 date-time shape for the mandatory `updated` member. */
 const UPDATED_RE = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
 
-/** Validate a single metrics object against the JTD schema. */
+/**
+ * Validate a single metrics object against the JTD schema.
+ *
+ * Enum membership for the enumerated string members — `capabilities`,
+ * `energy-unit`, `carbon-unit`, `carbon-accounting`, and `target-type`
+ * (draft -04) — is enforced by the JTD schema itself (they are `enum` forms
+ * in {@link RESPONSE_JTD_SCHEMA}), so an out-of-enum value fails here without
+ * a separate prose check. The publisher never emits such a document; the
+ * draft's unrecognized-value tolerance is a client-side rule applied by
+ * `fromWire` when re-ingesting foreign documents.
+ */
 export function validateMetrics(obj: unknown): ValidationResult {
   const valid = validateObject(obj) as boolean;
   if (!valid) {
@@ -148,6 +158,14 @@ export function validateDocument(doc: SustainabilityDocument): ValidationResult 
     }
     if (new Set(doc.map((m) => m.target ?? "")).size > 1) {
       errors.push("array entries carry differing target values");
+    }
+    // Draft -04 §Payload Format: entries MUST share the same target-type
+    // value when present (absence on some entries is fine).
+    const targetTypes = new Set(
+      doc.map((m) => m["target-type"]).filter((t) => t !== undefined),
+    );
+    if (targetTypes.size > 1) {
+      errors.push("array entries carry differing target-type values");
     }
   }
 

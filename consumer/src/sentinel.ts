@@ -55,3 +55,32 @@ export function withoutSentinels(doc: SustainabilityMetrics): Partial<Sustainabi
   }
   return out as Partial<SustainabilityMetrics>;
 }
+
+/**
+ * The values the -04 draft defines for the enumerated `target-type` member —
+ * kept in sync with the JTD schema, which `test/schema.test.ts` byte-checks
+ * against the canonical repo schema.
+ */
+export const TARGET_TYPES = [
+  "origin",
+  "path",
+  "organization",
+  "service",
+  "product",
+  "device",
+  "tenant",
+  "data-source",
+] as const;
+
+/**
+ * True when a `target-type` value is one this revision defines. Any other
+ * value falls under the draft's enumerated-member tolerance rule (§Value
+ * Constraints and Omitted Metrics): a client SHOULD disregard the member —
+ * interpreting `target` as if `target-type` were absent — rather than reject
+ * the document. The counterpart of isNotReported() for this string member;
+ * the stripping itself happens in fetch.ts's pre-pass (before the schema
+ * gate, whose closed enum would otherwise fail on exactly such a value).
+ */
+export function isRecognizedTargetType(value: unknown): value is (typeof TARGET_TYPES)[number] {
+  return typeof value === "string" && (TARGET_TYPES as readonly string[]).includes(value);
+}

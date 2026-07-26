@@ -37,6 +37,6 @@
   "server": {
     "port": 8081,
     "maxAge": 86400,
-    "carbonTxt": { "sustainabilityUrl": "https://acme.example/.well-known/sustainability" }
+    "carbonTxt": { "sustainabilityUrl": "https://acme.example/.well-known/sustainability-data" }
   }
 }

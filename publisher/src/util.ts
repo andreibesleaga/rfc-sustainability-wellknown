@@ -1,6 +1,13 @@
 /** Shared helpers for adapters. */
 import { readFileSync } from "node:fs";
-import { CarbonUnit, EnergyUnit, RawMetrics, SustainabilityMetrics } from "./types";
+import {
+  CarbonUnit,
+  EnergyUnit,
+  RawMetrics,
+  SustainabilityMetrics,
+  TARGET_TYPES,
+  TargetType,
+} from "./types";
 
 /** Minimal JSON fetch over the global `fetch` (Node 18+/22). */
 export async function fetchJson(
@@ -29,7 +36,7 @@ export function readJson<T = any>(path: string): T {
 
 /**
  * Convert an already wire-shaped {@link SustainabilityMetrics} object back into
- * {@link RawMetrics} so existing `/.well-known/sustainability` files (or example
+ * {@link RawMetrics} so existing `/.well-known/sustainability-data` files (or example
  * payloads) can be re-ingested and re-validated by the gateway.
  */
 /** Wire-format keys handled explicitly by {@link fromWire}. */
@@ -57,6 +64,7 @@ const WIRE_KEYS = new Set([
   "renewable-energy",
   "verifiable-attestation-uri",
   "disclosure-uri",
+  "target-type",
   // Historical ("1.0"/"1.1") member names, re-ingested via the draft's
   // field-driven compatibility rules rather than passed through as vendor
   // extensions (Versioning and Extensibility).
@@ -156,8 +164,16 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
     raw.verifiableAttestationUri = String(m["verifiable-attestation-uri"]);
   }
   if (m["disclosure-uri"] !== undefined) raw.disclosureUri = String(m["disclosure-uri"]);
+  // target-type (draft -04): an enumerated hint. Per the draft's tolerance
+  // rule for enumerated string members (Value Constraints and Omitted
+  // Metrics), a client that encounters an unrecognized value SHOULD disregard
+  // the member — fromWire re-ingests foreign documents, so DROP it rather
+  // than throw (interpreting `target` as if target-type were absent).
+  if (m["target-type"] !== undefined && TARGET_TYPES.includes(m["target-type"] as TargetType)) {
+    raw.targetType = m["target-type"] as TargetType;
+  }
 
-  // Vendor extensions / unknown members survive re-ingestion (clients MUST
+  // Extension members / unknown members survive re-ingestion (clients MUST
   // ignore unknown fields; the gateway preserves them through normalize).
   for (const [k, v] of Object.entries(m)) {
     if (!WIRE_KEYS.has(k)) {

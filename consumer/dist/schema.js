@@ -36,6 +36,9 @@ exports.RESPONSE_JTD_SCHEMA = {
         "renewable-energy": { type: "float64" },
         "verifiable-attestation-uri": { type: "string" },
         "disclosure-uri": { type: "string" },
+        "target-type": {
+            enum: ["origin", "path", "organization", "service", "product", "device", "tenant", "data-source"],
+        },
     },
     additionalProperties: true,
 };

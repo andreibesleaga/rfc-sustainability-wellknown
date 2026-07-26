@@ -54,13 +54,31 @@ describe("validateDocument: single object", () => {
     expect(r.errors).toEqual([]);
   });
 
-  it("accepts unknown/vendor extension fields (open schema, additionalProperties: true) and preserves them", () => {
-    const doc = metrics({ "x-vendor-region": "eu-west-1" } as SustainabilityMetrics);
+  it("accepts unknown/extension fields (open schema, additionalProperties: true) and preserves them", () => {
+    // -04 recommends reverse-domain-named extension members (com.example.pue);
+    // legacy "x-"/"vendor-" styles are still unknown members a client MUST
+    // ignore rather than reject, so both flavors are exercised here.
+    const doc = metrics({ "com.example.pue": 1.4, "x-vendor-region": "eu-west-1" } as SustainabilityMetrics);
     const r = validateDocument(doc);
     expect(r.valid).toBe(true);
     // The document object itself (not a stripped copy) is what was validated;
-    // confirm the extension field is still there afterwards.
+    // confirm the extension fields are still there afterwards.
+    expect((doc as Record<string, unknown>)["com.example.pue"]).toBe(1.4);
     expect((doc as Record<string, unknown>)["x-vendor-region"]).toBe("eu-west-1");
+  });
+
+  it("accepts every recognized target-type value (-04 enum)", () => {
+    for (const tt of ["origin", "path", "organization", "service", "product", "device", "tenant", "data-source"]) {
+      const r = validateDocument(metrics({ "target-type": tt } as Partial<SustainabilityMetrics>));
+      expect(r.valid, `target-type "${tt}" should validate`).toBe(true);
+    }
+  });
+
+  it("rejects an unrecognized target-type value at the schema gate (the enum is deliberately closed)", () => {
+    // The TOLERANCE for such a value lives in fetchSustainability's pre-pass
+    // (strip + record), NOT in a weakened schema: validated as-is, it fails.
+    const r = validateDocument(metrics({ "target-type": "warehouse" } as unknown as Partial<SustainabilityMetrics>));
+    expect(r.valid).toBe(false);
   });
 
   // Draft cross-field MUST that JTD/CDDL cannot express: sci-score ⇒ functional-unit.
@@ -126,6 +144,38 @@ describe("validateDocument: array (trend) rules", () => {
     const r = validateDocument(doc);
     expect(r.valid).toBe(false);
     expect(r.errors.some((e) => /target/i.test(e))).toBe(true);
+  });
+
+  it("accepts an array whose entries share one target-type value (-04 uniformity rule)", () => {
+    const doc = [
+      metrics({ "reporting-period": "2026-01", "target-type": "path", target: "/api" } as Partial<SustainabilityMetrics>),
+      metrics({ "reporting-period": "2026-02", "target-type": "path", target: "/api" } as Partial<SustainabilityMetrics>),
+    ];
+    const r = validateDocument(doc);
+    expect(r.valid).toBe(true);
+    expect(r.errors).toEqual([]);
+  });
+
+  it("rejects an array with MIXED target-type values ('when present, the same target-type value')", () => {
+    const doc = [
+      metrics({ "reporting-period": "2026-01", "target-type": "origin" } as Partial<SustainabilityMetrics>),
+      metrics({ "reporting-period": "2026-02", "target-type": "service" } as Partial<SustainabilityMetrics>),
+    ];
+    const r = validateDocument(doc);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some((e) => /target-type/i.test(e))).toBe(true);
+  });
+
+  it("accepts an array where only SOME entries carry target-type, provided the present values agree", () => {
+    // The rule is scoped "when present": an entry without the member is simply
+    // unclassified, not a uniformity violation.
+    const doc = [
+      metrics({ "reporting-period": "2026-01", "target-type": "origin" } as Partial<SustainabilityMetrics>),
+      metrics({ "reporting-period": "2026-02" }),
+      metrics({ "reporting-period": "2026-03", "target-type": "origin" } as Partial<SustainabilityMetrics>),
+    ];
+    const r = validateDocument(doc);
+    expect(r.valid).toBe(true);
   });
 
   it("does not run cross-entry array checks when a per-entry schema error already exists (avoids noisy cascades)", () => {

@@ -1,4 +1,4 @@
-/** M2M CLI: fetch (and optionally conformance-check) a /.well-known/sustainability origin. */
+/** M2M CLI: fetch (and optionally conformance-check) a /.well-known/sustainability-data origin. */
 import { fetchSustainability } from "./fetch";
 import { toCsvRows, toNdjson } from "./transform";
 import { runConformanceChecks } from "./conformance";

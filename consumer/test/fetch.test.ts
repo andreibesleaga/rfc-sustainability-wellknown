@@ -1,6 +1,6 @@
 /**
  * HTTP-level tests for fetchSustainability(): a plain node:http server (zero
- * extra dependencies) plays the role of a third-party /.well-known/sustainability
+ * extra dependencies) plays the role of a third-party /.well-known/sustainability-data
  * origin, on a real ephemeral port.
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -268,6 +268,97 @@ describe("legacy-compatibility pre-pass (draft §Versioning and Extensibility)",
   });
 });
 
+describe("-04: well-known URI rename + target-type tolerance pre-pass", () => {
+  const BASE_DOC = {
+    version: "2.0",
+    updated: "2026-01-01T00:00:00Z",
+    capabilities: "basic",
+    provider: "Type Test Co",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://type.example/methodology",
+    "reporting-period": "2026-01",
+    target: "type.example",
+    "energy-consumption": 12,
+    "energy-unit": "kWh",
+  };
+
+  it("requests the renamed path /.well-known/sustainability-data (and nothing else)", async () => {
+    expect(WELL_KNOWN_PATH).toBe("/.well-known/sustainability-data");
+    const seen: string[] = [];
+    const origin = await start((req, res) => {
+      seen.push(req.url ?? "");
+      if (req.url?.startsWith("/.well-known/sustainability-data")) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(BASE_DOC));
+      } else {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "not found" }));
+      }
+    });
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    expect(seen).toEqual(["/.well-known/sustainability-data"]);
+  });
+
+  it("accepts a recognized target-type verbatim, without flagging anything", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...BASE_DOC, "target-type": "origin" }));
+    });
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect((result.document as Record<string, unknown>)["target-type"]).toBe("origin");
+    expect(result.disregarded).toBeUndefined();
+    expect(result.legacy).toBeUndefined();
+  });
+
+  it("disregards (strips) an UNRECOGNIZED target-type value instead of rejecting the document", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      // "warehouse" is not in the -04 enum: the tolerance rule (draft §Value
+      // Constraints and Omitted Metrics) says disregard the member, don't reject.
+      res.end(JSON.stringify({ ...BASE_DOC, "target-type": "warehouse" }));
+    });
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    const doc = result.document as Record<string, unknown>;
+    expect(doc).not.toHaveProperty("target-type");
+    // ...and the applied tolerance is recorded, mirroring the legacy flag.
+    expect(result.disregarded).toEqual(["target-type"]);
+    // target itself is untouched — it is interpreted as if target-type were absent.
+    expect(doc.target).toBe("type.example");
+  });
+
+  it("records per-entry paths when stripping unrecognized target-type values from an array", async () => {
+    const trend = [
+      { ...BASE_DOC, "reporting-period": "2026-01", "target-type": "origin" },
+      { ...BASE_DOC, "reporting-period": "2026-02", "target-type": "warehouse" },
+    ];
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(trend));
+    });
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.disregarded).toEqual(["[1].target-type"]);
+    const docs = result.document as Array<Record<string, unknown>>;
+    expect(docs[0]["target-type"]).toBe("origin");
+    expect(docs[1]).not.toHaveProperty("target-type");
+  });
+
+  it("with legacyCompat:false (strict mode), an unrecognized target-type fails validation as served", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...BASE_DOC, "target-type": "warehouse" }));
+    });
+    const result = await fetchSustainability(origin, { legacyCompat: false });
+    expect(result.status).toBe("invalid");
+  });
+});
+
 describe("final pre-tag fix: redirect attribution (draft MUST)", () => {
   it("legacy target injection uses the FINAL response origin's host after a redirect", async () => {
     const legacyDoc = {
@@ -291,7 +382,7 @@ describe("final pre-tag fix: redirect attribution (draft MUST)", () => {
     const finalHost = `127.0.0.1:${(finalSrv.address() as AddressInfo).port}`;
     const redirSrv = createServer((_req, res) => {
       res.statusCode = 302;
-      res.setHeader("Location", `http://${finalHost}/.well-known/sustainability`);
+      res.setHeader("Location", `http://${finalHost}${WELL_KNOWN_PATH}`);
       res.end();
     });
     await new Promise<void>((r) => redirSrv.listen(0, "127.0.0.1", r));

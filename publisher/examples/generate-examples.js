@@ -6,7 +6,7 @@
  *
  * Every producer this gateway ships an adapter for gets one pair:
  *   originals/<name>.json   — a real (or realistic, sourced) upstream response
- *   transformed/<name>.json — the exact /.well-known/sustainability document
+ *   transformed/<name>.json — the exact /.well-known/sustainability-data document
  *                             this repo's TypeScript code derives from it
  *
  * Run: node examples/generate-examples.js   (from publisher/, after npm run build)

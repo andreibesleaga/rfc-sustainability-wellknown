@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runConformanceChecks = runConformanceChecks;
 /**
- * A small conformance-check battery for any /.well-known/sustainability
+ * A small conformance-check battery for any /.well-known/sustainability-data
  * origin — usable against this repo's own implementations or any third
  * party's, not just via the CLI's --strict flag.
  */

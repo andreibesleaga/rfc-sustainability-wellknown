@@ -10,5 +10,6 @@
   "energy-consumption": 1250,
   "energy-unit": "kWh",
   "carbon-footprint": 345000,
-  "carbon-unit": "gCO2e"
+  "carbon-unit": "gCO2e",
+  "target-type": "origin"
 }

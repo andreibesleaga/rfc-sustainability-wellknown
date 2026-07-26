@@ -1,4 +1,4 @@
-# SFC ↔ `/.well-known/sustainability` Compliance Matrix
+# SFC ↔ `/.well-known/sustainability-data` Compliance Matrix
 
 *How this Internet-Draft and its publisher/gateway relate to the **Sustainability-First Consensus (SFC)** framework. Non-normative; the IETF draft does not depend on SFC. This is just an informational appendix.*
 
@@ -32,7 +32,7 @@ GHG Protocol vocabulary:
 ```
    on-chain truth                 public HTTP discovery surface
   ┌───────────────┐   gateway    ┌────────────────────────────┐   one GET   ┌───────────┐
-  │ SFC operator  │  (publisher) │ /.well-known/sustainability│  ─────────▶│ aggregator│
+  │ SFC operator  │  (publisher) │ /.well-known/sustainability-data│  ─────────▶│ aggregator│
   │ Energy/Carbon │ ───────────▶│  (IETF draft)              │             │ regulator │
   │ Attested      │              │  JTD/CDDL-validated JSON   │             │ client    │
   └───────────────┘              └────────────────────────────┘             └───────────┘
@@ -42,14 +42,14 @@ GHG Protocol vocabulary:
 - **SFC** is the *production and attestation* layer (signed, on-chain, blockchain-specific).
 - **The IETF draft** is the *public, vendor-neutral HTTP discovery* layer (general-purpose).
 - **The publisher/gateway** is the bridge: an SFC operator's `CarbonAttested` /
-  `EnergyAttested` data becomes a conformant `/.well-known/sustainability` document — the
+  `EnergyAttested` data becomes a conformant `/.well-known/sustainability-data` document — the
   HTTP analog of the SFC `/v1/sustainability/*` API. This is why the argument is holistic
   and hard to ignore: the same numbers, signed on-chain for SFC, are republished at a
   standard web location for everyone else, with the same scope semantics.
 
 ## 3. Field-level compliance matrix
 
-| SFC concept (profile v1.1) | SFC field / API | `/.well-known/sustainability` field | Gateway support |
+| SFC concept (profile v1.1) | SFC field / API | `/.well-known/sustainability-data` field | Gateway support |
 |---|---|---|---|
 | Period | `payload.period {from,to}` | `reporting-period` (YYYY[-MM[-DD]]) | `normalize()` period shaping |
 | Energy (C1) | `EnergyAttested.kWhConsumed` | `energy-consumption` + `energy-unit` | computed/kepler/enterprise adapters |
@@ -91,6 +91,6 @@ concerns; the draft deliberately links to attestations rather than defining them
 ## 6. One-line summary
 
 > SFC produces signed, on-chain energy/carbon attestations; the IETF
-> `/.well-known/sustainability` draft standardizes their **public HTTP disclosure**; the
+> `/.well-known/sustainability-data` draft standardizes their **public HTTP disclosure**; the
 > publisher/gateway is the bridge — so an SFC-compliant system, an enterprise suite, or a
 > plain web server all expose the **same validated fields at the same URL**.

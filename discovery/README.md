@@ -1,6 +1,6 @@
 # Discovery
 
-Product-discovery suite for the `/.well-known/sustainability` publisher/gateway. These
+Product-discovery suite for the `/.well-known/sustainability-data` publisher/gateway. These
 documents are **non-normative** background; the normative wire contract is the
 Internet-Draft in [`../internet-drafts/`](../internet-drafts/).
 

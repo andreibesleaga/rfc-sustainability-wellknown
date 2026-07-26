@@ -14,6 +14,13 @@ Then: [§4 Disclosure links](#4-disclosure-links-passive-by-design),
 [§5 Conformance-checking any origin](#5-conformance-checking-any-origin),
 [§6 Using it as a library](#6-using-it-as-a-library).
 
+> **Extension members (-04 naming):** unknown members in a fetched document are
+> preserved, never stripped — the draft's ignore-unknown rule. Implementers
+> defining their own extension members should use reverse-domain-name notation
+> rooted in a domain they control (e.g. `com.example.pue`); undotted names are
+> reserved for the specification, and the older `X-`/`vendor-` prefix style
+> SHOULD NOT be used.
+
 ---
 
 ## 1. One-call, zero-dependency usage
@@ -27,7 +34,7 @@ tagged `FetchResult`:
 
 ```ts
 type FetchResult =
-  | { status: "ok"; document: SustainabilityDocument; etag?: string; legacy?: boolean }
+  | { status: "ok"; document: SustainabilityDocument; etag?: string; legacy?: boolean; disregarded?: string[] }
   | { status: "not-modified" }
   | { status: "not-found" }
   | { status: "invalid"; errors: string[] }   // fetched but failed validation
@@ -48,6 +55,22 @@ target-less array) and flags the result with `legacy: true`. Historical
 `status: "invalid"`. (The other compatibility rule — a negative value in a
 non-negative member reads as "not reported" — is applied on demand via
 `withoutSentinels()`/`isNotReported()`, never silently by the fetch path.)
+
+**`target-type` tolerance** (also under `legacyCompat`, default `true`): -04
+adds the optional enumerated `target-type` member (`origin`, `path`,
+`organization`, `service`, `product`, `device`, `tenant`, `data-source`), a
+hint classifying the reporting subject named by `target`. Per the draft's
+enumerated-member tolerance rule (§Value Constraints and Omitted Metrics), a
+client that encounters an *unrecognized* value there SHOULD disregard the
+member — interpreting `target` as if `target-type` were absent — rather than
+reject the document. Because the JTD schema deliberately keeps the enum closed,
+`fetchSustainability` applies this in its pre-pass: the offending member is
+stripped **before** validation and the result carries
+`disregarded: ["target-type"]` (or `"[i].target-type"` paths for array
+entries), so the tolerance is visible, never silent. In strict mode
+(`legacyCompat: false`) the document is validated exactly as served and an
+unrecognized value fails validation. A *recognized* value flows through
+untouched.
 
 ### 1a. Plain `fetch()` — no extra dependency
 
@@ -198,7 +221,7 @@ import { flatten } from "sustainability-wellknown-consumer";
 
 if (result.status === "ok") {
   for (const row of flatten(result.document)) {
-    // { provider, "reporting-period", target, metric, value, unit }
+    // { provider, "reporting-period", target, "target-type"?, metric, value, unit }
     timeSeriesDb.write(row.metric, row.value, { unit: row.unit, period: row["reporting-period"] });
   }
 }
@@ -209,7 +232,12 @@ when a value is present without its unit member, and — for the non-negative
 members only — skips negative values (the legacy 1.x "not reported" sentinel),
 so a time-series backend never ingests a `-1` as a real measurement. Negative
 `scope-1`/`scope-2`/`scope-3` values are real net-accounting data since -03 and
-flow through.
+flow through. When the document carries the -04 `target-type` hint, every row
+gets it as a plain `"target-type"` string (omitted when absent); `toCsvRows`
+likewise has a `target-type` column (empty cell when absent), and `aggregate`
+copies `target-type` into the summary only when it is uniform across every
+entry — mixed or partially-present classifications are omitted rather than
+guessed at.
 
 ### `aggregate` — collapse a fetched year-trend into one annual figure
 
@@ -300,7 +328,7 @@ process.exitCode = report.allPassed ? 0 : 1;
 ```
 
 This is **not limited to this repo's own `publisher/`** — point it at any
-`/.well-known/sustainability` origin, including one you're implementing from
+`/.well-known/sustainability-data` origin, including one you're implementing from
 scratch in a different language entirely. It's the same battery the CLI runs:
 
 ```bash

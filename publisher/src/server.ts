@@ -1,6 +1,6 @@
 /**
  * Standalone HTTP server using only the Node core `http` module (no framework).
- * Any web server (nginx, Apache, a CDN) can reverse-proxy `/.well-known/sustainability`
+ * Any web server (nginx, Apache, a CDN) can reverse-proxy `/.well-known/sustainability-data`
  * to this process. See `server-configurations/` in the repo root.
  */
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";

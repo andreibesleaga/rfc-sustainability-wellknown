@@ -1,11 +1,11 @@
-This **README.md** provides your development team with the technical specifications and operational safeguards for implementing the "sustainability" Well-Known URI as defined in **draft-besleaga-sustainability-wellknown**.
+This **README.md** provides your development team with the technical specifications and operational safeguards for implementing the "sustainability-data" Well-Known URI as defined in **draft-besleaga-sustainability-wellknown**.
 
 ---
 
 # Implementation Guide: Sustainability Well-Known URI
 
 ## 1. Endpoint Specification
-* **Path**: Metadata MUST be published at `/.well-known/sustainability`.
+* **Path**: Metadata MUST be published at `/.well-known/sustainability-data`.
 * **Protocol**: The resource SHOULD be served over **HTTPS** to ensure integrity.
 * **HTTP Method**: Servers MUST respond to `GET` requests (and `HEAD`); other methods SHOULD receive `405 Method Not Allowed` with `Allow: GET, HEAD`.
 * **Media Type**: Successful (`200 OK`) responses MUST use the `application/json` media type.
@@ -15,7 +15,7 @@ This **README.md** provides your development team with the technical specificati
 
 ## 2. Service Levels
 ### Basic Service (Default)
-* **Request**: `GET /.well-known/sustainability` with no query strings.
+* **Request**: `GET /.well-known/sustainability-data` with no query strings.
 * **Scope**: Returns the aggregate impact of the entire origin.
 * **Period**: Returns the most recently completed reporting period the server publishes (a full calendar month is RECOMMENDED).
 
@@ -59,6 +59,7 @@ All responses must validate against the **JSON Type Definition (JTD)** provided 
 | `methodology-uri` | string | Yes |
 | `reporting-period` | string | Yes |
 | `target` | string (reporting subject, e.g. origin host or matched path prefix) | Yes |
+| `target-type` | "origin"/"path"/"organization"/"service"/"product"/"device"/"tenant"/"data-source" | No |
 | `energy-consumption` | float64 | No (defaults to `kWh` when `energy-unit` absent) |
 | `energy-unit` | "Wh"/"kWh"/"MWh"/"GWh" | No (default `kWh`) |
 | `carbon-footprint` | float64 | No (defaults to `gCO2e` when `carbon-unit` absent) |
@@ -87,9 +88,9 @@ Run the reference handler and try it:
 ```bash
 cd example-scripts
 python3 request-handler.py 8080 &
-curl -s http://localhost:8080/.well-known/sustainability | python3 -m json.tool
-curl -s "http://localhost:8080/.well-known/sustainability?period=2026&granularity=monthly" | python3 -m json.tool
-curl -i -X POST http://localhost:8080/.well-known/sustainability   # 405 + Allow: GET, HEAD
+curl -s http://localhost:8080/.well-known/sustainability-data | python3 -m json.tool
+curl -s "http://localhost:8080/.well-known/sustainability-data?period=2026&granularity=monthly" | python3 -m json.tool
+curl -i -X POST http://localhost:8080/.well-known/sustainability-data   # 405 + Allow: GET, HEAD
 ```
 
 Verified (2026-07-10, -03 wire format): every response from `request-handler.py` passes both

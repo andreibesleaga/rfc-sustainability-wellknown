@@ -1,6 +1,6 @@
 # schemas-validators
 
-Schemas and validators for the `/.well-known/sustainability` URI response format, as defined in [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
+Schemas and validators for the `/.well-known/sustainability-data` URI response format, as defined in [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
 
 ## Files
 
@@ -109,6 +109,22 @@ validators check. In particular:
   `energy-unit`, the default `kWh` applies; when `carbon-footprint` (or a scope)
   is present without `carbon-unit`, the default `gCO2e` applies. The schemas
   cannot bind a default to an absent member; consumers apply it when reading.
+- **Date formats** — the draft's date rules are prose-only: `updated` MUST be an
+  RFC 3339 date-time, and `reporting-period` MUST be one of the calendar-date
+  precision forms `YYYY`, `YYYY-MM`, or `YYYY-MM-DD` (only the last is an
+  RFC 3339 `full-date`). The formal schemas type both as plain strings and do
+  not check the formats.
+- **Array uniformity of `target-type`** — in an array response, all entries MUST
+  share the same `target` value and, when present, the same `target-type` value.
+  Cross-entry rules cannot be expressed in either schema language.
+- **`target-type` tolerance for unrecognized values** — the schemas close the
+  `target-type` enum (`origin`, `path`, `organization`, `service`, `product`,
+  `device`, `tenant`, `data-source`), but the draft directs clients that
+  encounter an unrecognized value in an enumerated member NOT to reject the
+  document: they disregard the member and interpret `target` as if `target-type`
+  were absent. That tolerance is applied at the application layer — a validator
+  failure on such a value alone does not make the document unusable to a
+  conformant client.
 - **Minimum-reporting rule** — a document SHOULD carry at least one reported
   numeric metric or a disclosure/attestation URI; with none, the mandatory
   `methodology-uri` MUST lead to the substantive disclosure. Not expressible in

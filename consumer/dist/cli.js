@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runCli = runCli;
-/** M2M CLI: fetch (and optionally conformance-check) a /.well-known/sustainability origin. */
+/** M2M CLI: fetch (and optionally conformance-check) a /.well-known/sustainability-data origin. */
 const fetch_1 = require("./fetch");
 const transform_1 = require("./transform");
 const conformance_1 = require("./conformance");

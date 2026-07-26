@@ -18,6 +18,7 @@ interface CacheEntry {
   etag: string;
   document: SustainabilityDocument;
   legacy?: boolean;
+  disregarded?: string[];
 }
 
 export class SustainabilityClient {
@@ -47,14 +48,25 @@ export class SustainabilityClient {
     } satisfies FetchOptions);
 
     if (result.status === "not-modified" && cached) {
-      return { status: "ok", document: cached.document, etag: cached.etag, ...(cached.legacy ? { legacy: true } : {}) };
+      return {
+        status: "ok",
+        document: cached.document,
+        etag: cached.etag,
+        ...(cached.legacy ? { legacy: true } : {}),
+        ...(cached.disregarded ? { disregarded: cached.disregarded } : {}),
+      };
     }
     if (result.status === "ok" && result.etag) {
       if (this.cache.size >= this.maxCacheEntries && !this.cache.has(key)) {
         const oldest = this.cache.keys().next().value;
         if (oldest !== undefined) this.cache.delete(oldest);
       }
-      this.cache.set(key, { etag: result.etag, document: result.document, legacy: result.legacy });
+      this.cache.set(key, {
+        etag: result.etag,
+        document: result.document,
+        legacy: result.legacy,
+        disregarded: result.disregarded,
+      });
     }
     return result;
   }

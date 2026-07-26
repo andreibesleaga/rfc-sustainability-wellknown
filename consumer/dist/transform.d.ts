@@ -9,6 +9,8 @@ export interface FlatRecord {
     "reporting-period": string;
     /** The mandatory reporting subject — always present on a valid 2.0 document. */
     target: string;
+    /** The optional -04 classification hint for `target`; omitted when absent. */
+    "target-type"?: string;
     metric: string;
     value: number;
     unit: string;

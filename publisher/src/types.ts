@@ -1,5 +1,5 @@
 /**
- * Canonical types for the `/.well-known/sustainability` data model.
+ * Canonical types for the `/.well-known/sustainability-data` data model.
  *
  * These mirror draft-besleaga-sustainability-wellknown (the current revision). Field names use
  * the wire (kebab-case) spelling so a `SustainabilityMetrics` object serializes
@@ -10,6 +10,24 @@ export type Capabilities = "basic" | "extended";
 export type EnergyUnit = "Wh" | "kWh" | "MWh" | "GWh";
 export type CarbonUnit = "gCO2e" | "kgCO2e" | "mtCO2e";
 export type CarbonAccounting = "location-based" | "market-based";
+
+/**
+ * Values of the optional `target-type` member (draft -04, §Optional Response
+ * Fields): a hint classifying the reporting subject named by `target`.
+ * Single source of truth — the schema enum, the normalizer, and `fromWire`
+ * all check against this list.
+ */
+export const TARGET_TYPES = [
+  "origin",
+  "path",
+  "organization",
+  "service",
+  "product",
+  "device",
+  "tenant",
+  "data-source",
+] as const;
+export type TargetType = (typeof TARGET_TYPES)[number];
 
 /** A single conformant sustainability metrics object (draft §"Payload Format"). */
 export interface SustainabilityMetrics {
@@ -40,8 +58,11 @@ export interface SustainabilityMetrics {
   "renewable-energy"?: number;
   "verifiable-attestation-uri"?: string;
   "disclosure-uri"?: string;
+  /** Hint classifying the kind of subject named by `target` (draft -04). */
+  "target-type"?: TargetType;
 
-  // Forward-compatible: unknown/vendor-namespaced fields are tolerated.
+  // Forward-compatible: unknown extension members (reverse-domain-named,
+  // e.g. "com.example.pue") are tolerated.
   [key: string]: unknown;
 }
 
@@ -97,8 +118,15 @@ export interface RawMetrics {
   verifiableAttestationUri?: string;
   /** URI of a disclosure index (e.g. a Green Web Foundation carbon.txt file). */
   disclosureUri?: string;
+  /**
+   * Emitted as the optional `target-type` member: a hint classifying the kind
+   * of subject named by `target` (draft -04, §Optional Response Fields). Must
+   * be one of {@link TARGET_TYPES}; the normalizer fails loudly on anything
+   * else. When absent, {@link NormalizeOptions.targetType} is the fallback.
+   */
+  targetType?: TargetType;
 
-  /** Vendor extensions, copied through verbatim. */
+  /** Extension members (reverse-domain-named), copied through verbatim. */
   extra?: Record<string, unknown>;
 }
 
@@ -128,6 +156,12 @@ export interface NormalizeOptions {
    * (e.g. "example.com") is RECOMMENDED by the draft.
    */
   target?: string;
+  /**
+   * Optional `target-type` hint emitted alongside `target` when the adapter
+   * does not set one (e.g. "origin" for an origin-wide report). Must be one
+   * of {@link TARGET_TYPES}.
+   */
+  targetType?: TargetType;
   /** Force a target energy unit; default keeps the adapter's unit (kWh for joules). */
   energyUnit?: EnergyUnit;
   /** Force a target carbon unit; default keeps the adapter's unit (gCO2e when computed). */

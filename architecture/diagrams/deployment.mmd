@@ -2,14 +2,14 @@ flowchart TB
     CLIENT(("Consumers<br/>browsers · M2M · aggregators · AI agents"))
 
     subgraph T1["Topology 1 — Standalone gateway"]
-        SA["Node process: createSustainabilityServer(publisher)<br/>publisher/src/server.ts + cli.ts<br/>serves /.well-known/sustainability (+ optional carbon.txt)"]
+        SA["Node process: createSustainabilityServer(publisher)<br/>publisher/src/server.ts + cli.ts<br/>serves /.well-known/sustainability-data (+ optional carbon.txt)"]
         SRC1["Any adapter source"]
         SRC1 --> SA
     end
 
     subgraph T2["Topology 2 — Embedded middleware"]
         APP2["Existing Express / Fastify app"]
-        MW["expressSustainability() / fastifySustainability()<br/>mounted at /.well-known/sustainability"]
+        MW["expressSustainability() / fastifySustainability()<br/>mounted at /.well-known/sustainability-data"]
         SRC2["Any adapter source"]
         SRC2 --> MW
         MW --- APP2
@@ -22,7 +22,7 @@ flowchart TB
     end
 
     subgraph T4["Topology 4 — Reverse proxy in front of the gateway"]
-        RP["nginx / Apache / CDN edge<br/>proxies only /.well-known/sustainability<br/>(+ rate limiting for dynamic period/granularity)"]
+        RP["nginx / Apache / CDN edge<br/>proxies only /.well-known/sustainability-data<br/>(+ rate limiting for dynamic period/granularity)"]
         GW4["Standalone gateway (Topology 1)<br/>on an internal port"]
         RP --> GW4
     end

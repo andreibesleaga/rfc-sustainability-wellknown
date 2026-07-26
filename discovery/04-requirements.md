@@ -7,7 +7,7 @@ draft-besleaga-sustainability-wellknown.*
 
 | ID | Requirement | Draft trace |
 |---|---|---|
-| F1 | Serve `GET /.well-known/sustainability` returning `application/json`. | §"URI Definition", §"Mandatory Minimum Supported Service" |
+| F1 | Serve `GET /.well-known/sustainability-data` returning `application/json`. | §"URI Definition", §"Mandatory Minimum Supported Service" |
 | F2 | Basic service: no params → aggregate origin metrics for the most recently completed published period (full month RECOMMENDED), single object. | §"Mandatory Minimum Supported Service" |
 | F3 | Extended service: honour `target`, `period` (YYYY / YYYY-MM / YYYY-MM-DD), `granularity`. | §"Optional, Extended, Query Parameters" |
 | F4 | Emit all 8 mandatory fields (version, updated, capabilities, provider, measurement-method, methodology-uri, reporting-period, target); energy/carbon value and unit members are optional with defaults (`kWh`/`gCO2e`) — an unreported metric is omitted. | §"Mandatory Response Fields", §"Value Constraints and Omitted Metrics" |

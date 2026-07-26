@@ -11,6 +11,7 @@ const CSV_COLUMNS = [
   "provider",
   "reporting-period",
   "target",
+  "target-type", // optional (-04): empty cell when absent, like the other optional members
   "energy-consumption",
   "energy-unit",
   "carbon-footprint",
@@ -44,6 +45,8 @@ export interface FlatRecord {
   "reporting-period": string;
   /** The mandatory reporting subject — always present on a valid 2.0 document. */
   target: string;
+  /** The optional -04 classification hint for `target`; omitted when absent. */
+  "target-type"?: string;
   metric: string;
   value: number;
   unit: string;
@@ -95,6 +98,8 @@ export function flatten(doc: SustainabilityDocument): FlatRecord[] {
         provider: m.provider,
         "reporting-period": m["reporting-period"],
         target: m.target,
+        // Pass the classification hint through as a plain string when present.
+        ...(typeof m["target-type"] === "string" ? { "target-type": m["target-type"] } : {}),
         metric,
         value,
         unit,
@@ -164,6 +169,13 @@ export function aggregate(entries: SustainabilityMetrics[], opts: AggregateOptio
   };
   if (first["carbon-accounting"] !== undefined) {
     out["carbon-accounting"] = first["carbon-accounting"];
+  }
+  // target-type (-04) classifies the invariant `target`, so it carries over —
+  // but only when UNIFORM across every entry (a valid trend array shares one
+  // value when present; entries lacking it make the classification non-uniform,
+  // so the summary then omits it rather than guess).
+  if (first["target-type"] !== undefined && entries.every((e) => e["target-type"] === first["target-type"])) {
+    out["target-type"] = first["target-type"];
   }
   if (energies.length > 0) {
     out["energy-consumption"] = Math.round(combine(energies) * 100) / 100;

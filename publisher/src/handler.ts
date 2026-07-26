@@ -22,7 +22,7 @@ export interface HandlerOptions {
 
 /**
  * Options for serving a bidirectional carbon.txt that points back to this
- * origin's `/.well-known/sustainability`. `sustainabilityUrl` may be fixed, or
+ * origin's `/.well-known/sustainability-data`. `sustainabilityUrl` may be fixed, or
  * derived per-request from the Host header (with `scheme`, default "https").
  */
 export interface CarbonTxtServeOptions extends Omit<EmitCarbonTxtOptions, "sustainabilityUrl"> {
@@ -113,7 +113,7 @@ export function ifNoneMatchMatches(headerValue: string, etag: string): boolean {
 }
 
 /**
- * Produce a fully-formed HTTP response for a `/.well-known/sustainability` GET.
+ * Produce a fully-formed HTTP response for a `/.well-known/sustainability-data` GET.
  * @param ifNoneMatch the request's `If-None-Match` header, for 304 handling.
  */
 export async function handleRequest(
@@ -162,4 +162,4 @@ export async function handleRequest(
   }
 }
 
-export const WELL_KNOWN_PATH = "/.well-known/sustainability";
+export const WELL_KNOWN_PATH = "/.well-known/sustainability-data";

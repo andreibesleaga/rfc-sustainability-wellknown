@@ -13,6 +13,7 @@ const CSV_COLUMNS = [
     "provider",
     "reporting-period",
     "target",
+    "target-type", // optional (-04): empty cell when absent, like the other optional members
     "energy-consumption",
     "energy-unit",
     "carbon-footprint",
@@ -84,6 +85,8 @@ function flatten(doc) {
                 provider: m.provider,
                 "reporting-period": m["reporting-period"],
                 target: m.target,
+                // Pass the classification hint through as a plain string when present.
+                ...(typeof m["target-type"] === "string" ? { "target-type": m["target-type"] } : {}),
                 metric,
                 value,
                 unit,
@@ -137,6 +140,13 @@ function aggregate(entries, opts) {
     };
     if (first["carbon-accounting"] !== undefined) {
         out["carbon-accounting"] = first["carbon-accounting"];
+    }
+    // target-type (-04) classifies the invariant `target`, so it carries over —
+    // but only when UNIFORM across every entry (a valid trend array shares one
+    // value when present; entries lacking it make the classification non-uniform,
+    // so the summary then omits it rather than guess).
+    if (first["target-type"] !== undefined && entries.every((e) => e["target-type"] === first["target-type"])) {
+        out["target-type"] = first["target-type"];
     }
     if (energies.length > 0) {
         out["energy-consumption"] = Math.round(combine(energies) * 100) / 100;

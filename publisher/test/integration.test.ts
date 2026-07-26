@@ -50,7 +50,7 @@ describe("standalone server: bidirectional carbon.txt", () => {
     });
     const { base, close } = await listen(server);
     try {
-      const s = await fetch(`${base}/.well-known/sustainability`);
+      const s = await fetch(`${base}/.well-known/sustainability-data`);
       expect(s.status).toBe(200);
       expect((await s.json())["carbon-footprint"]).toBe(345000);
 
@@ -59,7 +59,7 @@ describe("standalone server: bidirectional carbon.txt", () => {
         expect(c.status).toBe(200);
         expect(c.headers.get("content-type")).toContain("text/plain");
         const doc = parseCarbonTxt(await c.text());
-        expect(doc.org.disclosures[0].url).toContain("/.well-known/sustainability");
+        expect(doc.org.disclosures[0].url).toContain("/.well-known/sustainability-data");
         expect(doc.upstream?.services?.[0].domain).toBe("aws.amazon.com");
       }
 
@@ -81,7 +81,7 @@ describe("standalone server: bidirectional carbon.txt", () => {
     const server = createSustainabilityServer(new Publisher(boom, { cacheTtlMs: 0 }));
     const { base, close } = await listen(server);
     try {
-      expect((await fetch(`${base}/.well-known/sustainability`)).status).toBe(503);
+      expect((await fetch(`${base}/.well-known/sustainability-data`)).status).toBe(503);
     } finally {
       await close();
     }
@@ -93,21 +93,21 @@ describe("Express middleware", () => {
     const app = express();
     app.use(
       expressSustainability(demoPublisher(), {
-        carbonTxt: { sustainabilityUrl: "https://demo.example/.well-known/sustainability" },
+        carbonTxt: { sustainabilityUrl: "https://demo.example/.well-known/sustainability-data" },
       }),
     );
     app.get("/other", (_req, res) => res.send("ok"));
     const server = httpCreateServer(app);
     const { base, close } = await listen(server);
     try {
-      const s = await fetch(`${base}/.well-known/sustainability`);
+      const s = await fetch(`${base}/.well-known/sustainability-data`);
       expect(s.status).toBe(200);
       expect(validateDocument(await s.json()).valid).toBe(true);
 
       const c = await fetch(`${base}/carbon.txt`);
       expect(c.status).toBe(200);
       expect(parseCarbonTxt(await c.text()).org.disclosures[0].url).toBe(
-        "https://demo.example/.well-known/sustainability",
+        "https://demo.example/.well-known/sustainability-data",
       );
 
       expect(await (await fetch(`${base}/other`)).text()).toBe("ok");
@@ -127,10 +127,10 @@ describe("Fastify plugin (mock runtime)", () => {
     };
     await fastifySustainability(fakeFastify as any, {
       publisher: demoPublisher(),
-      carbonTxt: { sustainabilityUrl: "https://demo.example/.well-known/sustainability" },
+      carbonTxt: { sustainabilityUrl: "https://demo.example/.well-known/sustainability-data" },
     });
     expect([...routes.keys()]).toEqual(
-      expect.arrayContaining(["/.well-known/sustainability", "/carbon.txt", "/.well-known/carbon.txt"]),
+      expect.arrayContaining(["/.well-known/sustainability-data", "/carbon.txt", "/.well-known/carbon.txt"]),
     );
 
     const makeReply = () => {
@@ -153,7 +153,7 @@ describe("Fastify plugin (mock runtime)", () => {
     };
 
     const sReply = makeReply();
-    await routes.get("/.well-known/sustainability")!({ headers: {}, query: {} }, sReply);
+    await routes.get("/.well-known/sustainability-data")!({ headers: {}, query: {} }, sReply);
     expect(sReply.statusCode).toBe(200);
     expect(validateDocument(JSON.parse(sReply.sentBody)).valid).toBe(true);
 
@@ -179,7 +179,7 @@ describe("Fastify plugin (mock runtime)", () => {
     };
     await fastifySustainability(fakeFastify as any, {
       publisher: demoPublisher(),
-      carbonTxt: { sustainabilityUrl: "https://demo.example/.well-known/sustainability" },
+      carbonTxt: { sustainabilityUrl: "https://demo.example/.well-known/sustainability-data" },
     });
 
     const makeReply = () => {
@@ -203,7 +203,7 @@ describe("Fastify plugin (mock runtime)", () => {
       return r;
     };
 
-    for (const path of ["/.well-known/sustainability", "/carbon.txt", "/.well-known/carbon.txt"]) {
+    for (const path of ["/.well-known/sustainability-data", "/carbon.txt", "/.well-known/carbon.txt"]) {
       const reply = makeReply();
       await routes.get(path)!({ method: "POST", headers: {}, query: {} }, reply);
       expect(reply.statusCode, path).toBe(405);
@@ -212,7 +212,7 @@ describe("Fastify plugin (mock runtime)", () => {
 
     // GET still works through the route seam.
     const okReply = makeReply();
-    await routes.get("/.well-known/sustainability")!({ method: "GET", headers: {}, query: {} }, okReply);
+    await routes.get("/.well-known/sustainability-data")!({ method: "GET", headers: {}, query: {} }, okReply);
     expect(okReply.statusCode).toBe(200);
     expect(validateDocument(JSON.parse(okReply.sentBody)).valid).toBe(true);
   });
@@ -241,7 +241,7 @@ describe("CLI / config loader", () => {
     });
     await runCli(["--config", EX("config.co2js.json"), "--emit-carbon-txt"]);
     const doc = parseCarbonTxt(out);
-    expect(doc.org.disclosures[0].url).toContain("/.well-known/sustainability");
+    expect(doc.org.disclosures[0].url).toContain("/.well-known/sustainability-data");
   });
 
   it("--once prints a valid document", async () => {
@@ -302,7 +302,7 @@ describe("co2js adapter end-to-end through a server", () => {
     const server = createSustainabilityServer(pub);
     const { base, close } = await listen(server);
     try {
-      const r = await fetch(`${base}/.well-known/sustainability`);
+      const r = await fetch(`${base}/.well-known/sustainability-data`);
       const body = await r.json();
       expect(validateDocument(body).valid).toBe(true);
       expect(body["disclosure-uri"]).toBe("https://edge.example/.well-known/carbon.txt");

@@ -1,4 +1,4 @@
-# Architecture — the `sustainability` Well-Known URI project
+# Architecture — the `sustainability-data` Well-Known URI project
 
 This document is the master architecture reference for the whole repository: the
 protocol defined by the Internet-Draft, the two reference implementations
@@ -11,8 +11,8 @@ Context → Level 2 Container → Level 3 Component), written in
 inline (Mermaid source) and as a pre-rendered image in [`images/`](images/); the
 sources live in [`diagrams/`](diagrams/).
 
-**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-03.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-03.md)
-(the prepared "2.0" protocol revision), [`../README.md`](../README.md),
+**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-04.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-04.md)
+(the prepared "2.0" protocol revision, carrying the `sustainability-data` URI rename), [`../README.md`](../README.md),
 [`publisher/src/`](../publisher/src/), [`consumer/src/`](../consumer/src/),
 [`schemas-validators/`](../schemas-validators/),
 [`server-configurations/`](../server-configurations/),
@@ -26,7 +26,7 @@ sources live in [`diagrams/`](diagrams/).
 2. [Container view](#2-container-view-c4-level-2)
 3. [The protocol subsystem](#3-the-protocol-subsystem)
    - [Wire-protocol lifecycle](#31-wire-protocol-lifecycle)
-   - [Data model](#32-data-model-23-members)
+   - [Data model](#32-data-model-24-members)
    - [Versioning and legacy-compatibility state logic](#33-versioning-and-legacy-compatibility-state-logic)
 4. [Publisher subsystem — the universal gateway](#4-publisher-subsystem--the-universal-gateway)
 5. [Consumer subsystem](#5-consumer-subsystem)
@@ -41,7 +41,7 @@ sources live in [`diagrams/`](diagrams/).
 
 **What the system is.** The Internet-Draft
 `draft-besleaga-sustainability-wellknown` defines a single, fixed, discoverable
-HTTPS location — `/.well-known/sustainability` (RFC 8615) — where any HTTP
+HTTPS location — `/.well-known/sustainability-data` (RFC 8615) — where any HTTP
 origin publishes its aggregated energy-consumption and carbon-footprint metrics
 as machine-readable JSON. Reporting is out-of-band and asynchronous: no
 per-request headers, no rebound effect, standard HTTP caching.
@@ -64,8 +64,10 @@ consumption contexts at once:
 | Carbon-aware tooling (schedulers, dashboards) | M2M | HTTP caching + `ETag` conditional requests for cheap polling |
 | AI agents | Automated | Machine-discoverable at a fixed location, schema-validatable, safe to ingest without negotiation |
 
-**Surrounding ecosystem.** IANA holds the requested `sustainability` well-known
-URI registration (provisional, [well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)).
+**Surrounding ecosystem.** IANA holds the requested `sustainability-data` well-known
+URI registration (provisional, [well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95);
+the suffix was renamed from `sustainability` in the prepared `-04` revision, per ISE
+feedback on RFC 8615 precision).
 The Green Web Foundation **carbon.txt** convention composes bidirectionally with
 this system: a metrics document may point at a carbon.txt disclosure index via
 `disclosure-uri`, and the publisher can serve a carbon.txt that points back at
@@ -92,7 +94,7 @@ flowchart TB
 
     subgraph ORIGIN["HTTPS Origin (RFC 8615)"]
         WEB["Web Server / CDN<br/>[Software System]<br/>nginx / Apache: static file or reverse proxy"]
-        PUB["Publisher Gateway<br/>[Software System]<br/>sustainability-wellknown-publisher:<br/>any data source → one standard<br/>/.well-known/sustainability endpoint"]
+        PUB["Publisher Gateway<br/>[Software System]<br/>sustainability-wellknown-publisher:<br/>any data source → one standard<br/>/.well-known/sustainability-data endpoint"]
     end
 
     subgraph SOURCES["Enterprise & telemetry data sources"]
@@ -100,18 +102,18 @@ flowchart TB
         TEL["Energy Telemetry & Models<br/>[External System]<br/>Kepler/Prometheus · Climatiq ·<br/>CO2.js · static/computed values"]
     end
 
-    IANA["IANA Well-Known URIs Registry<br/>[External System]<br/>'sustainability' suffix (RFC 8615), requested"]
+    IANA["IANA Well-Known URIs Registry<br/>[External System]<br/>'sustainability-data' suffix (RFC 8615), requested"]
     CTXT["carbon.txt Ecosystem<br/>[External System]<br/>Green Web Foundation disclosure index (TOML)"]
 
     OP -- "configures & runs" --> PUB
     OP -- "registration requested (well-known-uris #95)" --> IANA
     PUB -- "pulls org-level metrics (HTTPS APIs)" --> ENT
     PUB -- "pulls energy/carbon data (PromQL / HTTPS)" --> TEL
-    WEB -- "reverse-proxies /.well-known/sustainability" --> PUB
+    WEB -- "reverse-proxies /.well-known/sustainability-data" --> PUB
     PUB <-- "bidirectional discovery:<br/>serves carbon.txt · links via disclosure-uri" --> CTXT
 
     HUMAN -- "GET (browser, HTTPS)" --> WEB
-    REG -- "GET /.well-known/sustainability" --> WEB
+    REG -- "GET /.well-known/sustainability-data" --> WEB
     AI -- "GET · schema-validate · ingest" --> WEB
     AGG -- "crawls origins with" --> CONSLIB
     CAT -- "embeds" --> CONSLIB
@@ -188,7 +190,7 @@ flowchart TB
     SCHEMAS -. "validates" .-> EXS
     WEBC -- "reverse-proxies to<br/>(or serves static JSON itself)" --> HTTPL
 
-    CLIENT -- "GET /.well-known/sustainability (HTTPS)" --> WEBC
+    CLIENT -- "GET /.well-known/sustainability-data (HTTPS)" --> WEBC
     CLIENT -- "runs" --> FCLI
     FCLI --> FETCH
     SCLI -- "wraps with ETag cache" --> FETCH
@@ -210,11 +212,12 @@ flowchart TB
 
 ## 3. The protocol subsystem
 
-The normative artifact is the Internet-Draft (`internet-drafts/`). Revision **-02**
-(schema `1.1`) is the *submitted* revision — posted to the Datatracker
-2026-07-03, under ISE review, frozen. Revision **-03** (schema `2.0`) is the
-*prepared* revision held in this repo, to be posted when the submission window
-reopens after IETF 126. The whole codebase implements the **-03 / 2.0** model,
+The normative artifact is the Internet-Draft (`internet-drafts/`). Revision **-03**
+(schema `2.0`) is the *latest posted* revision — posted to the Datatracker
+2026-07-23, under ISE review. Revision **-04** (still schema `2.0`) is the
+*prepared* revision held in this repo, not yet submitted: it renames the requested
+URI suffix to `sustainability-data` and adds the optional `target-type` member.
+The whole codebase implements the **2.0** model,
 with field-driven compatibility for historical `1.x` documents.
 
 ### 3.1 Wire-protocol lifecycle
@@ -251,19 +254,19 @@ sequenceDiagram
     participant S as Server (origin)
 
     Note over C,S: 1 — Basic service (Mandatory Minimum)
-    C->>S: GET /.well-known/sustainability
+    C->>S: GET /.well-known/sustainability-data
     S-->>C: 200 OK · application/json · ETag: "abc" · Cache-Control: public, max-age=86400<br/>single JSON object (most recent completed period, origin-wide target)
 
     Note over C,S: 2 — Conditional revalidation (RFC 9110/9111)
-    C->>S: GET /.well-known/sustainability · If-None-Match: "abc"
+    C->>S: GET /.well-known/sustainability-data · If-None-Match: "abc"
     S-->>C: 304 Not Modified (empty body, ETag echoed)
 
     Note over C,S: 3 — Method restriction
-    C->>S: POST /.well-known/sustainability
+    C->>S: POST /.well-known/sustainability-data
     S-->>C: 405 Method Not Allowed · Allow: GET, HEAD
 
     Note over C,S: 4 — Extended service: trend query
-    C->>S: GET /.well-known/sustainability?period=2025&granularity=monthly
+    C->>S: GET /.well-known/sustainability-data?period=2025&granularity=monthly
     S-->>C: 200 OK · JSON array (≤366 entries, ascending reporting-period,<br/>uniform precision, single target)
 
     Note over C,S: 5 — Extended service: scoped single period
@@ -279,20 +282,26 @@ sequenceDiagram
     S-->>C: 200 OK · Basic single object (parameters ignored, never an error)
 
     Note over C,S: 8 — Publish-only-if-valid (reference publisher)
-    C->>S: GET /.well-known/sustainability
+    C->>S: GET /.well-known/sustainability-data
     S-->>C: 503 Service Unavailable (adapter/validation failure —<br/>corrupt data is never published)
 ```
 
-### 3.2 Data model (23 members)
+### 3.2 Data model (24 members)
 
 A response is a single `SustainabilityMetrics` object or an array of them
-(a trend). **8 members are mandatory, 15 optional** — 23 total. Since `2.0`,
+(a trend). **8 members are mandatory, 16 optional** — 24 total. Since `2.0`,
 *omission is the only "not reported" mechanism*: a present member always carries
 a real value. Gross quantities are non-negative; `renewable-energy` is bounded
 0–100 inclusive; `scope-1/2/3` **may** be negative (removals / net accounting);
 absent unit members default to `kWh` and `gCO2e`; `sci-score` requires
-`functional-unit`. The formal schemas are open (`additionalProperties` /
-`* tstr => any`): clients MUST ignore unknown members, which is the entire
+`functional-unit`. The `-04` revision adds the optional `target-type` member —
+an enumerated hint (`origin`/`path`/`organization`/`service`/`product`/`device`/
+`tenant`/`data-source`) classifying the reporting subject named by `target`;
+unrecognized values are tolerated (the client reads `target` as if the hint were
+absent), and array entries share one value. The formal schemas are open
+(`additionalProperties` / `* tstr => any`): clients MUST ignore unknown members,
+which — together with the reverse-domain extension-member naming rule
+(`com.example.pue`; undotted names reserved for the spec) — is the entire
 forward-compatibility story.
 
 ![Data model](images/data-model.png)
@@ -308,7 +317,8 @@ classDiagram
     }
     note for SustainabilityDocument "Array rules — MUST: ascending reporting-period,
     non-overlapping, uniform period precision,
-    same target in every entry; max 366 entries recommended.
+    same target (and target-type, when present) in every entry;
+    max 366 entries recommended.
     A single object == a one-element array."
 
     SustainabilityDocument "1" *-- "1..366" SustainabilityMetrics
@@ -326,7 +336,8 @@ classDiagram
     }
 
     class OptionalMetrics {
-        <<15 optional members — omission is the ONLY not-reported mechanism>>
+        <<16 optional members — omission is the ONLY not-reported mechanism>>
+        +target-type : "origin" | "path" | "organization" | "service" | "product" | "device" | "tenant" | "data-source" — hint classifying target; unrecognized values tolerated
         +energy-consumption : number — MUST NOT be negative
         +energy-unit : "Wh" | "kWh" | "MWh" | "GWh" — default kWh when absent
         +carbon-footprint : number — gross, MUST NOT be negative
@@ -346,12 +357,12 @@ classDiagram
 
     SustainabilityMetrics "1" o-- "0..1" OptionalMetrics : MAY carry
 
-    class VendorExtensions {
+    class ExtensionMembers {
         <<open schema>>
         +any additional member : any — clients MUST ignore unknown members
-        +namespacing : vendor- prefix, domain-qualified, or URI key
+        +naming : reverse-domain notation, e.g. com.example.pue — undotted names reserved for the spec; no X-/vendor- prefixes (RFC 6648)
     }
-    SustainabilityMetrics "1" o-- "0..*" VendorExtensions : extensible via
+    SustainabilityMetrics "1" o-- "0..*" ExtensionMembers : extensible via
 
     note for OptionalMetrics "Minimum-reporting rule — SHOULD: at least one numeric
     metric or a disclosure/attestation URI; else the mandatory
@@ -382,8 +393,9 @@ through two **field-driven** rules:
    (what the historical absence of `target-path` conveyed).
 
 The same diagram tracks the draft's own revision lifecycle, from the renamed
-predecessor series to the ISE-reviewed `-02`, the prepared `-03`, and the
-eventual Informational RFC + IANA registration.
+predecessor series through `-02` and the posted, ISE-reviewed `-03` to the
+prepared `-04` (URI suffix renamed to `sustainability-data`, optional
+`target-type` added) and the eventual Informational RFC + IANA registration.
 
 ![Version & revision states](images/version-state.png)
 
@@ -394,7 +406,7 @@ stateDiagram-v2
     state "Schema / data-model lifecycle" as SCHEMA {
         state "1.0 (historical): 4 metric members mandatory, negative value = not-reported sentinel, optional target-path (absent = origin-wide)" as V10
         state "1.1 (historical): adds optional disclosure-uri" as V11
-        state "2.0 (current, -03): 8 mandatory + 15 optional members, omission is the only not-reported mechanism, mandatory target, CO2e renames, energy/carbon optional with kWh/gCO2e defaults" as V20
+        state "2.0 (current, -03/-04): 8 mandatory + 16 optional members, omission is the only not-reported mechanism, mandatory target (+ optional target-type hint since -04), CO2e renames, energy/carbon optional with kWh/gCO2e defaults; value space under change control (new labels only via a revising RFC)" as V20
         state "Client processing of ANY document (field-driven, never version-driven): negative value in a non-negative member = not reported (subsumes the sentinel); missing target = origin-wide report; unknown members ignored; version label never rejected or branched on" as COMPAT
 
         [*] --> V10
@@ -408,17 +420,17 @@ stateDiagram-v2
     state "Internet-Draft revision lifecycle" as DRAFT {
         state "draft-besleaga-green-sustainability-wellknown -00 .. -05 (former name)" as GREEN
         state "-00 .. -01 renamed series (replaces the green- draft)" as EARLY
-        state "-02 SUBMITTED: posted 2026-07-03, ISE 'Submission Received', frozen under review (schema 1.1 model)" as SUBMITTED
-        state "-03 PREPARED: schema 2.0 revision, in-repo, awaiting the post-IETF-126 submission window (SUSTAIN RG presentation)" as PREPARED
-        state "-03 posted, ISE review continues" as POSTED
-        state "Informational RFC + IANA 'sustainability' well-known URI (provisional, promotable to permanent)" as RFC
+        state "-02 SUBMITTED: posted 2026-07-03, ISE 'Submission Received' (schema 1.1 model)" as SUBMITTED
+        state "-03 POSTED: schema 2.0 revision, posted 2026-07-23, under ISE review (SUSTAIN RG presentation at IETF 126)" as POSTED
+        state "-04 PREPARED: in-repo, not yet submitted — URI suffix renamed to sustainability-data (ISE naming feedback), optional target-type member added" as PREPARED4
+        state "Informational RFC + IANA 'sustainability-data' well-known URI (provisional, promotable to permanent)" as RFC
 
         [*] --> GREEN
         GREEN --> EARLY : rename (Independent Submission, no WG affiliation implied)
         EARLY --> SUBMITTED
-        SUBMITTED --> PREPARED : rework data model to 2.0
-        PREPARED --> POSTED : submission window reopens
-        POSTED --> RFC : ISE approval + RFC Editor
+        SUBMITTED --> POSTED : rework data model to 2.0
+        POSTED --> PREPARED4 : ISE naming feedback (RFC 8615 precision)
+        PREPARED4 --> RFC : post -04, ISE approval + RFC Editor
         RFC --> [*]
     }
 ```
@@ -519,7 +531,7 @@ flowchart TD
     V -- "pass" --> CACHE["Serialize + SHA-1 ETag<br/>bounded in-memory cache<br/>(TTL 24h, ≤256 query variants)"]
 
     CACHE --> H["handler.ts → HTTP<br/>200 + ETag + Cache-Control + CORS<br/>If-None-Match match ⇒ 304"]
-    H --> OUT(("/.well-known/sustainability<br/>one standard endpoint"))
+    H --> OUT(("/.well-known/sustainability-data<br/>one standard endpoint"))
 ```
 
 ### Publisher component map (C4 Level 3)
@@ -634,7 +646,7 @@ automatically (SSRF posture; the draft's "MUST NOT treat as proof").
 
 ```mermaid
 flowchart TD
-    START["fetchSustainability(origin, options)"] --> URL["Build URL: origin + /.well-known/sustainability<br/>+ target / period / granularity params<br/>+ If-None-Match when ETag known"]
+    START["fetchSustainability(origin, options)"] --> URL["Build URL: origin + /.well-known/sustainability-data<br/>+ target / period / granularity params<br/>+ If-None-Match when ETag known"]
     URL --> REQ["GET with AbortSignal.timeout (default 30s)"]
 
     REQ -- "timeout / abort" --> TMO(["status: timeout"])
@@ -674,7 +686,7 @@ flowchart TD
 
 ```mermaid
 flowchart TB
-    ORIGIN(("Any /.well-known/sustainability origin"))
+    ORIGIN(("Any /.well-known/sustainability-data origin"))
 
     subgraph CONS["consumer/src (npm: sustainability-wellknown-consumer)"]
         FETCH["fetch.ts — fetchSustainability()<br/>30s timeout · 10MB byte cap (streaming) ·<br/>query params target/period/granularity ·<br/>If-None-Match · legacy-compat pre-pass<br/>(missing target ⇒ inject final-response host, flag legacy)"]
@@ -715,7 +727,7 @@ flowchart TB
 
 Because the HTTP semantics live in one framework-agnostic function
 (`handleRequest` → `HandlerResult {status, headers, body}`), the same pipeline
-deploys five ways. The draft only requires that `/.well-known/sustainability`
+deploys five ways. The draft only requires that `/.well-known/sustainability-data`
 on the origin routes to *some* conformant responder:
 
 1. **Standalone gateway** — the Node process from `server.ts`/`cli.ts` serves
@@ -743,14 +755,14 @@ flowchart TB
     CLIENT(("Consumers<br/>browsers · M2M · aggregators · AI agents"))
 
     subgraph T1["Topology 1 — Standalone gateway"]
-        SA["Node process: createSustainabilityServer(publisher)<br/>publisher/src/server.ts + cli.ts<br/>serves /.well-known/sustainability (+ optional carbon.txt)"]
+        SA["Node process: createSustainabilityServer(publisher)<br/>publisher/src/server.ts + cli.ts<br/>serves /.well-known/sustainability-data (+ optional carbon.txt)"]
         SRC1["Any adapter source"]
         SRC1 --> SA
     end
 
     subgraph T2["Topology 2 — Embedded middleware"]
         APP2["Existing Express / Fastify app"]
-        MW["expressSustainability() / fastifySustainability()<br/>mounted at /.well-known/sustainability"]
+        MW["expressSustainability() / fastifySustainability()<br/>mounted at /.well-known/sustainability-data"]
         SRC2["Any adapter source"]
         SRC2 --> MW
         MW --- APP2
@@ -763,7 +775,7 @@ flowchart TB
     end
 
     subgraph T4["Topology 4 — Reverse proxy in front of the gateway"]
-        RP["nginx / Apache / CDN edge<br/>proxies only /.well-known/sustainability<br/>(+ rate limiting for dynamic period/granularity)"]
+        RP["nginx / Apache / CDN edge<br/>proxies only /.well-known/sustainability-data<br/>(+ rate limiting for dynamic period/granularity)"]
         GW4["Standalone gateway (Topology 1)<br/>on an internal port"]
         RP --> GW4
     end
@@ -847,7 +859,7 @@ same JTD schema enforced, byte-identically, at every layer.
 * Diagrams rendered with
   [`@mermaid-js/mermaid-cli`](https://github.com/mermaid-js/mermaid-cli)
   (`mmdc -s 2 -b white`).
-* **Repository ground truth** — the `-03` draft, root `README.md`,
+* **Repository ground truth** — the `-04` draft, root `README.md`,
   `publisher/src/`, `consumer/src/`, `schemas-validators/`,
   `server-configurations/`, `example-scripts/`, and `.github/workflows/` as
   cited throughout.
@@ -865,7 +877,7 @@ architecture/
 │   ├── protocol-sequence.mmd          # wire-protocol lifecycle
 │   ├── gateway-flow.mmd               # universal-gateway pipeline
 │   ├── consumer-flow.mmd              # consumer fetch/validate/transform
-│   ├── data-model.mmd                 # 23-member document model
+│   ├── data-model.mmd                 # 24-member document model
 │   ├── version-state.mmd              # schema + draft revision lifecycles
 │   └── deployment.mmd                 # five deployment topologies
 └── images/                            # rendered PNGs (same basenames)

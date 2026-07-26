@@ -32,7 +32,7 @@ def _free_port() -> int:
 
 PORT = _free_port()
 BASE = f"http://127.0.0.1:{PORT}"
-WELL_KNOWN = f"{BASE}/.well-known/sustainability"
+WELL_KNOWN = f"{BASE}/.well-known/sustainability-data"
 
 
 def _validate_schema(doc) -> None:

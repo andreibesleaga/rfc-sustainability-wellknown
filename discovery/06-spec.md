@@ -64,7 +64,7 @@ API), `salesforce-nzc`, `ms-sustainability` (OData `$skiptoken` paging), `waters
 MS Sustainability OData ──$skiptoken paging──▶ aggregate emissions+energy
    ──▶ RawMetrics{ carbon: mtCO2e, energy: kWh, scope3 }
    ──▶ normalize ──▶ SustainabilityMetrics
-   ──▶ secure + JTD-validate ──▶ cache ──▶ GET /.well-known/sustainability (200)
+   ──▶ secure + JTD-validate ──▶ cache ──▶ GET /.well-known/sustainability-data (200)
 ```
 
 ## 7. Mapping to the draft

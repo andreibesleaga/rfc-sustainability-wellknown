@@ -71,7 +71,8 @@ export function validateDocument(doc: unknown): ValidationResult {
 
   // Draft §Payload Format: array entries MUST be sorted ascending by
   // reporting-period, MUST NOT overlap, and MUST share the same period
-  // precision and the same target value.
+  // precision and the same target value (and, when present, the same
+  // target-type value).
   if (Array.isArray(doc) && doc.length > 1 && errors.length === 0) {
     const entries = doc as SustainabilityMetrics[];
     const periods = entries.map((m) => String(m["reporting-period"] ?? ""));
@@ -89,6 +90,15 @@ export function validateDocument(doc: unknown): ValidationResult {
     // target is mandatory (schema-gated above), so compare the actual values.
     if (new Set(entries.map((m) => m.target)).size > 1) {
       errors.push("array entries carry differing target values");
+    }
+    // target-type is optional: "when present, the same target-type value"
+    // (-04) — the entries that carry it must agree on one value. An entry
+    // without the member is not penalized (absence just means unclassified,
+    // matching the tolerance rule under which a disregarded value reads as
+    // absent).
+    const targetTypes = new Set(entries.map((m) => m["target-type"]).filter((v) => v !== undefined));
+    if (targetTypes.size > 1) {
+      errors.push("array entries carry differing target-type values");
     }
   }
 

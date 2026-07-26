@@ -1,6 +1,6 @@
 /** The one-call, zero-extra-dependency client: fetchSustainability(origin, options). */
 import { FetchParams, FetchResult } from "./types";
-export declare const WELL_KNOWN_PATH = "/.well-known/sustainability";
+export declare const WELL_KNOWN_PATH = "/.well-known/sustainability-data";
 /**
  * Default overall request timeout (ms). A non-responding origin must not hang
  * the caller forever; 30s is a generous ceiling for a well-known GET that a
@@ -30,8 +30,18 @@ export interface FetchOptions extends FetchParams {
      * gets the final-response origin's host injected as `target` (redirects
      * are attributed to the final origin, per the draft), letting historical
      * "1.0"/"1.1" documents validate and stay usable. Such a result is flagged
-     * with `legacy: true`. Set to false for strict mode: legacy documents then
-     * fail validation instead.
+     * with `legacy: true`.
+     *
+     * The same pre-pass applies the draft's enumerated-member tolerance rule
+     * (§Value Constraints and Omitted Metrics) to `target-type`: an unrecognized
+     * value in that member SHOULD be disregarded — `target` is then interpreted
+     * as if `target-type` were absent — not rejected. Because the JTD schema
+     * deliberately closes the enum, the member is stripped before validation and
+     * the result flagged via `disregarded` (mirroring how out-of-range numerics
+     * read as "not reported" without failing the document).
+     *
+     * Set to false for strict mode: the document is validated exactly as served —
+     * legacy documents and unrecognized target-type values then fail validation.
      */
     legacyCompat?: boolean;
 }

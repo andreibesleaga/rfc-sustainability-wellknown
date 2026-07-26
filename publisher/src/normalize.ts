@@ -14,6 +14,8 @@ import {
   NormalizeOptions,
   RawMetrics,
   SustainabilityMetrics,
+  TARGET_TYPES,
+  TargetType,
 } from "./types";
 
 /** Joules → kWh. 1 kWh = 3.6e6 J. */
@@ -284,7 +286,23 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   }
   if (raw.disclosureUri !== undefined) out["disclosure-uri"] = raw.disclosureUri;
 
-  // Vendor extensions, copied through (clients MUST ignore unknown fields).
+  // target-type (draft -04, §Optional Response Fields): a hint classifying
+  // the reporting subject named by `target`. The publisher is fail-loud on its
+  // own output — the draft's unrecognized-value tolerance is a CLIENT rule
+  // (fromWire applies it when re-ingesting foreign documents); emitting an
+  // out-of-enum value here would ship a schema-invalid document.
+  const targetType = raw.targetType ?? opts.targetType;
+  if (targetType !== undefined) {
+    if (!TARGET_TYPES.includes(targetType as TargetType)) {
+      throw new Error(
+        `normalize: target-type must be one of ${TARGET_TYPES.join(", ")} (got "${targetType}"); ` +
+          "omit the member instead (draft, Optional Response Fields)",
+      );
+    }
+    out["target-type"] = targetType;
+  }
+
+  // Extension members, copied through (clients MUST ignore unknown fields).
   if (raw.extra) {
     for (const [k, v] of Object.entries(raw.extra)) {
       if (!(k in out)) out[k] = v;

@@ -2,7 +2,7 @@
  * Publisher: orchestrates adapter → normalize → security → validate → cache.
  *
  * Layer 4 of the gateway. A single instance wraps one {@link SourceAdapter} and
- * produces validated, cacheable `/.well-known/sustainability` documents.
+ * produces validated, cacheable `/.well-known/sustainability-data` documents.
  */
 import { createHash } from "node:crypto";
 import { normalize } from "./normalize";

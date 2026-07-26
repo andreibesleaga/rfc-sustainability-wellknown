@@ -35,7 +35,7 @@ flowchart TB
     SCHEMAS -. "validates" .-> EXS
     WEBC -- "reverse-proxies to<br/>(or serves static JSON itself)" --> HTTPL
 
-    CLIENT -- "GET /.well-known/sustainability (HTTPS)" --> WEBC
+    CLIENT -- "GET /.well-known/sustainability-data (HTTPS)" --> WEBC
     CLIENT -- "runs" --> FCLI
     FCLI --> FETCH
     SCLI -- "wraps with ETag cache" --> FETCH

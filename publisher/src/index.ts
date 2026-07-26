@@ -1,7 +1,7 @@
 /**
  * sustainability-wellknown-publisher
  *
- * A production gateway that serves a draft-conformant `/.well-known/sustainability`
+ * A production gateway that serves a draft-conformant `/.well-known/sustainability-data`
  * document (draft-besleaga-sustainability-wellknown) from pluggable metric
  * sources. Pipeline: adapter → normalize → security safeguards → JTD validation
  * gate → cache → HTTP exposure.

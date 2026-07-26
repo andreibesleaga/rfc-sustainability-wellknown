@@ -79,6 +79,42 @@ describe("fromWire round-trip (fix 1)", () => {
   });
 });
 
+// -04: target-type re-ingest tolerance (fromWire is for foreign documents,
+// so an unrecognized enum value is disregarded, not fatal — draft §Value
+// Constraints and Omitted Metrics).
+describe("fromWire target-type (draft -04)", () => {
+  const wireBase = (over: Record<string, unknown> = {}): SustainabilityMetrics =>
+    ({
+      version: "2.0",
+      updated: "2026-03-01T00:00:00Z",
+      capabilities: "basic",
+      provider: "P",
+      "measurement-method": "m",
+      "methodology-uri": "https://x/m",
+      "reporting-period": "2026-02",
+      target: "example.com",
+      ...over,
+    }) as SustainabilityMetrics;
+
+  it("keeps a recognized target-type and round-trips it through normalize", () => {
+    const raw = fromWire(wireBase({ "target-type": "origin" }));
+    expect(raw.targetType).toBe("origin");
+    const out = normalize(raw);
+    expect(out["target-type"]).toBe("origin");
+    expect(validateDocument(out).valid).toBe(true);
+  });
+
+  it("drops an unrecognized target-type rather than throwing", () => {
+    const raw = fromWire(wireBase({ "target-type": "datacenter" }));
+    expect(raw.targetType).toBeUndefined();
+    // Dropped entirely — not smuggled through as an extension member.
+    expect(raw.extra?.["target-type"]).toBeUndefined();
+    const out = normalize(raw);
+    expect(out).not.toHaveProperty("target-type");
+    expect(validateDocument(out).valid).toBe(true);
+  });
+});
+
 // #2 If-None-Match list / weak / *
 describe("ifNoneMatchMatches (fix 2)", () => {
   it("matches within a comma list, weak validators, and *", () => {
@@ -185,7 +221,7 @@ describe("carbonTxtResult rejects a poisoned Host (fix 9)", () => {
     expect(r.headers["Cache-Control"]).toBe("no-store");
   });
   it("200 when sustainabilityUrl is fixed (Host ignored)", () => {
-    const r = carbonTxtResult({ sustainabilityUrl: "https://ok.example/.well-known/sustainability" }, {}, "anything");
+    const r = carbonTxtResult({ sustainabilityUrl: "https://ok.example/.well-known/sustainability-data" }, {}, "anything");
     expect(r.status).toBe(200);
   });
 
@@ -201,7 +237,7 @@ describe("carbonTxtResult rejects a poisoned Host (fix 9)", () => {
 
   it("fixed-URL 200 keeps public caching and no Vary: Host", () => {
     const r = carbonTxtResult(
-      { sustainabilityUrl: "https://ok.example/.well-known/sustainability" },
+      { sustainabilityUrl: "https://ok.example/.well-known/sustainability-data" },
       { maxAge: 3600 },
       "ok.example",
     );
@@ -261,7 +297,7 @@ describe("server hardening (fix 11/12)", () => {
       const r404 = await fetch(`${base}/nope`);
       expect(r404.status).toBe(404);
       expect(r404.headers.get("access-control-allow-origin")).toBe("*");
-      const r405 = await fetch(`${base}/.well-known/sustainability`, { method: "POST" });
+      const r405 = await fetch(`${base}/.well-known/sustainability-data`, { method: "POST" });
       expect(r405.status).toBe(405);
       expect(r405.headers.get("access-control-allow-origin")).toBe("*");
     } finally {

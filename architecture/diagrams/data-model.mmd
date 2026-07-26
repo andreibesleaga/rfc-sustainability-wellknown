@@ -6,7 +6,8 @@ classDiagram
     }
     note for SustainabilityDocument "Array rules — MUST: ascending reporting-period,
     non-overlapping, uniform period precision,
-    same target in every entry; max 366 entries recommended.
+    same target (and target-type, when present) in every entry;
+    max 366 entries recommended.
     A single object == a one-element array."
 
     SustainabilityDocument "1" *-- "1..366" SustainabilityMetrics
@@ -24,7 +25,8 @@ classDiagram
     }
 
     class OptionalMetrics {
-        <<15 optional members — omission is the ONLY not-reported mechanism>>
+        <<16 optional members — omission is the ONLY not-reported mechanism>>
+        +target-type : "origin" | "path" | "organization" | "service" | "product" | "device" | "tenant" | "data-source" — hint classifying target; unrecognized values tolerated
         +energy-consumption : number — MUST NOT be negative
         +energy-unit : "Wh" | "kWh" | "MWh" | "GWh" — default kWh when absent
         +carbon-footprint : number — gross, MUST NOT be negative
@@ -44,12 +46,12 @@ classDiagram
 
     SustainabilityMetrics "1" o-- "0..1" OptionalMetrics : MAY carry
 
-    class VendorExtensions {
+    class ExtensionMembers {
         <<open schema>>
         +any additional member : any — clients MUST ignore unknown members
-        +namespacing : vendor- prefix, domain-qualified, or URI key
+        +naming : reverse-domain notation, e.g. com.example.pue — undotted names reserved for the spec; no X-/vendor- prefixes (RFC 6648)
     }
-    SustainabilityMetrics "1" o-- "0..*" VendorExtensions : extensible via
+    SustainabilityMetrics "1" o-- "0..*" ExtensionMembers : extensible via
 
     note for OptionalMetrics "Minimum-reporting rule — SHOULD: at least one numeric
     metric or a disclosure/attestation URI; else the mandatory

@@ -2,8 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEFAULT_MAX_BYTES = exports.DEFAULT_TIMEOUT_MS = exports.WELL_KNOWN_PATH = void 0;
 exports.fetchSustainability = fetchSustainability;
+const sentinel_1 = require("./sentinel");
 const validate_1 = require("./validate");
-exports.WELL_KNOWN_PATH = "/.well-known/sustainability";
+exports.WELL_KNOWN_PATH = "/.well-known/sustainability-data";
 /**
  * Default overall request timeout (ms). A non-responding origin must not hang
  * the caller forever; 30s is a generous ceiling for a well-known GET that a
@@ -127,6 +128,7 @@ async function fetchSustainability(origin, options = {}) {
     // origin's host before the schema gate — the historical (-02, "1.0"/"1.1")
     // absence of `target-path` conveyed exactly that.
     let legacy = false;
+    const disregarded = [];
     if (options.legacyCompat !== false) {
         // Draft §Mandatory Minimum: clients that follow a redirect MUST attribute
         // the returned metrics to the origin of the FINAL response — so the
@@ -144,10 +146,36 @@ async function fetchSustainability(origin, options = {}) {
             parsed.target = host;
             legacy = true;
         }
+        // Enumerated-member tolerance (draft §Value Constraints and Omitted
+        // Metrics): an unrecognized `target-type` value SHOULD be disregarded —
+        // the member is stripped BEFORE the schema gate (whose closed enum would
+        // otherwise fail the whole document on exactly this value) and recorded
+        // in `disregarded`, so callers can still see the tolerance was applied.
+        const stripUnrecognizedTargetType = (o, path) => {
+            if (typeof o !== "object" || o === null || Array.isArray(o))
+                return;
+            const rec = o;
+            if ("target-type" in rec && !(0, sentinel_1.isRecognizedTargetType)(rec["target-type"])) {
+                delete rec["target-type"];
+                disregarded.push(`${path}target-type`);
+            }
+        };
+        if (Array.isArray(parsed)) {
+            parsed.forEach((entry, i) => stripUnrecognizedTargetType(entry, `[${i}].`));
+        }
+        else {
+            stripUnrecognizedTargetType(parsed, "");
+        }
     }
     const result = (0, validate_1.validateDocument)(parsed);
     if (!result.valid)
         return { status: "invalid", errors: result.errors };
     const etag = res.headers.get("etag") ?? undefined;
-    return { status: "ok", document: parsed, etag, ...(legacy ? { legacy } : {}) };
+    return {
+        status: "ok",
+        document: parsed,
+        etag,
+        ...(legacy ? { legacy } : {}),
+        ...(disregarded.length > 0 ? { disregarded } : {}),
+    };
 }

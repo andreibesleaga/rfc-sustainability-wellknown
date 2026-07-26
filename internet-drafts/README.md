@@ -4,29 +4,37 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 
 ## Current Internet-Draft
 
-**`draft-besleaga-sustainability-wellknown`** — *The 'sustainability' Well-Known URI*.
+**`draft-besleaga-sustainability-wellknown`** — *The 'sustainability-data' Well-Known URI*
+(retitled in the prepared `-04`; revisions through `-03` were titled *The 'sustainability'
+Well-Known URI* — the Datatracker document name is unchanged).
 Individual submission on the IETF **Independent Submission Stream** (Informational).
 
 Two revisions matter right now:
 
-- **`-02`** is the **submitted** revision: posted to the Datatracker (2026-07-03) and with
-  the Independent Submissions Editor (ISE) for review (state "Submission Received" since
-  2026-07-08). It is frozen while under review.
-- **`-03`** is the **prepared next revision** (not yet posted — the submission window is
-  closed until after the IETF meeting). It is a **breaking data-model revision** (schema
-  label `"2.0"`): the negative "not reported" sentinel is removed in favor of member
-  omission, `energy-consumption`/`energy-unit`/`carbon-footprint`/`carbon-unit` become
-  optional (with default units), a mandatory free-form `target` member identifies the
-  reporting subject (replacing the optional `target-path`), and two carbon members are
-  renamed to the CO2e convention, and `capabilities` is redefined to describe
-  Extended query-parameter support only. See the draft's own "Since -02" changelog appendix.
+- **`-03`** is the **latest posted** revision: posted to the Datatracker (2026-07-23) and
+  with the Independent Submissions Editor (ISE) for review. It is a **breaking data-model
+  revision** (schema label `"2.0"`): the negative "not reported" sentinel is removed in
+  favor of member omission, `energy-consumption`/`energy-unit`/`carbon-footprint`/
+  `carbon-unit` become optional (with default units), a mandatory free-form `target`
+  member identifies the reporting subject (replacing the optional `target-path`), two
+  carbon members are renamed to the CO2e convention, and `capabilities` is redefined to
+  describe Extended query-parameter support only.
+- **`-04`** is the **latest prepared** revision (in-repo, **not yet submitted**; it will
+  be posted to effect the IANA rename). It renames the requested well-known URI suffix
+  from `sustainability` to `sustainability-data` (following ISE feedback on the precision
+  expectations of RFC 8615, Section 3), adds the OPTIONAL `target-type` member classifying
+  the reporting subject, places the `version` value space under change control, replaces
+  the vendor-extension naming advice with the normative reverse-domain "Extension members"
+  rule, and corrects the CDDL root (`[+ ...]`). See the draft's own "Since -03" changelog
+  appendix.
 
 | File | Role |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-03.md` | Markdown source of the prepared next revision. Edit this. |
-| `draft-besleaga-sustainability-wellknown-03.xml` | xml2rfc v3 XML of `-03` — the authoritative form for the future submission. |
-| `draft-besleaga-sustainability-wellknown-03.txt` | Rendered plain-text form of `-03`. |
-| `draft-besleaga-sustainability-wellknown-02.*` | **Submitted** revision, under ISE review (frozen). |
+| `draft-besleaga-sustainability-wellknown-04.md` | Markdown source of the prepared next revision. Edit this. |
+| `draft-besleaga-sustainability-wellknown-04.xml` | xml2rfc v3 XML of `-04` — the authoritative form for the future submission. |
+| `draft-besleaga-sustainability-wellknown-04.txt` | Rendered plain-text form of `-04`. |
+| `draft-besleaga-sustainability-wellknown-03.*` | **Latest posted** revision (2026-07-23), under ISE review. |
+| `draft-besleaga-sustainability-wellknown-02.*` | Previous submitted revision (posted 2026-07-03). |
 | `draft-besleaga-sustainability-wellknown-01.*` | Previous revision (posted 2026-07-02). |
 | `draft-besleaga-sustainability-wellknown-00.*` | Earlier revision. |
 
@@ -59,10 +67,10 @@ Requires `kramdown-rfc` (Ruby gem `kramdown-rfc2629`) and `xml2rfc`:
 
 ```bash
 cd internet-drafts
-kramdown-rfc draft-besleaga-sustainability-wellknown-03.md \
-  > draft-besleaga-sustainability-wellknown-03.xml
-xml2rfc --strict --text draft-besleaga-sustainability-wellknown-03.xml \
-  -o draft-besleaga-sustainability-wellknown-03.txt
+kramdown-rfc draft-besleaga-sustainability-wellknown-04.md \
+  > draft-besleaga-sustainability-wellknown-04.xml
+xml2rfc --strict --text draft-besleaga-sustainability-wellknown-04.xml \
+  -o draft-besleaga-sustainability-wellknown-04.txt
 ```
 
 `xml2rfc --strict` is expected to complete with no warnings. CI runs the same build (see

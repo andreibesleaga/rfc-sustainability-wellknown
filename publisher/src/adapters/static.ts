@@ -3,7 +3,7 @@
  *
  * Lets *any* web server publish a conformant document immediately, either from
  * inline values, a gateway-native JSON file (RawMetrics), or an existing
- * wire-shaped `/.well-known/sustainability` file.
+ * wire-shaped `/.well-known/sustainability-data` file.
  */
 import { RawMetrics, ServiceQuery, SourceAdapter, SustainabilityMetrics } from "../types";
 import { fromWire, readJson } from "../util";
@@ -28,7 +28,7 @@ export function staticAdapter(config: StaticAdapterConfig): SourceAdapter {
 export interface StaticFileAdapterConfig {
   /** Path to a JSON file. */
   file: string;
-  /** "raw" = gateway-native RawMetrics; "wire" = a /.well-known/sustainability payload. */
+  /** "raw" = gateway-native RawMetrics; "wire" = a /.well-known/sustainability-data payload. */
   format?: "raw" | "wire";
   capabilities?: "basic" | "extended";
 }

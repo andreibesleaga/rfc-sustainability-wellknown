@@ -129,7 +129,7 @@ export async function runCli(argv: string[]): Promise<void> {
   });
   server.listen(port, () => {
     process.stdout.write(
-      `sustainability-publisher listening on http://localhost:${port}/.well-known/sustainability\n`,
+      `sustainability-publisher listening on http://localhost:${port}/.well-known/sustainability-data\n`,
     );
   });
 }

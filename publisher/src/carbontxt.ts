@@ -4,11 +4,11 @@
  * carbon.txt is a discoverable TOML file that *links to* an organisation's
  * sustainability disclosures (reports, certificates, hosting evidence). It is a
  * discovery/disclosure file, not a metrics document — complementary to the
- * `/.well-known/sustainability` metrics document this gateway serves.
+ * `/.well-known/sustainability-data` metrics document this gateway serves.
  *
  * This module:
  *   - `emitCarbonTxt()`     — produce a minimal carbon.txt that points back to a
- *                             `/.well-known/sustainability` document (bidirectional
+ *                             `/.well-known/sustainability-data` document (bidirectional
  *                             discovery). Hand-written TOML; no dependency needed.
  *   - `parseCarbonTxt()`    — parse a carbon.txt with the TOML parser.
  *   - `discoverCarbonTxt()` — HTTP lookup precedence (root → well-known → header).
@@ -38,7 +38,7 @@ export interface CarbonTxtDocument {
 }
 
 export interface EmitCarbonTxtOptions {
-  /** Absolute URL of this origin's `/.well-known/sustainability` document. */
+  /** Absolute URL of this origin's `/.well-known/sustainability-data` document. */
   sustainabilityUrl: string;
   /** carbon.txt schema version to declare. Default "0.5". */
   version?: string;
@@ -75,7 +75,7 @@ function emitInlineTable(obj: Record<string, unknown>): string {
 
 /**
  * Produce a minimal, valid carbon.txt that lists the origin's
- * `/.well-known/sustainability` document as a disclosure (plus any extras).
+ * `/.well-known/sustainability-data` document as a disclosure (plus any extras).
  */
 export function emitCarbonTxt(opts: EmitCarbonTxtOptions): string {
   const version = opts.version ?? "0.5";

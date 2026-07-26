@@ -1,8 +1,9 @@
 /** The one-call, zero-extra-dependency client: fetchSustainability(origin, options). */
 import { FetchParams, FetchResult, SustainabilityDocument } from "./types";
+import { isRecognizedTargetType } from "./sentinel";
 import { validateDocument } from "./validate";
 
-export const WELL_KNOWN_PATH = "/.well-known/sustainability";
+export const WELL_KNOWN_PATH = "/.well-known/sustainability-data";
 
 /**
  * Default overall request timeout (ms). A non-responding origin must not hang
@@ -35,8 +36,18 @@ export interface FetchOptions extends FetchParams {
    * gets the final-response origin's host injected as `target` (redirects
    * are attributed to the final origin, per the draft), letting historical
    * "1.0"/"1.1" documents validate and stay usable. Such a result is flagged
-   * with `legacy: true`. Set to false for strict mode: legacy documents then
-   * fail validation instead.
+   * with `legacy: true`.
+   *
+   * The same pre-pass applies the draft's enumerated-member tolerance rule
+   * (§Value Constraints and Omitted Metrics) to `target-type`: an unrecognized
+   * value in that member SHOULD be disregarded — `target` is then interpreted
+   * as if `target-type` were absent — not rejected. Because the JTD schema
+   * deliberately closes the enum, the member is stripped before validation and
+   * the result flagged via `disregarded` (mirroring how out-of-range numerics
+   * read as "not reported" without failing the document).
+   *
+   * Set to false for strict mode: the document is validated exactly as served —
+   * legacy documents and unrecognized target-type values then fail validation.
    */
   legacyCompat?: boolean;
 }
@@ -146,6 +157,7 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
   // origin's host before the schema gate — the historical (-02, "1.0"/"1.1")
   // absence of `target-path` conveyed exactly that.
   let legacy = false;
+  const disregarded: string[] = [];
   if (options.legacyCompat !== false) {
     // Draft §Mandatory Minimum: clients that follow a redirect MUST attribute
     // the returned metrics to the origin of the FINAL response — so the
@@ -162,11 +174,36 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
       parsed.target = host;
       legacy = true;
     }
+
+    // Enumerated-member tolerance (draft §Value Constraints and Omitted
+    // Metrics): an unrecognized `target-type` value SHOULD be disregarded —
+    // the member is stripped BEFORE the schema gate (whose closed enum would
+    // otherwise fail the whole document on exactly this value) and recorded
+    // in `disregarded`, so callers can still see the tolerance was applied.
+    const stripUnrecognizedTargetType = (o: unknown, path: string) => {
+      if (typeof o !== "object" || o === null || Array.isArray(o)) return;
+      const rec = o as Record<string, unknown>;
+      if ("target-type" in rec && !isRecognizedTargetType(rec["target-type"])) {
+        delete rec["target-type"];
+        disregarded.push(`${path}target-type`);
+      }
+    };
+    if (Array.isArray(parsed)) {
+      parsed.forEach((entry, i) => stripUnrecognizedTargetType(entry, `[${i}].`));
+    } else {
+      stripUnrecognizedTargetType(parsed, "");
+    }
   }
 
   const result = validateDocument(parsed);
   if (!result.valid) return { status: "invalid", errors: result.errors };
 
   const etag = res.headers.get("etag") ?? undefined;
-  return { status: "ok", document: parsed as SustainabilityDocument, etag, ...(legacy ? { legacy } : {}) };
+  return {
+    status: "ok",
+    document: parsed as SustainabilityDocument,
+    etag,
+    ...(legacy ? { legacy } : {}),
+    ...(disregarded.length > 0 ? { disregarded } : {}),
+  };
 }

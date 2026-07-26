@@ -3,9 +3,9 @@ message: "If you use or reference this specification, please cite it as below."
 authors:
   - family-names: "Besleaga"
     given-names: "Andrei Nicolae"
-title: "The 'sustainability' Well-Known URI"
-version: "draft-03"
-date-released: "2026-07-11"
+title: "The 'sustainability-data' Well-Known URI"
+version: "draft-04"
+date-released: "2026-07-26"
 url: "https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/"
 repository-code: "https://github.com/andreibesleaga/rfc-sustainability-wellknown"
 preferred-citation:
@@ -13,9 +13,9 @@ preferred-citation:
   authors:
     - family-names: "Besleaga"
       given-names: "Andrei Nicolae"
-  title: "The 'sustainability' Well-Known URI"
+  title: "The 'sustainability-data' Well-Known URI"
   institution:
     name: "Internet Engineering Task Force (IETF)"
-  number: "draft-besleaga-sustainability-wellknown-03"
+  number: "draft-besleaga-sustainability-wellknown-04"
   year: 2026
   url: "https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/"

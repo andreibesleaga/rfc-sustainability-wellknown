@@ -1,11 +1,11 @@
 # 05 — Product Requirements Document (PRD)
 
-*Product: the `/.well-known/sustainability` publisher/gateway. Non-normative.*
+*Product: the `/.well-known/sustainability-data` publisher/gateway. Non-normative.*
 
 ## 1. Summary
 
 A standards-compliant middleware that publishes a draft-conformant
-`/.well-known/sustainability` document from any metric source. It is the reference
+`/.well-known/sustainability-data` document from any metric source. It is the reference
 implementation of `draft-besleaga-sustainability-wellknown` and the bridge between
 the fragmented carbon-calculation ecosystem and a single, public, machine-readable
 disclosure surface.

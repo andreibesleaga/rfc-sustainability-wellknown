@@ -1,7 +1,7 @@
 /**
  * sustainability-wellknown-consumer
  *
- * A reference client for `/.well-known/sustainability` (draft-besleaga-
+ * A reference client for `/.well-known/sustainability-data` (draft-besleaga-
  * sustainability-wellknown): fetch, validate, and transform. Complements
  * `sustainability-wellknown-publisher` (the reference producer).
  */
@@ -12,7 +12,7 @@ export { fetchSustainability, WELL_KNOWN_PATH } from "./fetch";
 export type { FetchOptions } from "./fetch";
 export { SustainabilityClient } from "./client";
 export type { SustainabilityClientOptions } from "./client";
-export { isNotReported, withoutSentinels, NUMERIC_KEYS } from "./sentinel";
+export { isNotReported, withoutSentinels, NUMERIC_KEYS, TARGET_TYPES, isRecognizedTargetType } from "./sentinel";
 export { convertEnergy, convertCarbon } from "./units";
 export { toCsvRows, toNdjson, flatten, aggregate } from "./transform";
 export type { FlatRecord, AggregateOptions } from "./transform";

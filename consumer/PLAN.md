@@ -12,7 +12,7 @@ mirroring what `publisher/` already proves for the server-side MUSTs.*
 
 Every other piece of this repo is producer-side or spec-side: the draft itself,
 the schemas, the publisher gateway, the server configs, the security middleware.
-Nothing in the repo *consumes* a `/.well-known/sustainability` document the way
+Nothing in the repo *consumes* a `/.well-known/sustainability-data` document the way
 a real aggregator, regulator crawler, or carbon-aware scheduler would. A
 protocol with only a reference server and no reference client is half-verified —
 this plan (and the MVP implementation built alongside it) closes that gap.

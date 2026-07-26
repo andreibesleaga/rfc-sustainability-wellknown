@@ -40,4 +40,4 @@ flowchart TD
     V -- "pass" --> CACHE["Serialize + SHA-1 ETag<br/>bounded in-memory cache<br/>(TTL 24h, ≤256 query variants)"]
 
     CACHE --> H["handler.ts → HTTP<br/>200 + ETag + Cache-Control + CORS<br/>If-None-Match match ⇒ 304"]
-    H --> OUT(("/.well-known/sustainability<br/>one standard endpoint"))
+    H --> OUT(("/.well-known/sustainability-data<br/>one standard endpoint"))

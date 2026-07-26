@@ -25,7 +25,13 @@ class SustainabilityClient {
             legacyCompat: this.options.legacyCompat,
         });
         if (result.status === "not-modified" && cached) {
-            return { status: "ok", document: cached.document, etag: cached.etag, ...(cached.legacy ? { legacy: true } : {}) };
+            return {
+                status: "ok",
+                document: cached.document,
+                etag: cached.etag,
+                ...(cached.legacy ? { legacy: true } : {}),
+                ...(cached.disregarded ? { disregarded: cached.disregarded } : {}),
+            };
         }
         if (result.status === "ok" && result.etag) {
             if (this.cache.size >= this.maxCacheEntries && !this.cache.has(key)) {
@@ -33,7 +39,12 @@ class SustainabilityClient {
                 if (oldest !== undefined)
                     this.cache.delete(oldest);
             }
-            this.cache.set(key, { etag: result.etag, document: result.document, legacy: result.legacy });
+            this.cache.set(key, {
+                etag: result.etag,
+                document: result.document,
+                legacy: result.legacy,
+                disregarded: result.disregarded,
+            });
         }
         return result;
     }

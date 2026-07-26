@@ -32,13 +32,18 @@ function sparseMetrics(overrides: Partial<SustainabilityMetrics> = {}): Sustaina
 }
 
 describe("toCsvRows", () => {
-  const HEADER = "provider,reporting-period,target,energy-consumption,energy-unit,carbon-footprint,carbon-unit";
+  const HEADER = "provider,reporting-period,target,target-type,energy-consumption,energy-unit,carbon-footprint,carbon-unit";
 
-  it("produces a header row plus one data row for a single object", () => {
+  it("produces a header row plus one data row for a single object (target-type cell empty when absent)", () => {
     const rows = toCsvRows(metrics());
     expect(rows[0]).toBe(HEADER);
     expect(rows).toHaveLength(2);
-    expect(rows[1]).toBe("example.com,2026-01,example.com,100,kWh,50,kgCO2e");
+    expect(rows[1]).toBe("example.com,2026-01,example.com,,100,kWh,50,kgCO2e");
+  });
+
+  it("fills the target-type column when the member is present (-04)", () => {
+    const rows = toCsvRows(metrics({ "target-type": "origin" } as Partial<SustainabilityMetrics>));
+    expect(rows[1]).toBe("example.com,2026-01,example.com,origin,100,kWh,50,kgCO2e");
   });
 
   it("produces a header row plus one data row per array entry", () => {
@@ -63,10 +68,11 @@ describe("toCsvRows", () => {
   it("renders absent optional members (sparse doc without the energy/carbon quartet) as empty cells", () => {
     const rows = toCsvRows(sparseMetrics());
     const cells = rows[1].split(",");
-    expect(cells[3]).toBe(""); // energy-consumption
-    expect(cells[4]).toBe(""); // energy-unit
-    expect(cells[5]).toBe(""); // carbon-footprint
-    expect(cells[6]).toBe(""); // carbon-unit
+    expect(cells[3]).toBe(""); // target-type
+    expect(cells[4]).toBe(""); // energy-consumption
+    expect(cells[5]).toBe(""); // energy-unit
+    expect(cells[6]).toBe(""); // carbon-footprint
+    expect(cells[7]).toBe(""); // carbon-unit
   });
 
   it("renders the mandatory target member in its own column", () => {
@@ -347,6 +353,56 @@ describe("final-audit fix: aggregate drops non-aggregatable per-entry metrics", 
     expect(summary).not.toHaveProperty("renewable-energy");
     expect(summary["carbon-footprint"]).toBe(10000); // 5+5 kg -> g
     expect(validateDocument(summary).valid).toBe(true);
+  });
+});
+
+describe("-04: target-type through the transformations", () => {
+  it("flatten passes target-type through as a string on every row, and omits it when absent", () => {
+    const withType = flatten(metrics({ "target-type": "service" } as Partial<SustainabilityMetrics>));
+    expect(withType.length).toBeGreaterThan(0);
+    for (const row of withType) expect(row["target-type"]).toBe("service");
+
+    const withoutType = flatten(metrics());
+    expect(withoutType.length).toBeGreaterThan(0);
+    for (const row of withoutType) expect(row).not.toHaveProperty("target-type");
+  });
+
+  it("aggregate copies target-type into the summary when it is uniform across all entries", () => {
+    const entries = [
+      metrics({ "reporting-period": "2026-01", "target-type": "origin" } as Partial<SustainabilityMetrics>),
+      metrics({ "reporting-period": "2026-02", "target-type": "origin" } as Partial<SustainabilityMetrics>),
+    ];
+    const summary = aggregate(entries, { by: "sum" });
+    expect(summary["target-type"]).toBe("origin");
+    expect(validateDocument(summary).valid).toBe(true);
+  });
+
+  it("aggregate omits target-type when entries mix values or only some entries carry it", () => {
+    const mixed = aggregate(
+      [
+        metrics({ "reporting-period": "2026-01", "target-type": "origin" } as Partial<SustainabilityMetrics>),
+        metrics({ "reporting-period": "2026-02", "target-type": "service" } as Partial<SustainabilityMetrics>),
+      ],
+      { by: "sum" },
+    );
+    expect(mixed).not.toHaveProperty("target-type");
+
+    const partial = aggregate(
+      [
+        metrics({ "reporting-period": "2026-01", "target-type": "origin" } as Partial<SustainabilityMetrics>),
+        metrics({ "reporting-period": "2026-02" }),
+      ],
+      { by: "sum" },
+    );
+    expect(partial).not.toHaveProperty("target-type");
+  });
+
+  it("aggregate omits target-type entirely when no entry carries it", () => {
+    const summary = aggregate(
+      [metrics({ "reporting-period": "2026-01" }), metrics({ "reporting-period": "2026-02" })],
+      { by: "sum" },
+    );
+    expect(summary).not.toHaveProperty("target-type");
   });
 });
 

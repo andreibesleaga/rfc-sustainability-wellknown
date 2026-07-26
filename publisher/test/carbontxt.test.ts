@@ -29,7 +29,7 @@ function mockFetch(routes: Record<string, { status?: number; body?: string; head
 describe("carbon.txt emit/parse", () => {
   it("emits valid TOML that round-trips and points at the sustainability doc", () => {
     const toml = emitCarbonTxt({
-      sustainabilityUrl: "https://acme.example/.well-known/sustainability",
+      sustainabilityUrl: "https://acme.example/.well-known/sustainability-data",
       lastUpdated: "2026-06-27",
       extraDisclosures: [{ doc_type: "annual-report", url: "https://acme.example/r.pdf" }],
       upstreamServices: [{ domain: "aws.amazon.com", service_type: "shared-hosting" }],
@@ -37,7 +37,7 @@ describe("carbon.txt emit/parse", () => {
     const doc = parseCarbonTxt(toml);
     expect(doc.version).toBe("0.5");
     expect(doc.last_updated).toBe("2026-06-27");
-    expect(doc.org.disclosures[0].url).toBe("https://acme.example/.well-known/sustainability");
+    expect(doc.org.disclosures[0].url).toBe("https://acme.example/.well-known/sustainability-data");
     expect(doc.org.disclosures[0].doc_type).toBe("sustainability-page");
     expect(doc.org.disclosures).toHaveLength(2);
     expect(doc.upstream?.services).toHaveLength(1);

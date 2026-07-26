@@ -4,7 +4,20 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
-### **Version 02 to Version 03 (`draft-besleaga-sustainability-wellknown`) — prepared, not yet posted**
+### **Version 03 to Version 04 (`draft-besleaga-sustainability-wellknown`) — prepared, not yet submitted**
+
+Retitles the document to **"The 'sustainability-data' Well-Known URI"** and renames the requested well-known URI suffix; adds one OPTIONAL member (`target-type`); tightens the extensibility rules. No schema-label change: documents built to `-04` still carry the informational label `"2.0"`.
+
+* **URI suffix renamed `sustainability` → `sustainability-data`:** following Independent-Stream review feedback on the precision ("squatting") expectations of RFC 8615, Section 3. The document title changed accordingly, and the IANA Considerations registration rationale was rewritten for the precise name (the suffix names the registered application — a machine-readable data document of sustainability metrics — rather than claiming the generic term). The Datatracker document name is unchanged. No IANA action had occurred on the previously requested suffix, so no migration or alias mechanism is defined.
+* **New OPTIONAL `target-type` member:** an enumerated hint (`origin`, `path`, `organization`, `service`, `product`, `device`, `tenant`, `data-source`) classifying the reporting subject named by `target`. Unrecognized values fall under the existing enumerated-member tolerance rule (the client interprets `target` as if the member were absent); array responses share one value. Added to the CDDL/JTD schemas and to two examples. The member set is now 8 mandatory + 16 optional (24 total).
+* **`version` value space under change control:** the defined labels are `"1.0"`, `"1.1"`, and `"2.0"`; new values may be defined only by a future RFC that revises or replaces the document, and publishers MUST NOT mint other values. The member itself remains informational-only (clients never reject or branch on it).
+* **Normative "Extension members" rule:** replaces the loose vendor-extension naming advice. Member names without a "." are reserved for the specification and its successors; implementer extensions SHOULD use reverse-domain-name notation (e.g. `com.example.pue`), avoiding "X-"/"vendor-"-style markers per RFC 6648; no IANA member-name registry is created. The worked example member was renamed from `vendor-example-pue` to `com.example.pue`.
+* **CDDL root corrected:** an array response now requires at least one object (`[+ ...]`), matching the prose; also fixed a "schemas above"/"below" direction error in Value Constraints.
+* **Clarifications from a full review:** the Introduction proper now states that the origin publishes the document while `target` declares what the data is about; the methodology resource behind the minimum-reporting rule must be publicly retrievable without authentication or payment (and is identified per object in array responses); the schema-tolerance note extends to the historical absent-`target` case; percent-encoding of the `target` parameter is scoped to characters not permitted in a query component; the "no-data rule" is labeled at its definition; `disclosure-uri` is broadened to the origin or reporting subject; two example methodology URLs were neutralized; the greenwashing guidance builds on the now-mandatory `methodology-uri`; duplicated traffic-analysis wording was merged; the noise-consistency example was corrected; the date formats are listed among the prose-only rules; and terminology alignment with the IETF GREEN Working Group's terminology document is noted.
+
+---
+
+### **Version 02 to Version 03 (`draft-besleaga-sustainability-wellknown`) — posted 2026-07-23**
 
 A **breaking data-model revision** (documents built to it carry the informational schema label `"2.0"`; `-02` and earlier used `"1.0"`/`"1.1"`). Previously published example payloads do **not** all remain valid against the new schema; interoperability with historical documents is preserved through field-driven compatibility rules in "Versioning and Extensibility" (a negative value in a non-negative member reads as "not reported"; a missing `target` member reads as an origin-wide report).
 

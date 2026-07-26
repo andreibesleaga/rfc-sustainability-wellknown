@@ -132,8 +132,8 @@ jobs:
           nginx -t -c /tmp/nginx-fv/nginx.conf
           nginx -c /tmp/nginx-fv/nginx.conf
           sleep 1
-          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/.well-known/sustainability)" = "200" ]
-          curl -s -D - -o /dev/null -X POST http://127.0.0.1:8099/.well-known/sustainability | grep -qi '^Allow: GET, HEAD'
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/.well-known/sustainability-data)" = "200" ]
+          curl -s -D - -o /dev/null -X POST http://127.0.0.1:8099/.well-known/sustainability-data | grep -qi '^Allow: GET, HEAD'
           nginx -s stop -c /tmp/nginx-fv/nginx.conf
 
       - name: Apache config check
@@ -163,8 +163,8 @@ jobs:
           apache2 -f /tmp/apache-fv/httpd.conf -t
           apache2 -f /tmp/apache-fv/httpd.conf -k start
           sleep 1
-          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8098/.well-known/sustainability)" = "200" ]
-          post=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8098/.well-known/sustainability)
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8098/.well-known/sustainability-data)" = "200" ]
+          post=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8098/.well-known/sustainability-data)
           echo "$post" | grep -qi "^Allow: GET, HEAD"
           apache2 -f /tmp/apache-fv/httpd.conf -k stop
 

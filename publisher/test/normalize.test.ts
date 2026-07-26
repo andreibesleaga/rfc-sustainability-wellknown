@@ -164,6 +164,69 @@ describe("normalize", () => {
     );
   });
 
+  // -04: the optional `target-type` member classifies the reporting subject
+  // named by `target` (enum: origin | path | organization | service | product
+  // | device | tenant | data-source).
+  describe("target-type (draft -04)", () => {
+    const base = {
+      provider: "p",
+      measurementMethod: "m",
+      methodologyUri: "https://x/y",
+      reportingPeriod: "2026-02",
+      target: "example.com",
+    };
+
+    it("round-trips a valid target-type and stays schema-valid", () => {
+      const m = normalize({ ...base, targetType: "origin" });
+      expect(m["target-type"]).toBe("origin");
+      expect(validateMetrics(m).valid).toBe(true);
+    });
+
+    it("falls back to opts.targetType, and raw.targetType wins over it", () => {
+      expect(normalize(base, { targetType: "origin" })["target-type"]).toBe("origin");
+      expect(
+        normalize({ ...base, targetType: "path" }, { targetType: "origin" })["target-type"],
+      ).toBe("path");
+    });
+
+    it("omits the member when no target-type is supplied", () => {
+      expect(normalize(base)).not.toHaveProperty("target-type");
+    });
+
+    it("throws on a value outside the enum (publisher output is fail-loud)", () => {
+      expect(() => normalize({ ...base, targetType: "datacenter" as any })).toThrow(
+        /target-type/,
+      );
+      expect(() => normalize(base, { targetType: "ORIGIN" as any })).toThrow(/target-type/);
+    });
+
+    it("emits target-type after disclosure-uri (canonical schema order), before extensions", () => {
+      const m = normalize({
+        ...base,
+        targetType: "origin",
+        disclosureUri: "https://example.com/.well-known/carbon.txt",
+        extra: { "com.example.pue": 1.21 },
+      });
+      const keys = Object.keys(m);
+      expect(keys.indexOf("target-type")).toBeGreaterThan(keys.indexOf("disclosure-uri"));
+      expect(keys.indexOf("com.example.pue")).toBeGreaterThan(keys.indexOf("target-type"));
+    });
+
+    it("gate rejects an out-of-enum target-type and differing values across an array", () => {
+      const wire = normalize({ ...base, targetType: "origin", updated: "2026-03-01T00:00:00Z" });
+      expect(validateMetrics({ ...wire, "target-type": "datacenter" }).valid).toBe(false);
+
+      const entry = (reportingPeriod: string, targetType: "origin" | "path") =>
+        normalize({ ...base, reportingPeriod, targetType, updated: "2026-03-01T00:00:00Z" });
+      expect(validateDocument([entry("2026-01", "origin"), entry("2026-02", "path")]).valid).toBe(
+        false,
+      );
+      expect(validateDocument([entry("2026-01", "origin"), entry("2026-02", "origin")]).valid).toBe(
+        true,
+      );
+    });
+  });
+
   // -03 value constraints: gross members MUST NOT be negative (there is no
   // "not reported" sentinel anymore — unreported metrics are omitted).
   it("throws on negative gross metrics (energy, carbon, sci, intensity, annual)", () => {

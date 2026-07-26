@@ -79,6 +79,9 @@ export declare const RESPONSE_JTD_SCHEMA: {
         readonly "disclosure-uri": {
             readonly type: "string";
         };
+        readonly "target-type": {
+            readonly enum: readonly ["origin", "path", "organization", "service", "product", "device", "tenant", "data-source"];
+        };
     };
     readonly additionalProperties: true;
 };

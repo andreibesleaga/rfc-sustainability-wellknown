@@ -18,7 +18,7 @@ flowchart TB
 
     subgraph ORIGIN["HTTPS Origin (RFC 8615)"]
         WEB["Web Server / CDN<br/>[Software System]<br/>nginx / Apache: static file or reverse proxy"]
-        PUB["Publisher Gateway<br/>[Software System]<br/>sustainability-wellknown-publisher:<br/>any data source → one standard<br/>/.well-known/sustainability endpoint"]
+        PUB["Publisher Gateway<br/>[Software System]<br/>sustainability-wellknown-publisher:<br/>any data source → one standard<br/>/.well-known/sustainability-data endpoint"]
     end
 
     subgraph SOURCES["Enterprise & telemetry data sources"]
@@ -26,18 +26,18 @@ flowchart TB
         TEL["Energy Telemetry & Models<br/>[External System]<br/>Kepler/Prometheus · Climatiq ·<br/>CO2.js · static/computed values"]
     end
 
-    IANA["IANA Well-Known URIs Registry<br/>[External System]<br/>'sustainability' suffix (RFC 8615), requested"]
+    IANA["IANA Well-Known URIs Registry<br/>[External System]<br/>'sustainability-data' suffix (RFC 8615), requested"]
     CTXT["carbon.txt Ecosystem<br/>[External System]<br/>Green Web Foundation disclosure index (TOML)"]
 
     OP -- "configures & runs" --> PUB
     OP -- "registration requested (well-known-uris #95)" --> IANA
     PUB -- "pulls org-level metrics (HTTPS APIs)" --> ENT
     PUB -- "pulls energy/carbon data (PromQL / HTTPS)" --> TEL
-    WEB -- "reverse-proxies /.well-known/sustainability" --> PUB
+    WEB -- "reverse-proxies /.well-known/sustainability-data" --> PUB
     PUB <-- "bidirectional discovery:<br/>serves carbon.txt · links via disclosure-uri" --> CTXT
 
     HUMAN -- "GET (browser, HTTPS)" --> WEB
-    REG -- "GET /.well-known/sustainability" --> WEB
+    REG -- "GET /.well-known/sustainability-data" --> WEB
     AI -- "GET · schema-validate · ingest" --> WEB
     AGG -- "crawls origins with" --> CONSLIB
     CAT -- "embeds" --> CONSLIB

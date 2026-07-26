@@ -2,7 +2,7 @@ stateDiagram-v2
     state "Schema / data-model lifecycle" as SCHEMA {
         state "1.0 (historical): 4 metric members mandatory, negative value = not-reported sentinel, optional target-path (absent = origin-wide)" as V10
         state "1.1 (historical): adds optional disclosure-uri" as V11
-        state "2.0 (current, -03): 8 mandatory + 15 optional members, omission is the only not-reported mechanism, mandatory target, CO2e renames, energy/carbon optional with kWh/gCO2e defaults" as V20
+        state "2.0 (current, -03/-04): 8 mandatory + 16 optional members, omission is the only not-reported mechanism, mandatory target (+ optional target-type hint since -04), CO2e renames, energy/carbon optional with kWh/gCO2e defaults; value space under change control (new labels only via a revising RFC)" as V20
         state "Client processing of ANY document (field-driven, never version-driven): negative value in a non-negative member = not reported (subsumes the sentinel); missing target = origin-wide report; unknown members ignored; version label never rejected or branched on" as COMPAT
 
         [*] --> V10
@@ -16,16 +16,16 @@ stateDiagram-v2
     state "Internet-Draft revision lifecycle" as DRAFT {
         state "draft-besleaga-green-sustainability-wellknown -00 .. -05 (former name)" as GREEN
         state "-00 .. -01 renamed series (replaces the green- draft)" as EARLY
-        state "-02 SUBMITTED: posted 2026-07-03, ISE 'Submission Received', frozen under review (schema 1.1 model)" as SUBMITTED
-        state "-03 PREPARED: schema 2.0 revision, in-repo, awaiting the post-IETF-126 submission window (SUSTAIN RG presentation)" as PREPARED
-        state "-03 posted, ISE review continues" as POSTED
-        state "Informational RFC + IANA 'sustainability' well-known URI (provisional, promotable to permanent)" as RFC
+        state "-02 SUBMITTED: posted 2026-07-03, ISE 'Submission Received' (schema 1.1 model)" as SUBMITTED
+        state "-03 POSTED: schema 2.0 revision, posted 2026-07-23, under ISE review (SUSTAIN RG presentation at IETF 126)" as POSTED
+        state "-04 PREPARED: in-repo, not yet submitted — URI suffix renamed to sustainability-data (ISE naming feedback), optional target-type member added" as PREPARED4
+        state "Informational RFC + IANA 'sustainability-data' well-known URI (provisional, promotable to permanent)" as RFC
 
         [*] --> GREEN
         GREEN --> EARLY : rename (Independent Submission, no WG affiliation implied)
         EARLY --> SUBMITTED
-        SUBMITTED --> PREPARED : rework data model to 2.0
-        PREPARED --> POSTED : submission window reopens
-        POSTED --> RFC : ISE approval + RFC Editor
+        SUBMITTED --> POSTED : rework data model to 2.0
+        POSTED --> PREPARED4 : ISE naming feedback (RFC 8615 precision)
+        PREPARED4 --> RFC : post -04, ISE approval + RFC Editor
         RFC --> [*]
     }

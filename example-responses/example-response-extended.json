@@ -22,5 +22,6 @@
   "renewable-energy": 45,
   "verifiable-attestation-uri": "https://verify.example/vc/storage",
   "disclosure-uri": "https://storage.example/.well-known/carbon.txt",
-  "vendor-example-pue": 1.21
+  "target-type": "path",
+  "com.example.pue": 1.21
 }

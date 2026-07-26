@@ -1,6 +1,6 @@
 # sustainability-wellknown-consumer
 
-A reference **client** for a `/.well-known/sustainability` document, as defined by
+A reference **client** for a `/.well-known/sustainability-data` document, as defined by
 [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
 
 It fetches, defensively validates, and transforms the document a third-party origin
@@ -9,18 +9,22 @@ publishes — complementing [`publisher/`](../publisher/), this repo's reference
 discover → fetch → validate → transform → use. The document just arrived from an
 arbitrary origin, so it is schema-validated (RFC 8927 JTD) **and** checked against
 the draft's cross-entry array rules (ascending, non-overlapping, uniform
-precision/target) before it's ever handed to caller code — a non-conformant server
+precision/target/target-type) before it's ever handed to caller code — a non-conformant server
 is the normal case for early ecosystem adoption, not a hypothetical. Built
 basic-first and M2M-oriented: every API is one line to call from a script (a cron
 job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad input.
 
-> **Version note:** consumer **0.2.0** (this tree) implements the **-03** draft
-> revision's `"2.0"` wire format — 8 mandatory fields (including the free-form
-> `target` reporting subject), 15 optional fields (the energy/carbon quartet is
-> now optional, with default units `kWh`/`gCO2e`), the renamed
-> `carbon-intensity-gCO2e-per-kWh`/`estimated-annual-emissions-kgCO2e` members,
-> and the draft's two field-driven legacy-compatibility rules. The published
-> **0.1.0** implements the earlier -02 (`"1.1"`) model.
+> **Version note:** consumer **0.2.0** (this tree) implements the **-04** draft
+> revision's `"2.0"` wire format — the renamed `/.well-known/sustainability-data`
+> URI (earlier revisions requested the suffix `sustainability`), 8 mandatory
+> fields (including the free-form `target` reporting subject), 16 optional fields
+> (the energy/carbon quartet is optional, with default units `kWh`/`gCO2e`; -04
+> adds the enumerated `target-type` hint classifying the `target` subject), the
+> renamed `carbon-intensity-gCO2e-per-kWh`/`estimated-annual-emissions-kgCO2e`
+> members, and the draft's field-driven tolerance rules (out-of-range numerics
+> and unrecognized enumerated values read as "not reported"/"disregarded", never
+> as a rejection). The published **0.1.0** implements the earlier -02 (`"1.1"`)
+> model.
 
 ## Install & build
 
@@ -65,12 +69,12 @@ the transformation helpers, disclosure-link handling, and the conformance checke
 
 | Module | Exports |
 |---|---|
-| `types` | `SustainabilityMetrics`/`SustainabilityDocument`, `FetchParams`, `FetchResult`, `EnergyUnit`, `CarbonUnit` — wire-format types mirroring the draft's field set |
+| `types` | `SustainabilityMetrics`/`SustainabilityDocument`, `FetchParams`, `FetchResult`, `EnergyUnit`, `CarbonUnit`, `TargetType` — wire-format types mirroring the draft's field set |
 | `schema` | `RESPONSE_JTD_SCHEMA` — the JTD (RFC 8927) schema for a single metrics object, an exact embedded copy of `schemas-validators/response-schema.json` |
 | `validate` | `validateDocument()`/`assertValid()` — defensive validation of an incoming document: JTD schema gate plus the draft's cross-entry array rules |
-| `fetch` | `fetchSustainability(origin, options)` — the one-call, zero-extra-dependency fetch-and-validate function; its `legacyCompat` option (default true) treats a document without `target` as origin-wide, per the draft's compatibility rule |
+| `fetch` | `fetchSustainability(origin, options)` — the one-call, zero-extra-dependency fetch-and-validate function; its `legacyCompat` option (default true) treats a document without `target` as origin-wide and disregards (strips + records in `disregarded`) an unrecognized `target-type` value, per the draft's compatibility/tolerance rules |
 | `client` | `SustainabilityClient` — a class for repeated polling, with ETag-based conditional-request caching (threads `legacyCompat` through) |
-| `sentinel` | `isNotReported()`, `withoutSentinels()`, `NUMERIC_KEYS` — the legacy-compatibility module: a negative value in a non-negative member reads as "not reported" (draft §Versioning and Extensibility; subsumes the historical 1.x sentinel — negative scopes are real data and are never stripped) |
+| `sentinel` | `isNotReported()`, `withoutSentinels()`, `NUMERIC_KEYS`, `TARGET_TYPES`, `isRecognizedTargetType()` — the legacy-compatibility/tolerance module: a negative value in a non-negative member reads as "not reported" (subsumes the historical 1.x sentinel — negative scopes are real data and are never stripped), and an unrecognized enumerated `target-type` value reads as "disregard the member" (draft §Value Constraints and Omitted Metrics) |
 | `units` | `convertEnergy()`, `convertCarbon()` — unit conversion, matching `publisher/src/normalize.ts`'s tables exactly (parity-tested) |
 | `transform` | `toCsvRows()`, `toNdjson()`, `flatten()`, `aggregate()` — format transformations for a validated document |
 | `disclosure` | `resolveDisclosureLinks()` (passive), `fetchDisclosure()` (explicit opt-in) — disclosure/attestation link helpers |
@@ -114,9 +118,13 @@ shapes, and 404 handling end-to-end — see
 [`.github/workflows/consumer.yml`](../.github/workflows/consumer.yml).
 
 > Note on extensibility: per the draft, unknown members are permitted and clients
-> MUST ignore them. `SustainabilityMetrics` carries an index signature so vendor
-> extension fields round-trip through `validateDocument()`/`toNdjson()` untouched
-> instead of being stripped.
+> MUST ignore them. Since -04, implementer-defined extension members use
+> reverse-domain-name notation rooted in a domain the definer controls (e.g.
+> `com.example.pue` for a PUE figure defined by example.com) — undotted names are
+> reserved for the specification itself, and semantics-free `X-`/`vendor-`
+> prefixes SHOULD NOT be used. `SustainabilityMetrics` carries an index signature
+> so extension fields of either style round-trip through
+> `validateDocument()`/`toNdjson()` untouched instead of being stripped.
 
 ## License
 

@@ -5,7 +5,7 @@
  * (net accounting) and must never be stripped.
  */
 import { describe, expect, it } from "vitest";
-import { isNotReported, withoutSentinels, NUMERIC_KEYS } from "../src/sentinel";
+import { isNotReported, withoutSentinels, NUMERIC_KEYS, TARGET_TYPES, isRecognizedTargetType } from "../src/sentinel";
 import { SustainabilityMetrics } from "../src/types";
 
 function baseDoc(overrides: Partial<SustainabilityMetrics> = {}): SustainabilityMetrics {
@@ -154,6 +154,31 @@ describe("withoutSentinels", () => {
     expect(doc["energy-consumption"]).toBe(-1); // original untouched
     expect(out).not.toHaveProperty("energy-consumption");
     expect(out).not.toBe(doc);
+  });
+});
+
+describe("-04: isRecognizedTargetType (the enumerated-member tolerance predicate)", () => {
+  it("recognizes exactly the eight -04 values", () => {
+    expect([...TARGET_TYPES]).toEqual([
+      "origin",
+      "path",
+      "organization",
+      "service",
+      "product",
+      "device",
+      "tenant",
+      "data-source",
+    ]);
+    for (const v of TARGET_TYPES) expect(isRecognizedTargetType(v)).toBe(true);
+  });
+
+  it("rejects unrecognized values and non-strings (they read as 'disregard the member')", () => {
+    expect(isRecognizedTargetType("warehouse")).toBe(false);
+    expect(isRecognizedTargetType("Origin")).toBe(false); // member values are case-sensitive
+    expect(isRecognizedTargetType("")).toBe(false);
+    expect(isRecognizedTargetType(42)).toBe(false);
+    expect(isRecognizedTargetType(null)).toBe(false);
+    expect(isRecognizedTargetType(undefined)).toBe(false);
   });
 });
 

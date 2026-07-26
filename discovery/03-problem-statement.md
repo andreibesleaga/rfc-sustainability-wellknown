@@ -33,7 +33,7 @@ clients, load balancers, aggregators, regulators — have nowhere uniform to loo
 
 ## Goal
 
-A single, standardized HTTP endpoint — `GET /.well-known/sustainability` — that returns a
+A single, standardized HTTP endpoint — `GET /.well-known/sustainability-data` — that returns a
 small, validated JSON document of energy and carbon metrics, fed by whatever source the
 operator already has, and safe to serve at scale.
 

@@ -12,7 +12,7 @@ function makeServer(publisher: Publisher) {
     server.listen(0, () => {
       const { port } = server.address() as AddressInfo;
       res({
-        url: `http://127.0.0.1:${port}/.well-known/sustainability`,
+        url: `http://127.0.0.1:${port}/.well-known/sustainability-data`,
         close: () => new Promise<void>((r) => server.close(() => r())),
       });
     });

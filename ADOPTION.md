@@ -43,6 +43,40 @@ and machine-readable, backward- and forward-compatible JSON format. In brief:
   extension arrive without touching the RFC or IANA — and keep historical documents
   readable.
 
+**Why (what it solves).** Sustainability data exists — in enterprise carbon platforms,
+PDF reports, and regulatory filings — but there is no universally known location to
+publish it and no common machine-readable shape to consume it, so every consumer needs a
+bespoke per-provider integration and most build none. This convention solves three gaps
+at once: **discovery** (one agreed place to look), **interoperability** (one neutral
+schema instead of incompatible vendor shapes), and **verifiability** (claims arrive with
+their methodology and attestations attached, checkable and comparable).
+
+**Why now.** The regulatory disclosure wave (CSRD/ESRS E1, MiCA's energy-disclosure
+mandate, the ESPR Digital Product Passport) means the numbers are being produced *this
+year* — while the IAB's own e-impact report (RFC 9547) documents the missing data,
+carbon-aware tooling and AI/M2M consumers need machine-readable inputs, and fragmentation
+into ad-hoc per-vendor endpoints is already underway. A neutral anchor is cheap to agree
+now and expensive to converge on later; the well-known registry contains no
+sustainability entry at all today.
+
+**Goals (from the draft).** A single discoverable location per origin for environmental
+metrics about a declared reporting subject; a minimal machine- and human-readable JSON
+structure suitable for broad adoption; client/server interoperability; alignment with the
+GHG Protocol, EU CSRD/ESRS E1, and product-level regimes (ESPR DPP); and mitigation of
+the security and privacy risks of publishing the data.
+
+**Non-Goals (equally deliberate).** It does not mandate a calculation or measurement
+methodology; it does not define verification, certification, or attestation mechanisms
+(it links to them); and it does not replace domain-specific reporting standards — it
+defines discovery and semantics, and a surface for linking to authoritative reports.
+
+**Readiness.** By design, one unchanged document serves four consumption contexts at
+once: **web-ready** (plain HTTPS GET with standard caching and CORS), **API/M2M-ready**
+(stable JSON wire format with formal schemas and deterministic semantics),
+**human-readable** (self-describing member names plus the mandatory methodology link),
+and **AI/agent-ready** (machine-discoverable at a fixed location, schema-validatable,
+safe to ingest without negotiation).
+
 ## 1. Why it is safe and cheap to approve
 
 | Concern | Reality |

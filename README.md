@@ -6,13 +6,13 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-03** is the **latest posted** revision (Datatracker, 2026-07-23) and is **under ISE review** for publication as an Informational RFC, pending resolution of the IANA well-known-URI naming feedback. Revision **-04** is **prepared in this repository but not yet submitted**: it renames the requested well-known URI suffix from `sustainability` to `sustainability-data` (per ISE feedback on the RFC 8615 precision expectations) and adds the optional `target-type` member. Draft v02/v03 presented at IETF meeting 126 in SUSTAIN RG. The current draft replaces `draft-besleaga-green-sustainability-wellknown`. 
+**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-04** is the **latest** revision (posted to the Datatracker) and is **under ISE review** for publication as an Informational RFC: it renames the requested well-known URI suffix from `sustainability` to `sustainability-data` (per ISE feedback on the RFC 8615 precision expectations, resolving the IANA well-known-URI naming feedback) and adds the optional `target-type` member. Draft v02/v03 presented at IETF meeting 126 in SUSTAIN RG. The current draft replaces `draft-besleaga-green-sustainability-wellknown`. 
 
-IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of the prepared `-04` revision (earlier revisions requested `sustainability`; no IANA action had occurred on that name).
+IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name).
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 
-(currently work-in-progress draft/soft v04; previous draft v02: [v0.1.0-draft-02](https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/v0.1.0-draft-02). overall system document with diagrams: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md)).
+(current draft v04; previous draft v02: [v0.1.0-draft-02](https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/v0.1.0-draft-02). overall system document with diagrams: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md)).
 
 ---
 
@@ -93,9 +93,9 @@ Draft in multiple formats plus supplementary documents.
 
 | File | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-04.md` | **Prepared next revision** (not yet submitted) — renames the requested URI suffix to `sustainability-data`, adds the optional `target-type` member, places the `version` value space under change control, and defines the reverse-domain extension-member naming rule; to be posted to resolve the IANA naming feedback |
-| `draft-besleaga-sustainability-wellknown-04.xml` / `.txt` | xml2rfc v3 XML (authoritative form for the future submission) and rendered text of `-04` |
-| `draft-besleaga-sustainability-wellknown-03.*` | **Latest posted** revision — posted to the Datatracker 2026-07-23, under ISE review; breaking data-model revision, schema label `"2.0"` |
+| `draft-besleaga-sustainability-wellknown-04.md` | **Latest revision** — renames the requested URI suffix to `sustainability-data` (resolving the IANA naming feedback), adds the optional `target-type` member, places the `version` value space under change control, and defines the reverse-domain extension-member naming rule |
+| `draft-besleaga-sustainability-wellknown-04.xml` / `.txt` | xml2rfc v3 XML (authoritative submission form) and rendered text of `-04` |
+| `draft-besleaga-sustainability-wellknown-03.*` | Previous revision — posted to the Datatracker 2026-07-23; breaking data-model revision, schema label `"2.0"` |
 | `draft-besleaga-sustainability-wellknown-02.*` | Previous submitted revision (posted 2026-07-03) |
 | `draft-besleaga-sustainability-wellknown-01.*` | Previous revision (posted 2026-07-02) |
 | `draft-besleaga-sustainability-wellknown-00.*` | Earlier revision |
@@ -181,7 +181,7 @@ Both configurations implement:
 - `Content-Type: application/json` (MUST)
 - `Cache-Control: public, max-age=86400` (RECOMMENDED)
 - `ETag` / `Last-Modified` (auto, RECOMMENDED)
-- `Access-Control-Allow-Origin: *` for aggregator access
+- `Access-Control-Allow-Origin: *` for browser-based aggregator access (successful responses SHOULD carry it, per the draft's CORS recommendation)
 - GET/HEAD-only method restriction (other methods get `405` with `Allow: GET, HEAD`)
 - Rate limiting snippet (commented — activate for dynamic `period`/`granularity` parameters)
 
@@ -191,8 +191,8 @@ Both configurations implement:
 
 8 mandatory fields + 16 optional fields (24 total — matches
 `schemas-validators/response-schema.json` and both packages' embedded schema copies,
-byte-equality checked in CI). This is the schema-`2.0` model of the posted `-03` /
-prepared `-04` revisions (`-04` adds the optional `target-type` member without changing
+byte-equality checked in CI). This is the schema-`2.0` model of the `-03` and current
+`-04` revisions (`-04` adds the optional `target-type` member without changing
 the schema label); the differences from the `-02` / `1.x` model are summarized under
 "Omitted metrics & legacy compatibility" below.
 
@@ -206,7 +206,7 @@ the schema label); the differences from the `-02` / `1.x` model are summarized u
 | `methodology-uri` | Yes | string | Link to the full calculation methodology (see the minimum-reporting rule below) |
 | `reporting-period` | Yes | string | Calendar-date precision: `"2025"`, `"2026-02"`, or `"2026-03-20"` (only the last is an RFC 3339 `full-date`) |
 | `target` | Yes | string | Free-form identifier of the **reporting subject** the metrics are attributed to: for an origin-wide report the origin's host (e.g. `"example.com"`) is RECOMMENDED; other typical values are a resource path prefix (`"/api/v1"`), an organizational entity, a cloud tenant or provider scope, a software product or data source, or a site listed in a linked carbon.txt file. When the response is scoped by the `target` query parameter, this member echoes the matched path prefix |
-| `target-type` | No | enum | Classifies the reporting subject named by `target`, to aid machine interpretation of that free-form member: `"origin"`, `"path"`, `"organization"`, `"service"`, `"product"`, `"device"`, `"tenant"`, `"data-source"`. Purely a hint — it does not change `target`'s syntax or attribution rules; a client that does not recognize the value (or receives none) interprets `target` as it would in this member's absence. Array entries share one value |
+| `target-type` | No | enum | Classifies the reporting subject named by `target`, to aid machine interpretation of that free-form member: `"origin"`, `"path"`, `"organization"`, `"service"`, `"product"`, `"device"`, `"tenant"`, `"data-source"`. Purely a hint — it does not change `target`'s syntax or attribution rules; a client that does not recognize the value (or receives none) interprets `target` as it would in this member's absence. In an array response the rule is all-or-none: either every entry carries the same value or none carries the member |
 | `energy-consumption` | No | number | Total energy for the period; **MUST NOT be negative**. Expressed in `energy-unit`; when `energy-unit` is absent, the default `kWh` applies |
 | `energy-unit` | No | enum | `"Wh"`, `"kWh"`, `"MWh"`, `"GWh"`; defaults to `kWh` when absent and `energy-consumption` is present |
 | `carbon-footprint` | No | number | Total **gross** emissions for the period; MUST NOT be negative. Expressed in `carbon-unit`; when `carbon-unit` is absent, the default `gCO2e` applies |
@@ -227,10 +227,14 @@ and a member that is present always carries an actual value. Gross-quantity memb
 are non-negative; negative values are no longer special. Legacy `1.x` documents (the
 submitted `-02` model) instead used a **negative sentinel** in mandatory numeric fields
 and an optional `target-path` member; clients apply the draft's field-driven
-compatibility rules: a negative value in a member defined as non-negative is treated
-as *not reported* (subsuming the historical sentinel), and a document without a
-`target` member is treated as an *origin-wide* report (as the historical absence of
-`target-path` conveyed).
+compatibility (tolerance) rules: a negative value in a member defined as non-negative
+is treated as *not reported* (subsuming the historical sentinel); a member carrying a
+value of the wrong JSON type (including `null`) is likewise treated as not
+reported/absent, as is an `sci-score` without its required `functional-unit`; a
+document without a `target` member is treated as an *origin-wide* report (as the
+historical absence of `target-path` conveyed); and a legacy document that does carry
+`target-path` has its metrics attributed to that declared subject, not to the whole
+origin.
 
 **Minimum-reporting rule**: a document SHOULD carry at least one reported numeric
 metric or a `disclosure-uri`/`verifiable-attestation-uri`; a document with none of
@@ -266,7 +270,7 @@ This allows automated tools to cryptographically verify published sustainability
 
 ## Reference implementation (publisher/)
 
-Published on npm: **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)** (`npm install sustainability-wellknown-publisher`). The `0.1.0` release on the registry implements the historical `-02` / schema-`1.1` model; a `0.2.0` release implementing the current schema-`2.0` model (posted `-03` / prepared `-04`) is being prepared (publish pending).
+Published on npm: **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)** (`npm install sustainability-wellknown-publisher`). The `0.1.0` release on the registry implements the historical `-02` / schema-`1.1` model; a `0.2.0` release implementing the current schema-`2.0` model (revisions `-03`/`-04`) is being prepared (publish pending).
 
 [publisher/](publisher/) is a production-grade TypeScript implementation that publishes a fully draft-conformant `/.well-known/sustainability-data` document. It ingests metrics from pluggable source adapters — static/computed values, Kepler/Prometheus energy telemetry, the Climatiq estimate API, **Green Web Foundation CO2.js (bytes → carbon)**, the **Green Web Foundation carbon.txt hosted API**, and enterprise suites (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) — normalizes them to the draft's field model, **validates every payload against this repo's JTD and CDDL schemas before serving** (publish-only-if-valid), and exposes the Basic and Extended service levels with the draft's mandated DoS/privacy safeguards. It can also **serve a bidirectional `carbon.txt`** that points back to the metrics document. It ships as Express and Fastify middleware plus a standalone server that any web server can reverse-proxy. See [publisher/README.md](publisher/README.md) and [publisher/USAGE.md](publisher/USAGE.md).
 

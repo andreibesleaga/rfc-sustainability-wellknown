@@ -51,3 +51,32 @@ export declare const TARGET_TYPES: readonly ["origin", "path", "organization", "
  * gate, whose closed enum would otherwise fail on exactly such a value).
  */
 export declare function isRecognizedTargetType(value: unknown): value is (typeof TARGET_TYPES)[number];
+/**
+ * Expected JSON type of every OPTIONAL member the draft defines. Draft
+ * §Value Constraints and Omitted Metrics (-04): "A value of the wrong JSON
+ * type (including `null`) is treated as not reported" — fetch.ts's
+ * legacy-compatibility pre-pass strips such members (recording them in
+ * `disregarded`) before the schema gate would otherwise reject the document.
+ *
+ * Mandatory members are deliberately NOT listed: stripping one could not make
+ * the document processable (it would just fail as "missing" instead of
+ * "wrong type"), so a wrong-typed mandatory member still fails validation.
+ */
+export declare const OPTIONAL_MEMBER_JSON_TYPES: Readonly<Record<string, "number" | "string">>;
+/**
+ * True when an optional member defined by the draft is present with a value
+ * of the wrong JSON type (including `null`). `undefined` (absent) is never
+ * wrong-typed; members not defined by the draft are unknown members the
+ * ignore-unknown rule covers, never "wrong-typed".
+ */
+export declare function isWrongJsonType(key: string, value: unknown): boolean;
+/**
+ * The reporting subject for a legacy (1.x) entry that lacks the mandatory
+ * `target` member (draft §Versioning and Extensibility, -04): when the entry
+ * carries the historical `target-path` member, that member's VALUE is the
+ * reporting subject; only when neither member exists is the document an
+ * origin-wide report attributed to the final response origin's host.
+ * A non-string (or empty) `target-path` is a wrong-typed value — treated as
+ * not present, so the origin host applies.
+ */
+export declare function legacyReportingSubject(entry: Record<string, unknown>, originHost: string): string;

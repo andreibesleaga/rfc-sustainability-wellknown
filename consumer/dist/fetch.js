@@ -123,10 +123,19 @@ async function fetchSustainability(origin, options = {}) {
     catch {
         return { status: "invalid", errors: ["response body is not valid JSON"] };
     }
+    // Draft §Payload Format (-04): a conformant server never sends an empty
+    // array (it follows the no-data rule instead), but "a client that
+    // nevertheless receives an empty array SHOULD treat it as conveying no
+    // report" — a distinct outcome, not a validation failure and not "ok".
+    // Strict mode (legacyCompat: false) keeps validating as served, where an
+    // empty array fails ("empty array conveys no report").
+    if (options.legacyCompat !== false && Array.isArray(parsed) && parsed.length === 0) {
+        return { status: "no-report" };
+    }
     // Legacy-compatibility pre-pass (see FetchOptions.legacyCompat): a document
-    // without `target` SHOULD be treated as origin-wide, so inject the request
-    // origin's host before the schema gate — the historical (-02, "1.0"/"1.1")
-    // absence of `target-path` conveyed exactly that.
+    // without `target` is historical ("1.0"/"1.1") — its reporting subject is
+    // the value of the historical `target-path` member when present, and the
+    // origin host (origin-wide report) only when neither member exists.
     let legacy = false;
     const disregarded = [];
     if (options.legacyCompat !== false) {
@@ -137,34 +146,56 @@ async function fetchSustainability(origin, options = {}) {
         const lacksTarget = (o) => typeof o === "object" && o !== null && !Array.isArray(o) && !("target" in o);
         if (Array.isArray(parsed)) {
             if (parsed.length > 0 && parsed.every(lacksTarget)) {
-                for (const entry of parsed)
-                    entry.target = host;
+                for (const entry of parsed) {
+                    entry.target = (0, sentinel_1.legacyReportingSubject)(entry, host);
+                }
                 legacy = true;
             }
         }
         else if (lacksTarget(parsed)) {
-            parsed.target = host;
+            parsed.target = (0, sentinel_1.legacyReportingSubject)(parsed, host);
             legacy = true;
         }
-        // Enumerated-member tolerance (draft §Value Constraints and Omitted
-        // Metrics): an unrecognized `target-type` value SHOULD be disregarded —
-        // the member is stripped BEFORE the schema gate (whose closed enum would
-        // otherwise fail the whole document on exactly this value) and recorded
+        // Field-driven tolerance (draft §Value Constraints and Omitted Metrics):
+        // the affected member is stripped BEFORE the schema gate (which would
+        // otherwise fail the whole document on exactly that value) and recorded
         // in `disregarded`, so callers can still see the tolerance was applied.
-        const stripUnrecognizedTargetType = (o, path) => {
+        const applyTolerance = (o, path) => {
             if (typeof o !== "object" || o === null || Array.isArray(o))
                 return;
             const rec = o;
+            // (1) "A value of the wrong JSON type (including null) is treated as
+            // not reported" — for the draft-defined OPTIONAL members (stripping a
+            // mandatory member could not make the document processable).
+            for (const key of Object.keys(rec)) {
+                if ((0, sentinel_1.isWrongJsonType)(key, rec[key])) {
+                    delete rec[key];
+                    disregarded.push(`${path}${key}`);
+                }
+            }
+            // (2) "A sci-score unaccompanied by functional-unit is treated as not
+            // reported." A negative sci-score (the legacy sentinel) is already
+            // "not reported" under the out-of-range rule and is left in place for
+            // sentinel.ts's on-demand interpretation, mirroring validate.ts.
+            const sci = rec["sci-score"];
+            if (typeof sci === "number" &&
+                sci >= 0 &&
+                rec["functional-unit"] === undefined) {
+                delete rec["sci-score"];
+                disregarded.push(`${path}sci-score`);
+            }
+            // (3) Enumerated-member tolerance: an unrecognized `target-type` value
+            // is disregarded — `target` is interpreted as if the member were absent.
             if ("target-type" in rec && !(0, sentinel_1.isRecognizedTargetType)(rec["target-type"])) {
                 delete rec["target-type"];
                 disregarded.push(`${path}target-type`);
             }
         };
         if (Array.isArray(parsed)) {
-            parsed.forEach((entry, i) => stripUnrecognizedTargetType(entry, `[${i}].`));
+            parsed.forEach((entry, i) => applyTolerance(entry, `[${i}].`));
         }
         else {
-            stripUnrecognizedTargetType(parsed, "");
+            applyTolerance(parsed, "");
         }
     }
     const result = (0, validate_1.validateDocument)(parsed);

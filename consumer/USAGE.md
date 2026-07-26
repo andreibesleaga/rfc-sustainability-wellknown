@@ -37,6 +37,7 @@ type FetchResult =
   | { status: "ok"; document: SustainabilityDocument; etag?: string; legacy?: boolean; disregarded?: string[] }
   | { status: "not-modified" }
   | { status: "not-found" }
+  | { status: "no-report" }                   // 200 with an empty array: conveys no report
   | { status: "invalid"; errors: string[] }   // fetched but failed validation
   | { status: "http-error"; httpStatus: number }
   | { status: "timeout"; timeoutMs: number }     // no complete response in time
@@ -44,17 +45,20 @@ type FetchResult =
 ```
 
 **Legacy compatibility** (`legacyCompat`, default `true`): per the draft's
-field-driven compatibility rules (§Versioning and Extensibility), a document
-without the mandatory `target` member SHOULD be treated as an origin-wide
-report — so before validation, `fetchSustainability` injects the final-response
-origin's host as `target` (redirects are attributed to the final origin,
-per the draft) into a target-less document (or every entry of a
-target-less array) and flags the result with `legacy: true`. Historical
-`"1.0"`/`"1.1"` documents therefore still validate and stay usable. Pass
-`legacyCompat: false` for strict mode: legacy documents then come back as
-`status: "invalid"`. (The other compatibility rule — a negative value in a
-non-negative member reads as "not reported" — is applied on demand via
-`withoutSentinels()`/`isNotReported()`, never silently by the fetch path.)
+field-driven compatibility rules (§Versioning and Extensibility, final -04), a
+document without the mandatory `target` member is historical (`"1.0"`/`"1.1"`)
+and gets `target` derived before validation — from the historical
+`target-path` member's **value** when that member is present (it named the
+reporting subject, e.g. `"/api/v1"`), and from the final-response origin's host
+(an origin-wide report; redirects are attributed to the final origin, per the
+draft) **only when neither member exists**. This applies to a target-less
+document or to every entry of a target-less array, and the result is flagged
+with `legacy: true`. Historical documents therefore still validate and stay
+usable. Pass `legacyCompat: false` for strict mode: legacy documents then come
+back as `status: "invalid"`. (The negative-value compatibility rule — a
+negative value in a non-negative member reads as "not reported" — is applied on
+demand via `withoutSentinels()`/`isNotReported()`, never silently by the fetch
+path.)
 
 **`target-type` tolerance** (also under `legacyCompat`, default `true`): -04
 adds the optional enumerated `target-type` member (`origin`, `path`,
@@ -70,7 +74,37 @@ stripped **before** validation and the result carries
 entries), so the tolerance is visible, never silent. In strict mode
 (`legacyCompat: false`) the document is validated exactly as served and an
 unrecognized value fails validation. A *recognized* value flows through
-untouched.
+untouched. In an array, `target-type` is **all-or-none** (final -04): present
+in every entry with the same value or absent from every entry — mixed presence
+fails validation in both modes.
+
+**Wrong-JSON-type tolerance** (also under `legacyCompat`, default `true`): the
+final -04 draft adds "A value of the wrong JSON type (including `null`) is
+treated as not reported" to the §Value Constraints tolerance list. The same
+pre-pass strips a defined **optional** member whose value has the wrong JSON
+type (e.g. `"carbon-footprint": "345"` or `"renewable-energy": null`) and
+records it in `disregarded` (mandatory members are left alone — stripping one
+could never make the document processable, so a wrong-typed mandatory member
+still fails validation). Strict mode fails such documents as served.
+
+**`sci-score` dependency tolerance** (also under `legacyCompat`, default
+`true`): the draft's tolerance list also says "A `sci-score` unaccompanied by
+`functional-unit` is treated as not reported". The pre-pass strips a *reported*
+(non-negative) `sci-score` whose document lacks `functional-unit`, recording
+`"sci-score"` in `disregarded`. A **negative** `sci-score` (the legacy 1.x
+sentinel) is already "not reported" under the out-of-range rule and flows
+through for `withoutSentinels()` to interpret on demand. Strict mode keeps
+flagging a reported `sci-score` without `functional-unit` as `invalid`
+(cross-field MUST).
+
+**Empty array** (also under `legacyCompat`, default `true`): a conformant
+server never sends `[]` — it follows the no-data rule (404) instead — but the
+final -04 draft says a client that nevertheless receives an empty array SHOULD
+treat it as conveying **no report**. `fetchSustainability` returns the distinct
+`{ status: "no-report" }` outcome for it, so callers can tell "the origin
+published nothing usable" apart from both `ok` and `invalid`. In strict mode
+(`legacyCompat: false`) an empty array is reported as `invalid` ("empty array
+conveys no report"), preserving the validate-as-served contract.
 
 ### 1a. Plain `fetch()` — no extra dependency
 
@@ -116,6 +150,9 @@ async function poll() {
       break;
     case "not-found":
       console.warn(`${ORIGIN} has no sustainability document`);
+      break;
+    case "no-report":
+      console.warn(`${ORIGIN} answered with an empty array (no report conveyed)`);
       break;
     case "invalid":
       console.error("upstream document failed validation:", result.errors);

@@ -5,35 +5,33 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 ## Current Internet-Draft
 
 **`draft-besleaga-sustainability-wellknown`** — *The 'sustainability-data' Well-Known URI*
-(retitled in the prepared `-04`; revisions through `-03` were titled *The 'sustainability'
+(retitled in `-04`; revisions through `-03` were titled *The 'sustainability'
 Well-Known URI* — the Datatracker document name is unchanged).
 Individual submission on the IETF **Independent Submission Stream** (Informational).
 
-Two revisions matter right now:
-
-- **`-03`** is the **latest posted** revision: posted to the Datatracker (2026-07-23) and
-  with the Independent Submissions Editor (ISE) for review. It is a **breaking data-model
-  revision** (schema label `"2.0"`): the negative "not reported" sentinel is removed in
-  favor of member omission, `energy-consumption`/`energy-unit`/`carbon-footprint`/
-  `carbon-unit` become optional (with default units), a mandatory free-form `target`
-  member identifies the reporting subject (replacing the optional `target-path`), two
-  carbon members are renamed to the CO2e convention, and `capabilities` is redefined to
-  describe Extended query-parameter support only.
-- **`-04`** is the **latest prepared** revision (in-repo, **not yet submitted**; it will
-  be posted to effect the IANA rename). It renames the requested well-known URI suffix
+- **`-04`** is the **latest** revision — posted to the Datatracker and under Independent
+  Submissions Editor (ISE) review. It renames the requested well-known URI suffix
   from `sustainability` to `sustainability-data` (following ISE feedback on the precision
   expectations of RFC 8615, Section 3), adds the OPTIONAL `target-type` member classifying
   the reporting subject, places the `version` value space under change control, replaces
   the vendor-extension naming advice with the normative reverse-domain "Extension members"
-  rule, and corrects the CDDL root (`[+ ...]`). See the draft's own "Since -03" changelog
-  appendix.
+  rule, and corrects the CDDL root (`[+ ...]`); it also folds in a final correctness and
+  editorial audit round. See the draft's own "Since -03" changelog appendix.
+- **`-03`** (historical) was posted to the Datatracker 2026-07-23. It was a **breaking
+  data-model revision** (schema label `"2.0"`, unchanged in `-04`): the negative "not
+  reported" sentinel is removed in favor of member omission,
+  `energy-consumption`/`energy-unit`/`carbon-footprint`/
+  `carbon-unit` become optional (with default units), a mandatory free-form `target`
+  member identifies the reporting subject (replacing the optional `target-path`), two
+  carbon members are renamed to the CO2e convention, and `capabilities` is redefined to
+  describe Extended query-parameter support only.
 
 | File | Role |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-04.md` | Markdown source of the prepared next revision. Edit this. |
-| `draft-besleaga-sustainability-wellknown-04.xml` | xml2rfc v3 XML of `-04` — the authoritative form for the future submission. |
+| `draft-besleaga-sustainability-wellknown-04.md` | Markdown source of the current (latest) revision. Edit this. |
+| `draft-besleaga-sustainability-wellknown-04.xml` | xml2rfc v3 XML of `-04` — the authoritative submission form. |
 | `draft-besleaga-sustainability-wellknown-04.txt` | Rendered plain-text form of `-04`. |
-| `draft-besleaga-sustainability-wellknown-03.*` | **Latest posted** revision (2026-07-23), under ISE review. |
+| `draft-besleaga-sustainability-wellknown-03.*` | Previous revision (posted 2026-07-23). |
 | `draft-besleaga-sustainability-wellknown-02.*` | Previous submitted revision (posted 2026-07-03). |
 | `draft-besleaga-sustainability-wellknown-01.*` | Previous revision (posted 2026-07-02). |
 | `draft-besleaga-sustainability-wellknown-00.*` | Earlier revision. |

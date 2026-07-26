@@ -12,7 +12,7 @@ inline (Mermaid source) and as a pre-rendered image in [`images/`](images/); the
 sources live in [`diagrams/`](diagrams/).
 
 **Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-04.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-04.md)
-(the prepared "2.0" protocol revision, carrying the `sustainability-data` URI rename), [`../README.md`](../README.md),
+(the latest "2.0" protocol revision, carrying the `sustainability-data` URI rename), [`../README.md`](../README.md),
 [`publisher/src/`](../publisher/src/), [`consumer/src/`](../consumer/src/),
 [`schemas-validators/`](../schemas-validators/),
 [`server-configurations/`](../server-configurations/),
@@ -66,7 +66,7 @@ consumption contexts at once:
 
 **Surrounding ecosystem.** IANA holds the requested `sustainability-data` well-known
 URI registration (provisional, [well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95);
-the suffix was renamed from `sustainability` in the prepared `-04` revision, per ISE
+the suffix was renamed from `sustainability` in the `-04` revision, per ISE
 feedback on RFC 8615 precision).
 The Green Web Foundation **carbon.txt** convention composes bidirectionally with
 this system: a metrics document may point at a carbon.txt disclosure index via
@@ -212,11 +212,11 @@ flowchart TB
 
 ## 3. The protocol subsystem
 
-The normative artifact is the Internet-Draft (`internet-drafts/`). Revision **-03**
-(schema `2.0`) is the *latest posted* revision — posted to the Datatracker
-2026-07-23, under ISE review. Revision **-04** (still schema `2.0`) is the
-*prepared* revision held in this repo, not yet submitted: it renames the requested
-URI suffix to `sustainability-data` and adds the optional `target-type` member.
+The normative artifact is the Internet-Draft (`internet-drafts/`). Revision **-04**
+(schema `2.0`) is the *latest* revision — posted to the Datatracker, under ISE
+review: it renames the requested URI suffix to `sustainability-data` and adds the
+optional `target-type` member. Revision **-03** (also schema `2.0`, posted
+2026-07-23) is the previous revision.
 The whole codebase implements the **2.0** model,
 with field-driven compatibility for historical `1.x` documents.
 
@@ -393,8 +393,8 @@ through two **field-driven** rules:
    (what the historical absence of `target-path` conveyed).
 
 The same diagram tracks the draft's own revision lifecycle, from the renamed
-predecessor series through `-02` and the posted, ISE-reviewed `-03` to the
-prepared `-04` (URI suffix renamed to `sustainability-data`, optional
+predecessor series through `-02` and `-03` to the latest, ISE-reviewed
+`-04` (URI suffix renamed to `sustainability-data`, optional
 `target-type` added) and the eventual Informational RFC + IANA registration.
 
 ![Version & revision states](images/version-state.png)
@@ -421,16 +421,16 @@ stateDiagram-v2
         state "draft-besleaga-green-sustainability-wellknown -00 .. -05 (former name)" as GREEN
         state "-00 .. -01 renamed series (replaces the green- draft)" as EARLY
         state "-02 SUBMITTED: posted 2026-07-03, ISE 'Submission Received' (schema 1.1 model)" as SUBMITTED
-        state "-03 POSTED: schema 2.0 revision, posted 2026-07-23, under ISE review (SUSTAIN RG presentation at IETF 126)" as POSTED
-        state "-04 PREPARED: in-repo, not yet submitted — URI suffix renamed to sustainability-data (ISE naming feedback), optional target-type member added" as PREPARED4
+        state "-03 POSTED: schema 2.0 revision, posted 2026-07-23 (SUSTAIN RG presentation at IETF 126)" as POSTED
+        state "-04 LATEST: posted to the Datatracker, under ISE review — URI suffix renamed to sustainability-data (ISE naming feedback), optional target-type member added" as POSTED4
         state "Informational RFC + IANA 'sustainability-data' well-known URI (provisional, promotable to permanent)" as RFC
 
         [*] --> GREEN
         GREEN --> EARLY : rename (Independent Submission, no WG affiliation implied)
         EARLY --> SUBMITTED
         SUBMITTED --> POSTED : rework data model to 2.0
-        POSTED --> PREPARED4 : ISE naming feedback (RFC 8615 precision)
-        PREPARED4 --> RFC : post -04, ISE approval + RFC Editor
+        POSTED --> POSTED4 : ISE naming feedback (RFC 8615 precision)
+        POSTED4 --> RFC : ISE approval + RFC Editor
         RFC --> [*]
     }
 ```

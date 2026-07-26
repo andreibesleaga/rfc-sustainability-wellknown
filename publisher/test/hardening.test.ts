@@ -416,6 +416,29 @@ describe("draft -02 conformance sweep fixes", () => {
     expect(validateDocument([entry("2026"), entry("2026-01")] as any).valid).toBe(false); // mixed precision
     expect(validateDocument([entry("2026-01", "/a"), entry("2026-02", "/b")] as any).valid).toBe(false); // mixed target
   });
+
+  it("gate enforces the -04 all-or-none target-type array rule", () => {
+    const entry = (period: string, targetType?: string) => ({
+      version: "2.0",
+      updated: "2026-04-01T00:00:00Z",
+      capabilities: "basic",
+      provider: "p",
+      "measurement-method": "m",
+      "methodology-uri": "u",
+      "reporting-period": period,
+      target: "example.com",
+      ...(targetType !== undefined ? { "target-type": targetType } : {}),
+    });
+    // All present with the same value, or absent from every entry: valid.
+    expect(validateDocument([entry("2026-01", "origin"), entry("2026-02", "origin")] as any).valid).toBe(true);
+    expect(validateDocument([entry("2026-01"), entry("2026-02")] as any).valid).toBe(true);
+    // Mixed values: invalid.
+    expect(validateDocument([entry("2026-01", "origin"), entry("2026-02", "service")] as any).valid).toBe(false);
+    // Final -04: mixed PRESENCE is also invalid (was tolerated pre-audit).
+    const mixedPresence = validateDocument([entry("2026-01", "origin"), entry("2026-02")] as any);
+    expect(mixedPresence.valid).toBe(false);
+    expect(mixedPresence.errors.some((e) => /target-type.*(presence|every)/i.test(e))).toBe(true);
+  });
 });
 
 // co2.js swdVersion option

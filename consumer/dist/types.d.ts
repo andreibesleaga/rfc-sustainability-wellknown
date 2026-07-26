@@ -57,24 +57,38 @@ export type FetchResult = {
     etag?: string;
     /**
      * Set when the document lacked the mandatory `target` member and the
-     * legacy-compatibility pre-pass injected the request origin's host
-     * (draft §Versioning and Extensibility: a document without `target`
-     * SHOULD be treated as an origin-wide report).
+     * legacy-compatibility pre-pass derived it (draft §Versioning and
+     * Extensibility, -04): from the historical `target-path` member's value
+     * when that member is present (it names the reporting subject), and
+     * from the final-response origin's host (origin-wide report) only when
+     * neither member exists.
      */
     legacy?: boolean;
     /**
-     * Member paths (e.g. "target-type", "[2].target-type") stripped by the
-     * enumerated-member tolerance pre-pass before validation: the draft
-     * (§Value Constraints and Omitted Metrics) says a client encountering an
-     * unrecognized value in an enumerated member SHOULD disregard that member
-     * rather than reject the document. Only set when at least one member was
-     * disregarded; absent on a fully clean document.
+     * Member paths (e.g. "target-type", "[2].sci-score") stripped by the
+     * tolerance pre-pass before validation, per the draft's §Value
+     * Constraints and Omitted Metrics rules: a wrong-JSON-typed value
+     * (including null) in a defined optional member, a reported `sci-score`
+     * without `functional-unit`, and an unrecognized value in the
+     * enumerated `target-type` member all read as "not reported" /
+     * "disregard the member" rather than rejecting the document. Only set
+     * when at least one member was disregarded; absent on a clean document.
      */
     disregarded?: string[];
 } | {
     status: "not-modified";
 } | {
     status: "not-found";
+}
+/**
+ * The server answered 200 with an EMPTY ARRAY — something a conformant
+ * server never sends (it follows the no-data rule instead). Per the draft
+ * (§Payload Format, -04) the client treats it as conveying no report.
+ * Returned only under legacyCompat (default); strict mode reports it as
+ * `invalid` instead.
+ */
+ | {
+    status: "no-report";
 } | {
     status: "invalid";
     errors: string[];

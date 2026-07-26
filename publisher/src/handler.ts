@@ -4,6 +4,7 @@
  * headers, ETag/conditional GET, caching) live in exactly one place.
  */
 import { emitCarbonTxt, EmitCarbonTxtOptions } from "./carbontxt";
+import { PERIOD_RE } from "./normalize";
 import { Publisher, NotFoundError } from "./publisher";
 import { ServiceQuery } from "./types";
 
@@ -85,14 +86,35 @@ export interface HandlerResult {
   body: string;
 }
 
-/** Parse the three Extended query parameters from a generic query bag. */
+/** The granularity values this document defines (draft §Optional Extended Query Parameters). */
+const KNOWN_GRANULARITIES = new Set(["monthly", "daily"]);
+
+/**
+ * Parse the three Extended query parameters from a generic query bag,
+ * applying the draft's parameter-tolerance rules (§Optional Extended Query
+ * Parameters) so every framework entry point behaves identically:
+ *
+ *  - an unrecognized value of the enumerated `granularity` parameter (e.g.
+ *    `granularity=weekly`) is IGNORED (SHOULD), never an error — dropping it
+ *    here means the publisher can no longer return an array for it;
+ *  - a malformed `period` (not `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`) is ignored
+ *    and the rest of the request processed — the draft's "400-or-ignore"
+ *    choice is exercised as IGNORE, keeping the well-known endpoint maximally
+ *    answerable (and collapsing attacker-varied malformed values onto the
+ *    default cache entry);
+ *  - a `granularity` without a `period` is passed through: it applies to the
+ *    default period of the Basic service.
+ */
 export function parseQuery(q: Record<string, unknown>): ServiceQuery {
   const str = (v: unknown): string | undefined =>
     typeof v === "string" ? v : Array.isArray(v) && typeof v[0] === "string" ? v[0] : undefined;
+  const period = str(q.period);
+  const granularity = str(q.granularity);
   return {
     target: str(q.target),
-    period: str(q.period),
-    granularity: str(q.granularity),
+    period: period !== undefined && PERIOD_RE.test(period) ? period : undefined,
+    granularity:
+      granularity !== undefined && KNOWN_GRANULARITIES.has(granularity) ? granularity : undefined,
   };
 }
 

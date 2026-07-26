@@ -25,6 +25,13 @@ export interface SecurityOptions {
 // footprint with an un-noised annual estimate lets a reader reconstruct the
 // pre-noise footprint (annual/365); deployments that care should omit the
 // annual member or extend this list themselves.
+//
+// Draft §Hardware Fingerprinting (-04): "Members bounded to a range (such as
+// renewable-energy) MUST remain within their stated range after noise."
+// Because `renewable-energy` (the only range-bounded member) is NOT in this
+// list, it is never noised and the range rule is trivially satisfied — a
+// deployment extending the list to any range-bounded member must add
+// post-noise clamping to keep that MUST holding.
 const NUMERIC_KEYS = [
   "energy-consumption",
   "carbon-footprint",

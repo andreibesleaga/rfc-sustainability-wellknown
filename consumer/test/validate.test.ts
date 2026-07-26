@@ -166,16 +166,26 @@ describe("validateDocument: array (trend) rules", () => {
     expect(r.errors.some((e) => /target-type/i.test(e))).toBe(true);
   });
 
-  it("accepts an array where only SOME entries carry target-type, provided the present values agree", () => {
-    // The rule is scoped "when present": an entry without the member is simply
-    // unclassified, not a uniformity violation.
+  it("rejects an array where only SOME entries carry target-type (-04 all-or-none rule)", () => {
+    // Final -04 wording: "target-type MUST be either present in every entry
+    // with the same value or absent from every entry" — mixed PRESENCE is a
+    // violation even when the values that are present agree.
     const doc = [
       metrics({ "reporting-period": "2026-01", "target-type": "origin" } as Partial<SustainabilityMetrics>),
       metrics({ "reporting-period": "2026-02" }),
       metrics({ "reporting-period": "2026-03", "target-type": "origin" } as Partial<SustainabilityMetrics>),
     ];
     const r = validateDocument(doc);
-    expect(r.valid).toBe(true);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some((e) => /target-type.*(presence|every)/i.test(e))).toBe(true);
+  });
+
+  it("accepts an array where NO entry carries target-type (all-absent side of all-or-none)", () => {
+    const doc = [
+      metrics({ "reporting-period": "2026-01" }),
+      metrics({ "reporting-period": "2026-02" }),
+    ];
+    expect(validateDocument(doc).valid).toBe(true);
   });
 
   it("does not run cross-entry array checks when a per-entry schema error already exists (avoids noisy cascades)", () => {

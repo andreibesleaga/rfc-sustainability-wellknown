@@ -100,6 +100,15 @@ await app.register(fastifySustainability, { publisher: new Publisher(computedAda
 await app.listen({ port: 8080 });
 ```
 
+All entry points (standalone server, both middlewares, `handleRequest`) emit
+`Access-Control-Allow-Origin: *` on every response — the final -04 draft says
+successful responses SHOULD carry it (WebFinger practice), and echoing it on the
+error statuses too lets cross-origin aggregators read those as well (`cors`
+option to override/disable). They also share the draft's query-parameter
+tolerance: an unrecognized `granularity` value (e.g. `weekly`) and a malformed
+`period` are ignored rather than erroring, and `granularity` without `period`
+applies to the default reporting period — see `USAGE.md` §3b.
+
 ## Adapters
 
 Every adapter implements `SourceAdapter { name, capabilities, fetch(query) }` and returns
@@ -157,8 +166,10 @@ kind of subject `target` names — one of `origin`, `path`, `organization`, `ser
 `product`, `device`, `tenant`, `data-source`. The publisher throws on any other value
 (fail-loud on its own output); when re-ingesting a foreign document, `fromWire()`
 instead **drops** an unrecognized `target-type` per the draft's tolerance rule for
-enumerated members. Array (trend) responses must share one `target-type` value — the
-validation gate enforces this alongside the shared-`target` rule.
+enumerated members. In an array (trend) response, `target-type` is **all-or-none**
+(final -04 rule): it must be present in **every** entry with the same value, or absent
+from every entry — mixed presence is invalid, and the validation gate enforces this
+alongside the shared-`target` rule.
 
 Since draft -03, `energy-consumption`/`energy-unit` and `carbon-footprint`/`carbon-unit`
 are **optional**: a metric that is not reported is simply omitted (there is no negative
@@ -189,7 +200,10 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
   When enabled it is applied once at document-generation time, deterministically per
   reporting period, with a single factor per report so related fields stay consistent
   (per the draft's Hardware Fingerprinting rules); the multiplicative factor preserves
-  the sign of negative scope values (removals).
+  the sign of negative scope values (removals). Noise covers only the additive family
+  (energy, footprint, scopes): the range-bounded `renewable-energy` member is **never
+  noised**, so the draft's stay-in-range MUST ("members bounded to a range MUST remain
+  within their stated range after noise") is trivially satisfied.
 - **Trust**: link a signed W3C Verifiable Credential via the adapter's attestation field
   (`verifiable-attestation-uri`).
 

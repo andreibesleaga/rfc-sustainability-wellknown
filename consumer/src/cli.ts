@@ -53,6 +53,10 @@ export async function runCli(argv: string[]): Promise<number> {
     case "not-found":
       console.error("404 Not Found");
       return 1;
+    case "no-report":
+      // 200 with an empty array: treated as conveying no report (draft SHOULD).
+      console.error("Empty array response: no report conveyed");
+      return 1;
     case "invalid":
       console.error("Response failed validation:\n" + result.errors.map((e) => ` - ${e}`).join("\n"));
       return 1;

@@ -266,6 +266,56 @@ describe("legacy-compatibility pre-pass (draft §Versioning and Extensibility)",
       expect(result.errors.length).toBeGreaterThan(0);
     }
   });
+
+  // Final -04 attribution rule: a 1.x document carrying the historical
+  // `target-path` member names its reporting subject with that member's VALUE;
+  // the origin host applies only when NEITHER `target` nor `target-path` exists.
+  it("derives `target` from the target-path VALUE (not the origin host) for a 1.x document", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...LEGACY_DOC, "target-path": "/api/v1" }));
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.legacy).toBe(true);
+    const doc = result.document as Record<string, unknown>;
+    // The reporting subject is what target-path named — NOT the origin host.
+    expect(doc.target).toBe("/api/v1");
+    expect(doc.target).not.toBe(new URL(origin).host);
+  });
+
+  it("derives per-entry targets from target-path across a legacy trend array", async () => {
+    const legacyTrend = [
+      { ...LEGACY_DOC, "reporting-period": "2026-01", "target-path": "/api/v1" },
+      { ...LEGACY_DOC, "reporting-period": "2026-02", "target-path": "/api/v1" },
+    ];
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(legacyTrend));
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.legacy).toBe(true);
+    const docs = result.document as Array<Record<string, unknown>>;
+    for (const d of docs) expect(d.target).toBe("/api/v1");
+  });
+
+  it("falls back to the origin host when target-path is not a usable string (wrong-typed)", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...LEGACY_DOC, "target-path": 42 }));
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.legacy).toBe(true);
+    expect((result.document as Record<string, unknown>).target).toBe(new URL(origin).host);
+  });
 });
 
 describe("-04: well-known URI rename + target-type tolerance pre-pass", () => {
@@ -332,8 +382,11 @@ describe("-04: well-known URI rename + target-type tolerance pre-pass", () => {
   });
 
   it("records per-entry paths when stripping unrecognized target-type values from an array", async () => {
+    // Both entries carry the same unrecognized value: stripping leaves the
+    // member absent from EVERY entry — the all-absent side of the -04
+    // all-or-none array rule — so the document stays processable.
     const trend = [
-      { ...BASE_DOC, "reporting-period": "2026-01", "target-type": "origin" },
+      { ...BASE_DOC, "reporting-period": "2026-01", "target-type": "warehouse" },
       { ...BASE_DOC, "reporting-period": "2026-02", "target-type": "warehouse" },
     ];
     const origin = await start((_req, res) => {
@@ -343,10 +396,29 @@ describe("-04: well-known URI rename + target-type tolerance pre-pass", () => {
     const result = await fetchSustainability(origin);
     expect(result.status).toBe("ok");
     if (result.status !== "ok") return;
-    expect(result.disregarded).toEqual(["[1].target-type"]);
+    expect(result.disregarded).toEqual(["[0].target-type", "[1].target-type"]);
     const docs = result.document as Array<Record<string, unknown>>;
-    expect(docs[0]["target-type"]).toBe("origin");
+    expect(docs[0]).not.toHaveProperty("target-type");
     expect(docs[1]).not.toHaveProperty("target-type");
+  });
+
+  it("a trend mixing a recognized and an unrecognized target-type is invalid even after the strip (all-or-none)", async () => {
+    // As served, the entries carry differing target-type values (invalid);
+    // after the tolerance strips the unrecognized one, presence is mixed —
+    // also invalid under -04's all-or-none rule. Either way: "invalid".
+    const trend = [
+      { ...BASE_DOC, "reporting-period": "2026-01", "target-type": "origin" },
+      { ...BASE_DOC, "reporting-period": "2026-02", "target-type": "warehouse" },
+    ];
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(trend));
+    });
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("invalid");
+    if (result.status === "invalid") {
+      expect(result.errors.some((e) => /target-type/i.test(e))).toBe(true);
+    }
   });
 
   it("with legacyCompat:false (strict mode), an unrecognized target-type fails validation as served", async () => {
@@ -356,6 +428,165 @@ describe("-04: well-known URI rename + target-type tolerance pre-pass", () => {
     });
     const result = await fetchSustainability(origin, { legacyCompat: false });
     expect(result.status).toBe("invalid");
+  });
+});
+
+describe("final -04 tolerance additions (draft §Value Constraints and Omitted Metrics)", () => {
+  const BASE_DOC = {
+    version: "2.0",
+    updated: "2026-01-01T00:00:00Z",
+    capabilities: "basic",
+    provider: "Tolerance Test Co",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://tolerance.example/methodology",
+    "reporting-period": "2026-01",
+    target: "tolerance.example",
+    "energy-consumption": 12,
+    "energy-unit": "kWh",
+  };
+
+  it("treats wrong-JSON-typed values (incl. null) in optional members as not reported (strip + record)", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ...BASE_DOC,
+          "carbon-footprint": "345", // string where a number is defined
+          "renewable-energy": null, // null is a wrong type too
+        }),
+      );
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    const doc = result.document as Record<string, unknown>;
+    expect(doc).not.toHaveProperty("carbon-footprint");
+    expect(doc).not.toHaveProperty("renewable-energy");
+    // The correctly-typed members are untouched.
+    expect(doc["energy-consumption"]).toBe(12);
+    expect(result.disregarded).toEqual(["carbon-footprint", "renewable-energy"]);
+  });
+
+  it("records per-entry paths when stripping wrong-typed values from an array", async () => {
+    const trend = [
+      { ...BASE_DOC, "reporting-period": "2026-01" },
+      { ...BASE_DOC, "reporting-period": "2026-02", "carbon-footprint": null },
+    ];
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(trend));
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.disregarded).toEqual(["[1].carbon-footprint"]);
+  });
+
+  it("with legacyCompat:false (strict mode), a wrong-typed value fails validation as served", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...BASE_DOC, "carbon-footprint": "345" }));
+    });
+
+    const result = await fetchSustainability(origin, { legacyCompat: false });
+    expect(result.status).toBe("invalid");
+  });
+
+  it("treats a reported sci-score without functional-unit as not reported (strip + record)", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...BASE_DOC, "sci-score": 1.2 }));
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    const doc = result.document as Record<string, unknown>;
+    expect(doc).not.toHaveProperty("sci-score");
+    expect(result.disregarded).toEqual(["sci-score"]);
+  });
+
+  it("keeps sci-score when functional-unit accompanies it (nothing disregarded)", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...BASE_DOC, "sci-score": 1.2, "functional-unit": "per-request" }));
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect((result.document as Record<string, unknown>)["sci-score"]).toBe(1.2);
+    expect(result.disregarded).toBeUndefined();
+  });
+
+  it("cascades: a wrong-typed functional-unit strips functional-unit AND the now-unaccompanied sci-score", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...BASE_DOC, "sci-score": 1.2, "functional-unit": null }));
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    const doc = result.document as Record<string, unknown>;
+    expect(doc).not.toHaveProperty("functional-unit");
+    expect(doc).not.toHaveProperty("sci-score");
+    expect(result.disregarded).toEqual(["functional-unit", "sci-score"]);
+  });
+
+  it("leaves a NEGATIVE sci-score (legacy sentinel) in place — already 'not reported' under the out-of-range rule", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...BASE_DOC, "sci-score": -1 }));
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    // The sentinel value flows through for sentinel.ts's on-demand
+    // interpretation; the fetch pre-pass does not strip out-of-range values.
+    expect((result.document as Record<string, unknown>)["sci-score"]).toBe(-1);
+    expect(result.disregarded).toBeUndefined();
+  });
+
+  it("with legacyCompat:false (strict mode), a reported sci-score without functional-unit fails validation", async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...BASE_DOC, "sci-score": 1.2 }));
+    });
+
+    const result = await fetchSustainability(origin, { legacyCompat: false });
+    expect(result.status).toBe("invalid");
+    if (result.status === "invalid") {
+      expect(result.errors.some((e) => /sci-score.*functional-unit/i.test(e))).toBe(true);
+    }
+  });
+});
+
+describe("final -04: empty array conveys no report", () => {
+  it('returns the distinct {status:"no-report"} outcome for a 200 empty array (default legacyCompat)', async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end("[]");
+    });
+
+    const result = await fetchSustainability(origin);
+    expect(result).toEqual({ status: "no-report" });
+  });
+
+  it('with legacyCompat:false (strict mode), an empty array is reported as invalid', async () => {
+    const origin = await start((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end("[]");
+    });
+
+    const result = await fetchSustainability(origin, { legacyCompat: false });
+    expect(result.status).toBe("invalid");
+    if (result.status === "invalid") {
+      expect(result.errors.some((e) => /empty array/i.test(e))).toBe(true);
+    }
   });
 });
 

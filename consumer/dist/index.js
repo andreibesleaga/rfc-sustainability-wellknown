@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runConformanceChecks = exports.fetchDisclosure = exports.resolveDisclosureLinks = exports.aggregate = exports.flatten = exports.toNdjson = exports.toCsvRows = exports.convertCarbon = exports.convertEnergy = exports.isRecognizedTargetType = exports.TARGET_TYPES = exports.NUMERIC_KEYS = exports.withoutSentinels = exports.isNotReported = exports.SustainabilityClient = exports.WELL_KNOWN_PATH = exports.fetchSustainability = exports.ValidationError = exports.assertValid = exports.validateDocument = exports.RESPONSE_JTD_SCHEMA = void 0;
+exports.runConformanceChecks = exports.fetchDisclosure = exports.resolveDisclosureLinks = exports.aggregate = exports.flatten = exports.toNdjson = exports.toCsvRows = exports.convertCarbon = exports.convertEnergy = exports.OPTIONAL_MEMBER_JSON_TYPES = exports.legacyReportingSubject = exports.isWrongJsonType = exports.isRecognizedTargetType = exports.TARGET_TYPES = exports.NUMERIC_KEYS = exports.withoutSentinels = exports.isNotReported = exports.SustainabilityClient = exports.WELL_KNOWN_PATH = exports.fetchSustainability = exports.ValidationError = exports.assertValid = exports.validateDocument = exports.RESPONSE_JTD_SCHEMA = void 0;
 /**
  * sustainability-wellknown-consumer
  *
@@ -40,6 +40,9 @@ Object.defineProperty(exports, "withoutSentinels", { enumerable: true, get: func
 Object.defineProperty(exports, "NUMERIC_KEYS", { enumerable: true, get: function () { return sentinel_1.NUMERIC_KEYS; } });
 Object.defineProperty(exports, "TARGET_TYPES", { enumerable: true, get: function () { return sentinel_1.TARGET_TYPES; } });
 Object.defineProperty(exports, "isRecognizedTargetType", { enumerable: true, get: function () { return sentinel_1.isRecognizedTargetType; } });
+Object.defineProperty(exports, "isWrongJsonType", { enumerable: true, get: function () { return sentinel_1.isWrongJsonType; } });
+Object.defineProperty(exports, "legacyReportingSubject", { enumerable: true, get: function () { return sentinel_1.legacyReportingSubject; } });
+Object.defineProperty(exports, "OPTIONAL_MEMBER_JSON_TYPES", { enumerable: true, get: function () { return sentinel_1.OPTIONAL_MEMBER_JSON_TYPES; } });
 var units_1 = require("./units");
 Object.defineProperty(exports, "convertEnergy", { enumerable: true, get: function () { return units_1.convertEnergy; } });
 Object.defineProperty(exports, "convertCarbon", { enumerable: true, get: function () { return units_1.convertCarbon; } });

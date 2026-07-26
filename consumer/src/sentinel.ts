@@ -84,3 +84,59 @@ export const TARGET_TYPES = [
 export function isRecognizedTargetType(value: unknown): value is (typeof TARGET_TYPES)[number] {
   return typeof value === "string" && (TARGET_TYPES as readonly string[]).includes(value);
 }
+
+/**
+ * Expected JSON type of every OPTIONAL member the draft defines. Draft
+ * §Value Constraints and Omitted Metrics (-04): "A value of the wrong JSON
+ * type (including `null`) is treated as not reported" — fetch.ts's
+ * legacy-compatibility pre-pass strips such members (recording them in
+ * `disregarded`) before the schema gate would otherwise reject the document.
+ *
+ * Mandatory members are deliberately NOT listed: stripping one could not make
+ * the document processable (it would just fail as "missing" instead of
+ * "wrong type"), so a wrong-typed mandatory member still fails validation.
+ */
+export const OPTIONAL_MEMBER_JSON_TYPES: Readonly<Record<string, "number" | "string">> = {
+  "energy-consumption": "number",
+  "energy-unit": "string",
+  "carbon-footprint": "number",
+  "carbon-unit": "string",
+  "carbon-accounting": "string",
+  "scope-1": "number",
+  "scope-2": "number",
+  "scope-3": "number",
+  "sci-score": "number",
+  "functional-unit": "string",
+  "carbon-intensity-gCO2e-per-kWh": "number",
+  "estimated-annual-emissions-kgCO2e": "number",
+  "renewable-energy": "number",
+  "verifiable-attestation-uri": "string",
+  "disclosure-uri": "string",
+  "target-type": "string",
+};
+
+/**
+ * True when an optional member defined by the draft is present with a value
+ * of the wrong JSON type (including `null`). `undefined` (absent) is never
+ * wrong-typed; members not defined by the draft are unknown members the
+ * ignore-unknown rule covers, never "wrong-typed".
+ */
+export function isWrongJsonType(key: string, value: unknown): boolean {
+  const expected = OPTIONAL_MEMBER_JSON_TYPES[key];
+  if (expected === undefined || value === undefined) return false;
+  return typeof value !== expected;
+}
+
+/**
+ * The reporting subject for a legacy (1.x) entry that lacks the mandatory
+ * `target` member (draft §Versioning and Extensibility, -04): when the entry
+ * carries the historical `target-path` member, that member's VALUE is the
+ * reporting subject; only when neither member exists is the document an
+ * origin-wide report attributed to the final response origin's host.
+ * A non-string (or empty) `target-path` is a wrong-typed value — treated as
+ * not present, so the origin host applies.
+ */
+export function legacyReportingSubject(entry: Record<string, unknown>, originHost: string): string {
+  const tp = entry["target-path"];
+  return typeof tp === "string" && tp !== "" ? tp : originHost;
+}

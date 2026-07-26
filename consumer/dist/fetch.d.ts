@@ -24,24 +24,35 @@ export interface FetchOptions extends FetchParams {
     maxBytes?: number;
     /**
      * Legacy-compatibility pre-pass (default true). Draft §Versioning and
-     * Extensibility: a client that encounters a document without a `target`
-     * member SHOULD treat it as an origin-wide report — so before validation,
-     * a parsed document (object, or every entry of an array) lacking `target`
-     * gets the final-response origin's host injected as `target` (redirects
-     * are attributed to the final origin, per the draft), letting historical
-     * "1.0"/"1.1" documents validate and stay usable. Such a result is flagged
-     * with `legacy: true`.
+     * Extensibility (-04): a document without the mandatory `target` member is
+     * historical ("1.0"/"1.1"). Before validation, such a document (object, or
+     * every entry of an array) gets `target` derived: from the historical
+     * `target-path` member's VALUE when that member is present (it named the
+     * reporting subject), otherwise from the final-response origin's host
+     * (an origin-wide report; redirects are attributed to the final origin,
+     * per the draft). Such a result is flagged with `legacy: true`.
      *
-     * The same pre-pass applies the draft's enumerated-member tolerance rule
-     * (§Value Constraints and Omitted Metrics) to `target-type`: an unrecognized
-     * value in that member SHOULD be disregarded — `target` is then interpreted
-     * as if `target-type` were absent — not rejected. Because the JTD schema
-     * deliberately closes the enum, the member is stripped before validation and
-     * the result flagged via `disregarded` (mirroring how out-of-range numerics
-     * read as "not reported" without failing the document).
+     * The same pre-pass applies the draft's tolerance rules (§Value Constraints
+     * and Omitted Metrics), stripping the affected member before validation and
+     * recording it in `disregarded` (mirroring how out-of-range numerics read as
+     * "not reported" without failing the document):
+     *  - a defined OPTIONAL member whose value has the wrong JSON type
+     *    (including `null`) is treated as not reported;
+     *  - a reported `sci-score` unaccompanied by `functional-unit` is treated
+     *    as not reported (a negative sci-score is the legacy sentinel, already
+     *    "not reported" under the out-of-range rule, and is left for
+     *    sentinel.ts's on-demand interpretation);
+     *  - an unrecognized value in the enumerated `target-type` member is
+     *    disregarded — `target` is then interpreted as if it were absent.
+     *
+     * A received EMPTY ARRAY — which a conformant server never sends (it follows
+     * the no-data rule instead) — SHOULD be treated as conveying no report, and
+     * yields the distinct `{ status: "no-report" }` outcome.
      *
      * Set to false for strict mode: the document is validated exactly as served —
-     * legacy documents and unrecognized target-type values then fail validation.
+     * legacy documents, wrong-typed values, a reported sci-score without
+     * functional-unit, unrecognized target-type values, and empty arrays then
+     * fail validation.
      */
     legacyCompat?: boolean;
 }

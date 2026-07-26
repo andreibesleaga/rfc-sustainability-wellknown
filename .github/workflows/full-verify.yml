@@ -133,6 +133,7 @@ jobs:
           nginx -c /tmp/nginx-fv/nginx.conf
           sleep 1
           [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/.well-known/sustainability-data)" = "200" ]
+          curl -s -D - -o /dev/null http://127.0.0.1:8099/.well-known/sustainability-data | grep -qi '^Access-Control-Allow-Origin: \*'
           curl -s -D - -o /dev/null -X POST http://127.0.0.1:8099/.well-known/sustainability-data | grep -qi '^Allow: GET, HEAD'
           nginx -s stop -c /tmp/nginx-fv/nginx.conf
 
@@ -164,6 +165,7 @@ jobs:
           apache2 -f /tmp/apache-fv/httpd.conf -k start
           sleep 1
           [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8098/.well-known/sustainability-data)" = "200" ]
+          curl -s -D - -o /dev/null http://127.0.0.1:8098/.well-known/sustainability-data | grep -qi '^Access-Control-Allow-Origin: \*'
           post=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8098/.well-known/sustainability-data)
           echo "$post" | grep -qi "^Allow: GET, HEAD"
           apache2 -f /tmp/apache-fv/httpd.conf -k stop

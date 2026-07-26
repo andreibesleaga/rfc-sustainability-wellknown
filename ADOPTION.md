@@ -11,8 +11,8 @@ place** for any origin to publish its energy and carbon footprint — closing a 
 between heavyweight enterprise carbon software and the open web. It costs the IETF/IANA
 almost nothing to approve (one well-known URI, **Specification Required** policy, no new
 media type, no protocol change) and unlocks disproportionate value across regulation,
-industry, and the environment. A working reference implementation and full validator suite
-already exist.
+industry, and the environment. Two interoperating reference implementations (publisher and
+consumer) and dual independent validators already exist.
 
 ## 1. Why it is safe and cheap to approve
 
@@ -20,8 +20,8 @@ already exist.
 |---|---|
 | New protocol machinery? | **None.** It reuses HTTP GET/HEAD (RFC 9110), `application/json`, and the existing RFC 8615 well-known mechanism. |
 | New media type / IANA burden? | **No new media type.** One entry in the existing "Well-Known URIs" registry — the same footprint as security.txt (RFC 9116). |
-| Registration bar | RFC 8615 sets **Specification Required + Expert Review** — designed exactly for stable specs like this; no WG/RG adoption is strictly required. |
-| Registry status requested | **Provisional** — the honest ask for an Independent Submission per RFC 8615 §3.1, and what the designated expert assigns comparable new entries (gpc.json, change-password); explicitly promotable to permanent once in broad use. No over-claim for the expert to push back on. |
+| Registration bar | The registry's policy is **Specification Required** (RFC 8615 §3.1) — which includes designated-expert review per RFC 8126 and is designed exactly for stable specs like this; no WG/RG adoption is required. |
+| Registry status requested | **Provisional** — the honest ask for an Independent Submission per RFC 8615 §3.1, and what the designated expert assigns to comparable new entries (gpc.json, change-password, ecips); explicitly promotable to permanent once in broad use. No over-claim for the expert to push back on. |
 | Security/privacy reviewed? | Yes — dedicated Security and Privacy sections (DoS caps + bounded query key space, trust/spoofing, greenwashing, traffic-analysis floor, path-disclosure allowlist, deterministic fingerprinting noise, TLS). |
 | Maintenance risk | Minimal: open, forward-compatible schemas (unknown members permitted; clients MUST ignore them) with an informational version label — future fields need **no revision of the RFC** and no new IANA registry. |
 | Implementation risk | A production reference gateway + dual independent validators already pass end-to-end (see §9). |
@@ -42,21 +42,23 @@ fragmentation.
   format with formal schemas and deterministic semantics), human-readable (self-describing
   member names plus a mandatory methodology link), and AI/agent-ready (machine-discoverable
   at a fixed location, schema-validatable, safe to ingest without negotiation).
-- **Interoperable, precisely.** One vendor-neutral field model normalizes data that is
-  otherwise trapped in incompatible enterprise APIs — and the submitted -02 revision pinned
-  down every interop edge a hostile review could raise: single-object vs array shape rules,
-  scope-attribution echo for path-scoped responses, byte-wise segment-boundary `target`
-  matching against a published prefix set, sorted/non-overlapping/uniform trend arrays,
-  most-recent-first truncation, UTC periods, and machine-detectable not-reported semantics
-  that never silently degrade data. The posted -03 revision simplifies the model further:
-  an unreported metric is simply *omitted* (no in-band sentinel), the energy/carbon value
-  and unit members become optional with wire-level defaults (`kWh`/`gCO2e`), a mandatory
-  free-form `target` member names the reporting subject (origin host, path prefix, entity,
-  tenant, or carbon.txt-listed site), and all carbon members align on the CO2e naming
-  convention — with field-driven compatibility rules keeping historical 1.x documents
-  processable. The prepared -04 revision adds an optional enumerated `target-type` hint
+- **Interoperable, precisely.** One vendor-neutral field model — 8 mandatory + 16 optional
+  members — normalizes data that is otherwise trapped in incompatible enterprise APIs, and
+  three audit rounds (§9) pinned down every interop edge a hostile review could raise:
+  single-object vs array shape rules, a scope-attribution echo for path-scoped responses,
+  byte-wise segment-boundary `target` matching against a published prefix set,
+  sorted/non-overlapping/uniform trend arrays, most-recent-first truncation under a
+  documented array cap, UTC periods, and wire-level unit defaults (`kWh`/`gCO2e`) with all
+  carbon members on the CO2e naming convention. An unreported metric is simply *omitted*
+  (no in-band sentinel; a member present always carries a real value); clients tolerate
+  rather than reject defective values (wrong JSON type, `null`, out-of-range, `sci-score`
+  without `functional-unit`); and field-driven compatibility rules keep historical 1.x
+  documents processable. A mandatory free-form `target` member names the reporting subject
+  (origin host, path prefix, entity, tenant, or carbon.txt-listed site), classified by an
+  optional enumerated `target-type` hint
   (`origin`/`path`/`organization`/`service`/`product`/`device`/`tenant`/`data-source`)
-  classifying that reporting subject, with unrecognized values tolerated.
+  with unrecognized values tolerated. Browser consumers are served too: successful
+  responses SHOULD carry `Access-Control-Allow-Origin: *`, following WebFinger practice.
 - **Foolproof extensibility without process weight.** Forward compatibility rests on the
   must-ignore rule plus open schemas (the RFC 9457 model), not on version negotiation or a
   new IANA field registry: the published RFC accommodates all future fields as-is, and the
@@ -105,13 +107,13 @@ continuous, queryable, comparable data.
 
 ## 4. Business & economic benefits
 
-- **N×M integration.** One well-known URI which collapses existing connectors to N publishers + M readers of the same format.
+- **N×M integration.** One well-known URI collapses N×M bespoke connectors into N publishers + M readers of the same format.
 - **Lowers disclosure cost.** Numbers already computed in Salesforce Net Zero Cloud,
   Microsoft Sustainability Manager, Watershed, or Green Web Foundation APIs can be auto-projected to a public endpoint
   (this repo's gateway does exactly that) instead of manual exports.
 - **Vendor-neutral, no lock-in.** Adopters bet on an open IETF spec, not a proprietary
   format — easier procurement, easier auditing.
-- **New capabilities.** Enables carbon-aware load balancing,  routing, supplier
+- **New capabilities.** Enables carbon-aware load balancing and routing, supplier
   due-diligence crawling, and procurement filters that need a programmatic footprint read.
 - **Trust & anti-washing.** `methodology-uri` + `verifiable-attestation-uri` let claims
   be checked against signed W3C Verifiable Credentials, raising market integrity.
@@ -120,7 +122,7 @@ continuous, queryable, comparable data.
 
 - **Interoperates with existing real-world tooling.** The optional `disclosure-uri` field links
   a metrics document to a machine-readable disclosure index — the canonical example being a
-   Green Web Foundation [carbon.txt](https://carbontxt.org/) file. The reference publisher
+  Green Web Foundation [carbon.txt](https://carbontxt.org/) file. The reference publisher
   computes metrics from bytes with **CO2.js**, ingests a remote carbon.txt via the GWF **hosted
   API**, and can serve a **bidirectional carbon.txt** pointing back to `/.well-known/sustainability-data`.
   This complements the "well-known sustainability files" family (alongside security.txt/RFC 9116)
@@ -151,7 +153,8 @@ draft has a published precedent:
   endpoint addresses; the draft cites it as motivating context.
 
 A `sustainability-data` entry is a natural, incremental addition in exactly the spirit of
-RFC 8615.
+RFC 8615. (This section covers *design* precedent inside published specs; §13 examines how
+comparable *registration requests* actually fared in the IANA registry.)
 
 ## 7. Relationship to adjacent work — the no-conflict map
 
@@ -184,7 +187,7 @@ substantial organization in this space. An honest per-project comparison (facts 
 
 | GWF project | What it is | What it publishes/consumes | Overlap with this draft |
 |---|---|---|---|
-| **carbon.txt** | TOML *disclosure index* at `/carbon.txt` (alt `/.well-known/carbon.txt`, DNS-TXT/header delegation): typed links (`csrd-report`, `certificate`, `sustainability-page`, `ai-model-card`, …) to where an org's evidence lives. "Connect, not collect." Community convention; **not IANA-registered; never submitted to the IETF.** | Links to documents — **the file itself carries zero kWh/gCO2e numbers**. Its validator's CSRD plugin can extract org-level ESRS datapoints from linked, audited iXBRL filings. | **High on ambition, partial on substance**: same discovery instinct, different payload (document index vs live numeric metrics), no query semantics, no metrics schema, no IANA path. Composes with this draft in both directions via `disclosure-uri`. |
+| **carbon.txt** | TOML *disclosure index* at `/carbon.txt` (alt `/.well-known/carbon.txt`, DNS-TXT/header delegation): typed links (`csrd-report`, `certificate`, `sustainability-page`, `ai-model-card`, …) to where an org's evidence lives. "Connect, not collect." Community convention; **not in the IANA registry** — GWF filed a provisional registration request on 2026-07-22 (well-known-uris issue #103; see §13); never an IETF draft. | Links to documents — **the file itself carries zero kWh/gCO2e numbers**. Its validator's CSRD plugin can extract org-level ESRS datapoints from linked, audited iXBRL filings. | **High on ambition, partial on substance**: same discovery instinct, different payload (document index vs live numeric metrics), no query semantics, no metrics schema, no IANA path. Composes with this draft in both directions via `disclosure-uri`. |
 | **CO2.js** | JS estimation library (bytes → gCO2e; SWD v4 / OneByte models). Adopted by Firefox Profiler, WebPageTest, Ecograder, Website Carbon, Sitespeed.io (~10k npm downloads/week). | Consumes bytes + grid datasets; produces estimates. **Defines no discovery mechanism or wire format.** | **None on wire format; pure producer.** This repo's gateway ships a CO2.js adapter that emits draft-conformant documents. |
 | **Green Web Dataset / greencheck** | The verified green-*hosting* directory (since 2006; ~300 verified providers; millions of green domains; ODbL). | A boolean + provider identity + evidence links per domain — **no energy/carbon quantities**. | None on metrics. Certifies who hosts you, not what you emit. |
 | **Grid-aware Websites / IP-to-CO2 API / Grid Intensity CLI** | Grid-intensity tooling (adapt sites to grid conditions; country intensity by IP). | Grid averages — inputs to carbon math. | None; the IP-to-CO2 API is a natural *input* for this draft's `carbon-intensity-gCO2e-per-kWh` field. |
@@ -228,17 +231,21 @@ match. None of that is disputed; this draft cites and builds on it.
 **The genuine gap only this draft fills:** structured **numeric** energy/carbon metrics
 served **live** at a **standardized, IANA-registered** path with **query semantics**
 (target/period/granularity), **formal schemas** (CDDL + JTD), and **must-ignore
-extensibility**. Verified negatives: the IANA well-known registry contains no
-sustainability/carbon/energy entry; GWF has never submitted an IETF draft and states no
-intent to (carbon.txt is deliberately a lightweight community convention, change-controlled
-by GWF); GREEN excludes the space; RFC 9547 explicitly calls for standardized,
-non-proprietary metrics.
+extensibility**. Verified negatives (2026-07-26): the IANA well-known registry contains no
+sustainability/carbon/green/energy/ESG entry; GWF has never submitted an IETF draft
+(carbon.txt is deliberately a lightweight community convention, change-controlled by GWF —
+though GWF did request provisional registration of `carbon.txt` directly with the registry
+in July 2026, issue #103, which validates the well-known pattern for this space rather
+than contesting this draft's slice of it); GREEN excludes the space; RFC 9547 explicitly
+calls for standardized, non-proprietary metrics.
 
 **The strongest case against this draft, stated honestly — and its rebuttal:**
 1. *"A second well-known location fragments a tiny ecosystem."* — The formats are layers,
-   not rivals: carbon.txt indexes documents; this serves numbers; the draft's
-   `disclosure-uri` points at carbon.txt and a carbon.txt can list this endpoint. The
-   reference implementation serves both, bidirectionally.
+   not rivals — carbon.txt's own maintainer publicly calls the two "broadly complementary"
+   and notes carbon.txt "contains no quantitative metrics" (IRTF sustain list, July 2026):
+   carbon.txt indexes documents; this serves numbers; the draft's `disclosure-uri` points
+   at carbon.txt and a carbon.txt can list this endpoint. The reference implementation
+   serves both, bidirectionally.
 2. *"Data availability, not format, is the bottleneck — almost nobody has per-origin
    numbers to publish."* — Producers are arriving by regulation (EU datacentre reporting,
    CSRD) and by tooling (cloud carbon dashboards, CO2.js, Boavizta); standardizing the
@@ -277,50 +284,66 @@ never positioning against it.
 
 ## 8. Possible objections — each pre-empted in the draft text
 
-*(-03 — the simplified omission-based data model, schema label `"2.0"` — is the latest
-posted revision, under ISE review; a -04 revision renaming the requested suffix to
-`sustainability-data` and adding the optional `target-type` member is prepared (not yet
-submitted), and strengthens rather than disturbs every answer below.)*
+*(Revision **-04** is the latest — being submitted; schema label `"2.0"`. It renames the
+requested suffix to `sustainability-data`, adds the optional `target-type` member, and
+applies a final audit round: a CORS recommendation (`Access-Control-Allow-Origin: *`) for
+browser clients, an all-or-none array rule for `target-type`, client tolerance for
+wrong-type/`null` values and for `sci-score` without `functional-unit`, a corrected legacy
+`target-path` attribution rule, a documented array cap, and a 200-OK requirement qualified
+for redirects, revalidation, and rate limiting. Every answer below reflects -04.)*
 
 | Objection | Answer (and where the draft already settles it) |
 |---|---|
 | "Methodologies differ; numbers aren't comparable." | The draft is explicitly a **discovery and semantics** layer, not a methodology mandate; `measurement-method` + `methodology-uri` disclose how each number was derived (§Goals and Non-Goals). |
-| "Self-declared data could be greenwashing." | The endpoint *asserts, it does not verify*, and says so: clients MUST NOT treat the document as proof; `verifiable-attestation-uri` and `disclosure-uri` link to independent evidence; and a minimum-reporting floor guarantees "real numbers, or a machine-followable pointer to them" (§Security; since -03, §Value Constraints and Omitted Metrics ties that floor to the mandatory `methodology-uri`). |
-| "What can a client actually rely on?" | A stable location, a fixed JSON shape with fixed unit vocabularies, machine-detectable not-reported semantics, a scope-attribution echo for path-scoped responses (the optional `target-path` member in the historical -02; the mandatory `target` reporting-subject member — plus the optional `target-type` classification hint in -04 — since -03), and deterministic array rules — exactly what aggregators, crawlers, and procurement tooling lack today. |
-| "A query API on a well-known URI?" | WebFinger precedent; permitted by RFC 8615 §3; the parameters are optional with a mandatory no-parameter Basic fallback, and -02 fully specifies every parameter interaction (single-object rule, aggregation-or-404, array conditions) — no underspecified corners left (§Optional Extended Query Parameters). |
-| "The generic name 'sustainability' is registry squatting." | Resolved head-on in the prepared -04: the requested suffix is now **`sustainability-data`**, naming the specific registered application (a machine-readable data document of sustainability metrics) rather than claiming the generic term — exactly the RFC 8615 §3 precision expectation the ISE raised (no IANA action had occurred on the earlier name, so no migration is needed). The metadata remains genuinely site-wide (origin-level) — the exact pattern well-known URIs exist for; resource scoping uses a query parameter, not path segments; and the IANA section says registration is sought for interoperable discovery, **not** to signal endorsement (§IANA Considerations). |
+| "Self-declared data could be greenwashing." | The endpoint *asserts, it does not verify*, and says so: clients MUST NOT treat the document as proof; `verifiable-attestation-uri` and `disclosure-uri` link to independent evidence; and a minimum-reporting floor guarantees "real numbers, or a machine-followable pointer to them" — with the pointed-to methodology resource required to be publicly retrievable (§Security; §Value Constraints and Omitted Metrics ties that floor to the mandatory `methodology-uri`). |
+| "What can a client actually rely on?" | A stable location, a fixed JSON shape with fixed unit vocabularies, omission-based not-reported semantics with defined tolerance for defective values, a mandatory `target` reporting-subject member (plus the optional `target-type` classification hint), a scope-attribution echo for path-scoped responses, and deterministic array rules — exactly what aggregators, crawlers, and procurement tooling lack today. |
+| "A query API on a well-known URI?" | WebFinger precedent; permitted by RFC 8615 §3; the parameters are optional with a mandatory no-parameter Basic fallback, and every parameter interaction is fully specified (single-object rule, aggregation-or-404 no-data rule, array conditions, malformed vs unrecognized values) — no underspecified corners left (§Optional Extended Query Parameters). |
+| "The generic name 'sustainability' is registry squatting." | Resolved head-on in -04: the requested suffix is **`sustainability-data`**, naming the specific registered application (a machine-readable data document of sustainability metrics) rather than claiming the generic term — exactly the RFC 8615 §3 precision expectation the ISE raised (no IANA action had occurred on the earlier name, so no migration is needed; the complete naming case is §12). The metadata remains genuinely origin-level — the exact pattern well-known URIs exist for; resource scoping uses a query parameter, not path segments; and the IANA section says registration is sought for interoperable discovery, **not** to signal endorsement (§IANA Considerations). |
 | "Permanent status isn't justified for an ISE doc." | Agreed — the draft requests **provisional** outright, with the RFC 8615 promotion path noted. There is nothing to downgrade (§IANA Considerations). |
-| "Version fields are an extensibility anti-pattern." | The -02 `version` member is an informational label with no negotiation or conformance semantics; clients MUST NOT reject or branch on it. Extensibility is must-ignore + open schemas (RFC 9457 model), so the frozen RFC covers all future fields without a bis and without a new IANA registry (§Versioning and Extensibility). |
-| "Privacy: fingerprinting / traffic analysis / path disclosure." | 24-hour granularity floor; optional ~1% noise pinned to generation time, deterministic per period, consistent across related fields (so caching/ETags and internal sums survive); `target` honored only for a published prefix allowlist so the endpoint cannot be used to enumerate paths (§Privacy Considerations). |
-| "DoS via dynamic aggregation or cache-busting query strings." | 366-object cap with defined most-recent-first truncation; rate-limiting and precompute guidance; the same target allowlist bounds the cache key space, defeating unique-query cache-busting (§Security Considerations). |
+| "An RFC freezes the schema; version fields are an extensibility anti-pattern." | The `version` member is an informational label with no negotiation or conformance semantics — clients MUST NOT reject or branch on it — and its value space is under change control (new labels only via a revising RFC). Extensibility is must-ignore + open schemas (RFC 9457 model) plus a reserved undotted member namespace with reverse-domain extension names (per RFC 6648), so the frozen RFC covers all future fields without a bis and without a new IANA registry (§Versioning and Extensibility). |
+| "Privacy: fingerprinting / traffic analysis / path disclosure." | 24-hour granularity floor; optional ~1% noise pinned to generation time, deterministic per period, ratio-preserving across related fields, and range-respecting (so caching/ETags and internal consistency survive); `target` honored only for a published prefix allowlist so the endpoint cannot be used to enumerate paths (§Privacy Considerations). |
+| "DoS via dynamic aggregation or cache-busting query strings." | A documented array cap is mandatory (366 RECOMMENDED) with defined most-recent-first truncation; rate-limiting and precompute guidance; the target allowlist bounds the cache key space, defeating unique-query cache-busting; and a Consumer Considerations section bounds the client side against hostile servers (§Security Considerations). |
 | "Missing HTTP references." | RFC 9110 (HTTP Semantics, STD 97) and RFC 9111 (Caching) are normative references, cited at every status-code, `Allow`, `ETag`/conditional-request, and caching statement. |
-| "Does it belong in GREEN or SUSTAIN?" | Neither venue takes it: GREEN's charter excludes carbon accounting/reporting and app-layer discovery; SUSTAIN defers standardization to the IETF. The ISE exists precisely for this profile, and the IANA registration needs only Specification Required regardless (see §7). |
+| "Does it belong in GREEN or SUSTAIN?" | Neither venue takes it: GREEN's charter *explicitly excludes* the carbon accounting and reporting of sustainability data; SUSTAIN defers standardization to the IETF and itself steered this draft to an independent publication path (sustain list, July 2026). The ISE exists precisely for this profile, and the IANA registration needs only Specification Required regardless (see §7). |
 | "Should it register a media type?" | Not required — security.txt registered none; the draft deliberately reuses `application/json` + I-JSON and says so in the registration's Related Information. A structured-suffix type (`application/sustainability+json`) remains possible later without breaking anything, if the expert prefers it. |
 | "Why an RFC instead of a community convention?" | The Well-Known URIs registry is IANA's, and its policy is Specification Required — a stable, citable spec is the entry ticket. An Independent-stream Informational RFC is the lightest instrument that clears that bar, exactly as RFC 9116 did. |
 | "Isn't this just for websites?" | No — a well-known URI is scoped to an HTTP(S) origin (RFC 8615), not to "a website." IoT/embedded devices already use the analogous convention for discovery (CoAP's `/.well-known/core`, registered by RFC 6690); a blockchain RPC gateway or validator dashboard is an ordinary HTTP origin. Separately, the data model reports the *entity* (`provider`), not the box: EU MiCA already mandates near-identical fields (consensus-mechanism energy, renewable share, per-transaction intensity, GHG emissions) for crypto-asset issuers — an entity, not a website (§3). |
+| "No cryptographic assurance — anyone can publish numbers." | True of every well-known URI, including security.txt, and the draft says so normatively: clients MUST NOT treat the document as proof of any claim (§Trust and Spoofing). Verification composes on top — `verifiable-attestation-uri` carries signed W3C Verifiable Credentials, `disclosure-uri` reaches audited filings — and no wire format can conjure assurance in-band (§7.3). |
+| "Doesn't carbon.txt already cover this?" | No — its own maintainer calls the two "broadly complementary": carbon.txt is a TOML *index of where disclosures live* and "contains no quantitative metrics"; this endpoint serves the *numeric metrics themselves*, with query semantics and formal schemas. They cross-reference bidirectionally, and both registrations are now before the same registry (§7.1, §7.3, §13). |
+| "One individual author — no institutional weight." | The registry requires a stable specification, not an institution: `ecips` is a registered individual-author provisional, and the expert's documented standard for durability is exactly an Independent Stream RFC (issue #80). What an RFC adds — collision protection, a citable stable reference, public change control — is the remedy for single-author fragility, not a casualty of it (§7.3, §13). |
+| "Well-known namespace pollution — not every topic needs an entry." | The registry exists to prevent ad-hoc path squatting, and already hosts purpose-specific entries far narrower than this (`hosting-provider`, `trust.txt`, `funding-manifest-urls`, `broadband-labels`, `tor-relay`). One provisional row, vetted by the designated expert and removable per RFC 8615 §3.1 if unused, is the system working as designed — the pollution risk is *unregistered* paths, not registered ones (§13). |
+| "Regulation already mandates disclosure — this is redundant." | Regulation mandates *what* to disclose, not a machine-discoverable *where*: CSRD/ESRS output is annual, document-shaped, and filed at regulator portals. This URI makes the same numbers continuous, queryable, and comparable at the origin — the delivery surface the mandates lack, not a competing regime (§3). |
+| "Nobody will adopt it." | The chicken-and-egg is precisely what provisional status is for: cheap to grant, removable if unused, promotable once in broad use (RFC 8615 §3.1). Publishers are being created by regulation (CSRD, MiCA, EU datacentre reporting) and by tooling (the two open reference implementations here reduce publishing to a config file); security.txt started from zero deployments and is now a permanent entry (§7.3, §13). |
 
 ## 9. Readiness evidence (in this repository)
 
-- Posted draft at **draft-besleaga-sustainability-wellknown-03** (Datatracker, 2026-07-23),
-  under ISE review (Independent Submission; continues and replaces the
-  -00–-05 series, with the datatracker "Replaces" relationship recorded); a **-04** revision
-  renaming the requested suffix to `sustainability-data` and adding the optional
-  `target-type` member is prepared (not yet submitted). Both build strict-clean (`xml2rfc --strict`, 0 warnings; idnits
-  **0 errors**); all references verified against authoritative sources, none unused.
-- **Two full pre-submission audit rounds**: a five-stream web-verified ISE-readiness audit
+- Draft at **draft-besleaga-sustainability-wellknown-04** — the latest revision, being
+  submitted; the prior -03 (posted to the Datatracker 2026-07-23) is under ISE review as
+  an Independent Submission. The series continues and replaces the
+  draft-besleaga-green-sustainability-wellknown -00–-05 series, with the Datatracker
+  "Replaces" relationship recorded. Revisions build strict-clean (`xml2rfc --strict`,
+  0 warnings; idnits **0 errors**); all references verified against authoritative sources,
+  none unused.
+- **Three full pre-submission audit rounds**: a five-stream web-verified ISE-readiness audit
   (registry landscape, reference integrity, extensibility, ecosystem positioning,
-  mailing-list precedent) and a three-reviewer adversarial pass (technical consistency,
-  datatracker readiness, hostile-implementer) — every confirmed finding fixed in -02, as
+  mailing-list precedent); a three-reviewer adversarial pass (technical consistency,
+  datatracker readiness, hostile-implementer), with every confirmed finding fixed in -02;
+  and a final correctness + editorial round fixed in -04 (CORS recommendation, qualified
+  200-OK, wrong-type/`null` and `sci-score` tolerance rules, legacy `target-path`
+  attribution fix, all-or-none array `target-type`, documented array cap, and consolidation
+  of duplicated normative statements to single owning locations). All findings are
   reflected in the current draft text and the CI checks below.
-- **Dual formal schemas** (JTD + CDDL) with independent Python and Ruby validators —
-  5 repository examples and 6 in-draft examples, each passing both independent validators.
-- A **production reference gateway** (TypeScript, a 100+-test suite — plus a reference client with its own 100+-test suite) with adapters for
+- **Dual formal schemas** (JTD + CDDL) with two independent validation toolchains (the
+  Python `jtd` package; the Ruby `cddl` gem) — 5 repository examples and 6 in-draft
+  examples, each passing both validators.
+- A **production reference gateway** (TypeScript, a 120-test suite, all passing) with adapters for
   static/computed, Kepler/Prometheus, Climatiq, CO2.js and the carbon.txt hosted API
   (Green Web Foundation), Salesforce NZC, Microsoft Sustainability Manager, and Watershed —
   every adapter's output validates against both schemas, and the gateway enforces the
   draft's MUSTs that schemas cannot express (sci-score/functional-unit coupling, array
   ordering and uniformity, single-object response rules, deterministic noise).
-- A **reference client** (`consumer/`, TypeScript, also published to npm as
+- A **reference client** (`consumer/`, TypeScript, a 127-test suite, all passing; also
+  published to npm as
   `sustainability-wellknown-consumer`) that complements the publisher: it fetches,
   defensively validates, transforms (CSV/NDJSON/flatten/trend), and conformance-checks a
   document from any origin. It is interop-tested in-process against a live `Publisher`,
@@ -355,8 +378,8 @@ submitted), and strengthens rather than disturbs every answer below.)*
 > CSRD/ESRS-E1, GHG Protocol, and ISO/IEC 21031:2024, composes with — rather than competes
 > with — the Green Web Foundation's carbon.txt, stays deliberately clear of the IETF GREEN
 > WG's network-layer scope, follows the security.txt and WebFinger precedents, and arrives
-> with a working reference implementation, dual independent validators, and two recorded
-> audit rounds. Approving it is low-cost, low-risk, and reversible; the uniform transparency
+> with two interoperating reference implementations, dual independent validators, and three
+> recorded audit rounds. Approving it is low-cost, low-risk, and reversible; the uniform transparency
 > surface it creates is high-value and otherwise missing.
 
 ## 12. The name: why `sustainability-data` — the complete registration-name case
@@ -445,25 +468,28 @@ model of the specification:
    standard (issue #80). Publication and registration resolve each other — there is
    no remaining circular dependency once the ISE proceeds.
 5. **It composes with, rather than competes with, the adjacent ecosystem.** The Green
-   Web Foundation's carbon.txt (its own registration pending) is a discovery index
-   that "contains no quantitative metrics" (its maintainer's public description on
-   the IRTF SUSTAIN list, July 2026); this document publishes the metrics themselves,
-   and the two specs cross-reference each other bidirectionally (`disclosure-uri`
-   one way, a carbon.txt disclosure entry the other). Approving both gives the
-   ecosystem a complete, non-overlapping pair.
+   Web Foundation's carbon.txt (its own registration pending, issue #103) is a
+   discovery index that its maintainer publicly describes as "broadly complementary"
+   to this work and as containing "no quantitative metrics" (IRTF sustain list, July
+   2026); this document publishes the metrics themselves, and the two specs
+   cross-reference each other bidirectionally (`disclosure-uri` one way, a carbon.txt
+   disclosure entry the other; the full no-conflict map is §7). Approving both gives
+   the ecosystem a complete, non-overlapping pair.
 6. **The venue is procedurally correct and verified.** The IETF GREEN WG charter
    *explicitly excludes* "the carbon accounting and reporting protocol to measure,
    manage, and report greenhouse gas emissions and other sustainability-related
-   data"; the IRTF SUSTAIN RG discussed the draft at IETF 126 and steered it to an
-   independent publication path. The Independent Submission Stream is not a fallback
-   here — it is the *only* correct home, which also makes the RFC 5742 conflict
-   review outcome predictable ("does not conflict with IETF work").
+   data"; the IRTF SUSTAIN RG discussed the draft and steered it to an independent
+   publication path (chair guidance on the sustain list, July 2026). The Independent
+   Submission Stream is not a fallback here — it is the *only* correct home, which
+   also makes the RFC 5742 conflict review outcome predictable ("does not conflict
+   with IETF work"; process detail in §10).
 7. **Running code, both sides of the wire.** Two interoperating reference
-   implementations (publisher with ten adapters; consumer/validator), dual
-   independent schema validators (JTD and CDDL), 250+ automated tests, real
-   nginx/Apache deployment configurations verified in CI, and every example in the
-   draft validated against both schemas on every commit. Few well-known registrations
-   arrive with this much implementation evidence.
+   implementations (publisher with nine adapters; consumer/validator), dual
+   independent schema validators (JTD and CDDL), 247 automated tests (120 publisher +
+   127 consumer, all passing, verified 2026-07-26), real nginx/Apache deployment
+   configurations exercised in CI, and every example in the draft validated against
+   both schemas on every commit (details in §9). Few well-known registrations arrive
+   with this much implementation evidence.
 8. **Regulatory demand is real and growing.** EU CSRD/ESRS E1, the ESPR Digital
    Product Passport, MiCA's crypto-asset energy disclosures, and ISO/IEC 21031:2024
    (SCI) all require or formalize exactly the kind of quantitative disclosure this
@@ -475,12 +501,13 @@ model of the specification:
    space, the reserved undotted member namespace with reverse-domain extension
    naming (per RFC 6648's guidance), and the schema-tolerance rules mean new members,
    new vendors, and even future revisions can arrive without breaking a single
-   deployed client — and without any new IANA machinery to maintain.
+   deployed client — and without any new IANA machinery to maintain (§2, §8).
 10. **Approval is low-cost and reversible; refusal has a real cost.** One provisional
     row in an existing registry, no new registry, no new media type, no protocol
     change. If the convention fails to gain use, the entry is removable per §3.1. If
     it is not registered, the predictable alternative is ad-hoc, incompatible
-    unregistered paths — the exact outcome the well-known registry exists to prevent.
+    unregistered paths — the exact outcome the well-known registry exists to prevent
+    (cost analysis in §1).
 
 ### 12.4 Verified sources for this section
 
@@ -498,3 +525,39 @@ model of the specification:
   https://mailarchive.ietf.org/arch/browse/sustain/
 - RFC 6648 (extension-naming guidance), RFC 9547 (e-impact gap), RFC 9727 / RFC 9511 /
   RFC 9472 (descriptive-compound registration precedents) — rfc-editor.org
+
+## 13. IANA precedent: how similar registrations fared, and how this one compares
+
+All registry facts verified against the live IANA registry and the
+`protocol-registries/well-known-uris` review repository on 2026-07-26 (sources as in
+§12.4). §6 covers *design* precedent inside published specs; this section covers
+registration *outcomes* — what the registry has accepted, declined, and parked, and what
+each case teaches about this request.
+
+| Registration | Vehicle / status | One-line lesson |
+|---|---|---|
+| **security.txt** | RFC 9116 (Informational); registered, **permanent** | The closest analog — an origin-level, operator-asserted disclosure file backed by an Informational RFC — holds a permanent entry. The template this request follows. |
+| **sbom** | RFC 9472; registered | Supply-chain transparency metadata at a well-known path: disclosure for a niche audience is an accepted registry use. |
+| **api-catalog** | RFC 9727; registered | A per-origin machine-readable catalog document under a descriptive compound name — the naming pattern -04 adopts. |
+| **probing.txt** | RFC 9511; registered | A narrowly scoped operator-declaration file: narrow scope is no barrier when the spec is stable. |
+| **mta-sts.txt** | RFC 8461; registered | Operator-declared policy whose trust model is assertion plus out-of-band verification — the same trust posture as this draft. |
+| **gpc.json**, **change-password** | W3C specs; registered **provisional** | Provisional is the normal working status for specs from outside the IETF stream — a workable grant, not a demotion. |
+| **ecips** | Individual author; registered **provisional** | Individually authored provisional registrations exist; the registry demands a stable specification, not an institution. |
+| **`ai`** (issue #80) | **Declined** | Rejected for a bare generic word plus an unstable single-owner spec — with the expert explicitly naming "an Independent Stream RFC" as an acceptable durable vehicle for resubmission. Those two defects are precisely what -04 fixed: a descriptive compound (`sustainability-data`) and an Independent Stream RFC as the stable reference. |
+| **carbon.txt** (issue #103) | **Pending** provisional request (Green Web Foundation, 2026-07-22) | The complementary sibling: an index of where disclosures live, carrying no quantitative metrics (§7.1). Its arrival shows the intake actively receiving sustainability-adjacent requests; approving both yields a complete, non-overlapping pair. |
+
+**Where this request stands.** Issue #95 — the `sustainability-data` request — is open,
+labeled "waiting for stable reference"; the designated expert's only comment is "Parking
+until adopted on a stream." That is not skepticism about the name, the mechanism, or the
+topic — it is the registry's standard stable-reference gate, and publication as an
+Independent Stream RFC is the expert's own documented answer to it (issue #80).
+Publication and registration therefore resolve each other, as §12.3 argues; and because
+the registry contains no sustainability/carbon/green/energy/ESG entry, the request
+collides with nothing.
+
+**Conclusion.** `sustainability-data` follows the security.txt pattern point for point:
+a descriptive compound name, an origin-level operator-asserted disclosure document, an
+Informational RFC as the stable specification, and — the honest ask for an
+Independent-stream document — a provisional entry promotable to permanent as use grows.
+Both failure modes the registry has actually exercised in this territory — generic
+naming and unstable specifications — are already engineered out.

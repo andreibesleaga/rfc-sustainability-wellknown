@@ -100,6 +100,26 @@ This is enough for a cron job, a build step, or feeding a static-file deployment
 `ETag`/conditional requests, CORS, caching headers) as a plain function returning
 `{ status, headers, body }` — wire it into any request/response model:
 
+**CORS**: per the final -04 draft, successful responses SHOULD include
+`Access-Control-Allow-Origin: *` (WebFinger practice, so browser-based
+aggregators can read the public document). `handleRequest`, both middlewares,
+and the standalone server emit the header on **every** response — 200/304 and
+the 404/405/503 error statuses alike, so cross-origin clients can read errors
+too. Set the `cors` option to another value or `false` to override.
+
+**Query-parameter tolerance** (`parseQuery`, applied identically by every entry
+point, per the draft's §Optional Extended Query Parameters):
+
+- an unrecognized value of the enumerated `granularity` parameter (e.g.
+  `granularity=weekly`) is **ignored** — the request proceeds as if the
+  parameter were absent (so no array can be returned for it);
+- a malformed `period` (anything other than `YYYY`, `YYYY-MM`, `YYYY-MM-DD`) is
+  **ignored** and the rest of the request processed — the draft's
+  "400-or-ignore" choice is exercised as *ignore*, which also collapses
+  attacker-varied malformed values onto the default cache entry;
+- `granularity` **without** `period` is valid and applies to the default period
+  of the Basic service (a trend-serving adapter then yields an array).
+
 ```ts
 import { Publisher, handleRequest, parseQuery, computedAdapter } from "sustainability-wellknown-publisher";
 

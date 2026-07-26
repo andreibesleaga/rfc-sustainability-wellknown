@@ -64,8 +64,8 @@ function validateDocument(doc) {
     // sentinel.ts (the legacy-compatibility module).
     // Draft §Payload Format: array entries MUST be sorted ascending by
     // reporting-period, MUST NOT overlap, and MUST share the same period
-    // precision and the same target value (and, when present, the same
-    // target-type value).
+    // precision and the same target value; target-type MUST be either present
+    // in every entry with the same value or absent from every entry.
     if (Array.isArray(doc) && doc.length > 1 && errors.length === 0) {
         const entries = doc;
         const periods = entries.map((m) => String(m["reporting-period"] ?? ""));
@@ -82,13 +82,14 @@ function validateDocument(doc) {
         if (new Set(entries.map((m) => m.target)).size > 1) {
             errors.push("array entries carry differing target values");
         }
-        // target-type is optional: "when present, the same target-type value"
-        // (-04) — the entries that carry it must agree on one value. An entry
-        // without the member is not penalized (absence just means unclassified,
-        // matching the tolerance rule under which a disregarded value reads as
-        // absent).
-        const targetTypes = new Set(entries.map((m) => m["target-type"]).filter((v) => v !== undefined));
-        if (targetTypes.size > 1) {
+        // target-type is ALL-OR-NONE across an array (-04 final): "`target-type`
+        // MUST be either present in every entry with the same value or absent
+        // from every entry" — mixed presence is invalid, not just mixed values.
+        const withType = entries.filter((m) => m["target-type"] !== undefined);
+        if (withType.length > 0 && withType.length < entries.length) {
+            errors.push("target-type must be present in every array entry or absent from every entry (mixed presence)");
+        }
+        else if (new Set(withType.map((m) => m["target-type"])).size > 1) {
             errors.push("array entries carry differing target-type values");
         }
     }

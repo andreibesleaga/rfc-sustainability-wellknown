@@ -9,7 +9,8 @@ publishes — complementing [`publisher/`](../publisher/), this repo's reference
 discover → fetch → validate → transform → use. The document just arrived from an
 arbitrary origin, so it is schema-validated (RFC 8927 JTD) **and** checked against
 the draft's cross-entry array rules (ascending, non-overlapping, uniform
-precision/target/target-type) before it's ever handed to caller code — a non-conformant server
+precision/target; `target-type` all-or-none — present in every entry with the same
+value or absent from every entry) before it's ever handed to caller code — a non-conformant server
 is the normal case for early ecosystem adoption, not a hypothetical. Built
 basic-first and M2M-oriented: every API is one line to call from a script (a cron
 job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad input.
@@ -21,10 +22,14 @@ job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad in
 > (the energy/carbon quartet is optional, with default units `kWh`/`gCO2e`; -04
 > adds the enumerated `target-type` hint classifying the `target` subject), the
 > renamed `carbon-intensity-gCO2e-per-kWh`/`estimated-annual-emissions-kgCO2e`
-> members, and the draft's field-driven tolerance rules (out-of-range numerics
-> and unrecognized enumerated values read as "not reported"/"disregarded", never
-> as a rejection). The published **0.1.0** implements the earlier -02 (`"1.1"`)
-> model.
+> members, and the draft's field-driven tolerance rules (out-of-range numerics,
+> wrong-JSON-typed values including `null`, a reported `sci-score` without
+> `functional-unit`, and unrecognized enumerated values all read as "not
+> reported"/"disregarded", never as a rejection). A legacy 1.x document without
+> `target` gets its reporting subject from the historical `target-path` member's
+> value when present, and from the origin host only when neither member exists;
+> a received empty array reads as conveying no report. The published **0.1.0**
+> implements the earlier -02 (`"1.1"`) model.
 
 ## Install & build
 
@@ -72,9 +77,9 @@ the transformation helpers, disclosure-link handling, and the conformance checke
 | `types` | `SustainabilityMetrics`/`SustainabilityDocument`, `FetchParams`, `FetchResult`, `EnergyUnit`, `CarbonUnit`, `TargetType` — wire-format types mirroring the draft's field set |
 | `schema` | `RESPONSE_JTD_SCHEMA` — the JTD (RFC 8927) schema for a single metrics object, an exact embedded copy of `schemas-validators/response-schema.json` |
 | `validate` | `validateDocument()`/`assertValid()` — defensive validation of an incoming document: JTD schema gate plus the draft's cross-entry array rules |
-| `fetch` | `fetchSustainability(origin, options)` — the one-call, zero-extra-dependency fetch-and-validate function; its `legacyCompat` option (default true) treats a document without `target` as origin-wide and disregards (strips + records in `disregarded`) an unrecognized `target-type` value, per the draft's compatibility/tolerance rules |
+| `fetch` | `fetchSustainability(origin, options)` — the one-call, zero-extra-dependency fetch-and-validate function; its `legacyCompat` option (default true) derives a missing `target` from the legacy `target-path` value (origin host only when neither exists), disregards (strips + records in `disregarded`) wrong-JSON-typed optional members, a reported `sci-score` without `functional-unit`, and unrecognized `target-type` values, and returns the distinct `no-report` status for a 200 empty array, per the draft's compatibility/tolerance rules |
 | `client` | `SustainabilityClient` — a class for repeated polling, with ETag-based conditional-request caching (threads `legacyCompat` through) |
-| `sentinel` | `isNotReported()`, `withoutSentinels()`, `NUMERIC_KEYS`, `TARGET_TYPES`, `isRecognizedTargetType()` — the legacy-compatibility/tolerance module: a negative value in a non-negative member reads as "not reported" (subsumes the historical 1.x sentinel — negative scopes are real data and are never stripped), and an unrecognized enumerated `target-type` value reads as "disregard the member" (draft §Value Constraints and Omitted Metrics) |
+| `sentinel` | `isNotReported()`, `withoutSentinels()`, `NUMERIC_KEYS`, `TARGET_TYPES`, `isRecognizedTargetType()`, `isWrongJsonType()`, `legacyReportingSubject()`, `OPTIONAL_MEMBER_JSON_TYPES` — the legacy-compatibility/tolerance module: a negative value in a non-negative member reads as "not reported" (subsumes the historical 1.x sentinel — negative scopes are real data and are never stripped), a wrong-JSON-typed value (including `null`) in a defined optional member reads as "not reported", an unrecognized enumerated `target-type` value reads as "disregard the member" (draft §Value Constraints and Omitted Metrics), and `legacyReportingSubject()` resolves a 1.x document's subject from `target-path` (origin host as the fallback) |
 | `units` | `convertEnergy()`, `convertCarbon()` — unit conversion, matching `publisher/src/normalize.ts`'s tables exactly (parity-tested) |
 | `transform` | `toCsvRows()`, `toNdjson()`, `flatten()`, `aggregate()` — format transformations for a validated document |
 | `disclosure` | `resolveDisclosureLinks()` (passive), `fetchDisclosure()` (explicit opt-in) — disclosure/attestation link helpers |

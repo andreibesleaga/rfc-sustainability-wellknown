@@ -9,6 +9,7 @@ This **README.md** provides your development team with the technical specificati
 * **Protocol**: The resource SHOULD be served over **HTTPS** to ensure integrity.
 * **HTTP Method**: Servers MUST respond to `GET` requests (and `HEAD`); other methods SHOULD receive `405 Method Not Allowed` with `Allow: GET, HEAD`.
 * **Media Type**: Successful (`200 OK`) responses MUST use the `application/json` media type.
+* **CORS**: Successful responses SHOULD include `Access-Control-Allow-Origin: *` (the document is public and intended for browser-based clients; follows WebFinger practice).
 * **Status Codes**:
     * `200 OK`: Successful retrieval of metadata.
     * `404 Not Found`: Should be used if no metadata is available.

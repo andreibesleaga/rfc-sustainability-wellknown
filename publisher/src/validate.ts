@@ -159,12 +159,16 @@ export function validateDocument(doc: SustainabilityDocument): ValidationResult 
     if (new Set(doc.map((m) => m.target ?? "")).size > 1) {
       errors.push("array entries carry differing target values");
     }
-    // Draft -04 §Payload Format: entries MUST share the same target-type
-    // value when present (absence on some entries is fine).
-    const targetTypes = new Set(
-      doc.map((m) => m["target-type"]).filter((t) => t !== undefined),
-    );
-    if (targetTypes.size > 1) {
+    // Draft -04 §Payload Format (final): target-type is ALL-OR-NONE across an
+    // array — "MUST be either present in every entry with the same value or
+    // absent from every entry". Mixed presence is invalid, not just mixed
+    // values.
+    const withType = doc.filter((m) => m["target-type"] !== undefined);
+    if (withType.length > 0 && withType.length < doc.length) {
+      errors.push(
+        "target-type must be present in every array entry or absent from every entry (mixed presence)",
+      );
+    } else if (new Set(withType.map((m) => m["target-type"])).size > 1) {
       errors.push("array entries carry differing target-type values");
     }
   }

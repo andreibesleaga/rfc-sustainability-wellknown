@@ -5,7 +5,16 @@
  * (net accounting) and must never be stripped.
  */
 import { describe, expect, it } from "vitest";
-import { isNotReported, withoutSentinels, NUMERIC_KEYS, TARGET_TYPES, isRecognizedTargetType } from "../src/sentinel";
+import {
+  isNotReported,
+  withoutSentinels,
+  NUMERIC_KEYS,
+  TARGET_TYPES,
+  isRecognizedTargetType,
+  isWrongJsonType,
+  legacyReportingSubject,
+  OPTIONAL_MEMBER_JSON_TYPES,
+} from "../src/sentinel";
 import { SustainabilityMetrics } from "../src/types";
 
 function baseDoc(overrides: Partial<SustainabilityMetrics> = {}): SustainabilityMetrics {
@@ -179,6 +188,69 @@ describe("-04: isRecognizedTargetType (the enumerated-member tolerance predicate
     expect(isRecognizedTargetType(42)).toBe(false);
     expect(isRecognizedTargetType(null)).toBe(false);
     expect(isRecognizedTargetType(undefined)).toBe(false);
+  });
+});
+
+describe("final -04: isWrongJsonType (wrong-JSON-type tolerance predicate)", () => {
+  it("covers every draft-defined OPTIONAL member with its expected JSON type", () => {
+    expect(Object.keys(OPTIONAL_MEMBER_JSON_TYPES).sort()).toEqual(
+      [
+        "energy-consumption",
+        "energy-unit",
+        "carbon-footprint",
+        "carbon-unit",
+        "carbon-accounting",
+        "scope-1",
+        "scope-2",
+        "scope-3",
+        "sci-score",
+        "functional-unit",
+        "carbon-intensity-gCO2e-per-kWh",
+        "estimated-annual-emissions-kgCO2e",
+        "renewable-energy",
+        "verifiable-attestation-uri",
+        "disclosure-uri",
+        "target-type",
+      ].sort(),
+    );
+    // Mandatory members are deliberately NOT covered (stripping one could
+    // never make the document processable).
+    for (const mandatory of ["version", "updated", "capabilities", "provider", "measurement-method", "methodology-uri", "reporting-period", "target"]) {
+      expect(OPTIONAL_MEMBER_JSON_TYPES).not.toHaveProperty(mandatory);
+    }
+  });
+
+  it("flags the wrong JSON type, including null, for numeric and string members", () => {
+    expect(isWrongJsonType("carbon-footprint", "345")).toBe(true);
+    expect(isWrongJsonType("carbon-footprint", null)).toBe(true);
+    expect(isWrongJsonType("carbon-footprint", true)).toBe(true);
+    expect(isWrongJsonType("carbon-footprint", {})).toBe(true);
+    expect(isWrongJsonType("energy-unit", 5)).toBe(true);
+    expect(isWrongJsonType("energy-unit", null)).toBe(true);
+  });
+
+  it("accepts the right JSON type, absence, and unknown members", () => {
+    expect(isWrongJsonType("carbon-footprint", 345)).toBe(false);
+    expect(isWrongJsonType("energy-unit", "kWh")).toBe(false);
+    expect(isWrongJsonType("carbon-footprint", undefined)).toBe(false); // absent, not wrong-typed
+    expect(isWrongJsonType("com.example.pue", "anything")).toBe(false); // unknown member: ignore-unknown rule
+    expect(isWrongJsonType("target", null)).toBe(false); // mandatory member: out of scope
+  });
+});
+
+describe("final -04: legacyReportingSubject (target-path attribution)", () => {
+  it("uses the target-path VALUE as the reporting subject when present", () => {
+    expect(legacyReportingSubject({ "target-path": "/api/v1" }, "example.com")).toBe("/api/v1");
+  });
+
+  it("falls back to the origin host when target-path is absent (origin-wide report)", () => {
+    expect(legacyReportingSubject({}, "example.com")).toBe("example.com");
+  });
+
+  it("falls back to the origin host for a wrong-typed or empty target-path", () => {
+    expect(legacyReportingSubject({ "target-path": 42 }, "example.com")).toBe("example.com");
+    expect(legacyReportingSubject({ "target-path": null }, "example.com")).toBe("example.com");
+    expect(legacyReportingSubject({ "target-path": "" }, "example.com")).toBe("example.com");
   });
 });
 

@@ -20,7 +20,7 @@ per-request responses), see "Optional: dynamic Extended service" below.
 | `Content-Type: application/json` | ✓ | ✓ | MUST |
 | `Cache-Control: max-age=86400` | ✓ | ✓ | RECOMMENDED |
 | `ETag` / `Last-Modified` | auto (on by default) | auto (static files) | RECOMMENDED |
-| `Access-Control-Allow-Origin: *` | ✓ | ✓ | allows aggregators |
+| `Access-Control-Allow-Origin: *` | ✓ | ✓ | SHOULD (on successful responses; WebFinger practice) |
 | GET/HEAD only; others get `405` + `Allow: GET, HEAD` | ✓ (named location) | ✓ (ErrorDocument) | SHOULD |
 | Rate limiting | commented out | commented out | RECOMMENDED |
 

@@ -96,6 +96,9 @@ jobs:
           sleep 1
           status=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8099/.well-known/sustainability-data)
           [ "$status" = "200" ] || { echo "::error::expected 200, got $status"; exit 1; }
+          # Draft §2 (-04): successful responses SHOULD carry CORS.
+          ok=$(curl -s -D - -o /dev/null http://127.0.0.1:8099/.well-known/sustainability-data)
+          echo "$ok" | grep -qi "^Access-Control-Allow-Origin: \*" || { echo "::error::expected Access-Control-Allow-Origin: * on 200"; exit 1; }
           post=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8099/.well-known/sustainability-data)
           # nginx's 405 reason phrase is "Not Allowed" (Apache's is "Method Not
           # Allowed"); match the numeric status code to stay server-agnostic.
@@ -132,6 +135,9 @@ jobs:
           sleep 1
           status=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8098/.well-known/sustainability-data)
           [ "$status" = "200" ] || { echo "::error::expected 200, got $status"; exit 1; }
+          # Draft §2 (-04): successful responses SHOULD carry CORS.
+          ok=$(curl -s -D - -o /dev/null http://127.0.0.1:8098/.well-known/sustainability-data)
+          echo "$ok" | grep -qi "^Access-Control-Allow-Origin: \*" || { echo "::error::expected Access-Control-Allow-Origin: * on 200"; exit 1; }
           post=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8098/.well-known/sustainability-data)
           echo "$post" | grep -qE "^HTTP/[0-9.]+ 405" || { echo "::error::expected 405, got:"; echo "$post" | head -1; exit 1; }
           allow_count=$(echo "$post" | grep -ci "^Allow:")

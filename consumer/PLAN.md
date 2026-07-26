@@ -322,5 +322,5 @@ verbatim. Where they conflict, this section governs.*
   only skips negatives for the non-negative members and applies the default
   units; `aggregate` handles sparse documents (skips non-reporting entries,
   no `NaN` averages, omits unreported metrics from the summary).
-- **Versioning:** consumer 0.2.0 implements the -03/"2.0" model; the published
+- **Versioning:** consumer 0.4.0 implements the -04/"2.0" model; the published
   0.1.0 implements -02/"1.1".

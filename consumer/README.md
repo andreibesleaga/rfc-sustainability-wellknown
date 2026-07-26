@@ -15,7 +15,7 @@ is the normal case for early ecosystem adoption, not a hypothetical. Built
 basic-first and M2M-oriented: every API is one line to call from a script (a cron
 job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad input.
 
-> **Version note:** consumer **0.2.0** (this tree) implements the **-04** draft
+> **Version note:** consumer **0.4.0** (this tree) implements the **-04** draft
 > revision's `"2.0"` wire format — the renamed `/.well-known/sustainability-data`
 > URI (earlier revisions requested the suffix `sustainability`), 8 mandatory
 > fields (including the free-form `target` reporting subject), 16 optional fields

@@ -12,7 +12,7 @@ IANA well-known URI registration requested ([protocol-registries/well-known-uris
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 
-(current draft v04; previous draft v02: [v0.1.0-draft-02](https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/v0.1.0-draft-02). overall system document with diagrams: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md)).
+(previous drafts are release tagged and in internet-drafts folder. overall system document with diagrams: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md)).
 
 ---
 

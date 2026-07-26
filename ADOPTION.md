@@ -14,6 +14,35 @@ media type, no protocol change) and unlocks disproportionate value across regula
 industry, and the environment. Two interoperating reference implementations (publisher and
 consumer) and dual independent validators already exist.
 
+## What this defines (summary)
+
+A universal `/.well-known/sustainability-data` URI that lets any organization or service
+publish aggregated energy-consumption and carbon-footprint metrics in a minimal, human-
+and machine-readable, backward- and forward-compatible JSON format. In brief:
+
+- **One fixed URL per origin** (RFC 8615): a plain HTTPS GET returns a schema-validated
+  JSON document — no new protocol, media type, or central authority.
+- **Origin vs. target:** the *origin* is **where** the document is published; the
+  mandatory `target` member declares **what** the metrics are about — the origin itself
+  in the common case, or equally an organization, a resource path, a cloud tenant, a
+  device, or a data source (classified by the optional `target-type` hint).
+- **Any HTTP origin can publish** — not just conventional websites: IoT/embedded devices
+  (the pattern CoAP's `/.well-known/core`, RFC 6690, already proves) and Web3/blockchain
+  infrastructure (an RPC gateway or validator endpoint is an ordinary origin), as well as
+  corporate portals publishing *entity-level* regulatory figures (CSRD and analogues;
+  MiCA's crypto-asset energy disclosures match the schema's optional fields exactly).
+- **A minimal, formally specified data model:** 8 mandatory + 16 optional members with
+  dual formal schemas (CDDL, RFC 8610; JTD, RFC 8927), wire-level unit defaults
+  (`kWh`/`gCO2e`), strict-publisher/tolerant-client rules, and omission as the only
+  "not reported" mechanism.
+- **Claims arrive with their basis attached:** a mandatory methodology link plus optional
+  signed-attestation and disclosure-index links (e.g., a carbon.txt file) make the data
+  checkable and comparable rather than a bare marketing claim.
+- **Frozen text, open ecosystem:** the must-ignore rule, collision-proof reverse-domain
+  extension members, and change-controlled version labels let any future metric or vendor
+  extension arrive without touching the RFC or IANA — and keep historical documents
+  readable.
+
 ## 1. Why it is safe and cheap to approve
 
 | Concern | Reality |

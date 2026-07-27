@@ -61,7 +61,7 @@ Sustainability data about digital services exists today — inside enterprise ca
 
 * **Nothing in the IETF/IRTF space defines this.** No active or expired Internet-Draft or RFC specifies an application-layer sustainability disclosure format or well-known URI: the GREEN WG *excludes* carbon accounting and reporting by charter (its scope is network-device YANG management), and the adjacent expired drafts (sustainability-insights, green-metrics) were network-telemetry proposals with no disclosure endpoint. This draft is the only proposal of its kind on the Datatracker.
 * **The nearest neighbor is complementary, not competing.** carbon.txt (Green Web Foundation) is a discovery *index* — a TOML file of links to disclosure documents that, in its own maintainer's words, "contains no quantitative metrics." This proposal publishes the metrics themselves; the two specs cross-reference each other by design.
-* **First in the registry's history.** The IANA Well-Known URIs registry has never contained a sustainability, carbon, green, energy, or ESG entry, and this registration request (issue #95, June 2026) is the first sustainability-related request ever filed there — it creates the category's anchor rather than joining a crowd.
+* **First in the registry.** The IANA Well-Known URIs registry has never contained a sustainability, carbon, green, energy, or ESG entry, and no other sustainability-related request was found in the registry's public review queue — this registration request (issue #95, June 2026) creates the category's anchor rather than joining a crowd.
 * **Everything else is proprietary, regulated-filing-shaped, or advisory.** Enterprise carbon platforms (Salesforce, Microsoft, Watershed) expose per-vendor, authenticated APIs with incompatible shapes; regulatory formats (ESRS/XBRL filings, the DPP) are entity-level compliance documents, not web-discoverable machine endpoints; the W3C's Web Sustainability Guidelines are guidance, not a data format. None of them gives an arbitrary consumer a fetchable, validated document at a known URL.
 * **Most complete by construction.** No other effort combines, in one specification: fixed-location discovery *and* the quantitative metrics themselves; a declared reporting subject that spans organizations, sites, paths, devices, cloud tenants, and products; a mandatory methodology link plus optional signed attestations; dual formal schemas (CDDL + JTD); full security *and* privacy treatment (DoS caps, path-disclosure defense, fingerprinting noise, consumer hardening); explicit legacy compatibility and collision-proof extensibility; and two interoperating open-source implementations with 276 automated tests proving both sides of the wire. It arrives not as an idea but as a finished, running system.
 * **Future-compatible with everything — by design, not by promise.** The must-ignore rule plus open schemas mean any future metric (water use, hardware lifecycle, embodied carbon, whatever the next regulation demands) can be added by anyone, immediately, without touching the RFC or IANA: vendors extend today via collision-proof reverse-domain member names (`com.example.pue`), future revisions extend via the reserved undotted namespace, and the change-controlled `version` label records provenance without ever gating processing. The same tolerance rules that absorb the future also absorb the past — historical 1.x documents remain readable by current clients. Publishing the RFC freezes the text, not the ecosystem: nothing that matters is locked in, and no deployed client is ever stranded.
@@ -115,7 +115,7 @@ rfc-sustainability-wellknown/
 ├── publisher/               # Production publisher/gateway (TypeScript): adapters → conformant /.well-known/sustainability-data
 ├── consumer/                # Reference client (TypeScript): fetch, validate, transform a /.well-known/sustainability-data document
 ├── discovery/               # Product discovery: market scan, opportunity, problem, requirements, PRD, spec
-├── sfc-compliance/              # SFC framework compliance matrix (relationship to the ACM SFC framework)
+├── sfc-compliance/              # SFC framework alignment (relationship to the ACM SFC framework)
 └── ADOPTION.md              # The case for RFC/IANA adoption (business, technical, regulatory benefits)
 
 ```
@@ -324,7 +324,7 @@ same lifecycle against the current (schema-`2.0`-model) sources.
 ## Discovery & SFC compliance
 
 * [discovery/](discovery/) — product discovery suite (market scan, opportunity assessment, problem statement, requirements, PRD, technical spec) framing the gateway against the enterprise carbon-accounting ecosystem, plus [a deep-research companion to the draft](discovery/07-greenweb-carbontxt-integration.md) on the Green Web Foundation / carbon.txt / CO2.js integration.
-* [sfc-compliance/SFC.md](sfc-compliance/SFC.md) — additional optional appendix on how this draft and the publisher relate to the Sustainability-First Consensus (SFC) framework, with a field-level compliance matrix.
+* [sfc-compliance/SFC.md](sfc-compliance/SFC.md) — additional optional appendix on how this draft and the publisher relate to the Sustainability-First Consensus (SFC) framework, with a field-level mapping (article concept → draft member).
 
 
 ## CHANGELOG

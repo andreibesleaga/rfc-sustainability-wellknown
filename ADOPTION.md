@@ -347,7 +347,7 @@ never positioning against it.
 
 ## 8. Possible objections — each pre-empted in the draft text
 
-*(Revision **-04** is the latest — being submitted; schema label `"2.0"`. It renames the
+*(Revision **-04** is the latest — posted to the Datatracker, under ISE review; schema label `"2.0"`. It renames the
 requested suffix to `sustainability-data`, adds the optional `target-type` member, and
 applies a final audit round: a CORS recommendation (`Access-Control-Allow-Origin: *`) for
 browser clients, an all-or-none array rule for `target-type`, client tolerance for
@@ -380,9 +380,9 @@ for redirects, revalidation, and rate limiting. Every answer below reflects -04.
 
 ## 9. Readiness evidence (in this repository)
 
-- Draft at **draft-besleaga-sustainability-wellknown-04** — the latest revision, being
-  submitted; the prior -03 (posted to the Datatracker 2026-07-23) is under ISE review as
-  an Independent Submission. The series continues and replaces the
+- Draft at **draft-besleaga-sustainability-wellknown-04** — the latest revision, posted
+  to the Datatracker and under ISE review as an Independent Submission (the prior -03 was
+  posted 2026-07-23). The series continues and replaces the
   draft-besleaga-green-sustainability-wellknown -00–-05 series, with the Datatracker
   "Replaces" relationship recorded. Revisions build strict-clean (`xml2rfc --strict`,
   0 warnings; idnits **0 errors**); all references verified against authoritative sources,
@@ -399,13 +399,13 @@ for redirects, revalidation, and rate limiting. Every answer below reflects -04.
 - **Dual formal schemas** (JTD + CDDL) with two independent validation toolchains (the
   Python `jtd` package; the Ruby `cddl` gem) — 5 repository examples and 6 in-draft
   examples, each passing both validators.
-- A **production reference gateway** (TypeScript, a 120-test suite, all passing) with adapters for
+- A **production reference gateway** (TypeScript, a 128-test suite, all passing) with adapters for
   static/computed, Kepler/Prometheus, Climatiq, CO2.js and the carbon.txt hosted API
   (Green Web Foundation), Salesforce NZC, Microsoft Sustainability Manager, and Watershed —
   every adapter's output validates against both schemas, and the gateway enforces the
   draft's MUSTs that schemas cannot express (sci-score/functional-unit coupling, array
   ordering and uniformity, single-object response rules, deterministic noise).
-- A **reference client** (`consumer/`, TypeScript, a 127-test suite, all passing; also
+- A **reference client** (`consumer/`, TypeScript, a 148-test suite, all passing; also
   published to npm as
   `sustainability-wellknown-consumer`) that complements the publisher: it fetches,
   defensively validates, transforms (CSV/NDJSON/flatten/trend), and conformance-checks a
@@ -413,6 +413,24 @@ for redirects, revalidation, and rate limiting. Every answer below reflects -04.
   exercising the full produce→fetch→validate→transform lifecycle — so the repository ships
   **two independent, interoperating implementations** (producer and consumer), not just one.
 - CI that rebuilds the draft and cross-validates generated documents.
+
+- **Independent research-framework symbiosis (a working correctness example).** The draft
+already serves as the disclosure layer for an independently defined, ACM accepted-to-be-published
+evaluation framework: Sustainability-First Consensus (SFC, DOI 10.1145/3809296) sets
+measurable sustainability criteria for distributed-ledger systems — an annualized energy
+cap, hardware-lifecycle responsibility, GHG Scope 2/3 carbon accountability, and
+CSRD/ESG-compatible auditability — and that last criterion is satisfied *directly* by
+publishing a conformant `/.well-known/sustainability-data` document, while the energy cap
+becomes mechanically checkable from the document's own members (an annual
+`reporting-period` with `energy-consumption` < 1 and `energy-unit: "GWh"`). The
+field-level mapping is worked out member-by-member in
+[sfc-compliance/SFC.md](sfc-compliance/SFC.md) and implemented by the reference
+publisher's adapters and unit normalization — evidence of two things reviewers care
+about: the schema is expressive enough to carry an external framework's requirements
+without any extension to the specification, and the draft functions as neutral
+infrastructure that independent research and evaluation frameworks (not just this
+author's) can build on. One RFC, many frameworks — the well-known document is the common
+disclosure surface they all lack today.
 
 ## 10. Process fit: the Independent Submission Stream
 
@@ -548,8 +566,8 @@ model of the specification:
    with IETF work"; process detail in §10).
 7. **Running code, both sides of the wire.** Two interoperating reference
    implementations (publisher with nine adapters; consumer/validator), dual
-   independent schema validators (JTD and CDDL), 247 automated tests (120 publisher +
-   127 consumer, all passing, verified 2026-07-26), real nginx/Apache deployment
+   independent schema validators (JTD and CDDL), 276 automated tests (128 publisher +
+   148 consumer, all passing, verified 2026-07-27), real nginx/Apache deployment
    configurations exercised in CI, and every example in the draft validated against
    both schemas on every commit (details in §9). Few well-known registrations arrive
    with this much implementation evidence.

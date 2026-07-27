@@ -90,8 +90,8 @@ conformant units.
 - Concrete engineering artifacts sometimes associated with SFC deployments (attestation
   event schemas, `/v1/sustainability/*` service APIs, conformance-check suites) are
   **implementation examples, not part of the SFC framework as published** — one such
-  example profile lives in the author's `awesome-blockchain-greentech` collection. Nothing
-  in this repo or the draft depends on them.
+  example profile lives in the author's `awesome-blockchain-greentech` [Innovative Projects](https://github.com/andreibesleaga/awesome-blockchain-greentech/tree/main/Innovative%20Projects)
+  collection. Nothing in this repo or the draft depends on them.
 
 ## 5. One-line summary
 

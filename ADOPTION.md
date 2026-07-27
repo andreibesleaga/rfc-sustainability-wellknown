@@ -36,14 +36,14 @@ and machine-readable, backward- and forward-compatible JSON format. In brief:
   (`kWh`/`gCO2e`), strict-publisher/tolerant-client rules, and omission as the only
   "not reported" mechanism.
 - **Claims arrive with their basis attached:** a mandatory methodology link plus optional
-  signed-attestation and disclosure-index links (e.g., a carbon.txt file) make the data
+  signed-attestation and disclosure-index links (e.g., a .txt file) make the data
   checkable and comparable rather than a bare marketing claim.
 - **Frozen text, open ecosystem:** the must-ignore rule, collision-proof reverse-domain
   extension members, and change-controlled version labels let any future metric or vendor
   extension arrive without touching the RFC or IANA — and keep historical documents
   readable.
 
-**Why (what it solves).** Sustainability data exists — in enterprise carbon platforms,
+**Why (what it solves).** Sustainability data exists — in enterprise  platforms,
 PDF reports, and regulatory filings — but there is no universally known location to
 publish it and no common machine-readable shape to consume it, so every consumer needs a
 bespoke per-provider integration and most build none. This convention solves three gaps
@@ -54,7 +54,7 @@ their methodology and attestations attached, checkable and comparable).
 **Why now.** The regulatory disclosure wave (CSRD/ESRS E1, MiCA's energy-disclosure
 mandate, the ESPR Digital Product Passport) means the numbers are being produced *this
 year* — while the IAB's own e-impact report (RFC 9547) documents the missing data,
-carbon-aware tooling and AI/M2M consumers need machine-readable inputs, and fragmentation
+-aware tooling and AI/M2M consumers need machine-readable inputs, and fragmentation
 into ad-hoc per-vendor endpoints is already underway. A neutral anchor is cheap to agree
 now and expensive to converge on later; the well-known registry contains no
 sustainability entry at all today.
@@ -94,7 +94,7 @@ fragmentation.
 
 ## 2. Technical benefits
 
-- **Discovery, finally.** Gives carbon the `robots.txt` / `security.txt` (RFC 9116) pattern:
+- **Discovery, finally.** Gives organization's sustainability data the `robots.txt` (RFC 9116) pattern:
   a predictable URL clients, crawlers, proxies, and aggregators can rely on.
 - **Out-of-band by design.** Avoids the "rebound effect" of per-request carbon headers —
   the metadata does not add to the footprint it reports, and it caches cleanly (ETag, 24h).

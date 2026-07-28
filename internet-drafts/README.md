@@ -9,7 +9,23 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 Well-Known URI* — the Datatracker document name is unchanged).
 Individual submission on the IETF **Independent Submission Stream** (Informational).
 
-- **`-04`** is the **latest** revision — posted to the Datatracker and under Independent
+- **`-05`** has been **prepared** (built, not posted) in response to the ISE's initial
+  review of `-04`. It makes no change to the wire format: no member is added, removed,
+  renamed, or retyped, the CDDL and JTD schemas are unchanged, and every document
+  conformant to `-04` remains conformant to this revision. It removes the sentence in
+  the `disclosure-uri` definition that named a Green Web Foundation carbon.txt file as
+  the canonical example and cited the unregistered paths `/carbon.txt` and
+  `/.well-known/carbon.txt` (at the reviewer's request not to encourage squatting on
+  unregistered well-known names) — `disclosure-uri` is now format-agnostic and
+  location-agnostic, and carbon.txt remains cited, without any path reference, as
+  complementary work; adds an Internationalization Considerations section (BCP 18 /
+  RFC 2277) classifying every member as a protocol element or as text; states the
+  calendar-period rationale in-document and cross-references `reporting-period` to the
+  `period` parameter; recognizes the calendar year as the common Basic-service
+  reporting cycle; and folds the Caching subsection into Operational Considerations.
+  See the draft's own "Since -04" changelog appendix. **`-05` is not posted to the
+  Datatracker; `-04` remains the currently posted revision.**
+- **`-04`** is the **latest posted** revision — on the Datatracker and under Independent
   Submissions Editor (ISE) review. It renames the requested well-known URI suffix
   from `sustainability` to `sustainability-data` (following ISE feedback on the precision
   expectations of RFC 8615, Section 3), adds the OPTIONAL `target-type` member classifying
@@ -18,13 +34,13 @@ Individual submission on the IETF **Independent Submission Stream** (Information
   rule, and corrects the CDDL root (`[+ ...]`); it also folds in a final correctness and
   editorial audit round. See the draft's own "Since -03" changelog appendix.
 - **`-03`** (historical) was posted to the Datatracker 2026-07-23. It was a **breaking
-  data-model revision** (schema label `"2.0"`, unchanged in `-04`): the negative "not
+  data-model revision** (schema label `"2.0"`, unchanged in `-04`/`-05`): the negative "not
   reported" sentinel is removed in favor of member omission,
   `energy-consumption`/`energy-unit`/`carbon-footprint`/
-  `carbon-unit` become optional (with default units), a mandatory free-form `target`
-  member identifies the reporting subject (replacing the optional `target-path`), two
-  carbon members are renamed to the CO2e convention, and `capabilities` is redefined to
-  describe Extended query-parameter support only.
+  `carbon-unit` become optional (with default units), a mandatory `target` member — an
+  opaque identifier compared octet-for-octet — identifies the reporting subject (replacing
+  the optional `target-path`), two carbon members are renamed to the CO2e convention, and
+  `capabilities` is redefined to describe Extended query-parameter support only.
 
 | File | Role |
 |---|---|

@@ -1,0 +1,20 @@
+{
+  "version": "2.0",
+  "updated": "2026-01-12T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Edge Networks (ops@edge.example)",
+  "measurement-method": "hardware-metered",
+  "methodology-uri": "https://edge.example/device-metering-methodology",
+  "reporting-period": "2025",
+  "target": "edge-node-014.edge.example",
+  "energy-consumption": 184,
+  "energy-unit": "kWh",
+  "carbon-footprint": 46,
+  "carbon-unit": "kgCO2e",
+  "carbon-accounting": "location-based",
+  "carbon-intensity-gCO2e-per-kWh": 250,
+  "renewable-energy": 20,
+  "disclosure-uri": "https://edge.example/disclosures",
+  "target-type": "device",
+  "com.example.pue": 1.15
+}

@@ -10,5 +10,5 @@
   "carbon-footprint": 4200,
   "carbon-accounting": "location-based",
   "scope-2": 4200,
-  "disclosure-uri": "https://partial.example/.well-known/carbon.txt"
+  "disclosure-uri": "https://partial.example/disclosures"
 }

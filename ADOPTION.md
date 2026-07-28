@@ -85,7 +85,7 @@ safe to ingest without negotiation).
 | New media type / IANA burden? | **No new media type.** One entry in the existing "Well-Known URIs" registry — the same footprint as security.txt (RFC 9116). |
 | Registration bar | The registry's policy is **Specification Required** (RFC 8615 §3.1) — which includes designated-expert review per RFC 8126 and is designed exactly for stable specs like this; no WG/RG adoption is required. |
 | Registry status requested | **Provisional** — the honest ask for an Independent Submission per RFC 8615 §3.1, and what the designated expert assigns to comparable new entries (gpc.json, change-password, ecips); explicitly promotable to permanent once in broad use. No over-claim for the expert to push back on. |
-| Security/privacy reviewed? | Yes — dedicated Security and Privacy sections (DoS caps + bounded query key space, trust/spoofing, greenwashing, traffic-analysis floor, path-disclosure allowlist, deterministic fingerprinting noise, TLS). |
+| Security/privacy reviewed? | Yes — dedicated Security and Privacy sections (DoS caps + bounded query key space, trust/spoofing, greenwashing, traffic-analysis floor, path-disclosure allowlist, deterministic fingerprinting noise, TLS), plus a dedicated Internationalization Considerations section (BCP 18/RFC 2277 protocol-element vs. text classification, added in the prepared `-05` revision). |
 | Maintenance risk | Minimal: open, forward-compatible schemas (unknown members permitted; clients MUST ignore them) with an informational version label — future fields need **no revision of the RFC** and no new IANA registry. |
 | Implementation risk | A production reference gateway + dual independent validators already pass end-to-end (see §9). |
 
@@ -116,8 +116,9 @@ fragmentation.
   (no in-band sentinel; a member present always carries a real value); clients tolerate
   rather than reject defective values (wrong JSON type, `null`, out-of-range, `sci-score`
   without `functional-unit`); and field-driven compatibility rules keep historical 1.x
-  documents processable. A mandatory free-form `target` member names the reporting subject
-  (origin host, path prefix, entity, tenant, or carbon.txt-listed site), classified by an
+  documents processable. A mandatory `target` member — an opaque identifier compared
+  octet-for-octet, never translated — names the reporting subject (origin host, path
+  prefix, entity, tenant, or data source), classified by an
   optional enumerated `target-type` hint
   (`origin`/`path`/`organization`/`service`/`product`/`device`/`tenant`/`data-source`)
   with unrecognized values tolerated. Browser consumers are served too: successful
@@ -138,8 +139,9 @@ fragmentation.
   needed for any of these; they gain the endpoint for free by implementing RFC 8615 like
   any web server would.
 - **The schema reports the entity, not just the box it runs on.** `provider` names "the
-  entity operating the origin" (not necessarily the hardware); `measurement-method` is
-  free-form; and the reference implementation's enterprise adapters (Salesforce Net Zero
+  entity operating the origin" (not necessarily the hardware); `measurement-method` is a
+  token with RECOMMENDED machine-matchable values, or otherwise a short human-readable
+  description; and the reference implementation's enterprise adapters (Salesforce Net Zero
   Cloud, Microsoft Sustainability Manager, Watershed) already populate documents from
   *organization-level* reporting platforms, not server telemetry. A single origin — a
   compliance subdomain, a corporate reporting portal — can therefore publish the numbers a
@@ -184,8 +186,9 @@ continuous, queryable, comparable data.
 ## 5. Ecosystem & environmental benefits
 
 - **Interoperates with existing real-world tooling.** The optional `disclosure-uri` field links
-  a metrics document to a machine-readable disclosure index — the canonical example being a
-  Green Web Foundation [carbon.txt](https://carbontxt.org/) file. The reference publisher
+  a metrics document to a machine-readable disclosure index — format- and location-agnostic;
+  the Green Web Foundation's [carbon.txt](https://carbontxt.org/) convention is one such form
+  among others, cited as complementary adjacent work. The reference publisher
   computes metrics from bytes with **CO2.js**, ingests a remote carbon.txt via the GWF **hosted
   API**, and can serve a **bidirectional carbon.txt** pointing back to `/.well-known/sustainability-data`.
   This complements the "well-known sustainability files" family (alongside security.txt/RFC 9116)
@@ -329,7 +332,8 @@ calls for standardized, non-proprietary metrics.
    standardization is the IETF's product — demonstrably not GWF's, by their own choice.
 
 **Concrete mutual-benefit plan (offered, not hypothetical):**
-- `disclosure-uri` → carbon.txt is already in the draft (their spec cited).
+- `disclosure-uri` can already point at a carbon.txt — one form among others the draft's
+  Relationship to Other Work section cites (their spec cited).
 - Propose, via GWF's open consultation process, a disclosure entry type by which a
   carbon.txt lists a `/.well-known/sustainability-data` endpoint — their index then *finds*
   these documents.
@@ -347,13 +351,18 @@ never positioning against it.
 
 ## 8. Possible objections — each pre-empted in the draft text
 
-*(Revision **-04** is the latest — posted to the Datatracker, under ISE review; schema label `"2.0"`. It renames the
+*(Revision **-04** is the latest posted revision — posted to the Datatracker, under ISE review; schema label `"2.0"`. It renames the
 requested suffix to `sustainability-data`, adds the optional `target-type` member, and
 applies a final audit round: a CORS recommendation (`Access-Control-Allow-Origin: *`) for
 browser clients, an all-or-none array rule for `target-type`, client tolerance for
 wrong-type/`null` values and for `sci-score` without `functional-unit`, a corrected legacy
 `target-path` attribution rule, a documented array cap, and a 200-OK requirement qualified
-for redirects, revalidation, and rate limiting. Every answer below reflects -04.)*
+for redirects, revalidation, and rate limiting. A follow-up revision, **-05**, has been
+prepared in response to the ISE's initial review — removing the carbon.txt-path reference
+from `disclosure-uri`, adding Internationalization Considerations, and recognizing the
+calendar year as the common Basic-service reporting cycle — and is ready to post but not
+yet submitted; `-04` remains the currently posted revision, and every answer below applies
+unchanged to `-05` (no wire-format change).)*
 
 | Objection | Answer (and where the draft already settles it) |
 |---|---|
@@ -380,9 +389,11 @@ for redirects, revalidation, and rate limiting. Every answer below reflects -04.
 
 ## 9. Readiness evidence (in this repository)
 
-- Draft at **draft-besleaga-sustainability-wellknown-04** — the latest revision, posted
-  to the Datatracker and under ISE review as an Independent Submission (the prior -03 was
-  posted 2026-07-23). The series continues and replaces the
+- Draft at **draft-besleaga-sustainability-wellknown-04** — the latest **posted**
+  revision, on the Datatracker and under ISE review as an Independent Submission (the
+  prior -03 was posted 2026-07-23). A follow-up **-05** revision has been prepared,
+  responding to the ISE's initial review, and is ready to post but not yet submitted —
+  `-04` remains the posted revision of record. The series continues and replaces the
   draft-besleaga-green-sustainability-wellknown -00–-05 series, with the Datatracker
   "Replaces" relationship recorded. Revisions build strict-clean (`xml2rfc --strict`,
   0 warnings; idnits **0 errors**); all references verified against authoritative sources,
@@ -397,7 +408,7 @@ for redirects, revalidation, and rate limiting. Every answer below reflects -04.
   of duplicated normative statements to single owning locations). All findings are
   reflected in the current draft text and the CI checks below.
 - **Dual formal schemas** (JTD + CDDL) with two independent validation toolchains (the
-  Python `jtd` package; the Ruby `cddl` gem) — 5 repository examples and 6 in-draft
+  Python `jtd` package; the Ruby `cddl` gem) — 14 repository examples and 6 in-draft
   examples, each passing both validators.
 - A **production reference gateway** (TypeScript, a 128-test suite, all passing) with adapters for
   static/computed, Kepler/Prometheus, Climatiq, CO2.js and the carbon.txt hosted API

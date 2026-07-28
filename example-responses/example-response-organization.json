@@ -1,0 +1,18 @@
+{
+  "version": "2.0",
+  "updated": "2025-07-15T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Illustrative mapping prepared by the draft author from a public report; not published or endorsed by the reporting subject",
+  "measurement-method": "hardware-estimated",
+  "methodology-uri": "https://cf-assets.www.cloudflare.com/slt3lc6tev37/2lg914L21Lyfpcya6weavX/6ded4e6ca673dbc1197c6b772a92aa29/Emission_inventory_PDF__2024.pdf",
+  "reporting-period": "2024",
+  "target": "Cloudflare, Inc.",
+  "carbon-footprint": 106051,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "location-based",
+  "scope-1": 198,
+  "scope-2": 62782,
+  "scope-3": 43071,
+  "disclosure-uri": "https://www.cloudflare.com/impact/",
+  "target-type": "organization"
+}

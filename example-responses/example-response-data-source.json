@@ -1,0 +1,19 @@
+{
+  "version": "2.0",
+  "updated": "2026-01-22T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Environmental Metrics Feed (data@metrics.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://metrics.example/feed-sustainability-methodology",
+  "reporting-period": "2025",
+  "target": "https://metrics.example/feeds/grid-sensor-network",
+  "energy-consumption": 3400,
+  "energy-unit": "kWh",
+  "carbon-footprint": 748,
+  "carbon-unit": "kgCO2e",
+  "carbon-accounting": "location-based",
+  "carbon-intensity-gCO2e-per-kWh": 220,
+  "renewable-energy": 82,
+  "disclosure-uri": "https://metrics.example/disclosures",
+  "target-type": "data-source"
+}

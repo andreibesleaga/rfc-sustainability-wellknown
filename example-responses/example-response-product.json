@@ -1,0 +1,20 @@
+{
+  "version": "2.0",
+  "updated": "2026-01-10T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Devices Ltd (sustainability@devices.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://devices.example/product-carbon-methodology",
+  "reporting-period": "2025",
+  "target": "Example Router Model RX-100 (GTIN 04012345678901)",
+  "carbon-footprint": 42.5,
+  "carbon-unit": "kgCO2e",
+  "carbon-accounting": "location-based",
+  "functional-unit": "per-unit-lifecycle",
+  "sci-score": 42500,
+  "energy-consumption": 55,
+  "energy-unit": "kWh",
+  "renewable-energy": 30,
+  "disclosure-uri": "https://devices.example/products/rx-100/digital-product-passport",
+  "target-type": "product"
+}

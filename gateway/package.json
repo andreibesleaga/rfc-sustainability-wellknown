@@ -1,0 +1,33 @@
+{
+  "name": "sustainability-wellknown-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-domain gateway that serves draft-conformant /.well-known/sustainability-data documents on behalf of many reporting subjects. Not published to npm.",
+  "license": "BSD-3-Clause",
+  "author": "Andrei Nicolae Besleaga",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "start": "node dist/index.js",
+    "dev": "npm run build && node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "sustainability-wellknown-publisher": "^0.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.6"
+  },
+  "overrides": {
+    "esbuild": "^0.28.1"
+  }
+}

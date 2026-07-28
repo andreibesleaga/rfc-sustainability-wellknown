@@ -1,6 +1,6 @@
 # SFC ↔ `/.well-known/sustainability-data` Alignment
 
-*How this Internet-Draft (revision -04) and its reference implementation relate to the
+*How this Internet-Draft and its reference implementation relate to the
 **Sustainability-First Consensus (SFC)** framework. Non-normative; the IETF draft does not
 cite or depend on SFC — this is an informational appendix showing that the two are fully
 compatible and mutually reinforcing.*
@@ -62,7 +62,7 @@ layers**, sharing the GHG Protocol vocabulary:
  └─────────────────────────┘          └───────────────────────────────────┘
 ```
 
-## 3. Field-level mapping (article concept → draft -04 member)
+## 3. Field-level mapping (article concept → draft member)
 
 | SFC concept (article) | Draft member(s) | Notes |
 |---|---|---|

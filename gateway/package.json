@@ -17,13 +17,15 @@
     "dev": "npm run build && node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "conformance": "node scripts/conformance.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "sustainability-wellknown-publisher": "^0.4.0"
+    "sustainability-wellknown-publisher": "^0.5.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "sustainability-wellknown-consumer": "^0.5.0",
     "typescript": "^5.7.2",
     "vitest": "^3.2.6"
   },

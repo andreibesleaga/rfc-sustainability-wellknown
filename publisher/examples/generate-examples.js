@@ -72,7 +72,7 @@ async function main() {
       gridZone: co2jsInputs.gridZone,
       greencheckFixture,
       renewableEnergy: 45,
-      disclosureUri: "https://example.com/.well-known/carbon.txt",
+      disclosureUri: "https://example.com/sustainability/disclosures",
       capabilities: "basic",
     }),
     "example.com",

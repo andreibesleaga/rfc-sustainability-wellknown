@@ -1,0 +1,21 @@
+{
+  "version": "2.0",
+  "updated": "2026-07-29T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Nicolae Besleaga (andrei.besleaga@ieee.org), from the reporting subject's own published 2024 Sustainability Report; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: Location-based basis, as published; the market-based total is 37,506 mtCO2e. energy-consumption covers equipment across the global PoP network and offices, which is the report's stated boundary.",
+  "measurement-method": "hardware-estimated",
+  "methodology-uri": "https://investors.fastly.com/files/doc_governance/2025/Nov/26/2024-Fastly-Sustainability-Report-290db1.pdf",
+  "reporting-period": "2024",
+  "target": "Fastly, Inc.",
+  "energy-consumption": 36179,
+  "energy-unit": "MWh",
+  "carbon-footprint": 46311,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "location-based",
+  "scope-1": 102,
+  "scope-2": 10987,
+  "scope-3": 35222,
+  "renewable-energy": 64.7,
+  "disclosure-uri": "https://www.fastly.com/social-impact/",
+  "target-type": "organization"
+}

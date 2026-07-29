@@ -184,9 +184,12 @@ Adapter `type` is one of: `static`, `static-file`, `computed`, `kepler-prometheu
 ### Bidirectional carbon.txt
 
 Set `server.carbonTxt` (or the `carbonTxt` option on the middleware) to also serve a
-[carbon.txt](https://carbontxt.org/) at `/carbon.txt` and `/.well-known/carbon.txt` whose
-first disclosure points back to this origin's `/.well-known/sustainability-data` — a two-way link
-with the Green Web Foundation disclosure ecosystem. `sustainability-publisher --config c.json
+[carbon.txt](https://carbontxt.org/) file at the locations that project's own specification
+defines for it, whose first disclosure points back to this origin's
+`/.well-known/sustainability-data` — a two-way link with the Green Web Foundation
+disclosure ecosystem. (Those paths are carbon.txt's convention, defined and registered by
+that project, not by this specification, which neither defines nor recommends any path
+for a disclosure index.) `sustainability-publisher --config c.json
 --emit-carbon-txt` prints the file. The `co2js` and `carbontxt-api` adapters and the
 carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@iarna/toml`
 (ISC); see [`NOTICE`](NOTICE) for the CO2.js grid-data attribution.
@@ -222,6 +225,15 @@ repo's **independent** Python (JTD) and Ruby (CDDL) validators in CI — see
 > draft -04, member names without a "." are reserved for the specification — name your
 > extension members using reverse-domain notation rooted in a domain you control (e.g.
 > `com.example.pue`), not an `X-`/`vendor-` prefix.
+
+## Verifying a deployment once it's live
+
+Once a server built with this publisher is deployed, verify it the same way any
+`/.well-known/sustainability-data` origin is verified — curl for headers/body plus the
+consumer's `--strict` conformance battery. See
+[consumer/README.md § Verify a live deployment](../consumer/README.md#verify-a-live-deployment)
+for the four commands and expected output (requires `sustainability-wellknown-consumer`
+0.5.0 or later — 0.4.0's CLI could not parse the documented invocation).
 
 ## License
 

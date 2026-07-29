@@ -8,17 +8,17 @@ exports.runConformanceChecks = runConformanceChecks;
  */
 const fetch_1 = require("./fetch");
 const fetch_2 = require("./fetch");
-async function check(name, fn) {
+async function check(name, level, fn) {
     try {
         const result = await fn();
         if (result === true)
-            return { name, pass: true };
+            return { name, level, pass: true };
         if (result === false)
-            return { name, pass: false };
-        return { name, pass: false, detail: result };
+            return { name, level, pass: false };
+        return { name, level, pass: false, detail: result };
     }
     catch (err) {
-        return { name, pass: false, detail: err instanceof Error ? err.message : String(err) };
+        return { name, level, pass: false, detail: err instanceof Error ? err.message : String(err) };
     }
 }
 async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, options = {}) {
@@ -34,7 +34,7 @@ async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, option
     // Raw probes get the same default timeout as fetchSustainability — a
     // hanging origin must not stall the battery on undici's ~5-minute defaults.
     const rawSignal = () => AbortSignal.timeout(timeoutMs ?? fetch_1.DEFAULT_TIMEOUT_MS);
-    checks.push(await check("Basic request returns a schema-valid single object", async () => {
+    checks.push(await check("Basic request returns a schema-valid single object", "MUST", async () => {
         const r = await (0, fetch_1.fetchSustainability)(origin, fetchOpts);
         if (r.status !== "ok")
             return `expected ok, got ${r.status}`;
@@ -42,7 +42,7 @@ async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, option
             return "Basic request MUST return a single object, not an array";
         return true;
     }));
-    checks.push(await check("Basic 200 response uses the application/json media type (MUST)", async () => {
+    checks.push(await check("Basic 200 response uses the application/json media type", "MUST", async () => {
         const res = await fetchImpl(new URL(fetch_2.WELL_KNOWN_PATH, origin).toString(), { method: "GET", signal: rawSignal() });
         // Drain the body so the socket is released promptly.
         await res.arrayBuffer().catch(() => undefined);
@@ -51,18 +51,18 @@ async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, option
         const ct = (res.headers.get("content-type") ?? "").toLowerCase().trimStart();
         return ct.startsWith("application/json") || `Content-Type is not application/json: "${res.headers.get("content-type") ?? ""}"`;
     }));
-    checks.push(await check("Response carries an ETag (RECOMMENDED)", async () => {
+    checks.push(await check("Response carries an ETag", "SHOULD", async () => {
         const r = await (0, fetch_1.fetchSustainability)(origin, fetchOpts);
         return r.status === "ok" && !!r.etag;
     }));
-    checks.push(await check("Conditional GET with a fresh ETag returns 304", async () => {
+    checks.push(await check("Conditional GET with a fresh ETag returns 304", "SHOULD", async () => {
         const first = await (0, fetch_1.fetchSustainability)(origin, fetchOpts);
         if (first.status !== "ok" || !first.etag)
             return "no ETag to test conditional request with";
         const second = await (0, fetch_1.fetchSustainability)(origin, { ...fetchOpts, ifNoneMatch: first.etag });
         return second.status === "not-modified" || `expected not-modified, got ${second.status}`;
     }));
-    checks.push(await check("A method other than GET/HEAD gets 405 with Allow", async () => {
+    checks.push(await check("A method other than GET/HEAD gets 405 with Allow", "SHOULD", async () => {
         const res = await fetchImpl(new URL(fetch_2.WELL_KNOWN_PATH, origin).toString(), { method: "POST", signal: rawSignal() });
         await res.arrayBuffer().catch(() => undefined);
         if (res.status !== 405)
@@ -70,7 +70,7 @@ async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, option
         const allow = res.headers.get("allow") ?? "";
         return allow.includes("GET") || `Allow header missing GET: "${allow}"`;
     }));
-    checks.push(await check("Extended granularity request returns a valid response (sorted array when honored)", async () => {
+    checks.push(await check("Extended granularity request returns a valid response (sorted array when honored)", "MUST", async () => {
         const r = await (0, fetch_1.fetchSustainability)(origin, { ...fetchOpts, period: new Date().getUTCFullYear().toString(), granularity: "monthly" });
         if (r.status === "not-found")
             return true; // server may have no data for this year; not a conformance failure
@@ -84,5 +84,10 @@ async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, option
         }
         return true; // shape/order already enforced by validateDocument() inside fetchSustainability
     }));
-    return { origin, checks, allPassed: checks.every((c) => c.pass) };
+    return {
+        origin,
+        checks,
+        allPassed: checks.every((c) => c.pass || c.level !== "MUST"),
+        allPassedIncludingRecommended: checks.every((c) => c.pass),
+    };
 }

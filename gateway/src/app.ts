@@ -20,6 +20,7 @@ import {
   renderIndexHtml,
   type IndexDocument,
 } from "./index-page";
+import { loadNoData, type NoDataEntry } from "./no-data";
 import { loadRegistry, subjectFromAdapter, type Subject } from "./registry";
 
 /** `/{domain}/.well-known/sustainability-data` — the primary route. */
@@ -35,6 +36,8 @@ export interface Gateway {
   subjects: Map<string, Subject>;
   /** The gateway's own report (`target-type: "service"`). */
   self: Subject;
+  /** Subjects known to publish nothing machine-readable, keyed by domain. */
+  noData: Map<string, NoDataEntry>;
   index: IndexDocument;
   indexHtml: string;
 }
@@ -83,7 +86,7 @@ async function serveDocument(
 
 /** Resolve one request to a fully-formed response. Exported for tests. */
 export async function route(
-  gw: Pick<Gateway, "config" | "subjects" | "self" | "index" | "indexHtml">,
+  gw: Pick<Gateway, "config" | "subjects" | "self" | "noData" | "index" | "indexHtml">,
   method: string,
   rawUrl: string,
   headers: { "if-none-match"?: string } = {},
@@ -147,7 +150,32 @@ export async function route(
     const subject =
       domain.length <= LIMITS.maxDomainLength ? gw.subjects.get(domain) : undefined;
     if (!subject) {
-      // Draft "no-data rule": nothing published for this subject -> 404.
+      // Draft "no-data rule": nothing published for this subject -> 404. For a
+      // subject the operator deliberately looked for and could not publish, the
+      // status is the same 404 but the body carries the finding and its
+      // evidence, so the absence is legible rather than indistinguishable from
+      // a typo.
+      const gap = domain.length <= LIMITS.maxDomainLength ? gw.noData.get(domain) : undefined;
+      if (gap) {
+        return withBody(
+          404,
+          { ...corsHeaders(), "Content-Type": "application/json", "Content-Language": "en" },
+          JSON.stringify(
+            {
+              status: 404,
+              error: "no sustainability metadata is published here for that reporting subject",
+              reason: gap.status,
+              entity: gap.entity,
+              finding: gap.finding,
+              evidence: gap.evidence,
+              ...(gap.see ? { see: `/${gap.see}${WELL_KNOWN_PATH}` } : {}),
+              checked: gap.checked,
+            },
+            null,
+            2,
+          ) + "\n",
+        );
+      }
       return jsonError(
         404,
         "no sustainability metadata is published here for that reporting subject",
@@ -165,6 +193,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   const log = opts.log ?? defaultLog;
 
   const subjects = await loadRegistry(config.dataDir);
+  const noData = loadNoData(config.dataDir);
 
   // ---- Worked adapter example #1: the gateway's own report, produced by the
   // published `computedAdapter` rather than hand-written. ----
@@ -203,13 +232,23 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   }
   subjects.set(keplerDemo.domain, keplerDemo);
 
-  const index = buildIndex(subjects.values(), self, config);
+  for (const domain of noData.keys()) {
+    if (subjects.has(domain)) {
+      throw new Error(
+        `gateway: ${domain} is listed in ${"_no-data.json"} but also has a data file — ` +
+          `a subject either publishes something or it does not`,
+      );
+    }
+  }
+
+  const index = buildIndex(subjects.values(), self, config, noData.values());
   const indexHtml = renderIndexHtml(index);
   const gw: Gateway = {
     server: undefined as unknown as Server,
     config,
     subjects,
     self,
+    noData,
     index,
     indexHtml,
   };

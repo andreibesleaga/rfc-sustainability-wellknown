@@ -118,7 +118,7 @@ function startServerWithContentType(contentType: string): Promise<string> {
 }
 
 describe("runConformanceChecks()", () => {
-  const CONTENT_TYPE_CHECK = "Basic 200 response uses the application/json media type (MUST)";
+  const CONTENT_TYPE_CHECK = "Basic 200 response uses the application/json media type";
 
   it("true negative: valid JSON served as text/html fails only the media-type check", async () => {
     // Body is valid JSON (so parsing/schema checks still pass), but the media
@@ -137,7 +137,7 @@ describe("runConformanceChecks()", () => {
     // Discrimination: the failure is specific to the media type; the body still
     // parses and validates, and the other wire checks still pass.
     expect(byName.get("Basic request returns a schema-valid single object")?.pass).toBe(true);
-    expect(byName.get("Response carries an ETag (RECOMMENDED)")?.pass).toBe(true);
+    expect(byName.get("Response carries an ETag")?.pass).toBe(true);
     expect(byName.get("Conditional GET with a fresh ETag returns 304")?.pass).toBe(true);
     expect(byName.get("A method other than GET/HEAD gets 405 with Allow")?.pass).toBe(true);
   });
@@ -153,6 +153,7 @@ describe("runConformanceChecks()", () => {
       expect(c.pass, `check "${c.name}" failed: ${c.detail ?? "(no detail)"}`).toBe(true);
     }
     expect(report.allPassed).toBe(true);
+    expect(report.allPassedIncludingRecommended).toBe(true);
   });
 
   it.runIf(hasPublisherDist)("true positive: a real, conformant publisher-backed server passes every check", async () => {
@@ -184,7 +185,10 @@ describe("runConformanceChecks()", () => {
 
     const report = await runConformanceChecks(origin);
 
-    expect(report.allPassed).toBe(false);
+    // Conditional GET is a SHOULD, so an origin that ignores it remains
+    // conformant; only the includes-recommended flag drops.
+    expect(report.allPassed).toBe(true);
+    expect(report.allPassedIncludingRecommended).toBe(false);
 
     const byName = new Map(report.checks.map((c) => [c.name, c]));
 
@@ -198,7 +202,7 @@ describe("runConformanceChecks()", () => {
     const basic = byName.get("Basic request returns a schema-valid single object");
     expect(basic?.pass).toBe(true);
 
-    const etagPresence = byName.get("Response carries an ETag (RECOMMENDED)");
+    const etagPresence = byName.get("Response carries an ETag");
     expect(etagPresence?.pass).toBe(true);
 
     const methodCheck = byName.get("A method other than GET/HEAD gets 405 with Allow");

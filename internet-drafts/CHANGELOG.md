@@ -4,7 +4,21 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
-### **Version 03 to Version 04 (`draft-besleaga-sustainability-wellknown`) — latest revision**
+### **Version 04 to Version 05 (`draft-besleaga-sustainability-wellknown`) — latest posted revision**
+
+Posted to the Datatracker 2026-07-28, responding to the Independent Submission Editor's initial review of `-04`. Makes no change to the wire format: no member is added, removed, renamed, or retyped, the CDDL and JTD schemas are unchanged, and every document conformant to `-04` remains conformant to this revision.
+
+* **Removed the carbon.txt-path reference from `disclosure-uri`:** at the reviewer's request not to encourage squatting on unregistered well-known names, removed the sentence naming a Green Web Foundation carbon.txt file as the canonical example and citing the unregistered paths `/carbon.txt` and `/.well-known/carbon.txt`. The member is now stated to be format-agnostic and location-agnostic — this document neither defines nor recommends any path for a disclosure index. The two example documents that used a `/.well-known/carbon.txt` value now use a neutral URI, and the `target` definition no longer refers to a carbon.txt-listed site. The carbon.txt convention remains cited, without any path reference, in Relationship to Other Work as adjacent and complementary work.
+* **Added an Internationalization Considerations section**, classifying every member per BCP 18 (RFC 2277), Section 2: member names, enumerated values, dates, URIs, `target`, and the RECOMMENDED `measurement-method` tokens are protocol elements compared octet-for-octet and never localized, while `provider`, `functional-unit`, a non-RECOMMENDED `measurement-method` description, and human-readable extension members are text, for which language is conveyed with `Content-Language` and MAY be negotiated with `Accept-Language` (with `Vary`), following the approach of RFC 9457.
+* **Removed the "free-form" characterization** from the running text: `measurement-method` is described as a token with RECOMMENDED values or otherwise a human-readable description, `target` as an opaque identifier compared octet-for-octet, and the `provider` string in Privacy Considerations as human-readable.
+* **Stated the calendar-period rationale in-document**: comparability across publishers, a bounded and canonical cache-key space, the reduced-precision calendar dates of ISO 8601 with vCard precedent, and the absence of a normative interval type in RFC 3339 — together with the migration path for offset reporting years and a note that an interval form could be added later as a compatible extension.
+* **Cross-referenced `reporting-period` and the `period` parameter explicitly** at the point of definition, so the parameter's specification and the rationale above are reachable from the member.
+* **Recognized the calendar year as the common reporting cycle**: the RECOMMENDED default period of the Basic service is now the period matching the publisher's own reporting cycle — a full calendar year for periodic, regulatory-style disclosure, or a full calendar month for publishers reporting more frequently. This relaxes a recommendation and invalidates no existing deployment.
+* **Editorial:** folded the single "Caching" subsection directly into Operational Considerations, which contained nothing else, so that section no longer has exactly one child. No normative text changed.
+
+---
+
+### **Version 03 to Version 04 (`draft-besleaga-sustainability-wellknown`) — prior posted revision**
 
 Retitles the document to **"The 'sustainability-data' Well-Known URI"** and renames the requested well-known URI suffix; adds one OPTIONAL member (`target-type`); tightens the extensibility rules; and folds in two final audit rounds (correctness + editorial). No schema-label change: documents built to `-04` still carry the informational label `"2.0"`.
 

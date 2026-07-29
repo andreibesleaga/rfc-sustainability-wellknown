@@ -1,0 +1,37 @@
+{
+  "_comment": [
+    "Subjects the gateway operator LOOKED FOR and could not honestly publish. This file is",
+    "not a Sustainability Metadata Document and is not served as one: the leading underscore",
+    "keeps it out of the subject registry. Its entries appear in the index (HTML and",
+    "index.json) under 'publishes no machine-readable data', and a request for one of these",
+    "subjects' documents returns 404 - the draft's no-data rule - with the finding in the body.",
+    "",
+    "This is deliberate. A registry that silently omits the organizations that publish nothing",
+    "would overstate how much of the web is measurable. The gap is the evidence."
+  ],
+  "subjects": [
+    {
+      "domain": "digitalocean.com",
+      "entity": "DigitalOcean Holdings, Inc.",
+      "status": "publishes-no-quantitative-data",
+      "finding": "No Scope 1/2/3, energy, or renewable figures exist in any primary source. The FY2025 Form 10-K (filed February 2026) contains zero occurrences of climate, greenhouse, carbon, emission, scope or sustainab. The investor ESG environmental page is qualitative only ('a relatively light environmental footprint'). A 2022 blog post says the company was 'currently working to determine our carbon baseline'; no baseline has been published since. The widely-quoted 'PUE averaging 1.15' is a community-forum answer by a user, not a company statement, and is not used here.",
+      "evidence": [
+        "https://investors.digitalocean.com/esg/environmental/",
+        "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001582961&type=10-K"
+      ],
+      "checked": "2026-07-29"
+    },
+    {
+      "domain": "github.com",
+      "entity": "GitHub, Inc.",
+      "status": "consolidated-into-parent",
+      "finding": "GitHub publishes no standalone GHG inventory. Its only company-environmental blog post (2021-04-22) states commitments with no Scope 1/2/3 figures and links no inventory document. GitHub is a wholly owned Microsoft subsidiary and falls inside Microsoft's consolidated operational-control reporting boundary, so its emissions are reported within Microsoft Corporation's inventory. Deriving GitHub-specific figures by apportioning Microsoft's totals would be an invention and is not done.",
+      "evidence": [
+        "https://github.blog/news-insights/company-news/environmental-sustainability-github/",
+        "https://aka.ms/SustainabilityFactsheet2026"
+      ],
+      "see": "microsoft.com",
+      "checked": "2026-07-29"
+    }
+  ]
+}

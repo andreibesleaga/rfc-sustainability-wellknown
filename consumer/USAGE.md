@@ -352,15 +352,26 @@ a single object, the 200 response uses the `application/json` media type (a
 draft MUST), the response carries an ETag, a conditional GET with that ETag
 returns `304`, a non-GET/HEAD method returns `405` with an `Allow` header, and
 an Extended `granularity` request returns a valid (sorted, schema-conformant)
-array. It's usable as a library, standalone of the CLI:
+array.
+
+Each check carries the BCP 14 strength of the requirement it tests in
+`check.level` (`"MUST"` or `"SHOULD"`), because the two are not equivalent
+verdicts: `report.allPassed` is true when every **MUST**-level check passed —
+that is the conformance verdict — while `report.allPassedIncludingRecommended`
+additionally requires every SHOULD. An origin on static hosting that returns
+`405` but cannot be configured to add an `Allow` header is conformant, and
+should not be reported as failing. Render a failed SHOULD as a warning:
 
 ```ts
 import { runConformanceChecks } from "sustainability-wellknown-consumer";
 
 const report = await runConformanceChecks("https://new-server-im-building.example.org");
 for (const c of report.checks) {
-  console.log(`${c.pass ? "PASS" : "FAIL"}  ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
+  const label = c.pass ? "PASS" : c.level === "MUST" ? "FAIL" : "WARN";
+  console.log(`${label}  [${c.level}] ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
 }
+// allPassed = MUST-level only; use allPassedIncludingRecommended to hold
+// yourself to the recommendations too.
 process.exitCode = report.allPassed ? 0 : 1;
 ```
 

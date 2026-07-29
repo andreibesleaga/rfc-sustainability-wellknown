@@ -9,7 +9,7 @@
       "green": false,
       "gridZone": "USA",
       "renewableEnergy": 45,
-      "disclosureUri": "https://example.com/.well-known/carbon.txt",
+      "disclosureUri": "https://example.com/sustainability/disclosures",
       "capabilities": "basic"
     }
   },

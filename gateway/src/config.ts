@@ -100,7 +100,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
       ),
       period: process.env.SELF_PERIOD || undefined,
       watts: envNum("SELF_WATTS", 3),
-      gridIntensity: envNum("SELF_GRID_INTENSITY", 369),
+      gridIntensity: envNum("SELF_GRID_INTENSITY", 373),
     },
   };
   return { ...base, ...overrides, self: { ...base.self, ...overrides.self } };

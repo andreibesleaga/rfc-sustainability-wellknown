@@ -85,7 +85,7 @@ safe to ingest without negotiation).
 | New media type / IANA burden? | **No new media type.** One entry in the existing "Well-Known URIs" registry — the same footprint as security.txt (RFC 9116). |
 | Registration bar | The registry's policy is **Specification Required** (RFC 8615 §3.1) — which includes designated-expert review per RFC 8126 and is designed exactly for stable specs like this; no WG/RG adoption is required. |
 | Registry status requested | **Provisional** — the honest ask for an Independent Submission per RFC 8615 §3.1, and what the designated expert assigns to comparable new entries (gpc.json, change-password, ecips); explicitly promotable to permanent once in broad use. No over-claim for the expert to push back on. |
-| Security/privacy reviewed? | Yes — dedicated Security and Privacy sections (DoS caps + bounded query key space, trust/spoofing, greenwashing, traffic-analysis floor, path-disclosure allowlist, deterministic fingerprinting noise, TLS), plus a dedicated Internationalization Considerations section (BCP 18/RFC 2277 protocol-element vs. text classification, added in the prepared `-05` revision). |
+| Security/privacy reviewed? | Yes — dedicated Security and Privacy sections (DoS caps + bounded query key space, trust/spoofing, greenwashing, traffic-analysis floor, path-disclosure allowlist, deterministic fingerprinting noise, TLS), plus a dedicated Internationalization Considerations section (BCP 18/RFC 2277 protocol-element vs. text classification, added in the posted `-05` revision). |
 | Maintenance risk | Minimal: open, forward-compatible schemas (unknown members permitted; clients MUST ignore them) with an informational version label — future fields need **no revision of the RFC** and no new IANA registry. |
 | Implementation risk | A production reference gateway + dual independent validators already pass end-to-end (see §9). |
 
@@ -220,7 +220,8 @@ draft has a published precedent:
 
 A `sustainability-data` entry is a natural, incremental addition in exactly the spirit of
 RFC 8615. (This section covers *design* precedent inside published specs; §13 examines how
-comparable *registration requests* actually fared in the IANA registry.)
+comparable *registration requests* actually fared in the IANA registry, and §13.1 adds
+verified Independent-stream RFCs that carried IANA registrations of their own.)
 
 ## 7. Relationship to adjacent work — the no-conflict map
 
@@ -351,18 +352,18 @@ never positioning against it.
 
 ## 8. Possible objections — each pre-empted in the draft text
 
-*(Revision **-04** is the latest posted revision — posted to the Datatracker, under ISE review; schema label `"2.0"`. It renames the
+*(Revision **-04** — posted to the Datatracker, schema label `"2.0"` — is a prior posted revision; **-05** is now the latest posted revision (see below). Revision -04 renames the
 requested suffix to `sustainability-data`, adds the optional `target-type` member, and
 applies a final audit round: a CORS recommendation (`Access-Control-Allow-Origin: *`) for
 browser clients, an all-or-none array rule for `target-type`, client tolerance for
 wrong-type/`null` values and for `sci-score` without `functional-unit`, a corrected legacy
 `target-path` attribution rule, a documented array cap, and a 200-OK requirement qualified
-for redirects, revalidation, and rate limiting. A follow-up revision, **-05**, has been
-prepared in response to the ISE's initial review — removing the carbon.txt-path reference
-from `disclosure-uri`, adding Internationalization Considerations, and recognizing the
-calendar year as the common Basic-service reporting cycle — and is ready to post but not
-yet submitted; `-04` remains the currently posted revision, and every answer below applies
-unchanged to `-05` (no wire-format change).)*
+for redirects, revalidation, and rate limiting. A follow-up revision, **-05**, was posted
+to the Datatracker on 2026-07-28 in response to the ISE's initial review — removing the
+carbon.txt-path reference from `disclosure-uri`, adding Internationalization
+Considerations, and recognizing the calendar year as the common Basic-service reporting
+cycle — with no wire-format change; `-05` is now the latest posted revision (also under
+ISE review), and every answer below applies unchanged to it.)*
 
 | Objection | Answer (and where the draft already settles it) |
 |---|---|
@@ -389,11 +390,10 @@ unchanged to `-05` (no wire-format change).)*
 
 ## 9. Readiness evidence (in this repository)
 
-- Draft at **draft-besleaga-sustainability-wellknown-04** — the latest **posted**
-  revision, on the Datatracker and under ISE review as an Independent Submission (the
-  prior -03 was posted 2026-07-23). A follow-up **-05** revision has been prepared,
-  responding to the ISE's initial review, and is ready to post but not yet submitted —
-  `-04` remains the posted revision of record. The series continues and replaces the
+- Draft at **draft-besleaga-sustainability-wellknown-05** — the latest **posted**
+  revision (posted to the Datatracker 2026-07-28), under ISE review as an Independent
+  Submission, responding to the ISE's initial review of the prior, also-posted **-04**
+  revision (`-03` before that was posted 2026-07-23). The series continues and replaces the
   draft-besleaga-green-sustainability-wellknown -00–-05 series, with the Datatracker
   "Replaces" relationship recorded. Revisions build strict-clean (`xml2rfc --strict`,
   0 warnings; idnits **0 errors**); all references verified against authoritative sources,
@@ -416,7 +416,7 @@ unchanged to `-05` (no wire-format change).)*
   every adapter's output validates against both schemas, and the gateway enforces the
   draft's MUSTs that schemas cannot express (sci-score/functional-unit coupling, array
   ordering and uniformity, single-object response rules, deterministic noise).
-- A **reference client** (`consumer/`, TypeScript, a 148-test suite, all passing; also
+- A **reference client** (`consumer/`, TypeScript, a 164-test suite, all passing; also
   published to npm as
   `sustainability-wellknown-consumer`) that complements the publisher: it fetches,
   defensively validates, transforms (CSV/NDJSON/flatten/trend), and conformance-checks a
@@ -484,7 +484,10 @@ full reasoning, so that reviewers, the designated expert, and future contributor
 see that the name was chosen deliberately, against verified alternatives, and not by
 accident. All registry and process facts below were verified against the live IANA
 registry, the `protocol-registries/well-known-uris` review repository, and the
-relevant RFC texts on 2026-07-26.
+relevant RFC texts on 2026-07-26. (Round 2 of the Independent-Stream conversation
+reopened the naming question notwithstanding this section; the option analysis
+prepared in response — including a re-verification of every registry precedent cited
+here and elsewhere — is §14, which supplements this section rather than replacing it.)
 
 ### 12.1 What the name must do
 
@@ -653,3 +656,428 @@ Informational RFC as the stable specification, and — the honest ask for an
 Independent-stream document — a provisional entry promotable to permanent as use grows.
 Both failure modes the registry has actually exercised in this territory — generic
 naming and unstable specifications — are already engineered out.
+
+### 13.1 Independent-stream RFCs that created IANA registrations — verified
+
+The unstated worry behind "can an Independent-stream Informational RFC really carry an IANA
+registration?" is answered by precedent rather than by argument. Every entry below was checked
+by reading the RFC's own front page on 2026-07-29 — the top-left line that reads either
+`Independent Submission` or `Internet Engineering Task Force (IETF)` — and only RFCs whose
+stream was actually confirmed that way are listed. Candidates that failed the check are named
+at the end rather than quietly dropped.
+
+| RFC | Stream / category (front page, verified) | What it registered | Why it bears on this request |
+|---|---|---|---|
+| **RFC 8522** — *Looking Glass Command Set* (M. Stubbig, Feb 2019) | **Independent Submission**, Informational | The **well-known URI `looking-glass`** | The closest structural precedent that exists. A single individual author, on the Independent stream, with an Informational RFC, obtained a well-known URI registration — and it sits at **permanent** status with the change controller recorded in the registry as the author himself (`[M._Stubbig]`, registry row verified 2026-07-29). This is precisely the shape of the present request, already granted once. |
+| **RFC 7351** — *A Media Type for XML Patch Operations* (E. Wilde, Aug 2014) | **Independent Submission**, Informational | Media type `application/xml-patch+xml` (standards tree) | An Independent-stream Informational RFC obtaining a **standards-tree** media type using a structured syntax suffix — the exact procedural shape of the media-type registration prepared for the next revision (§15). |
+| **RFC 8351** — *The PKCS #8 EncryptedPrivateKeyInfo Media Type* (S. Leonard, Jun 2018) | **Independent Submission**, Informational | Media type `application/pkcs8-encrypted` (standards tree) | A "registration-only" Independent-stream RFC: the document exists essentially to carry the registration, and that was accepted. |
+| **RFC 7903** — *Windows Image Media Types* (S. Leonard, Sep 2016) | **Independent Submission**, Informational | Five standards-tree media types (`image/wmf`, `image/x-wmf`, `image/emf`, `image/x-emf`, `image/bmp`) | Multiple standards-tree registrations in a single Independent-stream document — the stream is not limited to one token registration per RFC. |
+| **RFC 9230** — *Oblivious DNS over HTTPS* (Jun 2022) | **Independent Submission**, **Experimental** *(not Informational — labeled honestly)* | Media type `application/oblivious-dns-message` | Cited for currency (the most recent of this set), not for category. A reviewer who checks will find "Experimental", so it is stated here rather than blurred into the Informational group. |
+| **RFC 9116** — *security.txt* (Sep 2021) | **IETF stream** (front page: "Internet Engineering Task Force (IETF)"), Informational | Well-known URI `security.txt` (**permanent**) **and** a new "security.txt Fields" registry | Deliberately distinguished. The closest *design* twin of this draft is an **IETF-stream** document, so it demonstrates the mechanism and the naming, **not** the stream. Anywhere this document leans on RFC 9116, it is leaning on design precedent (§6) and registry outcome (§13), never on stream precedent. |
+
+**Checked and rejected during verification.** RFC 8894 (*Simple Certificate Enrolment
+Protocol*) was examined as a candidate Independent-stream precedent and **dropped**: its front
+page reads "Internet Engineering Task Force (IETF)", so it is an IETF-stream Informational RFC
+that happens to look individually authored. It is named here so the omission is visible.
+
+**The governing rule text, verbatim.** For media types specifically — the one part of the
+prepared package that touches the IESG rather than a designated expert — RFC 6838 §3.1 states:
+"Registrations published in non-IETF RFC streams are also allowed and require IESG approval."
+(verified 2026-07-29). The well-known URI registration itself needs no such step: RFC 8615 §3.1
+sets that registry's policy at **Specification Required**, which is designated-expert review.
+So the registration this draft actually asks for is the lighter of the two paths, and the
+heavier path has been walked by four Independent-stream RFCs above.
+
+## 14. Naming, round 2: proper-name options and precedents
+
+Round 2 of the Independent-Stream conversation returned to the name. The substance of the
+feedback: the chosen suffix is **still too generic for the reviewer**, with the suggestion to
+"use a proper name somewhere, like a project name or a model that you are following" — and an
+explicit request to hold revisions while limited review is sought from the IRTF SUSTAIN RG
+chairs. This section records the option analysis prepared for that review.
+
+**Nothing here has been executed.** `-04` remains the posted revision, IANA issue #95 is
+unchanged, and no rename has been made to the draft, the packages, or the live endpoints. §12
+remains the complete record of why `sustainability-data` was chosen and is not withdrawn; this
+section is what round 2 asks *on top of* it.
+
+### 14.1 What the registry actually shows about generic versus proper names
+
+**Verification note, and two corrections.** The precedent list assembled in working notes was
+re-checked entry by entry against the live registry
+(`https://www.iana.org/assignments/well-known-uris/well-known-uris-1.csv`, retrieved
+2026-07-29: **100 registered suffixes — 63 permanent, 32 provisional, 3 deprecated, 2
+obsoleted**). Two names commonly cited as precedents in this space **are not in the registry at
+all** and have been removed from every argument below:
+
+- **`stellar.toml`** — not registered.
+- **`apple-developer-merchantid-domain-association`** — not registered. (Nor is
+  `apple-app-site-association`, despite both being served from `/.well-known/` at very large
+  scale. See §14.2.)
+
+Also re-confirmed on the same retrieval: **`carbon.txt` is still not in the registry** (the
+Green Web Foundation's provisional request, issue #103, remains pending), and a
+case-insensitive scan for `sustainab`, `carbon`, `energy`, `green`, `climate`, `esg` and `ghg`
+across all 100 suffixes returns **zero** matches — the §12.3 and §13 statements that this
+request collides with nothing hold as of 2026-07-29.
+
+**Proper names verified present in the registry** (suffix, status, change-controller field as
+recorded by IANA):
+
+| Suffix | Status | Change controller |
+|---|---|---|
+| `keybase.txt` | permanent | `[The_Keybase_Project]` |
+| `matrix` | permanent | `[The_Matrix.org_Foundation_C.I.C.]` |
+| `openid-configuration` | permanent | `[OpenID_Foundation_Artifact_Binding_Working_Group]` |
+| `thread` | permanent | `[Thread_Group_Inc.]` |
+| `nostr.json` | provisional | `[Nostr_Developer_Community]` |
+| `mercure` | provisional | `[Les-Tilleuls.coop]` |
+| `terraform.json` | provisional | `[HashiCorp_Terraform_Team]` |
+| `gpc.json` | provisional | W3C |
+| `ic-domains` | provisional | `[DFINITY_Foundation]` |
+| `open-resource-discovery` | provisional | `[SAP_SE]` |
+
+**Generic and descriptive names verified present in the registry:**
+
+| Suffix | Status | Change controller |
+|---|---|---|
+| `security.txt` | permanent | IETF (RFC 9116) |
+| `api-catalog` | permanent | IETF (RFC 9727) |
+| `sbom` | permanent | IETF (RFC 9472) |
+| `probing.txt` | permanent | IETF (RFC 9511) |
+| `looking-glass` | permanent | `[M._Stubbig]` |
+| `dnt` | permanent | `[W3C_Tracking_Protection_WG]` |
+| `time` | permanent | `[Poul-Henning_Kamp]` |
+| `timezone` | permanent | IESG |
+| `change-password` | provisional | W3C |
+| `traffic-advice` | provisional | `[Jeremy_Roman]` |
+| `hosting-provider` | provisional | `[Automattic_Inc.]` |
+| `broadband-labels` | provisional | `[BITAG]` |
+| `funding-manifest-urls` | provisional | `[info_at_floss.fund]` |
+
+**The honest conclusion, in four parts.**
+
+1. **Both families are in the registry, in quantity.** A proper name is not a registry
+   requirement. RFC 8615 §3 asks for *precision about the specific application*, which a
+   descriptive compound can satisfy and which a proper name satisfies trivially.
+2. **The registry's own record does not support a rule that generic words are refused.**
+   `time` is a single common English word, holds **permanent** status, and its change
+   controller is an individual. `dnt` is an initialism of a generic policy concept.
+   `matrix` is simultaneously a proper name and one of the most generic nouns in English, and
+   it too is permanent. Any argument of the form "generic names do not get registered" is
+   falsified by the registry itself.
+3. **What the successful generic entries share is not stream or sponsor but a deployed
+   constituency at the time of registration.** `security.txt`, `change-password`, `dnt` and
+   `traffic-advice` each arrived with implementations already in the field. This request does
+   not — two reference implementations by one author are evidence of specification quality
+   (§9), not of a constituency. That difference, rather than the word itself, is the most
+   plausible reading of the reviewer's discomfort, and it is worth conceding directly instead
+   of relitigating the word.
+4. **Therefore the position to take is:** `sustainability-data` is *registrable* on precedent
+   but *contested* on judgment, and the judgment belongs to the reviewer and the designated
+   expert. Adopting a proper name resolves the objection structurally, at a cost measured only
+   in discoverability. That trade is worth making if the SUSTAIN chairs' limited review says
+   so — and is not worth a third round of argument if it does not.
+
+### 14.2 What the registry cannot show: unregistered paths already in production
+
+The registry lists what was registered. The stronger evidence for this request is what is being
+served at `/.well-known/` **without** a registration.
+
+- **Apple's `apple-app-site-association`** is served from `/.well-known/` by Apple and by a
+  large fraction of major consumer sites, and **is not in the registry** (verified 2026-07-29);
+  the same is true of `apple-developer-merchantid-domain-association`. Global deployment scale
+  has not produced a registration.
+- **The Green Web Foundation — the most substantial organization in this subject area (§7.1),
+  and a natural ally rather than a rival — already serves sustainability JSON at an
+  unregistered well-known path.** `https://www.thegreenwebfoundation.org/.well-known/tcs.json`
+  returns HTTP 200 with `application/json` (verified 2026-07-28), carrying `schema_version`,
+  `organisation` and `emissions_reports[]` with Technology Carbon Standard categories and a
+  `"verification": "self reported"` marker. The upstream standard it implements — the
+  Technology Carbon Standard (Scott Logic Ltd, CC BY-SA 4.0) — mandates the **site root**, not
+  `/.well-known/`: "Organisations publish their TCS emissions data in a standardised file named
+  tcs.json at the root domain; https://example.com/tcs.json, making it easily discoverable"
+  (https://www.techcarbonstandard.org/schemas/implementation-guide). `tcs.json` is not in the
+  IANA registry.
+
+  This is offered as demonstrated demand, not as criticism. The leading practitioner in this
+  space reached for `/.well-known/` for exactly this payload — in departure from its own
+  upstream specification — because that is the natural place for it, and had no registered name
+  to use. It is the strongest available empirical argument that a registered name is needed,
+  **and it is an argument that holds for whichever name the reviewer prefers.**
+- **Deployment migrates to `/.well-known/` once an RFC blesses it, measurably.** Hilbig et al.,
+  "security.txt Revisited" (ACM DTRAP 4(3) Art. 36, Oct 2023), scanning 8,446 domains: "On
+  2,394 (28.3%) web servers, the file was only available in the root directory, on 4,550
+  (53.8%) it was only located in the .well-known directory." By contrast `carbon.txt` — no RFC,
+  no registration, and a specification that points at the root — sits at roughly **165
+  registrable domains out of 100,000,000 hostnames crawled** in the Green Web Foundation's own
+  June–July 2026 crawl, with 91.6% at the root and 8.4% already under `/.well-known/` *despite*
+  the specification. The gap between those two curves is the case for standardizing, and for
+  choosing `/.well-known/`.
+
+### 14.3 The candidate shortlist prepared for the limited review
+
+| # | Candidate | Kind | Case for | Case against | Verdict |
+|---|---|---|---|---|---|
+| 1 | `sustainability-data` (keep, as defended in §12) | descriptive compound | Discoverable and self-describing; every artifact — draft, IANA request #95, schemas, packages, live endpoints — is already aligned; registry precedent supports it (§14.1) | The reviewer has now signaled twice; spending goodwill on a word at an early stage of the process is poor strategy | **Fallback** — retain only if the SUSTAIN chairs' review comes back comfortable with it |
+| 2 | `sfc-data` | proper (author's framework) | Short; literally "a model you are following" — Sustainability-First Consensus, the author's own framework | Two real defects. (a) Inside the IETF, "SFC" means **Service Function Chaining** (RFC 7665 and a former working group); IETF reviewers will misread it on sight. (b) Scope mismatch: SFC as published evaluates **DLT/consensus systems**, while the URI serves any origin — naming the general thing after the specialized framework is imprecise in the opposite direction from the current objection | **Do not lead with it** |
+| 3 | `sfc-sustainability-data` | proper + descriptive | Removes the Service-Function-Chaining misreading by reading as one phrase; keeps the discoverable words; anchors to a citable framework; length is not an obstacle — at 23 characters it would be shorter than registered entries such as `privacy-sandbox-attestations.json` (33) and `webhook-authorized-senders.json` (31), both verified in the registry 2026-07-29 | Inherits the DLT-scope mismatch of #2 unless "Sustainability-First" is framed as the general principle and consensus as its DLT instantiation; and see the anchor caveat below | **Lead candidate if a proper name is required** |
+| 4 | `smd` / `smd.json` — the format's own name (**S**ustainability **M**etadata **D**ocument) | the artifact's name | The draft already defines the artifact as the Sustainability Metadata Document, so this is the "name the file after the format" pattern. Verified registry instances of that pattern: `nostr.json`, `terraform.json`, `did.json`, `agent-card.json`, `keybase.txt`. *(The `stellar.toml` precedent previously cited for this pattern is unavailable — it is not registered, §14.1.)* | "SMD" is an opaque initialism with heavy outside collisions (surface-mount device); it is weak as a "project name" and forfeits all discoverability | Keep on the list; do not lead |
+| 5 | Coin a fresh project name, then rename format, repository and registration together | proper (new) | The carbon.txt playbook: name the file, let the project grow around it; a distinctive coined name is collision-free | Zero recognition today; naming from scratch invites bikeshedding; every candidate tested collides somewhere (`gaia-*` → GAIA-X; `eco-*`/`green-*` → generic again). And the playbook is **unproven at the registry**: carbon.txt itself is still not registered (§14.1) | Viable only if the author wants to brand — an author's decision, not a technical one |
+| 6 | Borrow the name of a model being followed: `ghgp-*`, `sci-*`, `esrs-*` | proper (someone else's) | Literally "a model you are following" | **Squats on other organizations' names** — GHG Protocol/WRI, Green Software Foundation/ISO 21031, EU/EFRAG — without their change control. That is the same defect RFC 8615 §3 guards against, one layer up, and it would invite those organizations' objection during conflict review | **Ruled out** — and saying *why* strengthens the reply, since it shows the objection was understood rather than merely accommodated. Consistent with §12.2's rejection of org-branded names |
+
+**Caveat on the anchor for candidates 2 and 3, stated plainly.** The Sustainability-First
+Consensus framework is the author's own; §9 records it as accepted for publication by the ACM
+under DOI `10.1145/3809296`. **As of 2026-07-29 that DOI does not resolve** — `doi.org` returned
+HTTP 404 and `dl.acm.org` returned HTTP 403 to automated retrieval — which is consistent with an
+accepted-but-not-yet-published article, but it means the anchor is **not currently verifiable by
+a reviewer who clicks it**. Any correspondence that anchors a name to this article should
+describe it accurately as accepted-for-publication and supply a resolvable link once one exists;
+a dead DOI would discount the anchor entirely. There is also a tension worth naming rather than
+glossing: §12.2 rejected framework-branded names (`sfc-*`, `gwf-*`) on neutrality grounds,
+because a convention published for anyone to implement should not carry one framework's brand.
+Adopting `sfc-sustainability-data` reverses that reasoning, and the reversal is justified only
+by the reviewer's explicit request for a proper name — not by a change in what is technically
+better.
+
+### 14.4 What follows either way
+
+The name is the cheapest variable in this registration. The suffix appears in the draft text,
+IANA issue #95, the media-type name proposed in §15, the reference implementations' constants,
+and the live endpoints — and the `-04` rename established that the complete cascade is roughly
+a day's work behind a grep gate and a schema byte-identity check. The substance of the request —
+an origin-scoped, schema-validated, provisionally registered disclosure document with formal
+schemas, query semantics and must-ignore extensibility — is entirely independent of which of
+these names is chosen. That is worth stating to the reviewer explicitly: **the author is not
+attached to the word.**
+
+## 15. Security from the beginning
+
+Round 2 of the Independent-Stream conversation was equally direct on security: *security is not
+optional*, and because the format is not yet in use, getting security in from the beginning
+matters. That is accepted without reservation, and this section records the package prepared in
+response, together with an honest measurement of it against what comparable registrations
+actually shipped with.
+
+**Scope note.** This section describes what the **next revision** will contain. It is not a
+claim about the posted `-04` or the prepared `-05`, whose security posture is the one summarized
+in §1 and §8.
+
+### 15.1 The design freedom that "no installed base" grants
+
+There are no deployments of this format outside this repository's two reference
+implementations. That removes the argument that normally weakens security requirements in a
+new specification — compatibility with what is already running. Nothing normative added now
+breaks anyone; anything deferred now becomes very hard to add later, because by then there
+*will* be an installed base. The defaults therefore invert: transport security becomes a MUST,
+the media type becomes required rather than optional, and the signature mechanism is fully
+specified now even though deploying it stays optional.
+
+### 15.2 The prepared package
+
+| # | Item | What changes | Cost, given no installed base |
+|---|---|---|---|
+| **S1** | **Dedicated media type** | Register `application/<suffix>+json` in the standards tree and make it the **required** response type for publishers; `application/json` remains acceptable for consumers to accept but not for publishers to emit. The registration carries a real security analysis (RFC 8259 §12 plus format-specific risks: self-asserted veracity/greenwashing, operational-metrics privacy, staleness, absence of active content). | None on the wire. Resolves MIME confusion and lets a retriever know precisely what it is getting (§15.4). |
+| **S2** | **TLS SHOULD → MUST** | Required for both retrieval and publication; clients MUST NOT accept the document over unauthenticated transport. | None — and it promotes the entire TLS/WebPKI apparatus into the baseline integrity-and-authenticity story. |
+| **S3** | **Document integrity beyond TLS — specified now, optional to deploy** | A **detached JWS over the exact octets served**, published at a sibling well-known resource. No canonicalization dependency (deliberately avoiding RFC 8785 JCS), works on any static host, verifiable offline; the JOSE header carries `jwk`/`x5c`. The draft will state plainly what this does give — **integrity and key continuity** — and what it does not: **authenticity**, absent a trust path to the key from outside the document. `verifiable-attestation-uri` remains the third-party channel and gets sharpened against W3C VC 2.0 (the whole VC 2.0 family reached Recommendation on 2025-05-15, verified). Alternatives considered and documented with reasons: embedded JWS member (needs JCS — heavier), HTTP Message Signatures RFC 9421 (elegant, tooling thin), OpenPGP as in RFC 9116 (poor fit for a JSON ecosystem). | **Adds no schema member**, because the signature lives at a sibling resource — so schema byte-identity with `-04`/`-05` is preserved. |
+| **S4** | **`X-Content-Type-Options: nosniff`** | SHOULD be sent on responses. | None; belt for S1's braces. |
+| **S5** | **Structured threat model** | Security Considerations restructured to enumerate spoofing, tampering, repudiation/greenwashing, information disclosure and denial of service, each mapped to its mitigation (S1–S4, the existing caps, the target allowlist, strict mode, and the normative MUST-NOT-treat-as-proof rule). | None — it reorganizes and sharpens existing coverage so a security reviewer sees it at a glance. |
+| **S6** | **Running code** | The reference implementations already enforce consumer-side hardening (response caps, strict conformance checking, no code execution) and will implement S1–S4 on the day the revision posts. | Already largely paid for (§9). |
+
+**S1 reverses an earlier answer, deliberately.** The objection table in §8 answers "Should it
+register a media type?" with "Not required — security.txt registered none." That answer was
+accurate for `-04`/`-05` and is retained there as the record. Round 2 changes it: on reflection
+a dedicated type is worth more as a **security artifact** — an unambiguous, security-analyzed
+type label that a consumer can require — than it costs in registry burden. The relevant rule
+text, verified verbatim on 2026-07-29: RFC 6838 **§4.6 ("Security Requirements")** — "An
+analysis of security issues MUST be done for all types registered in the standards tree";
+**§5.6** is the *Registration Template* that carries that analysis; **§4.2.8** formalizes the
+`+json` structured syntax suffix convention; and **§3.1** provides the procedural path for a
+non-IETF-stream document — "Registrations published in non-IETF RFC streams are also allowed
+and require IESG approval." Four Independent-stream RFCs have exercised that path (§13.1).
+
+### 15.3 How this compares with what comparable registrations shipped with
+
+**RFC 9116 (security.txt), the structural twin — verified 2026-07-29:**
+
+- **§2.3 "Digital Signature"**: "It is RECOMMENDED that a 'security.txt' file be digitally
+  signed using an OpenPGP cleartext signature as described in Section 7 of [RFC4880]." Signing
+  was in the specification **from the beginning**, for the same class of self-published,
+  operator-asserted claims document.
+- **§5.7 "Protecting Data in Transit"**: "To protect a 'security.txt' file from being tampered
+  with in transit, implementors MUST use HTTPS ... when serving the file itself and for
+  retrieval of any web URIs referenced in it" — a normative **MUST**, plus "it is also
+  recommended that organizations digitally sign their 'security.txt' file with OpenPGP".
+- **§5.1 "Compromised Files and Incident Response"**: organizations "should use the 'Canonical'
+  field ..., digitally sign their 'security.txt' files (as per Section 2.3), and regularly
+  monitor the file and the referenced resources to detect tampering."
+
+**Correction to earlier working notes: RFC 9116 has no §3.3.** Section 3 is "Location of the
+security.txt File" and its only subsection is §3.1 "Scope of the File". The signing material is
+§2.3, with the security discussion at §5.1 and §5.7. The "§2.3/§3.3" citation that circulated
+internally would have been caught immediately by this reviewer, who knows the document
+intimately; it is corrected here so it is never sent.
+
+**The measurement.** Against that baseline the prepared package matches on both axes RFC 9116
+sets — a signature mechanism specified from the beginning (S3 against §2.3) and normative TLS
+(S2 against §5.7) — and adds two things RFC 9116 does not have: a **dedicated,
+security-analyzed media type** (S1) and **`nosniff`** (S4). The honest qualification is that
+these are different formats with different exposure: a plain-text file read mainly by humans
+carries less MIME-confusion and automated-ingestion risk than a JSON document designed to be
+crawled and parsed at scale by aggregators, so the media type is a proportionate response to
+this format's risks rather than a claim of superiority over RFC 9116.
+
+**Against the registry's own floor.** The Well-Known URIs registry policy is *Specification
+Required* (RFC 8615 §3.1) and imposes no cryptographic requirement of any kind; the practical
+security bar for a registration is the quality of the specification's own Security
+Considerations. Every item in S1–S5 therefore sits **above** the registry's floor. They are
+being done because the reviewer's point is correct, not because a rule compels them.
+
+### 15.4 Why S1 is not theoretical — measured Content-Type behavior
+
+`/.well-known/sustainability-data` has no file extension, and almost every static host derives
+`Content-Type` from a file extension. The consequence is measurable rather than hypothetical
+(all probed live 2026-07-28; transcripts in `gateway/research/iot-dlt-gateways.md` §D):
+
+| URL | Status | `Content-Type` returned |
+|---|---|---|
+| `www.apple.com/.well-known/apple-app-site-association` | 200 | **`application/octet-stream`** |
+| `www.airbnb.com/.well-known/apple-app-site-association` | 200 | `application/json` |
+| `www.dropbox.com/.well-known/apple-app-site-association` | 200 | `application/json; charset=utf-8` |
+| `accounts.google.com/.well-known/openid-configuration` | 200 | `application/json` |
+| `mastodon.social/.well-known/host-meta` | 200 | `application/xrd+xml; charset=utf-8` |
+| `ccaf.io/cbeci/api/v1.3.0/download/data` (a CSV) | 200 | **`text/html; charset=utf-8`** |
+
+Three operators serve the byte-identical, identically named, extensionless resource with three
+different media types — and the vendor that invented the format gets it wrong on its own
+website. Separately, GitHub Pages cannot set the header at all (GitHub staff, on the record in
+community discussion 54257: "We don't support this feature today"), so the most likely default
+host for an individual publisher silently produces a non-conforming deployment.
+
+This converts the media-type requirement from a preference into a documented failure mode, and
+it is why the package pairs S1 with S4 (`nosniff`) and with explicit deployment guidance naming
+hosts that can and cannot set a per-path response header.
+
+### 15.5 The greenwashing strand of the threat model has an observed example
+
+The repudiation/greenwashing branch of S5 is usually argued in the abstract. It does not need to
+be: two accredited measurement providers report the same asset over the same period **2.5×
+apart on energy and 3.2× apart on emissions** (§16.3). That single observation is the concrete
+justification for making `provider`, `measurement-method` and `methodology-uri` mandatory, and
+it belongs in the threat model rather than only in the motivation.
+
+## 16. Independent evidence of demand and of the discovery gap (verified 2026-07-28)
+
+Four findings from dedicated research passes, each carrying a primary source, recorded here
+because each bears directly on a round-2 question: does anyone actually need this, and is the
+design honest about what it can and cannot verify. Full working notes, including live probe
+transcripts and the claims that could **not** be verified, are in
+`gateway/research/implementation-targets.md` and `gateway/research/iot-dlt-gateways.md`.
+
+### 16.1 IAB Europe's `carbon.json` — a payload specification with exactly this discovery hole
+
+Published **2026-05-21** by IAB Europe; **public comment closes 19 August 2026**.
+Repository: https://github.com/iabeurope-beis/carbon-json (`specification.md`, `schema.json`,
+worked examples; v1.0 public-feedback draft, CC0-1.0). Announcement and contact:
+https://iabeurope.eu/iab-europe-supports-comparable-digital-advertising-emissions-data-with-new-carbon-json-voluntary-disclosure-specification-now-open-for-public-comment/
+
+On location, `specification.md` §23 says only: "carbon.json files SHOULD be served over HTTPS
+using the `application/json` content type." There is **no mandated path**, and **no mention of
+`/.well-known/`, RFC 8615, or well-known URIs anywhere in the document** — its only IETF
+reference is RFC 2119. The worked example simply self-declares an arbitrary URL
+(`"public_endpoint": "https://example.invalid/carbon-ssp.json"`).
+
+A trade association with real industry weight specified the **payload** and left **discovery**
+undefined. That is precisely the layer this draft standardizes, and the relationship is the same
+complementary one the draft already has with carbon.txt (§7.1): payload specification versus
+discovery specification. Its field set maps onto this draft's members close to one-for-one, and
+its `quality` object (a self-declared data-quality tier, primary-data share, and uncertainty
+buffer) is a capability this draft has **no equivalent of** and should consider — it is the
+cleanest available answer to the "self-asserted numbers" objection in §8. The open comment
+window is a concrete, dated opportunity to propose `/.well-known/sustainability-data` as
+carbon.json's discovery mechanism.
+
+### 16.2 MiCA: the content is legally mandated; machine access does not exist
+
+**The instrument.** Commission Delegated Regulation (EU) **2025/422** of 17 December 2024 — the
+regulatory technical standards under MiCA Articles 6(12), 19(11), 51(15) and 66(6), specifying
+sustainability indicators **S.1–S.36**. https://eur-lex.europa.eu/eli/reg_del/2025/422/oj/eng
+
+Mandatory for all crypto-asset service providers: **S.8**, total annual energy consumption in
+**kWh**. Supplementary and mandatory above 500,000 kWh/year: **S.10** renewable share (%),
+**S.11** energy intensity per validated transaction, **S.12**/**S.13** Scope 1 and Scope 2 DLT
+GHG emissions (**tCO2e**), **S.14** GHG intensity. Optional: **S.19** carbon intensity
+(**kgCO2e/kWh**), **S.20** Scope 3, plus waste and water indicators. Website disclosure has been
+compulsory since 30 December 2024.
+
+**Verification caveat, recorded rather than hidden.** EUR-Lex blocks automated retrieval — every
+attempt against the ELI, CELEX, HTML and PDF forms returned HTTP 202 with a zero-byte body — so
+the field detail above was read from ESMA's Final Report, Annex IV (ESMA75-453128700-1229,
+3 July 2024), the direct legislative basis for 2025/422:
+https://www.esma.europa.eu/sites/default/files/2024-07/ESMA75-453128700-1229_Final_Report_MiCA_CP2.pdf
+**The mapping of S-numbers to the final adopted Official Journal text is unverified**; the
+EUR-Lex text should be opened in a browser before S-numbers are cited in the RFC itself.
+
+**The gap.** Annex IV Article 3(1), verbatim: "Crypto-asset service providers shall make
+publicly available on their website the information required by this Regulation free of charge,
+**in a downloadable file**, in a way that is easy to read, using characters of readable size and
+using a style of writing that facilitates its understanding." Article 3(3) additionally requires
+the disclosure to allow the public to **compare** adverse impacts across the crypto-assets the
+provider serves. A downloadable file, easy to read, comparable — with **no format, no schema, no
+discovery mechanism, and no requirement that it live at a predictable URL.**
+
+**What the market built instead.** The two largest chain-level MiCA dashboards — Solana
+(`climate.solana.com`) and Tezos (`sustainability.tezos.com`), both white-label deployments of
+the same vendor product — return **HTTP 401 on all six of their data routes** (`/api/mica-data`,
+`/api/historical-data`, `/api/map-data` on each), probed live 2026-07-28. Published provider
+disclosures located are HTML (`sia.tech/mica-indicators`, `xrpl-commons.org`) or PDF
+(`v-bank`), with a single CSV (`bt.cx`). In one sentence: **the EU mandated the content, and the
+market answered with human-readable dashboards backed by authenticated, undocumented, per-vendor
+APIs — leaving no interoperable, unauthenticated, discoverable way for a machine to obtain the
+numbers.**
+
+**Two unit mismatches to state plainly rather than paper over**, since a reviewer will find
+them: the RTS expresses Scope emissions in **tonnes** CO2e where this draft's members are in
+kilograms, and expresses S.19 carbon intensity in **kgCO2e/kWh** where this draft's member is
+**gCO2e/kWh** (a factor of 1,000).
+
+**And one pre-emption.** For the MiCA **white paper** — Articles 6/19/51, *not* the Article 66(5)
+website disclosure — the EU did mandate a machine-readable format and chose **iXBRL over JSON**.
+This should be raised by the draft rather than discovered by a reviewer, with the distinction
+made explicitly: iXBRL is a *document* format for regulatory filing and says nothing about
+*discovery*, and the Article 66(5) website disclosure carries no format mandate at all
+(Art. 3(1), above). ESMA's own cost-benefit analysis records that the incremental cost of iXBRL
+over other machine-readable formats such as JSON was "not significant"; JSON lost on human
+readability and ESEF/SFDR alignment, neither of which applies to a resource consumed by
+software.
+
+### 16.3 Two providers, one asset, 2.5× apart
+
+XRPL Commons publishes its MiCA indicators for the **same asset over the same period from two
+measurement providers**: **189,603 kWh** (MiCA Crypto Alliance) against **479,169 kWh** (CCRI) —
+a factor of **2.5** — and **62.3** against **197.3 tCO2e** — a factor of **3.2**
+(https://www.xrpl-commons.org/sustainability/mica-indicators, fetched 2026-07-28).
+
+This converts three design decisions from assertion into observation. `provider`,
+`measurement-method` and the mandatory `methodology-uri` are not bureaucratic overhead; they are
+the minimum required for two conformant documents about the same subject to be interpretable at
+all. It also sharpens the answer to the greenwashing objection in §8: the draft's position is
+not that self-published numbers are trustworthy, but that **a number without its provider and
+method attached is not yet a number.**
+
+Two related observations from the same pass support the `functional-unit` design: Hedera
+publishes a per-transaction energy figure with **no attribution of who produced it**, and the
+Ethereum Foundation **declines to publish per-transaction figures at all**, on the stated
+grounds that "the energy required to propose and validate a block is independent of the number
+of transactions within it" (https://ethereum.org/en/energy-consumption/). An explicit
+`functional-unit` member — rather than an assumption of "per transaction" — is the correct
+response to that disagreement.
+
+### 16.4 The unregistered well-known path already in production
+
+The Green Web Foundation already serves sustainability JSON from an unregistered `/.well-known/`
+path, in departure from its own upstream specification, because there is no registered name to
+use — details and sources in **§14.2**. Of all the evidence in this document, that is the
+closest thing to a direct demonstration that this registration is needed: the demand arrived
+before the registry entry, and it arrived at the organization best placed to have solved the
+problem another way.

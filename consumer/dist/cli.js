@@ -1,31 +1,82 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.normalizeOrigin = normalizeOrigin;
 exports.runCli = runCli;
 /** M2M CLI: fetch (and optionally conformance-check) a /.well-known/sustainability-data origin. */
 const fetch_1 = require("./fetch");
 const transform_1 = require("./transform");
 const conformance_1 = require("./conformance");
+const USAGE = "Usage: sustainability-fetch <origin> [--target=] [--period=] [--granularity=] [--format=json|csv|ndjson] [--strict] [--etag=]\n" +
+    "\n" +
+    "  <origin>  Origin to fetch from, e.g. https://example.org — the\n" +
+    "            /.well-known/sustainability-data path is appended for you.\n" +
+    "            Options may appear before or after the origin.\n" +
+    "\n" +
+    "Examples:\n" +
+    "  sustainability-fetch https://example.org\n" +
+    "  sustainability-fetch https://example.org --strict\n" +
+    "  npx -p sustainability-wellknown-consumer sustainability-fetch https://example.org --strict";
+/**
+ * Options may appear in any position, so `--strict <origin>` works as well as
+ * `<origin> --strict`. A leading bare `sustainability-fetch` is dropped: `npx
+ * <pkg> sustainability-fetch ...` passes the bin name through as an argument,
+ * and reading it as the origin produced a bare "Invalid URL" crash.
+ */
 function parseArgs(argv) {
-    const [origin, ...rest] = argv;
     const opts = {};
-    for (const arg of rest) {
+    const positional = [];
+    for (const arg of argv) {
         const m = arg.match(/^--([^=]+)(?:=(.*))?$/);
         if (m)
             opts[m[1]] = m[2] ?? true;
+        else if (arg === "-h")
+            opts.help = true;
+        else
+            positional.push(arg);
     }
-    return { origin, opts };
+    if (positional[0] === "sustainability-fetch")
+        positional.shift();
+    return { origin: positional[0], opts };
+}
+/** Accepts an absolute http(s) origin; bare hostnames are promoted to https. */
+function normalizeOrigin(input) {
+    const candidate = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(input) ? input : `https://${input}`;
+    let url;
+    try {
+        url = new URL(candidate);
+    }
+    catch {
+        return undefined;
+    }
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : undefined;
 }
 /** Runs the CLI for the given argv (excluding `node script.js`); returns the process exit code. */
 async function runCli(argv) {
-    const { origin, opts } = parseArgs(argv);
+    const { origin: rawOrigin, opts } = parseArgs(argv);
+    if (opts.help) {
+        console.log(USAGE);
+        return 0;
+    }
+    if (!rawOrigin) {
+        console.error(USAGE);
+        return 2;
+    }
+    const origin = normalizeOrigin(rawOrigin);
     if (!origin) {
-        console.error("Usage: sustainability-fetch <origin> [--target=] [--period=] [--granularity=] [--format=json|csv|ndjson] [--strict] [--etag=]");
+        console.error(`Not a usable origin: "${rawOrigin}"\n\n${USAGE}`);
         return 2;
     }
     if (opts.strict) {
         const report = await (0, conformance_1.runConformanceChecks)(origin);
         for (const c of report.checks) {
-            console.log(`${c.pass ? "PASS" : "FAIL"}  ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
+            // A failed SHOULD is reported as WARN: it is a recommendation the origin
+            // did not follow, not a conformance failure, and only MUST failures set
+            // a non-zero exit code.
+            const label = c.pass ? "PASS" : c.level === "MUST" ? "FAIL" : "WARN";
+            console.log(`${label}  [${c.level}] ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
+        }
+        if (report.allPassed && !report.allPassedIncludingRecommended) {
+            console.log("\nConformant: all MUST-level checks passed. WARN lines are unmet recommendations.");
         }
         return report.allPassed ? 0 : 1;
     }

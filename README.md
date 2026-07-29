@@ -6,9 +6,9 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-04** is the **latest posted** revision (posted to the Datatracker) and is **under ISE review** for publication as an Informational RFC: it renames the requested well-known URI suffix from `sustainability` to `sustainability-data` (per ISE feedback on the RFC 8615 precision expectations, resolving the IANA well-known-URI naming feedback) and adds the optional `target-type` member. A follow-up revision, **-05**, has been prepared in response to the ISE's initial review — with **no change to the wire format** — and is ready to post but **not yet submitted to the Datatracker**: `-04` remains the currently posted revision. Draft v02/v03 presented at IETF meeting 126 in SUSTAIN RG. The current draft replaces `draft-besleaga-green-sustainability-wellknown`. 
+**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-05** is the **latest posted** revision and is **under ISE review** for publication as an Informational RFC: **no change to the wire format**. The prior **-04** revision renamed the requested well-known URI suffix from `sustainability` to `sustainability-data` (per ISE feedback on the RFC 8615 precision expectations, resolving the IANA well-known-URI naming feedback) and added the optional `target-type` member. Draft v02/v03 presented at IETF meeting 126 in SUSTAIN RG. The current draft replaces `draft-besleaga-green-sustainability-wellknown`. 
 
-IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name). The prepared `-05` revision makes no change to this registration request.
+IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name). The posted `-05` revision makes no change to this registration request.
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
 
@@ -128,9 +128,9 @@ Draft in multiple formats plus supplementary documents.
 
 | File | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-05.md` | **Prepared, not yet posted** — responds to the ISE's initial review of `-04`: removes the carbon.txt-path reference from `disclosure-uri` (now format- and location-agnostic), adds an Internationalization Considerations section, states the calendar-period rationale in-document, and recognizes the calendar year as the common Basic-service reporting cycle. No change to the wire format |
-| `draft-besleaga-sustainability-wellknown-05.xml` / `.txt` | xml2rfc v3 XML and rendered text of `-05` — built, not yet submitted to the Datatracker |
-| `draft-besleaga-sustainability-wellknown-04.md` | **Latest posted revision** (under ISE review) — renames the requested URI suffix to `sustainability-data` (resolving the IANA naming feedback), adds the optional `target-type` member, places the `version` value space under change control, and defines the reverse-domain extension-member naming rule |
+| `draft-besleaga-sustainability-wellknown-05.md` | **Latest posted revision** (posted 2026-07-28, under ISE review) — responds to the ISE's initial review of `-04`: removes the carbon.txt-path reference from `disclosure-uri` (now format- and location-agnostic), adds an Internationalization Considerations section, states the calendar-period rationale in-document, and recognizes the calendar year as the common Basic-service reporting cycle. No change to the wire format |
+| `draft-besleaga-sustainability-wellknown-05.xml` / `.txt` | xml2rfc v3 XML (authoritative submission form) and rendered text of `-05` |
+| `draft-besleaga-sustainability-wellknown-04.md` | Prior posted revision — renames the requested URI suffix to `sustainability-data` (resolving the IANA naming feedback), adds the optional `target-type` member, places the `version` value space under change control, and defines the reverse-domain extension-member naming rule |
 | `draft-besleaga-sustainability-wellknown-04.xml` / `.txt` | xml2rfc v3 XML (authoritative submission form) and rendered text of `-04` |
 | `draft-besleaga-sustainability-wellknown-03.*` | Previous revision — posted to the Datatracker 2026-07-23; breaking data-model revision, schema label `"2.0"` |
 | `draft-besleaga-sustainability-wellknown-02.*` | Previous submitted revision (posted 2026-07-03) |
@@ -240,7 +240,7 @@ Both configurations implement:
 byte-equality checked in CI). This is the schema-`2.0` model of the `-03` and current
 `-04` revisions (`-04` adds the optional `target-type` member without changing
 the schema label); the differences from the `-02` / `1.x` model are summarized under
-"Omitted metrics & legacy compatibility" below. The prepared `-05` revision makes no
+"Omitted metrics & legacy compatibility" below. The posted `-05` revision makes no
 change to this model — it is an editorial/reference revision only (see
 [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md)).
 
@@ -318,13 +318,13 @@ This allows automated tools to cryptographically verify published sustainability
 
 ## Reference implementation (publisher/)
 
-Published on npm: **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)** (`npm install sustainability-wellknown-publisher`). The `0.1.0` release on the registry implements the historical `-02` / schema-`1.1` model; the `0.4.0` release implements the current schema-`2.0` model (revision `-04`; the prepared `-05` revision makes no schema change).
+Published on npm: **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)** (`npm install sustainability-wellknown-publisher`). The `0.1.0` release on the registry implements the historical `-02` / schema-`1.1` model; the `0.4.0` release implements the current schema-`2.0` model (revision `-04`; the latest posted `-05` revision makes no schema change). `0.5.0` is a version-only bump keeping the two packages in lockstep — the publisher's code is unchanged from `0.4.0`.
 
 [publisher/](publisher/) is a production-grade TypeScript implementation that publishes a fully draft-conformant `/.well-known/sustainability-data` document. It ingests metrics from pluggable source adapters — static/computed values, Kepler/Prometheus energy telemetry, the Climatiq estimate API, **Green Web Foundation CO2.js (bytes → carbon)**, the **Green Web Foundation carbon.txt hosted API**, and enterprise suites (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) — normalizes them to the draft's field model, **validates every payload against this repo's JTD and CDDL schemas before serving** (publish-only-if-valid), and exposes the Basic and Extended service levels with the draft's mandated DoS/privacy safeguards. It can also **serve a bidirectional `carbon.txt`** that points back to the metrics document. It ships as Express and Fastify middleware plus a standalone server that any web server can reverse-proxy. See [publisher/README.md](publisher/README.md) and [publisher/USAGE.md](publisher/USAGE.md).
 
 ## Reference implementation (consumer/)
 
-Published on npm: **[`sustainability-wellknown-consumer`](https://www.npmjs.com/package/sustainability-wellknown-consumer)** (`npm install sustainability-wellknown-consumer`). As with the publisher, `0.1.0` on the registry implements the `-02` / schema-`1.1` model; the `0.4.0` release implements the current schema-`2.0` model (revision `-04`; the prepared `-05` revision makes no schema change).
+Published on npm: **[`sustainability-wellknown-consumer`](https://www.npmjs.com/package/sustainability-wellknown-consumer)** (`npm install sustainability-wellknown-consumer`). As with the publisher, `0.1.0` on the registry implements the `-02` / schema-`1.1` model; the `0.4.0` release implements the current schema-`2.0` model (revision `-04`; the latest posted `-05` revision makes no schema change). `0.5.0` fixed a CLI argument-parsing bug found while verifying the first live deployment — see the note under "Verify a live deployment" below.
 
 [consumer/](consumer/) is a reference **client** for `/.well-known/sustainability-data`, complementing `publisher/`'s reference producer: fetch, defensively validate (JTD schema plus the draft's cross-entry array rules, since a non-conformant upstream server is the normal case for early ecosystem adoption), and transform (CSV, NDJSON, a flattened one-row-per-metric shape, trend aggregation) a document from any origin. It ships a zero-dependency one-call function (`fetchSustainability`) and a richer `SustainabilityClient` class for repeated, ETag-cached polling, plus a `sustainability-fetch` CLI whose `--strict` mode doubles as a standalone conformance checker usable against **any** implementation, not just this repo's own `publisher/`. Its `interop.test.ts` — a live, in-process round trip against a real `Publisher` instance — is concrete, running proof of the draft's client-side MUSTs (accept both response shapes; ignore unknown fields; apply the legacy-compatibility rules for historical `1.x` documents). See [consumer/README.md](consumer/README.md) and [consumer/USAGE.md](consumer/USAGE.md).
 
@@ -333,6 +333,32 @@ real HTTP producer→consumer round trip (fetch, CSV/NDJSON/flatten transforms, 
 conditional caching, and a full conformance-check pass) was run against the published
 `0.1.0` artifacts, not just the source tree; the in-repo interop tests exercise the
 same lifecycle against the current (schema-`2.0`-model) sources.
+
+## Verify a live deployment
+
+Once a `/.well-known/sustainability-data` document is deployed anywhere — this repo's
+reference implementation or a third party's — verify it with the same four checks used
+to confirm the reference deployment at `https://andreibesleaga.com/.well-known/sustainability-data`:
+
+```bash
+# 1. correct media type + CORS + caching
+curl -sI https://example.org/.well-known/sustainability-data | grep -Ei 'HTTP/|content-type|cache-control|access-control'
+
+# 2. valid JSON, correct content
+curl -s https://example.org/.well-known/sustainability-data | python3 -m json.tool
+
+# 3. full conformance battery (works against any implementation)
+npx -y -p sustainability-wellknown-consumer sustainability-fetch https://example.org --strict
+
+# 4. any linked methodology/disclosure pages actually resolve
+curl -sI https://example.org/sustainability-methodology.html | head -1
+```
+
+Full walkthrough, expected output, and the `--strict` severity model (a failed `MUST`
+is `FAIL`; an unmet `SHOULD` — e.g. a static host that cannot add an `Allow` header to
+its own `405` — is `WARN` and does not fail the check) are in
+[consumer/README.md § Verify a live deployment](consumer/README.md#verify-a-live-deployment).
+That section also has the version note: this requires consumer `0.5.0` or later.
 
 ## Discovery & SFC compliance
 

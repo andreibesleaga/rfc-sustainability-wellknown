@@ -9,7 +9,8 @@ import { loadConfig } from "./config";
 export { createGateway, route, type Gateway } from "./app";
 export { loadConfig, LIMITS, type GatewayConfig } from "./config";
 export { loadRegistry, loadSubjectFile, subjectFromAdapter, type Subject } from "./registry";
-export { buildIndex, renderIndexHtml, THIRD_PARTY_NOTICE } from "./index-page";
+export { buildIndex, renderIndexHtml, THIRD_PARTY_NOTICE, NO_DATA_NOTE } from "./index-page";
+export { loadNoData, type NoDataEntry } from "./no-data";
 
 /** Grace period for in-flight requests before the process is forced down. */
 const SHUTDOWN_TIMEOUT_MS = 10_000;

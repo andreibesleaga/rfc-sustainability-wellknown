@@ -6,26 +6,42 @@
 import { DEFAULT_TIMEOUT_MS, fetchSustainability } from "./fetch";
 import { WELL_KNOWN_PATH } from "./fetch";
 
+/**
+ * BCP 14 strength of the requirement a check tests. This matters for reporting:
+ * a static host that cannot emit an `Allow` header on its own 405 is violating
+ * a SHOULD, not a MUST, and a battery that renders both as "FAIL" tells a
+ * publisher their conformant deployment is broken.
+ */
+export type ConformanceLevel = "MUST" | "SHOULD";
+
 export interface ConformanceCheck {
   name: string;
   pass: boolean;
+  level: ConformanceLevel;
   detail?: string;
 }
 
 export interface ConformanceReport {
   origin: string;
   checks: ConformanceCheck[];
+  /** True when every MUST-level check passed; SHOULD-level gaps are advisory. */
   allPassed: boolean;
+  /** True when every check of either level passed. */
+  allPassedIncludingRecommended: boolean;
 }
 
-async function check(name: string, fn: () => Promise<boolean | string>): Promise<ConformanceCheck> {
+async function check(
+  name: string,
+  level: ConformanceLevel,
+  fn: () => Promise<boolean | string>,
+): Promise<ConformanceCheck> {
   try {
     const result = await fn();
-    if (result === true) return { name, pass: true };
-    if (result === false) return { name, pass: false };
-    return { name, pass: false, detail: result };
+    if (result === true) return { name, level, pass: true };
+    if (result === false) return { name, level, pass: false };
+    return { name, level, pass: false, detail: result };
   } catch (err) {
-    return { name, pass: false, detail: err instanceof Error ? err.message : String(err) };
+    return { name, level, pass: false, detail: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -55,7 +71,7 @@ export async function runConformanceChecks(
   const rawSignal = () => AbortSignal.timeout(timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
   checks.push(
-    await check("Basic request returns a schema-valid single object", async () => {
+    await check("Basic request returns a schema-valid single object", "MUST", async () => {
       const r = await fetchSustainability(origin, fetchOpts);
       if (r.status !== "ok") return `expected ok, got ${r.status}`;
       if (Array.isArray(r.document)) return "Basic request MUST return a single object, not an array";
@@ -64,7 +80,7 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    await check("Basic 200 response uses the application/json media type (MUST)", async () => {
+    await check("Basic 200 response uses the application/json media type", "MUST", async () => {
       const res = await fetchImpl(new URL(WELL_KNOWN_PATH, origin).toString(), { method: "GET", signal: rawSignal() });
       // Drain the body so the socket is released promptly.
       await res.arrayBuffer().catch(() => undefined);
@@ -75,14 +91,14 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    await check("Response carries an ETag (RECOMMENDED)", async () => {
+    await check("Response carries an ETag", "SHOULD", async () => {
       const r = await fetchSustainability(origin, fetchOpts);
       return r.status === "ok" && !!r.etag;
     }),
   );
 
   checks.push(
-    await check("Conditional GET with a fresh ETag returns 304", async () => {
+    await check("Conditional GET with a fresh ETag returns 304", "SHOULD", async () => {
       const first = await fetchSustainability(origin, fetchOpts);
       if (first.status !== "ok" || !first.etag) return "no ETag to test conditional request with";
       const second = await fetchSustainability(origin, { ...fetchOpts, ifNoneMatch: first.etag });
@@ -91,7 +107,7 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    await check("A method other than GET/HEAD gets 405 with Allow", async () => {
+    await check("A method other than GET/HEAD gets 405 with Allow", "SHOULD", async () => {
       const res = await fetchImpl(new URL(WELL_KNOWN_PATH, origin).toString(), { method: "POST", signal: rawSignal() });
       await res.arrayBuffer().catch(() => undefined);
       if (res.status !== 405) return `expected 405, got ${res.status}`;
@@ -101,7 +117,7 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    await check("Extended granularity request returns a valid response (sorted array when honored)", async () => {
+    await check("Extended granularity request returns a valid response (sorted array when honored)", "MUST", async () => {
       const r = await fetchSustainability(origin, { ...fetchOpts, period: new Date().getUTCFullYear().toString(), granularity: "monthly" });
       if (r.status === "not-found") return true; // server may have no data for this year; not a conformance failure
       if (r.status !== "ok") return `expected ok or not-found, got ${r.status}`;
@@ -115,5 +131,10 @@ export async function runConformanceChecks(
     }),
   );
 
-  return { origin, checks, allPassed: checks.every((c) => c.pass) };
+  return {
+    origin,
+    checks,
+    allPassed: checks.every((c) => c.pass || c.level !== "MUST"),
+    allPassedIncludingRecommended: checks.every((c) => c.pass),
+  };
 }

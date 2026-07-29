@@ -1,0 +1,57 @@
+name: gateway
+
+on:
+  push:
+    paths:
+      - "gateway/**"
+      - "schemas-validators/**"
+      - ".github/workflows/gateway.yml"
+  pull_request:
+    paths:
+      - "gateway/**"
+      - "schemas-validators/**"
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: gateway/package-lock.json
+
+      # The gateway consumes the PUBLISHED publisher/consumer packages from the
+      # registry (not the sibling source trees), so no local build is needed
+      # first — but that also means a broken release would surface here.
+      - name: Install dependencies
+        working-directory: gateway
+        run: npm ci || npm install
+
+      - name: Build
+        working-directory: gateway
+        run: npm run build
+
+      - name: Test
+        working-directory: gateway
+        run: npm test
+
+      # Boots the real server and runs the repo's own conformance battery
+      # against the root report and every registered subject. Startup is
+      # fail-loud: any data file that does not round-trip through the
+      # publisher pipeline aborts the boot, so this also gates data/*.json.
+      - name: Conformance battery against a live instance
+        working-directory: gateway
+        run: |
+          PORT=8080 node dist/index.js &
+          GATEWAY_PID=$!
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8080/healthz >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8080/healthz || { echo "gateway did not become healthy"; kill $GATEWAY_PID; exit 1; }
+          npm run conformance -- http://127.0.0.1:8080
+          STATUS=$?
+          kill $GATEWAY_PID
+          exit $STATUS

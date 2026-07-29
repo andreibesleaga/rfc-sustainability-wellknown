@@ -284,8 +284,25 @@ specification's published
 <h2>Machine-readable index</h2>
 <p><a href="/index.json"><code>/index.json</code></a> carries the same list, this notice included.</p>
 
-<footer>Operated as a specification-demonstration service. Health check:
-<a href="/healthz"><code>/healthz</code></a>.</footer>${hostScript}
+<footer>
+<p>Operated as a specification-demonstration service. Health check:
+<a href="/healthz"><code>/healthz</code></a>.</p>
+<p><strong>Operator &amp; contact:</strong> Andrei Nicolae Besleaga,
+<a href="mailto:andrei.besleaga@ieee.org">andrei.besleaga@ieee.org</a>.
+Not affiliated with, and not endorsed by, any reporting subject listed above; company
+names identify whose published reports the documents are mapped from. Reporting subjects
+may request corrections or removal at the address above.</p>
+<p><strong>Disclaimer:</strong> This site is for informational and specification-demonstration
+purposes only and is provided &quot;as is&quot;, without warranty of any kind. Figures are
+traceable to the cited public source documents but may lag the subjects&#39; own
+publications; the cited sources remain the authoritative record. Nothing here is
+investment, ESG-rating, or compliance advice.</p>
+<p><strong>Privacy:</strong> This site sets no cookies and runs no analytics or tracking.
+The hosting provider may process IP addresses in standard server logs for operation and
+security.</p>
+<p>Source code and data are published under the Revised BSD License at
+<a href="https://github.com/andreibesleaga/rfc-sustainability-wellknown" rel="noopener noreferrer">github.com/andreibesleaga/rfc-sustainability-wellknown</a>.</p>
+</footer>${hostScript}
 </body>
 </html>
 `;

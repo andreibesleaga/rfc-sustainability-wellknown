@@ -8,7 +8,7 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-05** is the **latest posted** revision and is **under ISE review** for publication as an Informational RFC: **no change to the wire format**. Draft v02/v03 presented at IETF meeting 126 in SUSTAIN RG.
 
-IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name). The posted `-05` revision makes no change to this registration request.
+IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name).
 
 This repository contains initial drafts and supporting documents, examples, sources, tooling, etc. Previous drafts are release tagged, in internet-drafts folder, and system architecture with diagrams in: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md).
 

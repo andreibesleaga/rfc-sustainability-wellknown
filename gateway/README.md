@@ -1,4 +1,4 @@
-# sustainability-data gateway
+# sustainability-data Repository Gateway
 
 A small HTTP service that serves conformant
 [`/.well-known/sustainability-data`](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/)

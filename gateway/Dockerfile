@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Multi-stage build for the sustainability-data gateway.
+# Multi-stage build for the sustainability-data Repository Gateway.
 #
 # Why a Dockerfile rather than Nixpacks (Railway's default builder): this
 # service's whole purpose is to be curl-ed by a reviewer, so the build must be

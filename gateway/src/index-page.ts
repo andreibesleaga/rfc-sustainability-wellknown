@@ -178,7 +178,7 @@ ${gaps.subjects.map(gapRow).join("\n")}
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>sustainability-data gateway</title>
+<title>sustainability-data Repository Gateway</title>
 <style>
 :root { color-scheme: light dark; --fg:#111; --dim:#555; --bg:#fff; --line:#d8d8d8; --accent:#0b5; --warn:#8a4b00; --warnbg:#fff6e6; }
 @media (prefers-color-scheme: dark) {
@@ -209,7 +209,7 @@ footer { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); co
 </style>
 </head>
 <body>
-<h1>sustainability-data gateway</h1>
+<h1>sustainability-data Repository Gateway</h1>
 <p class="sub">A reference deployment of <code>/.well-known/sustainability-data</code>
 (<a href="${escapeHtml(doc.specification)}" rel="noopener noreferrer">draft-besleaga-sustainability-wellknown</a>).</p>
 

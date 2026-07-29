@@ -15,7 +15,8 @@ is the normal case for early ecosystem adoption, not a hypothetical. Built
 basic-first and M2M-oriented: every API is one line to call from a script (a cron
 job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad input.
 
-> **Version note:** consumer **0.5.0** (this tree, and the current npm release)
+> **Version note:** consumer **0.5.1** (this tree, and the current npm release —
+> a documentation-only release; its code is identical to `0.5.0`)
 > implements the **-04**/**-05** draft revisions' `"2.0"` wire format — the renamed
 > `/.well-known/sustainability-data` URI (earlier revisions requested the suffix
 > `sustainability`), 8 mandatory fields (including the opaque `target` reporting

@@ -34,7 +34,7 @@ describe("GET /{domain}/.well-known/sustainability-data", () => {
     expect(etag).toBeTruthy();
     expect(etag!.startsWith("W/")).toBe(false); // strong validator
     expect(etag!).toMatch(/^"[0-9a-f]{40}"$/);
-    expect(r.headers.get("last-modified")).toBe("Tue, 15 Jul 2025 00:00:00 GMT");
+    expect(r.headers.get("last-modified")).toBe("Wed, 29 Jul 2026 00:00:00 GMT");
     // Human-readable `provider` text is language-tagged at the HTTP layer.
     expect(r.headers.get("content-language")).toBe("en");
   });

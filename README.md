@@ -11,8 +11,9 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name). The posted `-05` revision makes no change to this registration request.
 
 This repository contains the initial documents and other supporting examples, tooling, etc.
+A reference testing gateway which publishes real sustainability data from different services is deployed here: https://sustainability-registry-production.up.railway.app/
 
-(previous drafts are release tagged, in internet-drafts folder. overall system document with diagrams: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md)).
+Previous drafts are release tagged, in internet-drafts filder, and overall system architecture documents with diagrams: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md).
 
 ---
 

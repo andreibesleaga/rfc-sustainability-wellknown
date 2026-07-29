@@ -6,13 +6,13 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-05** is the **latest posted** revision and is **under ISE review** for publication as an Informational RFC: **no change to the wire format**. The prior **-04** revision renamed the requested well-known URI suffix from `sustainability` to `sustainability-data` (per ISE feedback on the RFC 8615 precision expectations, resolving the IANA well-known-URI naming feedback) and added the optional `target-type` member. Draft v02/v03 presented at IETF meeting 126 in SUSTAIN RG. The current draft replaces `draft-besleaga-green-sustainability-wellknown`. 
+**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-05** is the **latest posted** revision and is **under ISE review** for publication as an Informational RFC: **no change to the wire format**. Draft v02/v03 presented at IETF meeting 126 in SUSTAIN RG.
 
 IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name). The posted `-05` revision makes no change to this registration request.
 
-This repository contains the initial documents and other supporting examples, tooling, etc. Previous drafts are release tagged, in internet-drafts folder, and overall system architecture documents with diagrams: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md).
+This repository contains initial drafts and supporting documents, examples, sources, tooling, etc. Previous drafts are release tagged, in internet-drafts folder, and system architecture with diagrams in: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md).
 
-A reference testing gateway for real sustainability data from different services is deployed here: https://sustainability-registry-production.up.railway.app/
+A reference testing gateway for real sustainability data from different services is deployed: https://sustainability-registry.up.railway.app/
 
 ---
 
@@ -338,7 +338,7 @@ same lifecycle against the current (schema-`2.0`-model) sources.
 
 Once a `/.well-known/sustainability-data` document is deployed anywhere — this repo's
 reference implementation or a third party's — verify it with the same four checks used
-to confirm the reference deployment at `https://andreibesleaga.com/.well-known/sustainability-data`:
+to confirm the reference deployment at [`https://andreibesleaga.com/.well-known/sustainability-data`](https://andreibesleaga.com/.well-known/sustainability-data):
 
 ```bash
 # 1. correct media type + CORS + caching

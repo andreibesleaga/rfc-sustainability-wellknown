@@ -42,9 +42,9 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 | File | Subject | Period | Basis | Verified from | Principal caveat |
 |---|---|---|---|---|---|
 | `cloudflare.com.json` | Cloudflare, Inc. | 2024 (CY) | location-based | 2024 emissions inventory PDF | total is the sum of published scopes |
-| `akamai.com.json` | Akamai Technologies, Inc. | 2025 (CY) | market-based | FY2025 IFRS S2/TCFD report + metrics addendum | no gross total published |
+| `akamai.com.json` | Akamai Technologies, Inc. | 2025 (CY) | market-based | FY2025 IFRS S2/TCFD report + FY25 Sustainability Report + metrics addendum | gross total from FY25 report |
 | `fastly.com.json` | Fastly, Inc. | 2024 (CY) | location-based | 2024 Sustainability Report | energy is PoP network + offices |
-| `mozilla.org.json` | Mozilla Foundation and Corporation | 2024 (CY) | market-based | 2025 Impact Fact Sheet | no energy figure published |
+| `mozilla.org.json` | Mozilla Foundation and Corporation | 2025 (CY) | market-based | 2026 Impact Fact Sheet | no energy figure published |
 | `wikimedia.org.json` | Wikimedia Foundation | 2024 (CY) | *omitted* | Environmental Sustainability Metrics 2024 | Scope 2 basis unlabeled in source |
 | `microsoft.com.json` | Microsoft Corporation | **FY25**, ended 2025-06-30 | market-based | 2026 Environmental Data Fact Sheet | **fiscal year, not calendar year** |
 | `ovhcloud.com.json` | OVH Groupe SA (OVHcloud) | **FY2025**, ended 2025-08-31 | market-based | 2025 Universal Registration Document | **fiscal year, not calendar year** |
@@ -73,7 +73,7 @@ and [`../research/hosters-verified.md`](../research/hosters-verified.md).
 |---|---|
 | Source (`methodology-uri`) | <https://cf-assets.www.cloudflare.com/slt3lc6tev37/2lg914L21Lyfpcya6weavX/6ded4e6ca673dbc1197c6b772a92aa29/Emission_inventory_PDF__2024.pdf> (short link `https://cfl.re/impact-report-2024`) |
 | Disclosure index | <https://www.cloudflare.com/impact/> |
-| Retrieved | 2025-07-15 (original transcription), re-verified 2026-07-28/29. The document's `updated` (and served `Last-Modified`) deliberately keeps the 2025-07-15 transcription date: re-verification changed no figure, and `updated` reports when the document's content last changed, not when it was last checked. |
+| Retrieved | 2025-07-15 (original transcription), re-verified 2026-07-28/29 with no figure changing. `updated` is 2026-07-29 because the document's `provider` caveat text was expanded on that date; every numeric member is unchanged since the 2025-07-15 transcription. |
 | Scope 1 / 2 (LB) / 3 | 198 / 62,782 / 43,071 mtCO2e — all read |
 | `carbon-footprint` | 106,051 mtCO2e |
 | Assurance | independently reviewed and verified by Shift Advantage |
@@ -113,8 +113,14 @@ unchanged rather than re-derived.
 
 Caveats:
 
-- **`carbon-footprint` is omitted**: Akamai publishes no single gross-total row,
-  and this registry does not derive one.
+- **`carbon-footprint: 353,420`** is read from Akamai's FY25 Sustainability
+  Report (posted 2026-07-27): "Gross GHG emissions (Scopes 1 + 2 + 3) —
+  353,420 t CO₂e", stated on a "net market-based methodology … as of
+  December 31, 2025" — the same market-based basis this document declares, and
+  exactly the sum of the three scope members. (Until that report appeared, the
+  climate-disclosure document published no gross-total row and this member was
+  omitted; the FY25 report also independently re-confirms the 1,082,840 MWh
+  energy figure and the 52% clean-energy row.)
 - Location-based Scope 2 is 322,800 mtCO2e. The market-based basis is declared
   and used; the location-based figure is not carried.
 - **`renewable-energy: 52`** is the 2025 row of the metrics addendum. The
@@ -128,8 +134,8 @@ Caveats:
 | | |
 |---|---|
 | Source (`methodology-uri`) | <https://investors.fastly.com/files/doc_governance/2025/Nov/26/2024-Fastly-Sustainability-Report-290db1.pdf> |
-| Disclosure index | <https://www.fastly.com/social-impact/> |
-| Retrieved | 2026-07-29 (the origin blocks automated fetches; read via an Internet Archive capture of that exact URL) |
+| Disclosure index | *omitted* — see caveats |
+| Retrieved | 2026-07-29 (the origin intermittently blocks automated fetches; read via an Internet Archive capture of that exact URL) |
 | Scope 1 / 2 (LB) / 3 | 102 / 10,987 / 35,222 mtCO2e — all read |
 | `carbon-footprint` | 46,311 mtCO2e — read, and the scopes sum to it exactly |
 | Energy / renewable | 36,179 MWh / 64.7% — read |
@@ -137,25 +143,38 @@ Caveats:
 Caveats: the location-based basis is declared and used; the market-based total
 is 37,506 mtCO2e (Scope 2 5,091, Scope 3 32,314). `energy-consumption` is
 electricity for equipment across the global PoP network and Fastly's offices,
-which is the report's stated boundary.
+which is the report's stated boundary. **`disclosure-uri` is omitted** (an
+earlier revision pointed at `fastly.com/social-impact/`): that page returns 404,
+has zero Internet Archive captures ever, and Fastly's sitemaps contain no
+sustainability/impact/ESG landing page — the company appears to publish the
+report only through its investor-relations document index, whose host
+intermittently rejects non-browser clients. Rather than ship a link that times
+out for automated consumers, the member is omitted; the report PDF itself is
+the `methodology-uri` document.
 
-### `mozilla.org.json` — Mozilla Foundation and Mozilla Corporation, CY2024
+### `mozilla.org.json` — Mozilla Foundation and Mozilla Corporation, CY2025
 
 | | |
 |---|---|
-| Source (`methodology-uri`) | <https://assets.mozilla.net/pdf/Mozilla_Impact_Report_2025.pdf> |
-| Disclosure index | <https://www.mozilla.org/en-US/sustainability/> |
-| Retrieved | 2026-07-29 |
-| Scope 1 / 2 (MB) / 3 | 42 / 0 / 22,473 mtCO2e — all read |
-| `carbon-footprint` | 22,515 mtCO2e — read, market-based, scopes sum exactly |
+| Source (`methodology-uri`) | <https://assets.mozilla.net/pdf/Mozilla_Impact_Report_2026.pdf> |
+| Disclosure index | <https://www.mozilla.org/en-US/impact/> |
+| Retrieved | 2026-07-29 (2026 SEI Fact Sheet, PDF created 2026-06-30) |
+| Scope 1 / 2 (MB) / 3 | 30 / 0 / 17,288 mtCO2e — all read (Table 1, 2025 column) |
+| `carbon-footprint` | 17,318 mtCO2e — read, market-based, scopes sum exactly |
 
-Caveats: inventories 2020–2024 were prepared by Watershed. Mozilla publishes no
-location-based total (42 + 118 + 22,473 would be a derivation, and is not
-published here). **No absolute energy figure is published**, so
-`energy-consumption` is omitted. `renewable-energy: 100` is the source's figure
-scoped to global leased office and data-centre spaces. Note that
-`mozilla.org/sustainability/emissions-data/` still shows only 2019–2022 — the
-PDF is the current source.
+Caveats: inventories were prepared by Watershed. Mozilla publishes no
+location-based total (the location-based purchased-electricity line for 2025 is
+91 mtCO2e; summing would be a derivation and is not published here). **No
+absolute energy figure is published**, so `energy-consumption` is omitted.
+`renewable-energy: 100` is the source's figure scoped to global leased office
+and data-centre spaces ("In 2025, Mozilla sourced 100% renewable energy for all
+of our global leased office and data center spaces"). The `disclosure-uri`
+points at `mozilla.org/en-US/impact/`, which links the current fact sheet and
+the report archive — the older `sustainability/` microsite is the 2023 report
+and its emissions-data subpage still shows only 2019–2022. An earlier revision
+of this document carried the CY2024 figures (22,515 total) from the 2025 fact
+sheet; it was superseded on 2026-07-29 when re-verification found the 2026
+edition.
 
 ### `wikimedia.org.json` — Wikimedia Foundation, CY2024
 

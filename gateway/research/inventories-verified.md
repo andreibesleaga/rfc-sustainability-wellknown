@@ -273,6 +273,9 @@ include only with that caveat in the methodology note, or omit.)
 
 ## 6. Mozilla (Foundation + Corporation) — STATUS: VERIFIED (calendar year 2024)
 
+> **SUPERSEDED 2026-07-29:** Mozilla published the 2026 SEI Fact Sheet (PDF created 2026-06-30, https://assets.mozilla.net/pdf/Mozilla_Impact_Report_2026.pdf) with CY2025 data: Scope 1 30 / Scope 2 MB 0 (LB 91) / Scope 3 17,288 / total MB 17,318 mtCO2e; 100% renewable for leased office+DC spaces. `gateway/data/mozilla.org.json` now carries CY2025. The CY2024 figures below remain correct for CY2024.
+
+
 Source: Mozilla 2025 Social & Environmental Impact Fact Sheet,
 https://assets.mozilla.net/pdf/Mozilla_Impact_Report_2025.pdf (GHG Protocol, inventories
 by Watershed 2020–2024). NB: mozilla.org/sustainability/emissions-data/ still shows only

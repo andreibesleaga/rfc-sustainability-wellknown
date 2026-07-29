@@ -89,6 +89,54 @@ describe("runCli() argument handling", () => {
     expect(out.join("\n")).toContain('"target"');
   });
 
+  it("resolves prefixed base URLs and full document URLs (gateway pattern)", async () => {
+    const { resolveWellKnownUrl } = await import("../src/fetch");
+    // plain origin: well-known at the root
+    expect(resolveWellKnownUrl("https://example.org").toString()).toBe(
+      "https://example.org/.well-known/sustainability-data",
+    );
+    // base with a path prefix (multi-subject gateway): resolved UNDER the prefix
+    expect(resolveWellKnownUrl("https://gateway.example/cloudflare.com").toString()).toBe(
+      "https://gateway.example/cloudflare.com/.well-known/sustainability-data",
+    );
+    expect(resolveWellKnownUrl("https://gateway.example/cloudflare.com/").toString()).toBe(
+      "https://gateway.example/cloudflare.com/.well-known/sustainability-data",
+    );
+    // full document URL: used as-is
+    expect(resolveWellKnownUrl("https://example.org/.well-known/sustainability-data").toString()).toBe(
+      "https://example.org/.well-known/sustainability-data",
+    );
+    expect(
+      resolveWellKnownUrl("https://gateway.example/x.com/.well-known/sustainability-data").toString(),
+    ).toBe("https://gateway.example/x.com/.well-known/sustainability-data");
+  });
+
+  it("fetches through a prefixed base URL end-to-end", async () => {
+    // Server publishes ONLY under /subject.example/.well-known/... — the root
+    // well-known 404s, so a prefix-stripping regression fails this test.
+    const body = JSON.stringify(EXAMPLE_DOC);
+    const prefixed = "/subject.example" + WELL_KNOWN_PATH;
+    await new Promise<void>((resolve) => {
+      server = createServer((req, res) => {
+        const url = new URL(req.url ?? "/", "http://localhost");
+        if (url.pathname !== prefixed) {
+          res.writeHead(404).end();
+          return;
+        }
+        res.writeHead(200, { "Content-Type": "application/json", ETag: '"prefix-test"' });
+        res.end(body);
+      });
+      server.listen(0, "127.0.0.1", () => resolve());
+    });
+    const { port } = server!.address() as AddressInfo;
+    const out = captureStdout();
+
+    const code = await runCli([`http://127.0.0.1:${port}/subject.example`, "--format=ndjson"]);
+
+    expect(code).toBe(0);
+    expect(out.join("\n")).toContain('"target"');
+  });
+
   it("promotes a bare hostname to https and rejects non-http schemes", () => {
     expect(normalizeOrigin("example.org")).toBe("https://example.org/");
     expect(normalizeOrigin("https://example.org")).toBe("https://example.org/");

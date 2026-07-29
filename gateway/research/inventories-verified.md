@@ -65,10 +65,11 @@ verification confirms):
   "scope-1": 198,
   "scope-2": 62782,
   "scope-3": 43071,
-  "renewable-energy": 100,
   "disclosure-uri": "https://www.cloudflare.com/impact/"
 }
 ```
+
+*`renewable-energy` is deliberately ABSENT from this snippet and from `gateway/data/cloudflare.com.json`: Cloudflare's "100%" is a market-based **matching** claim (renewable purchases matched to consumption), not a measured renewable share of delivered electricity, and the served document is location-based. See data/README.md's Cloudflare section for the full rule.*
 (carbon-footprint 106,051 is the INFERRED location-based sum; the published total row is
 43,071 market-based. energy-consumption omitted because the report itself carries two
 conflicting values, 182.89 vs 177.89 GWh.)

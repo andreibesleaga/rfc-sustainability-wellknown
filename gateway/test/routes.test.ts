@@ -269,3 +269,91 @@ describe("unknown paths", () => {
     }
   });
 });
+
+describe("If-Modified-Since (RFC 9110 §13.1.3)", () => {
+  it("returns 304 for an If-Modified-Since at or after Last-Modified", async () => {
+    const get = await fetch(url(DOC));
+    const lastModified = get.headers.get("last-modified")!;
+    await get.text();
+
+    const same = await fetch(url(DOC), { headers: { "If-Modified-Since": lastModified } });
+    expect(same.status).toBe(304);
+    // The 304 still carries the validators.
+    expect(same.headers.get("etag")).toBeTruthy();
+    expect(same.headers.get("last-modified")).toBe(lastModified);
+    await same.text();
+
+    const later = await fetch(url(DOC), {
+      headers: { "If-Modified-Since": "Fri, 01 Jan 2100 00:00:00 GMT" },
+    });
+    expect(later.status).toBe(304);
+    await later.text();
+  });
+
+  it("returns 200 for an If-Modified-Since before Last-Modified, or an invalid date", async () => {
+    const before = await fetch(url(DOC), {
+      headers: { "If-Modified-Since": "Mon, 01 Jan 1990 00:00:00 GMT" },
+    });
+    expect(before.status).toBe(200);
+    await before.text();
+
+    const invalid = await fetch(url(DOC), { headers: { "If-Modified-Since": "not-a-date" } });
+    expect(invalid.status).toBe(200);
+    await invalid.text();
+  });
+
+  it("If-None-Match takes precedence over If-Modified-Since", async () => {
+    // Wrong ETag + satisfied IMS: the ETag comparison wins -> 200.
+    const r = await fetch(url(DOC), {
+      headers: {
+        "If-None-Match": '"definitely-not-the-etag"',
+        "If-Modified-Since": "Fri, 01 Jan 2100 00:00:00 GMT",
+      },
+    });
+    expect(r.status).toBe(200);
+    await r.text();
+  });
+
+  it("applies to the gateway's own report too", async () => {
+    const get = await fetch(url(SELF));
+    const lastModified = get.headers.get("last-modified")!;
+    await get.text();
+    const r = await fetch(url(SELF), { headers: { "If-Modified-Since": lastModified } });
+    expect(r.status).toBe(304);
+    await r.text();
+  });
+});
+
+describe("self-report month rollover (draft: most recently completed period)", () => {
+  it("regenerates the unpinned self report when the month rolls over", async () => {
+    const { loadConfig } = await import("../src/config");
+    const { createGateway, route } = await import("../src/app");
+    const { DATA_DIR } = await import("./helpers");
+
+    let nowMs = Date.parse("2026-06-15T12:00:00Z");
+    const config = loadConfig({ port: 0, host: "127.0.0.1", dataDir: DATA_DIR, maxAge: 86_400 });
+    // NOT pinning config.self.period: this test is about the default path.
+    const gw = await createGateway({
+      config,
+      log: () => undefined,
+      now: new Date(nowMs),
+      clock: () => new Date(nowMs),
+    });
+
+    const r1 = await route(gw, "GET", "/.well-known/sustainability-data");
+    expect(JSON.parse(r1.body)["reporting-period"]).toBe("2026-05");
+
+    // Same month: byte-stable (same ETag), no regeneration.
+    nowMs = Date.parse("2026-06-28T09:00:00Z");
+    const r2 = await route(gw, "GET", "/.well-known/sustainability-data");
+    expect(r2.headers.ETag ?? r2.headers.etag).toBe(r1.headers.ETag ?? r1.headers.etag);
+
+    // Month rolls over: the served period advances to the newly completed month.
+    nowMs = Date.parse("2026-08-02T00:30:00Z");
+    const r3 = await route(gw, "GET", "/.well-known/sustainability-data");
+    expect(JSON.parse(r3.body)["reporting-period"]).toBe("2026-07");
+    expect(r3.headers.ETag ?? r3.headers.etag).not.toBe(r1.headers.ETag ?? r1.headers.etag);
+
+    gw.server.close();
+  });
+});

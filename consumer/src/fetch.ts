@@ -6,6 +6,26 @@ import { validateDocument } from "./validate";
 export const WELL_KNOWN_PATH = "/.well-known/sustainability-data";
 
 /**
+ * Resolves the well-known document URL for an origin or base URL.
+ *
+ * Three input shapes are accepted:
+ *  - a plain origin (`https://example.org`) — the ordinary RFC 8615 case: the
+ *    well-known path is resolved at the origin root;
+ *  - a base URL with a path prefix (`https://gateway.example/cloudflare.com`) —
+ *    the well-known path is resolved UNDER the prefix. This is the multi-subject
+ *    gateway/mirror pattern, where one origin republishes documents for many
+ *    reporting subjects at `/{subject}/.well-known/sustainability-data`;
+ *  - the full document URL itself — used as-is, so a copy-pasted URL works.
+ */
+export function resolveWellKnownUrl(origin: string): URL {
+  const base = new URL(origin);
+  if (base.pathname.endsWith(WELL_KNOWN_PATH)) return base;
+  if (base.pathname === "" || base.pathname === "/") return new URL(WELL_KNOWN_PATH, base);
+  const prefix = base.pathname.endsWith("/") ? base : new URL(base.origin + base.pathname + "/");
+  return new URL("." + WELL_KNOWN_PATH, prefix);
+}
+
+/**
  * Default overall request timeout (ms). A non-responding origin must not hang
  * the caller forever; 30s is a generous ceiling for a well-known GET that a
  * server SHOULD be serving from cache (see draft §Operational Considerations).
@@ -116,7 +136,7 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
 
-  const url = new URL(WELL_KNOWN_PATH, origin);
+  const url = resolveWellKnownUrl(origin);
   if (options.target) url.searchParams.set("target", options.target);
   if (options.period) url.searchParams.set("period", options.period);
   if (options.granularity) url.searchParams.set("granularity", options.granularity);

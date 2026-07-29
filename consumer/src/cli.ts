@@ -8,6 +8,9 @@ const USAGE =
   "\n" +
   "  <origin>  Origin to fetch from, e.g. https://example.org — the\n" +
   "            /.well-known/sustainability-data path is appended for you.\n" +
+  "            A base URL with a path prefix (a multi-subject gateway, e.g.\n" +
+  "            https://gateway.example/cloudflare.com) resolves the well-known\n" +
+  "            path under that prefix, and a full document URL is used as-is.\n" +
   "            Options may appear before or after the origin.\n" +
   "\n" +
   "Examples:\n" +

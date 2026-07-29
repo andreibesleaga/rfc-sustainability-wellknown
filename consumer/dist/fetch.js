@@ -1,10 +1,32 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEFAULT_MAX_BYTES = exports.DEFAULT_TIMEOUT_MS = exports.WELL_KNOWN_PATH = void 0;
+exports.resolveWellKnownUrl = resolveWellKnownUrl;
 exports.fetchSustainability = fetchSustainability;
 const sentinel_1 = require("./sentinel");
 const validate_1 = require("./validate");
 exports.WELL_KNOWN_PATH = "/.well-known/sustainability-data";
+/**
+ * Resolves the well-known document URL for an origin or base URL.
+ *
+ * Three input shapes are accepted:
+ *  - a plain origin (`https://example.org`) — the ordinary RFC 8615 case: the
+ *    well-known path is resolved at the origin root;
+ *  - a base URL with a path prefix (`https://gateway.example/cloudflare.com`) —
+ *    the well-known path is resolved UNDER the prefix. This is the multi-subject
+ *    gateway/mirror pattern, where one origin republishes documents for many
+ *    reporting subjects at `/{subject}/.well-known/sustainability-data`;
+ *  - the full document URL itself — used as-is, so a copy-pasted URL works.
+ */
+function resolveWellKnownUrl(origin) {
+    const base = new URL(origin);
+    if (base.pathname.endsWith(exports.WELL_KNOWN_PATH))
+        return base;
+    if (base.pathname === "" || base.pathname === "/")
+        return new URL(exports.WELL_KNOWN_PATH, base);
+    const prefix = base.pathname.endsWith("/") ? base : new URL(base.origin + base.pathname + "/");
+    return new URL("." + exports.WELL_KNOWN_PATH, prefix);
+}
 /**
  * Default overall request timeout (ms). A non-responding origin must not hang
  * the caller forever; 30s is a generous ceiling for a well-known GET that a
@@ -70,7 +92,7 @@ async function fetchSustainability(origin, options = {}) {
     }
     const timeoutMs = options.timeoutMs ?? exports.DEFAULT_TIMEOUT_MS;
     const maxBytes = options.maxBytes ?? exports.DEFAULT_MAX_BYTES;
-    const url = new URL(exports.WELL_KNOWN_PATH, origin);
+    const url = resolveWellKnownUrl(origin);
     if (options.target)
         url.searchParams.set("target", options.target);
     if (options.period)

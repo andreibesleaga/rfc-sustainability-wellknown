@@ -73,7 +73,7 @@ and [`../research/hosters-verified.md`](../research/hosters-verified.md).
 |---|---|
 | Source (`methodology-uri`) | <https://cf-assets.www.cloudflare.com/slt3lc6tev37/2lg914L21Lyfpcya6weavX/6ded4e6ca673dbc1197c6b772a92aa29/Emission_inventory_PDF__2024.pdf> (short link `https://cfl.re/impact-report-2024`) |
 | Disclosure index | <https://www.cloudflare.com/impact/> |
-| Retrieved | 2025-07-15 (original transcription), re-verified 2026-07-28/29 |
+| Retrieved | 2025-07-15 (original transcription), re-verified 2026-07-28/29. The document's `updated` (and served `Last-Modified`) deliberately keeps the 2025-07-15 transcription date: re-verification changed no figure, and `updated` reports when the document's content last changed, not when it was last checked. |
 | Scope 1 / 2 (LB) / 3 | 198 / 62,782 / 43,071 mtCO2e — all read |
 | `carbon-footprint` | 106,051 mtCO2e |
 | Assurance | independently reviewed and verified by Shift Advantage |
@@ -267,7 +267,13 @@ Caveats: **data-centre operations only** — it excludes travel and everything
 else, and Automattic has never published a scoped inventory. **The figure is
 2020-vintage, six years old at the time of mapping, and is the most recent one
 Automattic publishes.** `carbon-accounting` is omitted because the source never
-states a basis; `scope-1/2/3` are omitted because none is published. This
+states a basis; `scope-1/2/3` are omitted because none is published.
+`measurement-method` is `hardware-estimated` because the source's method is an
+estimate built from the operator's own hardware inventory — server power draw
+multiplied by 1.5 as a PUE proxy ("multiply that by 1.5 to obtain a
+conservative estimate that accounts for power usage effectiveness") — computed
+by Automattic itself, not by a third party, so `third-party-modeled` would
+misattribute it. This
 document is kept deliberately: `reporting-period` and `updated` exist so a
 consumer can see staleness rather than have to guess at it.
 
@@ -290,7 +296,7 @@ renewable share, a disclosure link, and a reverse-domain extension member
 (`example.retailer.pue`) that conformant clients ignore.
 
 Internally consistent by construction: 4,310 + 9,888 + 114,260 = 128,458 mtCO2e,
-and 41,200 MWh × 373 gCO2e/kWh = 9,888 mtCO2e (the Scope 2 figure). Source: none
+and 41,200 MWh × 240 gCO2e/kWh = 9,888 mtCO2e (the Scope 2 figure). Source: none
 — **invented**. `methodology-uri` points at this gateway's own
 [`METHODOLOGY.md`](../METHODOLOGY.md), which says so.
 

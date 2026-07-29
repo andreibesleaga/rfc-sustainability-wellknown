@@ -2,6 +2,19 @@
 import { FetchParams, FetchResult } from "./types";
 export declare const WELL_KNOWN_PATH = "/.well-known/sustainability-data";
 /**
+ * Resolves the well-known document URL for an origin or base URL.
+ *
+ * Three input shapes are accepted:
+ *  - a plain origin (`https://example.org`) — the ordinary RFC 8615 case: the
+ *    well-known path is resolved at the origin root;
+ *  - a base URL with a path prefix (`https://gateway.example/cloudflare.com`) —
+ *    the well-known path is resolved UNDER the prefix. This is the multi-subject
+ *    gateway/mirror pattern, where one origin republishes documents for many
+ *    reporting subjects at `/{subject}/.well-known/sustainability-data`;
+ *  - the full document URL itself — used as-is, so a copy-pasted URL works.
+ */
+export declare function resolveWellKnownUrl(origin: string): URL;
+/**
  * Default overall request timeout (ms). A non-responding origin must not hang
  * the caller forever; 30s is a generous ceiling for a well-known GET that a
  * server SHOULD be serving from cache (see draft §Operational Considerations).

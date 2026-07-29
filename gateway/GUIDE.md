@@ -51,7 +51,7 @@ distinction is the whole design.
 
 The gateway does not reimplement the format. It depends on the published
 [`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)
-package (v0.4.0) for normalization, the JTD validation gate, ETag generation,
+package (v0.5.0) for normalization, the JTD validation gate, ETag generation,
 caching and the per-document HTTP semantics; the gateway adds multi-subject
 routing, `Last-Modified`, the index, and the honesty machinery.
 
@@ -369,9 +369,16 @@ npm test
 **2. Against the repository's canonical schemas** — JTD (RFC 8927) and CDDL
 (RFC 8610):
 
+One-time setup for the two independent validators (any machine):
+
+```bash
+python3 -m venv ~/.cache/sustain-venv && ~/.cache/sustain-venv/bin/pip install jtd   # python JTD validator
+gem install --user-install cddl                                                      # ruby CDDL validator
+```
+
 ```bash
 source ~/.cache/sustain-venv/bin/activate            # python `jtd`
-export PATH="$HOME/.local/share/gem/ruby/3.2.0/bin:$PATH"   # the `cddl` tool
+export PATH="$(ruby -e 'print Gem.user_dir')/bin:$PATH"     # the `cddl` tool
 cd ../schemas-validators
 for f in ../gateway/data/*.json; do
   case "$(basename "$f")" in _*) continue;; esac
@@ -380,7 +387,7 @@ for f in ../gateway/data/*.json; do
 done
 ```
 
-Last run: **11 files, 22/22 JTD + CDDL checks passed.**
+Last run 2026-07-29: **11 files, 22/22 JTD + CDDL checks passed** (also enforced continuously by `.github/workflows/gateway.yml`, which boots the server and runs the conformance battery on every push).
 
 **3. Against a running server**, including the documents produced by adapters
 rather than files:

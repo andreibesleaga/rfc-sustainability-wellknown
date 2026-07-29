@@ -11,7 +11,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { handleRequest } from "sustainability-wellknown-publisher";
 import { keplerReplayAdapter } from "./adapters/kepler-replay";
-import { selfReportAdapter } from "./adapters/self-report";
+import { lastCompletedMonth, selfReportAdapter } from "./adapters/self-report";
 import { LIMITS, type GatewayConfig } from "./config";
 import { CORS_ORIGIN, corsHeaders, jsonError, methodNotAllowed, withBody, type Result } from "./http";
 import {
@@ -36,6 +36,13 @@ export interface Gateway {
   subjects: Map<string, Subject>;
   /** The gateway's own report (`target-type: "service"`). */
   self: Subject;
+  /**
+   * Returns the self subject for the CURRENT reporting period. The draft's
+   * Basic service requires the most recently completed period, so when the
+   * month rolls over (and no fixed SELF_PERIOD is pinned) the self report is
+   * regenerated instead of freezing at whatever month the process booted in.
+   */
+  refreshSelf?: () => Promise<Subject>;
   /** Subjects known to publish nothing machine-readable, keyed by domain. */
   noData: Map<string, NoDataEntry>;
   index: IndexDocument;
@@ -51,6 +58,8 @@ export interface CreateGatewayOptions {
   log?: LogFn;
   /** Injectable clock, so the default self-report period is deterministic. */
   now?: Date;
+  /** Injectable RUNNING clock for the month-rollover check (tests). Defaults to `() => new Date()`. */
+  clock?: () => Date;
 }
 
 /**
@@ -66,6 +75,7 @@ async function serveDocument(
   subject: Subject,
   config: GatewayConfig,
   ifNoneMatch: string | undefined,
+  ifModifiedSince?: string,
 ): Promise<Result> {
   const r = await handleRequest(
     subject.publisher,
@@ -75,6 +85,16 @@ async function serveDocument(
   );
   const headers: Record<string, string> = { ...r.headers, "Last-Modified": subject.lastModified };
   if (r.status === 200) {
+    // RFC 9110 §13.1.3: If-Modified-Since applies to GET/HEAD only when
+    // If-None-Match is absent (an ETag comparison always wins). The document
+    // is unmodified when its Last-Modified is not later than the given date.
+    if (ifNoneMatch === undefined && ifModifiedSince !== undefined) {
+      const since = Date.parse(ifModifiedSince);
+      const lastModified = Date.parse(subject.lastModified);
+      if (!Number.isNaN(since) && !Number.isNaN(lastModified) && lastModified <= since) {
+        return { status: 304, headers, body: "" };
+      }
+    }
     // The `provider` member is human-readable text; the draft's
     // Internationalization Considerations ask publishers to identify its
     // language at the HTTP layer. No negotiation is offered, so no `Vary`.
@@ -86,14 +106,16 @@ async function serveDocument(
 
 /** Resolve one request to a fully-formed response. Exported for tests. */
 export async function route(
-  gw: Pick<Gateway, "config" | "subjects" | "self" | "noData" | "index" | "indexHtml">,
+  gw: Pick<Gateway, "config" | "subjects" | "self" | "noData" | "index" | "indexHtml"> &
+    Partial<Pick<Gateway, "refreshSelf">>,
   method: string,
   rawUrl: string,
-  headers: { "if-none-match"?: string } = {},
+  headers: { "if-none-match"?: string; "if-modified-since"?: string } = {},
 ): Promise<Result> {
   const url = new URL(rawUrl, "http://gateway.invalid");
   const path = url.pathname;
   const ifNoneMatch = headers["if-none-match"];
+  const ifModifiedSince = headers["if-modified-since"];
 
   const isKnown =
     path === "/" ||
@@ -139,7 +161,8 @@ export async function route(
   }
 
   if (path === WELL_KNOWN_PATH) {
-    return serveDocument(gw.self, gw.config, ifNoneMatch);
+    const self = gw.refreshSelf ? await gw.refreshSelf() : gw.self;
+    return serveDocument(self, gw.config, ifNoneMatch, ifModifiedSince);
   }
 
   const m = SUBJECT_ROUTE.exec(path);
@@ -181,7 +204,7 @@ export async function route(
         "no sustainability metadata is published here for that reporting subject",
       );
     }
-    return serveDocument(subject, gw.config, ifNoneMatch);
+    return serveDocument(subject, gw.config, ifNoneMatch, ifModifiedSince);
   }
 
   return jsonError(404, "not found");
@@ -242,7 +265,40 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   }
 
   const index = buildIndex(subjects.values(), self, config, noData.values());
-  const indexHtml = renderIndexHtml(index);
+  const indexHtml = renderIndexHtml(index, config.baseUrl);
+
+  // The self report names a reporting period; with no pinned SELF_PERIOD that
+  // default is the last completed month, which goes stale in a long-lived
+  // process. Regenerate lazily on the first request after a month rolls over.
+  // (The index is period-independent — it carries only the self path/target —
+  // so only the subject itself is rebuilt.)
+  const clock = opts.clock ?? (() => new Date());
+  let currentSelf = self;
+  let currentMonth = config.self.period ?? lastCompletedMonth(opts.now ?? clock());
+  const refreshSelf = async (): Promise<Subject> => {
+    if (config.self.period) return currentSelf;
+    const month = lastCompletedMonth(clock());
+    if (month !== currentMonth) {
+      currentSelf = await subjectFromAdapter({
+        domain: "gateway.invalid",
+        adapter: selfReportAdapter({
+          target: config.self.target,
+          provider: config.self.provider,
+          methodologyUri: config.self.methodologyUri,
+          disclosureUri: config.self.disclosureUri,
+          period: month,
+          watts: config.self.watts,
+          gridIntensity: config.self.gridIntensity,
+        }),
+        target: config.self.target,
+        targetType: "service",
+        label: "adapter:computed (gateway self-report)",
+      });
+      currentMonth = month;
+    }
+    return currentSelf;
+  };
+
   const gw: Gateway = {
     server: undefined as unknown as Server,
     config,
@@ -251,6 +307,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     noData,
     index,
     indexHtml,
+    refreshSelf,
   };
 
   gw.server = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -276,7 +333,10 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       });
     };
 
-    route(gw, method, rawUrl, { "if-none-match": req.headers["if-none-match"] as string | undefined })
+    route(gw, method, rawUrl, {
+      "if-none-match": req.headers["if-none-match"] as string | undefined,
+      "if-modified-since": req.headers["if-modified-since"] as string | undefined,
+    })
       .then(finish)
       .catch((err: unknown) => {
         log({

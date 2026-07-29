@@ -155,7 +155,17 @@ function gapRow(e: NoDataEntry): string {
 </tr>`;
 }
 
-export function renderIndexHtml(doc: IndexDocument): string {
+export function renderIndexHtml(doc: IndexDocument, baseUrl = ""): string {
+  // With no configured BASE_URL the commands render a placeholder host and a
+  // three-line script swaps in location.origin — the page must show correct,
+  // copy-pasteable commands on whatever domain it is actually served from.
+  const BASE_TOKEN = baseUrl ? escapeHtml(baseUrl) : "https://&lt;this-gateway&gt;";
+  const hostScript = baseUrl
+    ? ""
+    : `
+<script>
+for (const el of document.querySelectorAll(".host")) el.textContent = location.origin;
+</script>`;
   const rows = doc.subjects.map(row).join("\n");
   const gaps = doc["no-machine-readable-data"];
   const gapSection =
@@ -203,7 +213,11 @@ th { font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var
 .badge { font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; padding:.1rem .4rem;
   border-radius:3px; border:1px solid var(--line); color:var(--dim); white-space:nowrap; }
 .badge.synthetic { border-color:var(--warn); color:var(--warn); }
+.badge.sourced { border-color:var(--accent); color:var(--accent); }
 .dim { color:var(--dim); }
+pre.cmd { overflow-x:auto; border:1px solid var(--line); border-radius:4px; padding:.75rem .9rem;
+  background:var(--warnbg); background:color-mix(in srgb, var(--bg) 92%, var(--fg) 8%); }
+pre.cmd code { font-size:.82em; white-space:pre; }
 ul { padding-left:1.2rem; }
 footer { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); color:var(--dim); font-size:.9rem; }
 </style>
@@ -242,11 +256,36 @@ response is returned — they are never an error. Successful responses are
 A method other than <code>GET</code> or <code>HEAD</code> yields <code>405</code> with
 <code>Allow: GET, HEAD</code>. An unknown subject yields <code>404</code>.</p>
 
+<h2>Verify these documents yourself</h2>
+<p>Every document served here can be fetched and validated with the specification's
+published reference consumer
+(<a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer"><code>sustainability-wellknown-consumer</code></a>,
+version 0.5.2 or later). <code>--strict</code> runs the full conformance battery —
+schema validation, media type, caching, conditional requests, method handling — and
+labels each check with the strength of the requirement it tests (a failed
+<code>MUST</code> is a conformance failure; an unmet <code>SHOULD</code> is a warning).</p>
+
+<p>The gateway's own report, at this origin's true well-known location:</p>
+<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --strict</code></pre>
+
+<p>Any subject document, by giving its path-prefixed base URL — the consumer resolves
+<code>/.well-known/sustainability-data</code> under the prefix:</p>
+<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/cloudflare.com --strict
+npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/microsoft.com --strict
+npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/&lt;any-domain-above&gt; --strict</code></pre>
+
+<p>To just fetch and read a document (or pipe it into your own tooling):</p>
+<pre class="cmd"><code>curl -s <span class="host">${BASE_TOKEN}</span>/wikimedia.org${WELL_KNOWN_PATH} | python3 -m json.tool</code></pre>
+
+<p>Independent of this project's tooling, the JSON validates against the
+specification's published
+<a href="https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/main/schemas-validators" rel="noopener noreferrer">JTD and CDDL schemas</a>.</p>
+
 <h2>Machine-readable index</h2>
 <p><a href="/index.json"><code>/index.json</code></a> carries the same list, this notice included.</p>
 
 <footer>Operated as a specification-demonstration service. Health check:
-<a href="/healthz"><code>/healthz</code></a>.</footer>
+<a href="/healthz"><code>/healthz</code></a>.</footer>${hostScript}
 </body>
 </html>
 `;

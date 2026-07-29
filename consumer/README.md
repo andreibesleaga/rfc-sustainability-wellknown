@@ -15,8 +15,7 @@ is the normal case for early ecosystem adoption, not a hypothetical. Built
 basic-first and M2M-oriented: every API is one line to call from a script (a cron
 job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad input.
 
-> **Version note:** consumer **0.5.1** (this tree, and the current npm release —
-> a documentation-only release; its code is identical to `0.5.0`)
+> **Version note:** consumer **0.5.2** (this tree)
 > implements the **-04**/**-05** draft revisions' `"2.0"` wire format — the renamed
 > `/.well-known/sustainability-data` URI (earlier revisions requested the suffix
 > `sustainability`), 8 mandatory fields (including the opaque `target` reporting
@@ -33,10 +32,14 @@ job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad in
 > **0.5.0 fixed a CLI argument-parsing bug in 0.4.0** (`sustainability-fetch` read
 > `argv[0]` as the origin, so an option given before the origin — or the bin-name
 > token `npx <pkg> sustainability-fetch` passes through — crashed with a bare
-> `Invalid URL`); see "Verify a live deployment" below. The library API
-> (`fetchSustainability`, `SustainabilityClient`, `validateDocument`, etc.) is
-> unchanged between 0.4.0 and 0.5.0. The earlier published **0.1.0** implements
-> the -02 (`"1.1"`) model.
+> `Invalid URL`); see "Verify a live deployment" below. **0.5.2 adds
+> path-prefixed base URLs**: `fetchSustainability` and the CLI accept a plain
+> origin (well-known at the root, the RFC 8615 case), a base URL with a path
+> prefix (`https://gateway.example/cloudflare.com` — the multi-subject
+> gateway/mirror pattern, resolving the well-known path under the prefix), or
+> the full document URL pasted as-is. The library API is otherwise unchanged
+> since 0.4.0. The earlier published **0.1.0** implements the -02 (`"1.1"`)
+> model.
 
 ## Install & build
 
@@ -103,11 +106,16 @@ sustainability-fetch <origin> [--target=/path] [--period=2026-02] [--granularity
 ```
 
 Options may appear before or after the origin. A bare hostname is promoted to
-`https://`. `--strict` runs the conformance battery and prints one line per
-check, tagged with the strength of the requirement it tests: a failed `MUST`
-prints `FAIL` and exits non-zero, while an unmet `SHOULD` prints `WARN` and
-does not — an origin whose static host cannot emit an `Allow` header on a 405,
-for instance, is still conformant.
+`https://`. The `<origin>` argument accepts three shapes (since 0.5.2): a plain
+origin (`https://example.org` — the well-known path is resolved at the root, the
+ordinary RFC 8615 case), a base URL with a path prefix
+(`https://gateway.example/cloudflare.com` — the multi-subject gateway/mirror
+pattern; the well-known path is resolved *under* the prefix), or the full
+document URL pasted as-is. `--strict` runs the conformance battery and prints
+one line per check, tagged with the strength of the requirement it tests: a
+failed `MUST` prints `FAIL` and exits non-zero, while an unmet `SHOULD` prints
+`WARN` and does not — an origin whose static host cannot emit an `Allow` header
+on a 405, for instance, is still conformant.
 
 ```bash
 # Fetch and print as JSON (default):

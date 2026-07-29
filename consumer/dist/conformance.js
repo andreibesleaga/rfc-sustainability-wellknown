@@ -43,7 +43,7 @@ async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, option
         return true;
     }));
     checks.push(await check("Basic 200 response uses the application/json media type", "MUST", async () => {
-        const res = await fetchImpl(new URL(fetch_2.WELL_KNOWN_PATH, origin).toString(), { method: "GET", signal: rawSignal() });
+        const res = await fetchImpl((0, fetch_2.resolveWellKnownUrl)(origin).toString(), { method: "GET", signal: rawSignal() });
         // Drain the body so the socket is released promptly.
         await res.arrayBuffer().catch(() => undefined);
         if (res.status !== 200)
@@ -63,7 +63,7 @@ async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, option
         return second.status === "not-modified" || `expected not-modified, got ${second.status}`;
     }));
     checks.push(await check("A method other than GET/HEAD gets 405 with Allow", "SHOULD", async () => {
-        const res = await fetchImpl(new URL(fetch_2.WELL_KNOWN_PATH, origin).toString(), { method: "POST", signal: rawSignal() });
+        const res = await fetchImpl((0, fetch_2.resolveWellKnownUrl)(origin).toString(), { method: "POST", signal: rawSignal() });
         await res.arrayBuffer().catch(() => undefined);
         if (res.status !== 405)
             return `expected 405, got ${res.status}`;

@@ -4,7 +4,7 @@
  * party's, not just via the CLI's --strict flag.
  */
 import { DEFAULT_TIMEOUT_MS, fetchSustainability } from "./fetch";
-import { WELL_KNOWN_PATH } from "./fetch";
+import { resolveWellKnownUrl } from "./fetch";
 
 /**
  * BCP 14 strength of the requirement a check tests. This matters for reporting:
@@ -81,7 +81,7 @@ export async function runConformanceChecks(
 
   checks.push(
     await check("Basic 200 response uses the application/json media type", "MUST", async () => {
-      const res = await fetchImpl(new URL(WELL_KNOWN_PATH, origin).toString(), { method: "GET", signal: rawSignal() });
+      const res = await fetchImpl(resolveWellKnownUrl(origin).toString(), { method: "GET", signal: rawSignal() });
       // Drain the body so the socket is released promptly.
       await res.arrayBuffer().catch(() => undefined);
       if (res.status !== 200) return `expected 200 for the Basic request, got ${res.status}`;
@@ -108,7 +108,7 @@ export async function runConformanceChecks(
 
   checks.push(
     await check("A method other than GET/HEAD gets 405 with Allow", "SHOULD", async () => {
-      const res = await fetchImpl(new URL(WELL_KNOWN_PATH, origin).toString(), { method: "POST", signal: rawSignal() });
+      const res = await fetchImpl(resolveWellKnownUrl(origin).toString(), { method: "POST", signal: rawSignal() });
       await res.arrayBuffer().catch(() => undefined);
       if (res.status !== 405) return `expected 405, got ${res.status}`;
       const allow = res.headers.get("allow") ?? "";

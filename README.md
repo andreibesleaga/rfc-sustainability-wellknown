@@ -12,7 +12,7 @@ IANA well-known URI registration requested ([protocol-registries/well-known-uris
 
 This repository contains initial drafts and supporting documents, examples, sources, tooling, etc. Previous drafts are release tagged, in internet-drafts folder, and system architecture with diagrams in: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md).
 
-A reference testing gateway for real sustainability data from different services is deployed: https://sustainability-registry.up.railway.app/
+A reference testing gateway for real sustainability data from different services is deployed: https://sustainability.up.railway.app/
 
 ---
 

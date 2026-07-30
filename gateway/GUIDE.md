@@ -94,7 +94,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 cd gateway
 npm install
 npm run build
-npm test                       # 196 tests
+npm test                       # 215 tests
 node dist/index.js             # binds 0.0.0.0:8080
 ```
 
@@ -114,7 +114,10 @@ the reason.
 ## Routes and HTTP contract
 
 The gateway implements the **Basic** service level: `capabilities: "basic"`, no
-query parameters.
+query parameters — with one deliberate, draft-conformant exception: the
+wire-format example subjects whose documents themselves declare
+`capabilities: "extended"` honor `?granularity=` and return their full sorted
+trend array (see [Wiring an adapter](#wiring-an-adapter)).
 
 | Route | Behaviour |
 |---|---|
@@ -160,7 +163,10 @@ Notes on each of those, and on the rules behind them:
   the Basic response. `?period=2019&granularity=hourly&target=/x` returns the
   byte-identical `200` with the same `ETag`. This also collapses every query
   string onto one cache entry, which is the specification's Denial-of-Service
-  guidance about bounding the cache-key space.
+  guidance about bounding the cache-key space. (On the declared-extended example
+  subjects, only the exact granularity their entries carry is honored; every
+  other value is ignored the same way, so the key space stays bounded there
+  too.)
 - **An unknown subject is `404`** — the no-data rule. For a subject listed in
   `_no-data.json` it is still `404`, but the body carries the finding, the
   evidence URLs, and a pointer to a parent that does report:
@@ -286,8 +292,42 @@ document route returns the informative `404` shown above.
 ## Wiring an adapter
 
 Curated files answer "what do organizations publish today?". Adapters answer
-"how would an organization generate this itself?". Two are wired into the
-gateway as worked examples.
+"how would an organization generate this itself?". **Every adapter shipped by
+the published publisher package runs end to end in this gateway** — one
+demonstration subject each, under reserved `.example` names, listed in the
+index's "Adapter demonstrations" section:
+
+| Subject | Adapter | Mode |
+|---|---|---|
+| `grid-intensity-demo.example` | `computed` | **live** — grid intensity fetched daily from the NESO (GB) Carbon Intensity API (keyless, CC BY 4.0) |
+| `co2js-demo.example` | `co2js` | **live** when `BASE_URL` is set — CO2.js computes locally over the gateway's own measured crawl bytes; green-hosting via keyless GWF Greencheck (ODbL) |
+| `carbontxt-demo.example` | `carbontxt-api` | live when `GWF_API_KEY` is set (free key); otherwise replay of the real, retrieved `thegreenwebfoundation.org/carbon.txt` |
+| `climatiq-demo.example` | `climatiq` | replay by default (Climatiq's 2026 terms/pricing; live only if the operator sets `CLIMATIQ_API_KEY` under their own license) |
+| `kepler-demo.example` | `kepler-prometheus` | replay (no publicly queryable Prometheus with Kepler metrics exists) |
+| `salesforce-nzc-demo.example` | `salesforce-nzc` | replay (documented `AnnualEmssnInventory` SOQL shape; NZC needs a tenant — 30-day trials exist) |
+| `ms-sustainability-demo.example` | `ms-sustainability` | replay (the preview API this adapter targeted was retired 2025-05-30) |
+| `watershed-demo.example` | `watershed` | replay (customer-only API keys, no sandbox) |
+
+The mode contract lives in `src/live.ts`: a live build failure at boot falls
+back to the recorded fixture (the gateway never refuses to start because
+someone else's API is down); a failed *refresh* keeps the last good live
+document; every document says in band which mode produced it and attributes
+its upstream's license. Live subjects refresh every 24 h (`src/index.ts`).
+Replay mode runs the *same adapter code* against a recorded upstream response
+— only the transport is replayed.
+
+The gateway also serves the repository's canonical **wire-format examples**
+(`gateway/examples/`, byte-identical to `example-responses/`, enforced by
+test): all fourteen cases, including the trend arrays, which follow the
+draft's rule — the Basic response collapses to the most recent entry, and the
+full sorted array is served only for `?granularity=` requests on documents
+that themselves declare `capabilities: "extended"`.
+
+At boot, every served document is additionally validated with the published
+**consumer** library (`src/verify.ts`); a failure aborts startup, and the
+index reports the validating version and document count.
+
+Two of the demonstrations in detail, as worked examples:
 
 **1. The gateway's own report — `computedAdapter`.**
 `src/adapters/self-report.ts` composes the published `computedAdapter`: energy
@@ -504,7 +544,10 @@ injects.
 | `HOST` | `0.0.0.0` | Bind address. |
 | `DATA_DIR` | `<app>/data` | Where subject documents are read from. |
 | `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`. |
-| `BASE_URL` | *(empty)* | Public base URL for absolute links in the index. |
+| `BASE_URL` | *(empty)* | Public base URL for absolute links in the index. Also enables the co2js demonstration's live Greencheck lookup of this host. |
+| `EXAMPLES_DIR` | `<app>/examples` | Where the canonical wire-format example documents are read from. |
+| `GWF_API_KEY` | *(unset)* | Free Green Web Foundation API key; when set, the carbontxt demonstration runs live against the carbon.txt validator API. |
+| `CLIMATIQ_API_KEY` | *(unset)* | Sets the climatiq demonstration live. Only set this under your own Climatiq license — their terms restrict redistribution; replay is the default for a public gateway. |
 | `SELF_TARGET` | `sustainability-data-gateway` | `target` of the gateway's own report. |
 | `SELF_PROVIDER` | operator contact | `provider` of the gateway's own report; prefer a role address. |
 | `SELF_METHODOLOGY_URI` | `gateway/METHODOLOGY.md` on GitHub | Must resolve publicly. |
@@ -519,7 +562,7 @@ Bounds enforced by the loader (specification, Security Considerations), in
 | Bound | Value |
 |---|---|
 | Largest source document, and largest body served | 256 KiB |
-| Array-entry cap | 366 (and array documents are refused outright — the Basic response is a single object) |
+| Array-entry cap | 366. Curated `data/` files must be single objects (the Basic response is a single object); the wire-format example trend files are the one sanctioned array path, served per the draft's collapse/granularity rule |
 | Longest domain accepted on a request line | 253 characters |
 
 ## Design notes

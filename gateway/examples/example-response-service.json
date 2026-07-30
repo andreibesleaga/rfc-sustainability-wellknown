@@ -1,0 +1,21 @@
+{
+  "version": "2.0",
+  "updated": "2026-01-25T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "SaaS Analytics Co (sustainability@saas.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://saas.example/sustainability-methodology",
+  "reporting-period": "2025",
+  "target": "app.saas.example",
+  "energy-consumption": 860,
+  "energy-unit": "MWh",
+  "carbon-footprint": 258,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "carbon-intensity-gCO2e-per-kWh": 300,
+  "sci-score": 430,
+  "functional-unit": "per-active-user-per-month",
+  "renewable-energy": 62,
+  "disclosure-uri": "https://saas.example/sustainability-disclosure",
+  "target-type": "service"
+}

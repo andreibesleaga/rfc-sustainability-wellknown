@@ -58,7 +58,7 @@ Anything invented lives under a reserved `.example` name (RFC 2606), says
 ```bash
 npm install
 npm run build
-npm test                       # 196 tests
+npm test                       # 215 tests
 node dist/index.js             # 0.0.0.0:8080
 curl -sS http://127.0.0.1:8080/index.json | jq '.subjects[].domain'
 ```

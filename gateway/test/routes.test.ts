@@ -201,8 +201,15 @@ describe("index routes", () => {
     expect(html).toContain("ILLUSTRATIVE MAPPINGS");
     expect(html).toContain("NOT");
     expect(html).toContain("endorsed by their reporting subjects");
-    // The ISE reviewer asked that unregistered well-known paths not be advertised.
-    expect(html).not.toContain("carbon.txt");
+    // The ISE reviewer asked that unregistered well-known paths not be
+    // advertised: carbon.txt may be described (the carbontxt-api adapter
+    // demonstration relays it as a complementary format) but never as a
+    // .well-known path of this service.
+    expect(html).not.toContain("/.well-known/carbon.txt");
+    // The new sections are present.
+    expect(html).toContain("Adapter demonstrations (8)");
+    expect(html).toContain("Wire-format examples (14)");
+    expect(html).toContain("Consumer cross-validation");
   });
 
   it("GET /index.json serves the same index, machine-readable", async () => {
@@ -211,24 +218,49 @@ describe("index routes", () => {
     expect(r.headers.get("content-type")).toBe("application/json");
     const idx = await r.json();
     expect(idx.capabilities).toBe("basic");
-    expect(idx.count).toBe(srv.gw.subjects.size);
-    expect(idx.subjects.map((s: { domain: string }) => s.domain).sort()).toEqual(
-      [...srv.gw.subjects.keys()].sort(),
+    // `count`/`subjects` list the curated subjects; adapter demonstrations and
+    // wire-format examples have their own sections. Together the three cover
+    // every routed subject exactly once.
+    const demoDomains = idx["adapter-demonstrations"].entries.map(
+      (e: { domain: string }) => e.domain,
     );
+    const exampleDomains = idx["wire-format-examples"].entries.map(
+      (e: { domain: string }) => e.domain,
+    );
+    expect(idx.count).toBe(idx.subjects.length);
+    expect(
+      [...idx.subjects.map((s: { domain: string }) => s.domain), ...demoDomains, ...exampleDomains].sort(),
+    ).toEqual([...srv.gw.subjects.keys()].sort());
     expect(idx.notice).toMatch(/not .*endorsed/i);
     for (const s of idx.subjects) {
       expect(s.path).toBe(`/${s.domain}/.well-known/sustainability-data`);
       expect(typeof s.synthetic).toBe("boolean");
       expect(s["methodology-uri"]).toMatch(/^https:\/\//);
     }
+    // Cross-validation is reported, with the consumer version that ran.
+    expect(idx["consumer-cross-validation"].validator).toMatch(
+      /^sustainability-wellknown-consumer@\d/,
+    );
+    expect(idx["consumer-cross-validation"]["documents-validated"]).toBe(
+      srv.gw.subjects.size + 1 + 2, // every subject + self + the two Extended arrays
+    );
+    // Every demonstration runs from its fixture in tests (fetchImpl: null).
+    for (const e of idx["adapter-demonstrations"].entries) {
+      expect(e.mode).toBe("replay");
+    }
   });
 
   it("every advertised index path actually resolves to 200", async () => {
     const idx = await (await fetch(url("/index.json"))).json();
-    for (const s of idx.subjects) {
-      const r = await fetch(url(s.path));
-      expect(r.status, s.path).toBe(200);
-      expect(r.headers.get("content-type"), s.path).toBe("application/json");
+    const paths = [
+      ...idx.subjects.map((s: { path: string }) => s.path),
+      ...idx["adapter-demonstrations"].entries.map((e: { path: string }) => e.path),
+      ...idx["wire-format-examples"].entries.map((e: { path: string }) => e.path),
+    ];
+    for (const path of paths) {
+      const r = await fetch(url(path));
+      expect(r.status, path).toBe(200);
+      expect(r.headers.get("content-type"), path).toBe("application/json");
       await r.text();
     }
   });

@@ -15,9 +15,21 @@ export { loadNoData, type NoDataEntry } from "./no-data";
 /** Grace period for in-flight requests before the process is forced down. */
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
+/** Daily refresh of the live adapter-demonstration subjects. */
+const LIVE_REFRESH_MS = 24 * 60 * 60 * 1000;
+
 async function main(): Promise<void> {
   const config = loadConfig();
   const gw = await createGateway({ config });
+
+  // Refresh the live demonstration upstreams once a day. `unref()` so the
+  // timer never keeps a draining process alive; failures are recorded on the
+  // affected subjects and never crash the service.
+  setInterval(() => {
+    void gw.refreshLive().catch(() => {
+      /* refreshLive records per-subject errors; nothing else to do */
+    });
+  }, LIVE_REFRESH_MS).unref();
 
   gw.server.listen(config.port, config.host, () => {
     process.stdout.write(

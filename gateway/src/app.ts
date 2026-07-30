@@ -10,9 +10,10 @@
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { handleRequest } from "sustainability-wellknown-publisher";
-import { keplerReplayAdapter } from "./adapters/kepler-replay";
+import { demoSpecs } from "./adapters/demo-specs";
 import { lastCompletedMonth, selfReportAdapter } from "./adapters/self-report";
 import { LIMITS, type GatewayConfig } from "./config";
+import { loadWireExamples, type WireExample } from "./examples";
 import { CORS_ORIGIN, corsHeaders, jsonError, methodNotAllowed, withBody, type Result } from "./http";
 import {
   WELL_KNOWN_PATH,
@@ -20,8 +21,10 @@ import {
   renderIndexHtml,
   type IndexDocument,
 } from "./index-page";
+import { LiveRegistry, type LiveSpec } from "./live";
 import { loadNoData, type NoDataEntry } from "./no-data";
 import { loadRegistry, subjectFromAdapter, type Subject } from "./registry";
+import { crossValidate, type CrossValidation } from "./verify";
 
 /** `/{domain}/.well-known/sustainability-data` — the primary route. */
 const SUBJECT_ROUTE = /^\/([^/]{1,253})\/\.well-known\/sustainability-data$/;
@@ -34,6 +37,17 @@ export interface Gateway {
   config: GatewayConfig;
   /** Every subject the gateway serves, keyed by its route domain. */
   subjects: Map<string, Subject>;
+  /** Wire-format example metadata (subjects also appear in `subjects`). */
+  examples: Map<string, WireExample>;
+  /** Live/replay adapter-demonstration subjects (also in `subjects`). */
+  live: LiveRegistry;
+  /** Boot-time validation of every served document with the consumer library. */
+  crossValidation: CrossValidation;
+  /**
+   * Refresh every live-capable demonstration subject (daily timer target).
+   * Rebuilds the index when a served document changed.
+   */
+  refreshLive: () => Promise<void>;
   /** The gateway's own report (`target-type: "service"`). */
   self: Subject;
   /**
@@ -60,26 +74,38 @@ export interface CreateGatewayOptions {
   now?: Date;
   /** Injectable RUNNING clock for the month-rollover check (tests). Defaults to `() => new Date()`. */
   clock?: () => Date;
+  /**
+   * Injectable fetch for the live demonstration upstreams. Tests inject a
+   * recorded implementation; `undefined` uses the real network. Passing
+   * `null` disables live mode entirely (every demo boots from its fixture).
+   */
+  fetchImpl?: typeof fetch | null;
+  /** Injectable environment for API-key lookups (defaults to process.env). */
+  env?: Record<string, string | undefined>;
 }
 
 /**
  * Serve one subject's document.
  *
- * The query is deliberately dropped: this gateway declares `capabilities:
- * "basic"`, and the draft requires a server that does not support the Extended
- * parameters to IGNORE them and return the Basic response rather than fail. It
- * also collapses every query string onto a single cache entry, which is the
- * draft's Denial-of-Service guidance (a bounded cache-key space).
+ * The query is dropped for every subject except the wire-format examples that
+ * themselves declare `capabilities: "extended"`: the draft requires a server
+ * that does not support the Extended parameters to IGNORE them and return the
+ * Basic response rather than fail, and dropping the query also collapses every
+ * query string onto a single cache entry (the draft's Denial-of-Service
+ * guidance — a bounded cache-key space). For the declared-extended examples
+ * only `granularity` is passed through; the handler ignores unknown values,
+ * so the key space stays bounded there too.
  */
 async function serveDocument(
   subject: Subject,
   config: GatewayConfig,
   ifNoneMatch: string | undefined,
   ifModifiedSince?: string,
+  query: Record<string, string> = {},
 ): Promise<Result> {
   const r = await handleRequest(
     subject.publisher,
-    {},
+    query,
     { maxAge: config.maxAge, cors: CORS_ORIGIN },
     ifNoneMatch,
   );
@@ -107,7 +133,7 @@ async function serveDocument(
 /** Resolve one request to a fully-formed response. Exported for tests. */
 export async function route(
   gw: Pick<Gateway, "config" | "subjects" | "self" | "noData" | "index" | "indexHtml"> &
-    Partial<Pick<Gateway, "refreshSelf">>,
+    Partial<Pick<Gateway, "refreshSelf" | "examples">>,
   method: string,
   rawUrl: string,
   headers: { "if-none-match"?: string; "if-modified-since"?: string } = {},
@@ -204,7 +230,21 @@ export async function route(
         "no sustainability metadata is published here for that reporting subject",
       );
     }
-    return serveDocument(subject, gw.config, ifNoneMatch, ifModifiedSince);
+    // Extended pass-through, only for the wire-format examples that declare
+    // it, and only for the granularity their entries actually carry — every
+    // other value (unknown, or a precision this data set does not have) is
+    // ignored per the draft, returning the Basic response. `handleRequest`
+    // honors whatever granularity it is handed, so the filtering MUST happen
+    // here, before the publisher.
+    const ex = gw.examples?.get(domain);
+    const requested = ex?.granularity ? url.searchParams.get("granularity") : null;
+    return serveDocument(
+      subject,
+      gw.config,
+      ifNoneMatch,
+      ifModifiedSince,
+      requested !== null && requested === ex?.granularity ? { granularity: requested } : {},
+    );
   }
 
   return jsonError(404, "not found");
@@ -237,23 +277,50 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     label: "adapter:computed (gateway self-report)",
   });
 
-  // ---- Worked adapter example #2: kepler-prometheus in replay mode, served
-  // under a reserved .example name because its figures are synthetic. ----
-  const keplerDemo = await subjectFromAdapter({
-    domain: KEPLER_DEMO_DOMAIN,
-    adapter: keplerReplayAdapter({
-      target: KEPLER_DEMO_DOMAIN,
-      methodologyUri: config.self.methodologyUri,
-      gridIntensity: config.self.gridIntensity,
-    }),
-    target: KEPLER_DEMO_DOMAIN,
-    targetType: "service",
-    label: "adapter:kepler-prometheus (recorded fixture, replay mode)",
-  });
-  if (subjects.has(keplerDemo.domain)) {
-    throw new Error(`gateway: ${keplerDemo.domain} is both a data file and an adapter subject`);
+  // ---- Wire-format examples: every case from the repository's canonical
+  // example-responses set, served under reserved .example names. ----
+  const examples = await loadWireExamples(config.examplesDir);
+  for (const ex of examples.values()) {
+    if (subjects.has(ex.domain)) {
+      throw new Error(`gateway: ${ex.domain} is both a data file and a wire-format example`);
+    }
+    subjects.set(ex.domain, ex.subject);
   }
-  subjects.set(keplerDemo.domain, keplerDemo);
+
+  // Bytes of one crawl of everything loaded so far (curated subjects, the
+  // self report, the wire-format examples) — the REAL input to the co2js
+  // demonstration. Measured before the demo subjects exist, which is the only
+  // order that avoids self-reference.
+  let crawlBytes = Buffer.byteLength(JSON.stringify(self.document));
+  for (const s of subjects.values()) {
+    crawlBytes += Buffer.byteLength(JSON.stringify(s.document));
+  }
+
+  // ---- Adapter demonstrations: one subject per published adapter, live
+  // where an upstream's license permits it, replay otherwise. ----
+  const clock = opts.clock ?? (() => new Date());
+  const live = new LiveRegistry({
+    fetchImpl: opts.fetchImpl === undefined ? fetch : opts.fetchImpl,
+    env: opts.env ?? process.env,
+    now: () => opts.now ?? clock(),
+  });
+  const specs: LiveSpec[] = demoSpecs({ config, crawlBytes });
+  for (const spec of specs) {
+    if (subjects.has(spec.domain)) {
+      throw new Error(`gateway: ${spec.domain} is both a data file and an adapter demo`);
+    }
+  }
+  await live.init(specs);
+  for (const m of live.managed.values()) {
+    subjects.set(m.spec.domain, m.subject);
+  }
+
+  // ---- Consumer cross-validation: every served document must satisfy the
+  // published consumer library, or the gateway refuses to start. ----
+  const crossValidation = await crossValidate(
+    [self, ...subjects.values()],
+    examples.values(),
+  );
 
   for (const domain of noData.keys()) {
     if (subjects.has(domain)) {
@@ -264,15 +331,20 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     }
   }
 
-  const index = buildIndex(subjects.values(), self, config, noData.values());
-  const indexHtml = renderIndexHtml(index, config.baseUrl);
+  const makeIndex = (): IndexDocument =>
+    buildIndex(subjects.values(), self, config, noData.values(), {
+      demos: [...live.managed.values()],
+      examples: [...examples.values()],
+      crossValidation,
+    });
+  let index = makeIndex();
+  let indexHtml = renderIndexHtml(index, config.baseUrl);
 
   // The self report names a reporting period; with no pinned SELF_PERIOD that
   // default is the last completed month, which goes stale in a long-lived
   // process. Regenerate lazily on the first request after a month rolls over.
   // (The index is period-independent — it carries only the self path/target —
   // so only the subject itself is rebuilt.)
-  const clock = opts.clock ?? (() => new Date());
   let currentSelf = self;
   let currentMonth = config.self.period ?? lastCompletedMonth(opts.now ?? clock());
   const refreshSelf = async (): Promise<Subject> => {
@@ -299,10 +371,33 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     return currentSelf;
   };
 
+  // Daily refresh of the live demonstration subjects: successful live builds
+  // replace the served documents; failures keep the last good ones. The index
+  // (HTML and JSON) is rebuilt only when something actually changed.
+  const refreshLive = async (): Promise<void> => {
+    const changed = await live.refreshAll();
+    if (changed.length === 0) return;
+    for (const m of live.managed.values()) {
+      subjects.set(m.spec.domain, m.subject);
+    }
+    gw.index = index = makeIndex();
+    gw.indexHtml = indexHtml = renderIndexHtml(index, config.baseUrl);
+    log({
+      ts: clock().toISOString(),
+      level: "info",
+      event: "live-refresh",
+      changed,
+    });
+  };
+
   const gw: Gateway = {
     server: undefined as unknown as Server,
     config,
     subjects,
+    examples,
+    live,
+    crossValidation,
+    refreshLive,
     self,
     noData,
     index,

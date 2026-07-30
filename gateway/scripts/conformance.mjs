@@ -57,13 +57,21 @@ if (!idxRes.ok) {
   process.exit(1);
 }
 const idx = await idxRes.json();
-for (const s of idx.subjects) {
-  await report(`SUBJECT ${s.domain}  ${base}${s.path}`, prefixed(s.domain));
+// Curated subjects, adapter demonstrations, and wire-format examples are all
+// full Basic subjects — the battery covers every routed document. Older
+// deployments only carry `subjects`.
+const routed = [
+  ...idx.subjects.map((s) => ({ ...s, kind: "SUBJECT" })),
+  ...(idx["adapter-demonstrations"]?.entries ?? []).map((s) => ({ ...s, kind: "DEMO" })),
+  ...(idx["wire-format-examples"]?.entries ?? []).map((s) => ({ ...s, kind: "EXAMPLE" })),
+];
+for (const s of routed) {
+  await report(`${s.kind} ${s.domain}  ${base}${s.path}`, prefixed(s.domain));
 }
 
 console.log(
   `\n${failures === 0 ? "ALL MUST-LEVEL CHECKS PASSED" : `${failures} MUST-LEVEL CHECK(S) FAILED`}` +
     `${warnings > 0 ? `, ${warnings} unmet recommendation(s)` : ""} — ` +
-    `${idx.subjects.length} subject(s) + the gateway's own report`,
+    `${routed.length} subject(s) + the gateway's own report`,
 );
 process.exit(failures === 0 ? 0 : 1);

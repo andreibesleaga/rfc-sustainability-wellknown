@@ -23,7 +23,15 @@ export async function startGateway(): Promise<TestServer> {
   });
   // Pin the self-report period so ETags and bodies are byte-stable.
   config.self.period = "2025";
-  const gw = await createGateway({ config, log: () => undefined, now: FIXED_NOW });
+  // fetchImpl: null — live upstreams are DISABLED in tests; every adapter
+  // demonstration boots from its recorded fixture (deterministic, offline).
+  const gw = await createGateway({
+    config,
+    log: () => undefined,
+    now: FIXED_NOW,
+    fetchImpl: null,
+    env: {},
+  });
   await new Promise<void>((r) => gw.server.listen(0, "127.0.0.1", r));
   const { port } = gw.server.address() as AddressInfo;
   return {

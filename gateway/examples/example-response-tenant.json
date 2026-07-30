@@ -1,0 +1,22 @@
+{
+  "version": "2.0",
+  "updated": "2026-01-18T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Cloud Platform (sustainability@cloud.example)",
+  "measurement-method": "cloud-billing",
+  "methodology-uri": "https://cloud.example/tenant-sustainability-methodology",
+  "reporting-period": "2025",
+  "target": "tenant-acme-01.cloud.example",
+  "energy-consumption": 92500,
+  "energy-unit": "kWh",
+  "carbon-footprint": 37,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "carbon-intensity-gCO2e-per-kWh": 400,
+  "scope-1": 0,
+  "scope-2": 34,
+  "scope-3": 3,
+  "renewable-energy": 68,
+  "disclosure-uri": "https://cloud.example/disclosures",
+  "target-type": "tenant"
+}

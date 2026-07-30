@@ -3,9 +3,12 @@
  * of everything this gateway serves.
  */
 import type { GatewayConfig } from "./config";
+import type { WireExample } from "./examples";
 import { escapeHtml } from "./http";
+import type { ManagedSubject } from "./live";
 import type { NoDataEntry } from "./no-data";
 import type { Subject } from "./registry";
+import type { CrossValidation } from "./verify";
 
 export const WELL_KNOWN_PATH = "/.well-known/sustainability-data";
 
@@ -48,6 +51,39 @@ export interface IndexEntry {
   source: string;
 }
 
+/** One adapter-demonstration subject (live or replay). */
+export interface DemoEntry {
+  domain: string;
+  path: string;
+  /** Which published adapter produced the document (the Subject's source label). */
+  adapter: string;
+  /** "live" = real upstream at last refresh; "replay" = recorded response. */
+  mode: "live" | "replay";
+  upstream: string;
+  attribution: string;
+  /** ISO timestamp of the last successful (re)build. */
+  refreshed: string;
+  target: string;
+  "reporting-period": string;
+  /** Present when the last live refresh failed and older data is being served. */
+  "upstream-error"?: string;
+}
+
+/** One wire-format example case. */
+export interface ExampleEntry {
+  domain: string;
+  path: string;
+  case: string;
+  shape: "object" | "array";
+  entries: number;
+  /** Honored granularity parameter, for the declared-extended array cases. */
+  granularity?: string;
+  file: string;
+  note: string;
+  target: string;
+  "reporting-period": string;
+}
+
 export interface IndexDocument {
   service: string;
   specification: string;
@@ -57,6 +93,24 @@ export interface IndexDocument {
   self: { path: string; target: string };
   count: number;
   subjects: IndexEntry[];
+  /** Boot-time validation of every served document by the consumer library. */
+  "consumer-cross-validation": {
+    validator: string;
+    "documents-validated": number;
+    note: string;
+  };
+  /** One demonstration subject per published publisher adapter. */
+  "adapter-demonstrations": {
+    note: string;
+    count: number;
+    entries: DemoEntry[];
+  };
+  /** Every case from the repository's canonical example-responses set. */
+  "wire-format-examples": {
+    note: string;
+    count: number;
+    entries: ExampleEntry[];
+  };
   /** Subjects looked for and found to publish nothing machine-readable. */
   "no-machine-readable-data": {
     note: string;
@@ -64,6 +118,29 @@ export interface IndexDocument {
     subjects: NoDataEntry[];
   };
 }
+
+export const DEMO_NOTE =
+  "One demonstration subject per adapter shipped by the published " +
+  "sustainability-wellknown-publisher package, so every adapter runs end to end in this " +
+  "gateway. Subjects marked live fetch a real upstream daily (only upstreams whose " +
+  "licenses permit attributed republication; the attribution is carried in band). " +
+  "Subjects marked replay run the SAME adapter code against a recorded upstream " +
+  "response, because no legal free live access to that upstream exists; their figures " +
+  "are synthetic and say so in band. All sit under reserved .example names: they " +
+  "demonstrate the format and describe no real organization.";
+
+export const EXAMPLES_NOTE =
+  "Every case from the specification repository's canonical example-responses set, " +
+  "served live. Array (trend) cases follow the draft's rule: the parameterless Basic " +
+  "response collapses to the most recent entry, and the full sorted array is returned " +
+  "only for ?granularity= requests on documents that themselves declare " +
+  "capabilities:extended. All figures are synthetic; the subjects are reserved " +
+  ".example names.";
+
+export const CROSS_VALIDATION_NOTE =
+  "At boot, every document this gateway serves was fetched through the published " +
+  "publisher pipeline and validated with the published consumer library — the same " +
+  "code a third party would run. A validation failure aborts startup.";
 
 /** Why the no-data list exists at all. Carried in index.json verbatim. */
 export const NO_DATA_NOTE =
@@ -95,16 +172,64 @@ function entry(s: Subject, kind: "file" | "adapter"): IndexEntry {
   return e;
 }
 
+export interface IndexExtras {
+  demos: ManagedSubject[];
+  examples: WireExample[];
+  crossValidation: CrossValidation;
+}
+
+function demoEntry(m: ManagedSubject): DemoEntry {
+  const d = m.subject.document;
+  const e: DemoEntry = {
+    domain: m.spec.domain,
+    path: `/${m.spec.domain}${WELL_KNOWN_PATH}`,
+    adapter: m.subject.source,
+    mode: m.mode,
+    upstream: m.spec.upstream,
+    attribution: m.spec.attribution,
+    refreshed: m.refreshedAt,
+    target: d.target,
+    "reporting-period": d["reporting-period"],
+  };
+  if (m.upstreamError) e["upstream-error"] = m.upstreamError;
+  return e;
+}
+
+function exampleEntry(x: WireExample): ExampleEntry {
+  const d = x.subject.document;
+  const e: ExampleEntry = {
+    domain: x.domain,
+    path: `/${x.domain}${WELL_KNOWN_PATH}`,
+    case: x.caseName,
+    shape: x.shape,
+    entries: x.entries,
+    file: x.file,
+    note: x.note,
+    target: d.target,
+    "reporting-period": d["reporting-period"],
+  };
+  if (x.granularity) e.granularity = x.granularity;
+  return e;
+}
+
 export function buildIndex(
   subjects: Iterable<Subject>,
   self: Subject,
   config: GatewayConfig,
   noData: Iterable<NoDataEntry> = [],
+  extras?: IndexExtras,
 ): IndexDocument {
+  const demoDomains = new Set((extras?.demos ?? []).map((m) => m.spec.domain));
+  const exampleDomains = new Set((extras?.examples ?? []).map((x) => x.domain));
   const list = [...subjects]
+    .filter((s) => !demoDomains.has(s.domain) && !exampleDomains.has(s.domain))
     .map((s) => entry(s, s.source.startsWith("adapter:") ? "adapter" : "file"))
     .sort((a, b) => a.domain.localeCompare(b.domain));
   const gaps = [...noData].sort((a, b) => a.domain.localeCompare(b.domain));
+  const demos = (extras?.demos ?? [])
+    .map(demoEntry)
+    .sort((a, b) => a.domain.localeCompare(b.domain));
+  const examples = (extras?.examples ?? []).map(exampleEntry);
   return {
     service: config.self.target,
     specification: SPEC_URL,
@@ -114,6 +239,21 @@ export function buildIndex(
     self: { path: WELL_KNOWN_PATH, target: self.document.target },
     count: list.length,
     subjects: list,
+    "consumer-cross-validation": {
+      validator: extras?.crossValidation.validator ?? "not run",
+      "documents-validated": extras?.crossValidation.documentsValidated ?? 0,
+      note: CROSS_VALIDATION_NOTE,
+    },
+    "adapter-demonstrations": {
+      note: DEMO_NOTE,
+      count: demos.length,
+      entries: demos,
+    },
+    "wire-format-examples": {
+      note: EXAMPLES_NOTE,
+      count: examples.length,
+      entries: examples,
+    },
     "no-machine-readable-data": {
       note: NO_DATA_NOTE,
       count: gaps.length,
@@ -132,6 +272,35 @@ function row(e: IndexEntry): string {
   <td><code>${escapeHtml(e["reporting-period"])}</code></td>
   <td><code>${escapeHtml(e["measurement-method"])}</code></td>
   <td><a href="${escapeHtml(e["methodology-uri"])}" rel="noopener noreferrer nofollow">source document</a></td>
+</tr>`;
+}
+
+function demoRow(e: DemoEntry): string {
+  const badge =
+    e.mode === "live"
+      ? '<span class="badge live">live</span>'
+      : '<span class="badge replay">replay</span>';
+  const err = e["upstream-error"]
+    ? `<br><span class="dim">last live attempt failed; serving last good data</span>`
+    : "";
+  return `<tr>
+  <td><a href="${escapeHtml(e.path)}"><code>${escapeHtml(e.domain)}</code></a> ${badge}</td>
+  <td><code>${escapeHtml(e.adapter.replace(/^adapter:/, ""))}</code></td>
+  <td>${escapeHtml(e.upstream)}<br><span class="dim">${escapeHtml(e.attribution)}</span>${err}</td>
+  <td><code>${escapeHtml(e["reporting-period"])}</code></td>
+</tr>`;
+}
+
+function exampleRow(e: ExampleEntry): string {
+  const shape =
+    e.shape === "array"
+      ? `array (${e.entries})${e.granularity ? ` <span class="dim">?granularity=${escapeHtml(e.granularity)}</span>` : ""}`
+      : "object";
+  return `<tr>
+  <td><a href="${escapeHtml(e.path)}"><code>${escapeHtml(e.domain)}</code></a> <span class="badge example">example</span></td>
+  <td>${escapeHtml(e.case)}</td>
+  <td>${shape}</td>
+  <td>${escapeHtml(e.note)}</td>
 </tr>`;
 }
 
@@ -214,6 +383,9 @@ th { font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var
   border-radius:3px; border:1px solid var(--line); color:var(--dim); white-space:nowrap; }
 .badge.synthetic { border-color:var(--warn); color:var(--warn); }
 .badge.sourced { border-color:var(--accent); color:var(--accent); }
+.badge.live { border-color:var(--accent); color:var(--accent); }
+.badge.replay { border-color:var(--warn); color:var(--warn); }
+.badge.example { border-color:var(--line); color:var(--dim); }
 .dim { color:var(--dim); }
 pre.cmd { overflow-x:auto; border:1px solid var(--line); border-radius:4px; padding:.75rem .9rem;
   background:var(--warnbg); background:color-mix(in srgb, var(--bg) 92%, var(--fg) 8%); }
@@ -241,15 +413,46 @@ ${rows}
 </table>
 </div>
 ${gapSection}
+<h2>Adapter demonstrations (${doc["adapter-demonstrations"].count})</h2>
+<p>${escapeHtml(doc["adapter-demonstrations"].note)}</p>
+<div class="scroll">
+<table>
+<thead><tr><th>Endpoint</th><th>Adapter</th><th>Upstream &amp; attribution</th><th>Period</th></tr></thead>
+<tbody>
+${doc["adapter-demonstrations"].entries.map(demoRow).join("\n")}
+</tbody>
+</table>
+</div>
+
+<h2>Wire-format examples (${doc["wire-format-examples"].count})</h2>
+<p>${escapeHtml(doc["wire-format-examples"].note)}</p>
+<div class="scroll">
+<table>
+<thead><tr><th>Endpoint</th><th>Case</th><th>Shape</th><th>Demonstrates</th></tr></thead>
+<tbody>
+${doc["wire-format-examples"].entries.map(exampleRow).join("\n")}
+</tbody>
+</table>
+</div>
+
 <h2>This gateway's own report</h2>
 <p>The gateway also reports on itself, as a service, at
 <a href="${escapeHtml(doc.self.path)}"><code>${escapeHtml(doc.self.path)}</code></a>
 (<code>target</code>: <code>${escapeHtml(doc.self.target)}</code>).</p>
 
+<h2>Consumer cross-validation</h2>
+<p>${escapeHtml(doc["consumer-cross-validation"].note)}
+This deployment: <code>${escapeHtml(doc["consumer-cross-validation"].validator)}</code>
+validated <strong>${doc["consumer-cross-validation"]["documents-validated"]}</strong>
+documents at boot.</p>
+
 <h2>Service level</h2>
-<p>This gateway implements the <strong>Basic</strong> service: no query parameters are
-supported. Per the draft, unsupported query parameters are <em>ignored</em> and the Basic
-response is returned — they are never an error. Successful responses are
+<p>This gateway implements the <strong>Basic</strong> service: query parameters are
+ignored and the Basic response is returned — never an error. The one deliberate
+exception: the wire-format examples that themselves declare
+<code>capabilities: "extended"</code> honor the <code>granularity</code> parameter and
+return their full sorted trend array, exactly as the draft's Extended service defines.
+Successful responses are
 <code>application/json</code> with <code>Cache-Control: public, max-age=86400</code>,
 <code>Access-Control-Allow-Origin: *</code>, a strong <code>ETag</code> and
 <code>Last-Modified</code>; <code>If-None-Match</code> yields <code>304</code>.
@@ -268,11 +471,17 @@ labels each check with the strength of the requirement it tests (a failed
 <p>The gateway's own report, at this origin's true well-known location:</p>
 <pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --strict</code></pre>
 
-<p>Any subject document, by giving its path-prefixed base URL — the consumer resolves
+<p>Any subject document — curated, adapter demonstration, or wire-format example — by
+giving its path-prefixed base URL; the consumer resolves
 <code>/.well-known/sustainability-data</code> under the prefix:</p>
 <pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/cloudflare.com --strict
-npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/microsoft.com --strict
+npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/grid-intensity-demo.example --strict
+npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/yearly.example --strict
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/&lt;any-domain-above&gt; --strict</code></pre>
+
+<p>The Extended trend arrays, by giving the full document URL with its
+<code>granularity</code> parameter (the consumer validates array documents too):</p>
+<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch "<span class="host">${BASE_TOKEN}</span>/yearly.example${WELL_KNOWN_PATH}?granularity=monthly"</code></pre>
 
 <p>To just fetch and read a document (or pipe it into your own tooling):</p>
 <pre class="cmd"><code>curl -s <span class="host">${BASE_TOKEN}</span>/wikimedia.org${WELL_KNOWN_PATH} | python3 -m json.tool</code></pre>

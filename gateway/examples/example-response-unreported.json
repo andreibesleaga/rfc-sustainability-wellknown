@@ -1,0 +1,14 @@
+{
+  "version": "2.0",
+  "updated": "2026-04-01T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Partial Metrics Co. (sustainability@partial.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://partial.example/methodology",
+  "reporting-period": "2026-03",
+  "target": "partial.example",
+  "carbon-footprint": 4200,
+  "carbon-accounting": "location-based",
+  "scope-2": 4200,
+  "disclosure-uri": "https://partial.example/disclosures"
+}

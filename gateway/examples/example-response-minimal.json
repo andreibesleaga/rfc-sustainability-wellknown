@@ -1,0 +1,10 @@
+{
+  "version": "2.0",
+  "updated": "2026-01-05T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Minimal Systems (sustainability@minimal.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://minimal.example/sustainability-methodology",
+  "reporting-period": "2025",
+  "target": "minimal.example"
+}

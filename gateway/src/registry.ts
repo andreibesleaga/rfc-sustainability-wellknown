@@ -52,7 +52,7 @@ export interface Subject {
 }
 
 /** Canonical JSON (recursively key-sorted) — used for exact round-trip checks. */
-function canonical(value: unknown): string {
+export function canonical(value: unknown): string {
   const walk = (v: unknown): unknown => {
     if (Array.isArray(v)) return v.map(walk);
     if (v && typeof v === "object") {

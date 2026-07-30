@@ -27,6 +27,8 @@ export interface GatewayConfig {
   host: string;
   /** Directory holding one wire-format JSON document per reporting subject. */
   dataDir: string;
+  /** Directory holding the canonical wire-format example documents. */
+  examplesDir: string;
   /** Cache-Control max-age, seconds. Draft Operational Considerations RECOMMENDS 86400. */
   maxAge: number;
   /** Public base URL, used only for absolute links in the HTML/JSON index. */
@@ -82,6 +84,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
     // not the loopback address.
     host: env("HOST", "0.0.0.0"),
     dataDir: resolve(env("DATA_DIR", resolve(__dirname, "..", "data"))),
+    examplesDir: resolve(env("EXAMPLES_DIR", resolve(__dirname, "..", "examples"))),
     maxAge: envNum("MAX_AGE", 86_400),
     baseUrl: env("BASE_URL", "").replace(/\/+$/, ""),
     self: {

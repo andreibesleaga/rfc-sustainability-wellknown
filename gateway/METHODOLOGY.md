@@ -146,4 +146,34 @@ badges them `synthetic`.
   by a fixture. The recorded counters are invented: two nodes at roughly 125 W
   average across the 2025 calendar year.
 
+## 4. The adapter demonstrations
+
+Eight further `.example` subjects — the index's "Adapter demonstrations"
+section — run every adapter shipped by the published publisher package end to
+end. Two of them point their `methodology-uri` at this document:
+
+- **`grid-intensity-demo.example`** (`computed` adapter) reuses the energy
+  model of §2 verbatim — the same modelled container wattage over the same
+  calendar period — but takes its grid intensity from the **NESO (GB) Carbon
+  Intensity API** (keyless, CC BY 4.0), fetched at boot and refreshed daily.
+  When the live API is unreachable it serves a recorded value (103 gCO2/kWh,
+  retrieved 2026-07-30) and says so in band. Applying a GB grid factor to a
+  container that does not run in Great Britain is deliberate and stated in the
+  document: the subject demonstrates the computation, not a location-accurate
+  footprint.
+- **`co2js-demo.example`** (`co2js` adapter) runs the Green Web Foundation's
+  CO2.js Sustainable Web Design model locally over a REAL input: the measured
+  byte size of one crawl of every curated and example document this gateway
+  serves at boot. Grid intensity comes from CO2.js's bundled Ember annual
+  world average (CC BY 4.0); green-hosting status from the keyless Greencheck
+  API (ODbL) when a public `BASE_URL` is configured. The result is the
+  transfer footprint of one crawl — a functional unit, not this service's
+  total footprint (§2 is that).
+
+The remaining five (`carbontxt-demo`, `climatiq-demo`, `salesforce-nzc-demo`,
+`ms-sustainability-demo`, `watershed-demo`) carry their own methodology links
+and run in the modes documented in GUIDE.md, "Wiring an adapter": live where
+an upstream's license permits attributed republication, replay of a recorded
+response otherwise, always saying which in band.
+
 [draft]: https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/

@@ -18,7 +18,7 @@ is [GUIDE.md](GUIDE.md).
 cd gateway
 npm install
 npm run build
-npm test          # 196 tests; everything must be green before you deploy
+npm test          # 215 tests; everything must be green before you deploy
 node dist/index.js &
 curl -sSI http://127.0.0.1:8080/cloudflare.com/.well-known/sustainability-data
 kill %1
@@ -101,7 +101,9 @@ default; set them under **Variables** (dashboard) or with
 | `HOST` | `0.0.0.0` | Bind address. Leave it. |
 | `DATA_DIR` | `<app>/data` | Where subject documents are read from. |
 | `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`, the draft's RECOMMENDED value. |
-| `BASE_URL` | *(empty)* | Public base URL, for absolute links in the index. |
+| `BASE_URL` | *(empty)* | Public base URL, for absolute links in the index. Setting it also turns the co2js demonstration's Greencheck lookup live (keyless). |
+| `GWF_API_KEY` | *(unset)* | Optional free Green Web Foundation key → carbontxt demonstration runs live. |
+| `CLIMATIQ_API_KEY` | *(unset)* | Optional; leave unset for a public gateway (Climatiq terms) — replay is the default. |
 | `SELF_TARGET` | `sustainability-data-gateway` | `target` of the gateway's own report. |
 | `SELF_PROVIDER` | operator contact string | `provider` of the gateway's own report. Use a role address. |
 | `SELF_METHODOLOGY_URI` | this repo's `gateway/METHODOLOGY.md` on GitHub | **Must resolve publicly.** Point it at wherever you actually publish `METHODOLOGY.md`. |

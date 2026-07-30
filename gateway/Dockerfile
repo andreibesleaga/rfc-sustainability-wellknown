@@ -34,6 +34,9 @@ COPY --from=build /app/dist ./dist
 # The subject documents. Adding a subject means adding a file here and
 # redeploying; no code change and no rebuild of the source is involved.
 COPY data ./data
+# The canonical wire-format example documents (byte-identical copies of the
+# repository's example-responses/, enforced by test).
+COPY examples ./examples
 
 # Run unprivileged (the `node` user ships with the base image).
 USER node

@@ -498,8 +498,7 @@ specification's published
 <footer>
 <p>Operated as a specification-demonstration service. Health check:
 <a href="/healthz"><code>/healthz</code></a>.</p>
-<p><strong>Operator &amp; contact:</strong> Andrei Nicolae Besleaga,
-<a href="mailto:andrei.besleaga@ieee.org">andrei.besleaga@ieee.org</a>.
+<p><strong>Operator &amp; contact:</strong> Andrei Nicolae Besleaga, andrei.besleaga@ieee.org.
 Not affiliated with, and not endorsed by, any reporting subject listed above; company
 names identify whose published reports the documents are mapped from. Reporting subjects
 may request corrections or removal at the address above.</p>

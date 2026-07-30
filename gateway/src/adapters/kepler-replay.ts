@@ -62,7 +62,7 @@ const SYNTHETIC_PROVIDER =
   "SYNTHETIC EXAMPLE — not a real organization. Produced by the sustainability-wellknown-publisher " +
   "kepler-prometheus adapter replaying a recorded Prometheus response, to demonstrate " +
   "adapter-generated publication. The figures are invented and describe nothing real. " +
-  "Gateway operator: Andrei Nicolae Besleaga (andrei.besleaga@ieee.org)";
+  "Gateway operator: Andrei Besleaga";
 
 export function keplerReplayAdapter(config: KeplerReplayConfig): SourceAdapter {
   const period = config.reportingPeriod ?? "2025";

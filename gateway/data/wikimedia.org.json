@@ -2,7 +2,7 @@
   "version": "2.0",
   "updated": "2026-07-29T00:00:00Z",
   "capabilities": "basic",
-  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Nicolae Besleaga (andrei.besleaga@ieee.org), from the reporting subject's own published Environmental Sustainability Metrics 2024; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: carbon-accounting is omitted because the source does not label the Scope 2 basis, although since 2021 the Foundation states it uses grid emission factors rather than vendor procurement decisions. No renewable-energy share is published, so that member is omitted.",
+  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published Environmental Sustainability Metrics 2024; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: carbon-accounting is omitted because the source does not label the Scope 2 basis, although since 2021 the Foundation states it uses grid emission factors rather than vendor procurement decisions. No renewable-energy share is published, so that member is omitted.",
   "measurement-method": "hardware-estimated",
   "methodology-uri": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Wikimedia_Foundation_Environmental_Sustainability_Metrics_2024.pdf",
   "reporting-period": "2024",

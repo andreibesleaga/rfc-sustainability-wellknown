@@ -2,7 +2,7 @@
   "version": "2.0",
   "updated": "2026-02-01T00:00:00Z",
   "capabilities": "basic",
-  "provider": "SYNTHETIC EXAMPLE — not a real organization and not a real inventory. Published by the gateway operator, Andrei Nicolae Besleaga (andrei.besleaga@ieee.org), as a reserved-name (RFC 2606 .example) test vector exercising the full optional member set. Every number below is invented and describes nothing real.",
+  "provider": "SYNTHETIC EXAMPLE — not a real organization and not a real inventory. Published by the gateway operator, Andrei Besleaga, as a reserved-name (RFC 2606 .example) test vector exercising the full optional member set. Every number below is invented and describes nothing real.",
   "measurement-method": "third-party-modeled",
   "methodology-uri": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/METHODOLOGY.md",
   "reporting-period": "2025",

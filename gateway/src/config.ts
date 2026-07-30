@@ -91,7 +91,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
       target: env("SELF_TARGET", "sustainability-data-gateway"),
       provider: env(
         "SELF_PROVIDER",
-        "Andrei Nicolae Besleaga (andrei.besleaga@ieee.org), operator of this reference gateway",
+        "Andrei Besleaga, operator of this reference gateway",
       ),
       methodologyUri: env(
         "SELF_METHODOLOGY_URI",

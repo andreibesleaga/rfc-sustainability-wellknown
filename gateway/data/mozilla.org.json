@@ -2,7 +2,7 @@
   "version": "2.0",
   "updated": "2026-07-29T00:00:00Z",
   "capabilities": "basic",
-  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Nicolae Besleaga (andrei.besleaga@ieee.org), from the reporting subject's own published 2026 Social & Environmental Impact Fact Sheet (inventories prepared by Watershed); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: Market-based basis, as published; Mozilla publishes no location-based total (the location-based purchased-electricity line for 2025 is 91 mtCO2e). renewable-energy is the 100% figure the source scopes to global leased office and data-centre spaces. No absolute energy figure is published, so energy-consumption is omitted.",
+  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published 2026 Social & Environmental Impact Fact Sheet (inventories prepared by Watershed); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: Market-based basis, as published; Mozilla publishes no location-based total (the location-based purchased-electricity line for 2025 is 91 mtCO2e). renewable-energy is the 100% figure the source scopes to global leased office and data-centre spaces. No absolute energy figure is published, so energy-consumption is omitted.",
   "measurement-method": "hardware-estimated",
   "methodology-uri": "https://assets.mozilla.net/pdf/Mozilla_Impact_Report_2026.pdf",
   "reporting-period": "2025",

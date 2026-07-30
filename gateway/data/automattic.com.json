@@ -2,7 +2,7 @@
   "version": "2.0",
   "updated": "2026-07-29T00:00:00Z",
   "capabilities": "basic",
-  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Nicolae Besleaga (andrei.besleaga@ieee.org), from the reporting subject's own published sustainability page and its 2020 data-centre emissions methodology post; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: DATA-CENTRE OPERATIONS ONLY, and 2020-vintage: this is the most recent figure Automattic publishes, six years old at the time of mapping. carbon-accounting is omitted because the source never states a basis. Scope 1, 2 and 3 are not published and are omitted. The reporting-period and updated members exist precisely so a consumer can see this staleness.",
+  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published sustainability page and its 2020 data-centre emissions methodology post; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: DATA-CENTRE OPERATIONS ONLY, and 2020-vintage: this is the most recent figure Automattic publishes, six years old at the time of mapping. carbon-accounting is omitted because the source never states a basis. Scope 1, 2 and 3 are not published and are omitted. The reporting-period and updated members exist precisely so a consumer can see this staleness.",
   "measurement-method": "hardware-estimated",
   "methodology-uri": "https://wordpress.com/blog/2020/09/21/toward-zero-reducing-and-offsetting-our-data-center-power-emissions/",
   "reporting-period": "2020",

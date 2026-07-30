@@ -2373,7 +2373,7 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 Author's Address
 
-   Andrei Nicolae BESLEAGA
+   Andrei Nicolae Besleaga
    Independent
    Email: andrei.besleaga@ieee.org
 

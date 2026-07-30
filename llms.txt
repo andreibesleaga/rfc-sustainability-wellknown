@@ -5,7 +5,7 @@
 ## Project Links
 * **GitHub Repository:** https://github.com/andreibesleaga/rfc-sustainability-wellknown
 * **IETF Datatracker:** https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/
-* **Author:** Andrei Nicolae BESLEAGA (https://github.com/andreibesleaga)
+* **Author:** Andrei Nicolae Besleaga (https://github.com/andreibesleaga)
 * **IETF Stream:** Independent Submission (individual; not a working-group product)
 * **Current Draft Status:** `-05` is the **latest posted** revision — posted to the IETF Datatracker 2026-07-28, under Independent Submissions Editor (ISE) review. It responds to the ISE's initial review of `-04` — removing the carbon.txt-path reference from `disclosure-uri` (now format- and location-agnostic), adding an Internationalization Considerations section, and recognizing the calendar year as the common Basic-service reporting cycle — with no wire-format change. The prior `-04` revision (also posted) renamed the requested well-known URI suffix from `sustainability` to `sustainability-data` (per ISE feedback on RFC 8615's precision expectations, resolving the IANA well-known-URI naming feedback), added the optional `target-type` member, placed the `version` value space under change control, and defined the reverse-domain extension-member naming rule. `-03` (posted 2026-07-23) is an earlier posted revision.
 

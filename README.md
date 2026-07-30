@@ -387,6 +387,6 @@ Copyright (c) 2026 IETF Trust and the persons identified as the document authors
 
 Revised [BSD License](./LICENSE) (for any other software parts and supporting files in this repository).
 
-Copyright 2026 Andrei Nicolae BESLEAGA
+Copyright 2026 Andrei Nicolae Besleaga
 
 All rights reserved.

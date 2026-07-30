@@ -15,7 +15,7 @@ keyword:
 
 author:
   - ins: A. N. Besleaga
-    name: Andrei Nicolae BESLEAGA
+    name: Andrei Nicolae Besleaga
     organization: Independent
     email: andrei.besleaga@ieee.org
 

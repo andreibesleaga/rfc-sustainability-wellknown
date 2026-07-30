@@ -412,7 +412,9 @@ ${rows}
 </tbody>
 </table>
 </div>
+<!--
 ${gapSection}
+-->
 <h2>Adapter demonstrations (${doc["adapter-demonstrations"].count})</h2>
 <p>${escapeHtml(doc["adapter-demonstrations"].note)}</p>
 <div class="scroll">

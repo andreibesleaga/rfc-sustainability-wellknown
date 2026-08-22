@@ -14,6 +14,9 @@ This repository contains initial drafts and supporting documents, examples, sour
 
 Reference testing gateway for real sustainability data from different services: https://sustainability.up.railway.app/ — curated real-org documents, plus one live/replay demonstration subject per publisher adapter (live upstreams refreshed daily where licenses permit) and every canonical wire-format example served end to end, all cross-validated at boot by the published consumer library.
 
+A complete cybernetic agentic system which uses this to reduce carbon emissions and energy usage is implemented, presented, and evaluated: [sustainability-loop-eval](https://github.com/andreibesleaga/sustainability-loop-eval).
+
+
 ---
 
 ## What this defines

@@ -4,8 +4,8 @@
 
 Independent Submission                                    A. N. Besleaga
 Internet-Draft                                               Independent
-Intended status: Informational                              29 July 2026
-Expires: 30 January 2027
+Intended status: Informational                            31 August 2026
+Expires: 4 March 2027
 
 
                 The 'sustainability-data' Well-Known URI
@@ -38,7 +38,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 30 January 2027.
+   This Internet-Draft will expire on 4 March 2027.
 
 Copyright Notice
 
@@ -53,9 +53,9 @@ Copyright Notice
 
 
 
-Besleaga                 Expires 30 January 2027                [Page 1]
+Besleaga                  Expires 4 March 2027                  [Page 1]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
 Table of Contents
@@ -109,9 +109,9 @@ Table of Contents
 
 
 
-Besleaga                 Expires 30 January 2027                [Page 2]
+Besleaga                  Expires 4 March 2027                  [Page 2]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    10. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  36
@@ -165,9 +165,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027                [Page 3]
+Besleaga                  Expires 4 March 2027                  [Page 3]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    While initial proposals for carbon transparency focused on per-
@@ -221,9 +221,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027                [Page 4]
+Besleaga                  Expires 4 March 2027                  [Page 4]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
 1.2.  Goals and Non-Goals
@@ -277,9 +277,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027                [Page 5]
+Besleaga                  Expires 4 March 2027                  [Page 5]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    and reporting.  This document therefore does not overlap with,
@@ -333,9 +333,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027                [Page 6]
+Besleaga                  Expires 4 March 2027                  [Page 6]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  *Origin*: The combination of scheme, host, and optional port
@@ -389,9 +389,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027                [Page 7]
+Besleaga                  Expires 4 March 2027                  [Page 7]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    media type is what allows a retriever to know precisely what it is
@@ -445,9 +445,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027                [Page 8]
+Besleaga                  Expires 4 March 2027                  [Page 8]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
       Fields).  Servers SHOULD honor the target parameter only for a
@@ -501,9 +501,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027                [Page 9]
+Besleaga                  Expires 4 March 2027                  [Page 9]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    A period request without a (finer) granularity requests a single
@@ -557,9 +557,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 10]
+Besleaga                  Expires 4 March 2027                 [Page 10]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
 2.4.1.  Mandatory Response Fields
@@ -613,9 +613,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 11]
+Besleaga                  Expires 4 March 2027                 [Page 11]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  *methodology-uri* (string): Link to the full methodology
@@ -669,9 +669,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 12]
+Besleaga                  Expires 4 March 2027                 [Page 12]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  *energy-consumption* (numeric): Total energy consumed by the
@@ -725,9 +725,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 13]
+Besleaga                  Expires 4 March 2027                 [Page 13]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  *estimated-annual-emissions-kgCO2e* (numeric): Estimated annual
@@ -781,9 +781,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 14]
+Besleaga                  Expires 4 March 2027                 [Page 14]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  *target-type* (string): A hint classifying the reporting subject
@@ -837,9 +837,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 15]
+Besleaga                  Expires 4 March 2027                 [Page 15]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    Several numeric members carry range constraints in their definitions:
@@ -893,9 +893,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 16]
+Besleaga                  Expires 4 March 2027                 [Page 16]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    response, by each object's methodology-uri) provides the substantive
@@ -949,9 +949,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 17]
+Besleaga                  Expires 4 March 2027                 [Page 17]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
       a member of general interest are encouraged to publish its
@@ -1005,9 +1005,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 18]
+Besleaga                  Expires 4 March 2027                 [Page 18]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
      ? energy-consumption: number,   ; non-negative
@@ -1061,9 +1061,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 19]
+Besleaga                  Expires 4 March 2027                 [Page 19]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    {
@@ -1117,9 +1117,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 20]
+Besleaga                  Expires 4 March 2027                 [Page 20]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
 3.  Example Usage
@@ -1173,9 +1173,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 21]
+Besleaga                  Expires 4 March 2027                 [Page 21]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    [
@@ -1229,9 +1229,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 22]
+Besleaga                  Expires 4 March 2027                 [Page 22]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    {
@@ -1285,9 +1285,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 23]
+Besleaga                  Expires 4 March 2027                 [Page 23]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    [
@@ -1341,9 +1341,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 24]
+Besleaga                  Expires 4 March 2027                 [Page 24]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    {
@@ -1397,9 +1397,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 25]
+Besleaga                  Expires 4 March 2027                 [Page 25]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    {
@@ -1453,9 +1453,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 26]
+Besleaga                  Expires 4 March 2027                 [Page 26]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  Aggregators SHOULD document how they map provider fields to their
@@ -1496,24 +1496,28 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 7.1.  The Signature Resource
 
    A publisher that signs its document MUST publish the signature at the
-   path /.well-known/sustainability-data.jws on the same origin,
+   path /.well-known/sustainability-data.jws on the same origin as the
+   document -- the origin of the final response when the document is
+   reached through a redirect, which Mandatory Minimum Supported Service
+   already identifies as the origin the document is attributed to --
    retrievable under the same conditions as the document itself (HTTPS,
-   GET and HEAD, no authentication).  The resource is registered as a
-   companion of the primary suffix in the IANA Considerations section,
-   and carries a signature over the primary resource and nothing else.
+   GET and HEAD, no authentication).  A client MUST NOT follow a
+   redirect of the signature resource to a different origin than the one
+   that served the document.  The resource is registered as a companion
+   of the primary suffix in the IANA Considerations section, and carries
+   a signature over the primary resource and nothing else.
+
+
+
+Besleaga                  Expires 4 March 2027                 [Page 27]
+
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
+
 
    The signature MUST be a JSON Web Signature (JWS) [RFC7515] using the
    JWS Compact Serialization with the detached-payload form of
    [RFC7515], Appendix F: the payload part between the two period
    characters is empty, and the payload for verification is supplied by
-
-
-
-Besleaga                 Expires 30 January 2027               [Page 27]
-
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
-
-
    the verifier from the retrieved document.  Responses SHOULD use the
    application/jose media type ([RFC7515], Section 9.2.1).  A 404 Not
    Found at this path means only that the publisher does not sign; it
@@ -1555,20 +1559,21 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
    The JOSE header of the signature:
 
+
+
+
+
+
+
+Besleaga                  Expires 4 March 2027                 [Page 28]
+
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
+
+
    *  MUST contain an alg parameter identifying an asymmetric digital-
       signature algorithm.  EdDSA using the Ed25519 curve [RFC8037] and
       ES256 ([RFC7518], Section 3.4) are RECOMMENDED, and a verifying
       client SHOULD implement both.
-
-
-
-
-
-
-Besleaga                 Expires 30 January 2027               [Page 28]
-
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
-
 
    *  MUST NOT use the value none ([RFC7518], Section 3.6), and MUST NOT
       use a MAC-based algorithm such as HS256: verification here is
@@ -1609,27 +1614,18 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
       pinned the key on an earlier retrieval can detect a change of
       signer.
 
-
-
-
-
-
-
-
-
-
-
-
-
-Besleaga                 Expires 30 January 2027               [Page 29]
-
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
-
-
    It does not establish *identity* or *authenticity*. Binding a
    signature to a real-world party requires a key the client has
    obtained out of band, or an x5c chain that validates to a trust
    anchor the client already trusts -- and even then the binding is to
+
+
+
+Besleaga                  Expires 4 March 2027                 [Page 29]
+
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
+
+
    the certified name, not to the correctness of the figures.
    Independent assurance about the figures themselves comes only from a
    third party, through the verifiable-attestation-uri member; see also
@@ -1677,9 +1673,13 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 30]
+
+
+
+
+Besleaga                  Expires 4 March 2027                 [Page 30]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
 8.  Security Considerations
@@ -1733,9 +1733,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 31]
+Besleaga                  Expires 4 March 2027                 [Page 31]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    | internal paths, or      | contact addresses                       |
@@ -1789,9 +1789,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 32]
+Besleaga                  Expires 4 March 2027                 [Page 32]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  Serving the document under its own registered media type, and with
@@ -1845,9 +1845,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 33]
+Besleaga                  Expires 4 March 2027                 [Page 33]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
 8.4.  Privacy and Information Leakage
@@ -1901,9 +1901,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 34]
+Besleaga                  Expires 4 March 2027                 [Page 34]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  Clients SHOULD enforce a response-size limit and bound the number
@@ -1957,9 +1957,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 35]
+Besleaga                  Expires 4 March 2027                 [Page 35]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
 9.2.  Hardware Fingerprinting
@@ -2013,9 +2013,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 36]
+Besleaga                  Expires 4 March 2027                 [Page 36]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  *Status*: provisional
@@ -2069,9 +2069,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 37]
+Besleaga                  Expires 4 March 2027                 [Page 37]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    package, under one change controller and one specification.
@@ -2125,9 +2125,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 38]
+Besleaga                  Expires 4 March 2027                 [Page 38]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    approval under that provision.  Independent Submissions have obtained
@@ -2181,9 +2181,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 39]
+Besleaga                  Expires 4 March 2027                 [Page 39]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
       automated ones, must not treat an instance as verified.  Instances
@@ -2237,9 +2237,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 40]
+Besleaga                  Expires 4 March 2027                 [Page 40]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
       -  _Macintosh file type code(s)_: TEXT
@@ -2293,9 +2293,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 41]
+Besleaga                  Expires 4 March 2027                 [Page 41]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    The target member is an opaque identifier, as its definition states:
@@ -2349,9 +2349,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 42]
+Besleaga                  Expires 4 March 2027                 [Page 42]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
 13.1.  Normative References
@@ -2405,9 +2405,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 43]
+Besleaga                  Expires 4 March 2027                 [Page 43]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    [RFC9111]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
@@ -2461,9 +2461,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 44]
+Besleaga                  Expires 4 March 2027                 [Page 44]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    [GHG-PROTOCOL]
@@ -2517,9 +2517,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 45]
+Besleaga                  Expires 4 March 2027                 [Page 45]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    [RFC7326]  Parello, J., Claise, B., Schoening, B., and J. Quittek,
@@ -2573,9 +2573,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 46]
+Besleaga                  Expires 4 March 2027                 [Page 46]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    [RFC7351]  Wilde, E., "A Media Type for XML Patch Operations",
@@ -2629,9 +2629,9 @@ Appendix A.  Changelog
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 47]
+Besleaga                  Expires 4 March 2027                 [Page 47]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
 A.1.  Since -05
@@ -2685,9 +2685,9 @@ A.1.  Since -05
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 48]
+Besleaga                  Expires 4 March 2027                 [Page 48]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
       Ed25519 (RFC 8037) and ES256 (RFC 7518) are RECOMMENDED; none and
@@ -2735,22 +2735,20 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
       v2.0, and with the rule that the member's presence alone is
       evidence of nothing.
 
-
-
-
-
-
-
-Besleaga                 Expires 30 January 2027               [Page 49]
-
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
-
-
    *  *Moved Internationalization Considerations after IANA
-      Considerations*, per the section order of RFC 7322, Section 4, and
-      added a note on the display of provider strings written in or
-      mixing right-to-left scripts (Unicode Bidirectional Algorithm;
-      isolation from surrounding text).
+      Considerations*, the relative order in which RFC 7322,
+      Section 4.8, lists the two sections, and added a note on the
+
+
+
+Besleaga                  Expires 4 March 2027                 [Page 49]
+
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
+
+
+      display of provider strings written in or mixing right-to-left
+      scripts (Unicode Bidirectional Algorithm; isolation from
+      surrounding text).
 
    *  Requested "provisional" status for both well-known entries, noting
       RFC 8522 as precedent that a permanent entry with an individual
@@ -2793,18 +2791,17 @@ A.2.  Since -04
       for a target that names a host (case-insensitive, A-label form for
       an internationalized host) or a path prefix (percent-decoded).
 
-
-
-
-
-Besleaga                 Expires 30 January 2027               [Page 50]
-
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
-
-
    *  Removed the "free-form" characterization from the running text,
       which mischaracterized the members it was applied to: measurement-
       method is described as a token with RECOMMENDED values or
+
+
+
+Besleaga                  Expires 4 March 2027                 [Page 50]
+
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
+
+
       otherwise a human-readable description, target as an opaque
       identifier compared octet-for-octet, target-type as classifying
       that member rather than a free-form one, and the provider string
@@ -2850,15 +2847,16 @@ A.3.  Since -03
       registration rationale in IANA Considerations was rewritten for
       the precise name.  The Datatracker document name is unchanged.  No
       IANA action had occurred on the previously requested suffix, so no
-
-
-
-Besleaga                 Expires 30 January 2027               [Page 51]
-
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
-
-
       migration or alias mechanism is defined.
+
+
+
+
+
+Besleaga                  Expires 4 March 2027                 [Page 51]
+
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
+
 
    *  Added the OPTIONAL target-type member: an enumerated hint (origin,
       path, organization, service, product, device, tenant, data-source)
@@ -2906,16 +2904,16 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
       legacy-compatibility rule so a historical document carrying
       target-path is attributed to that subject rather than to the whole
       origin; qualified the 200-OK requirement for redirects, cache
-
-
-
-Besleaga                 Expires 30 January 2027               [Page 52]
-
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
-
-
       revalidation, and rate limiting; added a Cross-Origin Resource
       Sharing recommendation (Access-Control-Allow-Origin: *) for
+
+
+
+Besleaga                  Expires 4 March 2027                 [Page 52]
+
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
+
+
       browser-based clients, following WebFinger practice; made the
       array target-type rule all-or-none; extended client tolerance to
       wrong-JSON-type (including null) values and to sci-score without
@@ -2965,9 +2963,11 @@ A.4.  Since -02
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 53]
+
+
+Besleaga                  Expires 4 March 2027                 [Page 53]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  Made energy-consumption, energy-unit, carbon-footprint, and
@@ -3021,9 +3021,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 54]
+Besleaga                  Expires 4 March 2027                 [Page 54]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  Added an applicability paragraph to the Introduction describing
@@ -3077,9 +3077,9 @@ A.5.  Since -01
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 55]
+Besleaga                  Expires 4 March 2027                 [Page 55]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  Clarified HTTP method handling (GET/HEAD; other methods -> 405
@@ -3133,9 +3133,9 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 56]
+Besleaga                  Expires 4 March 2027                 [Page 56]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
       wise, case-sensitive, on complete path segments, against a
@@ -3189,9 +3189,9 @@ A.7.  draft-besleaga-sustainability-wellknown-00 (replaces draft-
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 57]
+Besleaga                  Expires 4 March 2027                 [Page 57]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    *  Renamed the document from draft-besleaga-green-sustainability-
@@ -3245,9 +3245,9 @@ Author's Address
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 58]
+Besleaga                  Expires 4 March 2027                 [Page 58]
 
-Internet-Draft     Sustainability-Data Well-Known URI          July 2026
+Internet-Draft     Sustainability-Data Well-Known URI        August 2026
 
 
    Email: andrei.besleaga@ieee.org
@@ -3301,4 +3301,4 @@ Internet-Draft     Sustainability-Data Well-Known URI          July 2026
 
 
 
-Besleaga                 Expires 30 January 2027               [Page 59]
+Besleaga                  Expires 4 March 2027                 [Page 59]

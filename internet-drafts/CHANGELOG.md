@@ -1,6 +1,41 @@
-Here is a summary of the changes between draft versions of "The 'sustainability' Well-Known URI" specification.
+Here is a summary of the changes between draft versions of "The 'sustainability-data' Well-Known URI" specification (titled "The 'sustainability' Well-Known URI" through revision -03).
 
 The document was published under two names. Versions **00–05** were `draft-besleaga-green-sustainability-wellknown`; it was then renamed to `draft-besleaga-sustainability-wellknown` (starting at **00**), which **replaces** the earlier series.
+
+---
+
+### **Version 05 to Version 06 (`draft-besleaga-sustainability-wellknown`) — prepared, not yet posted**
+
+Responds to two rounds of Independent-Stream feedback: the Editor's direction that security belong in the document from the beginning, and the first commissioned review, which asked that the protocol be separated cleanly from policy, that the consumer be defined, and that the incremental-adoption path be made explicit. Makes **no change to the wire format**: no member is added, removed, renamed, or retyped; the CDDL and JTD schemas are byte-for-byte unchanged; every document conformant to `-04` or `-05` remains conformant.
+
+**Security package**
+
+* **Registered a dedicated media type and made it required:** `application/sustainability-data+json` in the standards tree, with the full RFC 6838, Section 5.6, template and the security analysis Section 4.6 requires. Successful responses MUST use it; clients MUST accept it and SHOULD also accept `application/json`. The path for a non-IETF-stream standards-tree registration (RFC 6838, Section 3.1, subject to IESG approval) is stated, with the Independent-Submission precedents RFC 7351, RFC 7903, RFC 8351 and (Experimental) RFC 9230; change control over the media type is assigned to the IETF.
+* **HTTPS is now a MUST** for publication and retrieval, on every redirect hop, and the three URI-valued members are restricted to `https`. RFC 9116, Section 5.7, reaches the same conclusion for the same class of document.
+* **New "Document Integrity and Signing" section:** an OPTIONAL detached JWS (RFC 7515 Appendix F) over the exact served octets, published at the companion path `/.well-known/sustainability-data.jws` with `application/jose`. `EdDSA`/Ed25519 and `ES256` are RECOMMENDED; `none` and MAC algorithms MUST be rejected. The section states plainly that a self-carried key proves integrity and key continuity but not identity, and that a valid signature over false data is still false data.
+* **Registered the companion suffix** `sustainability-data.jws` as a second Well-Known URIs entry in the same package (RFC 6415 registered `host-meta` and `host-meta.json` the same way).
+* **`X-Content-Type-Options: nosniff`** SHOULD be sent, and the Security Considerations are restructured around a threat-model table (spoofing, tampering, repudiation/greenwashing, information disclosure, denial of service) mapping each threat to the mitigations this document specifies.
+
+**Protocol separated from policy**
+
+* The Introduction states that the mechanism is **voluntary and purely technical**: nothing in the document creates, discharges, or verifies a regulatory obligation, and the cited regimes supply motivation and vocabulary only. The alignment goal is reworded as defining member semantics that map onto quantities publishers already produce.
+* The **metric-less-document rule is now a conformance condition**, not an instruction to a business: such a document is conformant only if its `methodology-uri` resource is openly retrievable and states the method and figures, and a publisher whose methodology is access-controlled conforms by reporting a metric member instead. The undefinable word "substantive" is removed, and a consumer-side consequence is added.
+* The **"not proof" requirement moved** from the field definitions into Trust and Spoofing, phrased as consumer processing behaviour: retrieval establishes attribution, and a consumer that presents, stores, or forwards the data MUST NOT represent it as verified.
+* **Normative language this specification cannot own was removed** from Interoperability and Deployment (requirements on implementers to publish test vectors, on aggregators to document mappings, on operators to "decide" a deployment shape).
+
+**Comprehension and adoption**
+
+* **New "Roles and Processing Model" section** before the field definitions, defining publisher and consumer — a consumer being anything that retrieves the document, a person with a browser included — and the consumer's processing sequence, including how freshness is judged from `updated`, `reporting-period` and HTTP caching metadata.
+* **New "Partial Knowledge and Incremental Adoption" section** making the existing on-ramp explicit: declare the narrower reporting subject you can stand behind, report only the metrics you have, and estimate the remainder with the basis disclosed. The whole-origin rule is unchanged and now forbids only presenting a subset as the whole.
+* The **Introduction states the range of reporting subjects** — the origin as a whole, a subdomain, a service, a path prefix, a device, a tenant, a product, a data source, or the publishing organization itself (entity-level ESG and climate figures) — and carries a **minimal example** and the justification for using a well-known URI. The stale comparison with per-request HTTP header reporting is gone.
+
+**Versioning finalized**
+
+* **`version` now has exactly one defined value, `"2.0"`**, which a conforming publisher MUST use; what a consumer does on meeting any other value is stated and testable — nothing, since processing is driven by the members present. RFC 6709, Section 4.1, is cited for that requirement.
+* The pre-publication `"1.0"`/`"1.1"` field-set definitions and the `target-path` compatibility rule are **removed**: no deployed document carries them, and their presence implied a revision series the specification does not need. In their place, the Payload Format section states that a document omitting a mandatory member does not conform.
+* Versioning and Extensibility now states positively that **the specification is complete as published**: new information travels as an extension member under the ignore-unknown rule, with no new label, no member registry, and no revision required. The extension rules are set out as four labelled sub-rules covering naming, the absence of a registry, the durability of a name that is an identifier rather than a locator, and extensions as private conventions that may be reused.
+
+* **Editorial:** Internationalization Considerations moved after IANA Considerations; `verifiable-attestation-uri` sharpened as the only mechanism here that can speak to authenticity; Non-Goals reconciled with the new signing section; `target-type` values set off as a list; long paragraphs and sentences split; terminology harmonized on "member".
 
 ---
 

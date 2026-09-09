@@ -56,7 +56,11 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 
 | File | Role |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-05.md` | Markdown source of the current, latest-posted revision. Edit this. |
+| `build.sh` | Build-and-check script for any revision (see "Building the draft" below). |
+| `draft-besleaga-sustainability-wellknown-06.md` | Markdown source of the current working revision. Edit this. |
+| `draft-besleaga-sustainability-wellknown-06.xml` | xml2rfc v3 XML of `-06` — the submission form. |
+| `draft-besleaga-sustainability-wellknown-06.txt` | Rendered plain-text form of `-06`. |
+| `draft-besleaga-sustainability-wellknown-05.md` | Markdown source of the latest **posted** revision. |
 | `draft-besleaga-sustainability-wellknown-05.xml` | xml2rfc v3 XML of `-05` — the authoritative submission form. |
 | `draft-besleaga-sustainability-wellknown-05.txt` | Rendered plain-text form of `-05`. |
 | `draft-besleaga-sustainability-wellknown-04.md` | Markdown source of a prior posted revision. |
@@ -92,16 +96,32 @@ design discussion is also recorded on the GREEN working group mailing list.
 
 ## Building the draft
 
-Requires `kramdown-rfc` (Ruby gem `kramdown-rfc2629`) and `xml2rfc`:
+Requires `kramdown-rfc` (Ruby gem `kramdown-rfc2629`) and `xml2rfc` (Python), plus `python3`
+and `curl`:
 
 ```bash
+gem install kramdown-rfc2629
+pip install xml2rfc
+
 cd internet-drafts
-kramdown-rfc draft-besleaga-sustainability-wellknown-05.md \
-  > draft-besleaga-sustainability-wellknown-05.xml
-xml2rfc --strict --text draft-besleaga-sustainability-wellknown-05.xml \
-  -o draft-besleaga-sustainability-wellknown-05.txt
+./build.sh                 # build and check the highest-numbered revision
+./build.sh -05             # build a specific revision
+./build.sh --no-idnits     # skip the network idnits run
 ```
 
-`xml2rfc --strict` is expected to complete with no warnings. CI runs the same build (see
+`build.sh` regenerates the `.xml` and `.txt` from the Markdown source and then verifies that
+`xml2rfc --strict` completes without error, that no rendered line exceeds 72 characters and the
+text is pure ASCII, that no Markdown code fences leaked into the output, that the schema
+references resolve and the stale RFC 8949 reference is absent, that the draft's CDDL and JTD
+blocks still match `../schemas-validators/`, and that idnits (run through the IETF author-tools
+API) reports zero errors. It exits non-zero if any check fails.
+
+One idnits **warning** is expected and cannot be fixed: the citation URLs for the GHG Protocol,
+the UN 2030 Agenda and carbon.txt are real domains rather than RFC 2606 examples.
+
+If the tools are installed in a user gem directory or a virtualenv rather than system-wide, the
+script looks in `~/.local/share/gem/ruby/*/bin` and `~/.cache/sustain-venv/bin` before giving
+up; pre-set `PATH` if yours differ. Before submitting a revision, bump the date in the Markdown
+front matter and re-run the script. CI runs an equivalent build (see
 `../.github/workflows/draft.yml`), and the repo's example payloads are validated against the
 draft's formal schemas (see `../schemas-validators/`).

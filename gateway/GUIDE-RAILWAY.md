@@ -58,6 +58,13 @@ railway domain                # prints something like
 build stage, once production-only for the runtime stage) and compiles
 TypeScript.
 
+> **If the service is GitHub-connected with Root Directory `gateway`** (the
+> dashboard setup below), do not run `railway up` from inside `gateway/`: the
+> upload then has no `gateway/` subdirectory for the root-directory setting to
+> resolve and the build fails with `lstat .../gateway: no such file or
+> directory`. Either let the push trigger the deploy, or run `railway up` from
+> the repository root. (Seen 2026-09-10.)
+
 Useful follow-ups:
 
 ```bash

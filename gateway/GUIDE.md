@@ -544,6 +544,11 @@ railway up            # builds the Dockerfile
 railway domain        # assigns a public URL
 ```
 
+If the service is instead GitHub-connected with **Root Directory `gateway`**
+(the dashboard path below), run `railway up` from the repository root, not from
+`gateway/` -- otherwise the build fails with `lstat .../gateway: no such file
+or directory`. A push to the connected branch deploys on its own.
+
 **Dashboard**
 
 1. Push the branch containing `gateway/`.

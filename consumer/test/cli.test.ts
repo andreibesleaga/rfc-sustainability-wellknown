@@ -5,6 +5,11 @@
  * be verified with the documented command: the CLI read argv[0] as the origin,
  * so `--strict <origin>` (and the bin name that `npx <pkg> sustainability-fetch`
  * passes through) landed in `new URL()` and threw a bare "Invalid URL".
+ *
+ * NOTE (-06): the fixture server serves `application/json` on purpose — the
+ * pre-06 media type a -05 publisher still uses, which the client accepts and
+ * the battery reports as WARN. It listens on plain HTTP, so the runs below
+ * pass `--allow-http`, the flag that opts out of the draft's HTTPS MUST.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";
@@ -63,7 +68,7 @@ describe("runCli() argument handling", () => {
     const origin = await startServer();
     const out = captureStdout();
 
-    const code = await runCli([origin, "--format=ndjson"]);
+    const code = await runCli([origin, "--format=ndjson", "--allow-http"]);
 
     expect(code).toBe(0);
     expect(out.join("\n")).toContain('"target"');
@@ -73,7 +78,7 @@ describe("runCli() argument handling", () => {
     const origin = await startServer();
     const out = captureStdout();
 
-    const code = await runCli(["--format=ndjson", origin]);
+    const code = await runCli(["--format=ndjson", "--allow-http", origin]);
 
     expect(code).toBe(0);
     expect(out.join("\n")).toContain('"target"');
@@ -83,7 +88,7 @@ describe("runCli() argument handling", () => {
     const origin = await startServer();
     const out = captureStdout();
 
-    const code = await runCli(["sustainability-fetch", origin]);
+    const code = await runCli(["sustainability-fetch", origin, "--allow-http"]);
 
     expect(code).toBe(0);
     expect(out.join("\n")).toContain('"target"');
@@ -131,7 +136,7 @@ describe("runCli() argument handling", () => {
     const { port } = server!.address() as AddressInfo;
     const out = captureStdout();
 
-    const code = await runCli([`http://127.0.0.1:${port}/subject.example`, "--format=ndjson"]);
+    const code = await runCli([`http://127.0.0.1:${port}/subject.example`, "--format=ndjson", "--allow-http"]);
 
     expect(code).toBe(0);
     expect(out.join("\n")).toContain('"target"');
@@ -162,6 +167,8 @@ describe("runCli() argument handling", () => {
     const code = await runCli(["--help"]);
     expect(code).toBe(0);
     expect(out.join("\n")).toContain("Usage: sustainability-fetch");
+    // The -06 escape hatch is documented in the usage text, not just accepted.
+    expect(out.join("\n")).toContain("--allow-http");
   });
 
   it("prints usage and exits 2 when no origin is given", async () => {
@@ -172,5 +179,66 @@ describe("runCli() argument handling", () => {
     const code = await runCli([]);
     expect(code).toBe(2);
     expect(errors.join("\n")).toContain("Usage: sustainability-fetch");
+  });
+});
+
+describe("-06: the CLI's HTTPS requirement and the --allow-http escape hatch", () => {
+  it("refuses an http:// origin without --allow-http, in one line naming the flag", async () => {
+    const errors: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      errors.push(args.map(String).join(" "));
+    });
+    let requests = 0;
+    const origin = await new Promise<string>((resolve) => {
+      server = createServer((_req, res) => {
+        requests++;
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end("{}");
+      });
+      server.listen(0, "127.0.0.1", () => {
+        const { port } = server!.address() as AddressInfo;
+        resolve(`http://127.0.0.1:${port}`);
+      });
+    });
+
+    const code = await runCli([origin]);
+
+    expect(code).toBe(2);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("--allow-http");
+    expect(errors[0]).toContain("HTTPS");
+    // Refused before any request was made — no loopback exemption.
+    expect(requests).toBe(0);
+  });
+
+  it("fetches the same origin with --allow-http", async () => {
+    const origin = await startServer();
+    const out = captureStdout();
+
+    const code = await runCli([origin, "--allow-http", "--format=ndjson"]);
+
+    expect(code).toBe(0);
+    expect(out.join("\n")).toContain('"target"');
+  });
+
+  it("still promotes a bare hostname to https (the flag changes nothing there)", () => {
+    expect(normalizeOrigin("example.org")).toBe("https://example.org/");
+  });
+
+  it("--strict against a pre-06 (application/json) origin prints WARN and still exits 0", async () => {
+    const origin = await startServer();
+    const out = captureStdout();
+
+    const code = await runCli([origin, "--strict", "--allow-http"]);
+
+    const lines = out.join("\n");
+    const mediaTypeLine = out.find((l) => l.includes("media type"));
+    expect(mediaTypeLine).toBeDefined();
+    expect(mediaTypeLine?.startsWith("WARN")).toBe(true);
+    expect(mediaTypeLine).toContain("[MUST]");
+    expect(mediaTypeLine).toContain("pre-06 media type");
+    expect(lines).toContain("application/sustainability-data+json");
+    // A warn never sets the exit code — only a failed MUST does.
+    expect(code).toBe(0);
   });
 });

@@ -17,7 +17,8 @@ per-request responses), see "Optional: dynamic Extended service" below.
 
 | Feature | nginx.conf | apache.conf | Draft requirement |
 |---|---|---|---|
-| `Content-Type: application/json` | ✓ | ✓ | MUST |
+| `Content-Type: application/sustainability-data+json` on 200 responses (draft -06; commented `application/json` -05 fallback kept for reverting) | ✓ | ✓ | MUST |
+| `X-Content-Type-Options: nosniff` | ✓ | ✓ | SHOULD |
 | `Cache-Control: max-age=86400` | ✓ | ✓ | RECOMMENDED |
 | `ETag` / `Last-Modified` | auto (on by default) | auto (static files) | RECOMMENDED |
 | `Access-Control-Allow-Origin: *` | ✓ | ✓ | SHOULD (on successful responses; WebFinger practice) |
@@ -128,6 +129,11 @@ directives for fields the gateway already sets correctly** (Content-Type,
 Cache-Control, ETag, CORS, and 405/Allow) — both nginx and Apache pass upstream
 response headers through unmodified by default, and duplicating them risks a
 future silent mismatch between the proxy layer and the real implementation.
+Before relying on this, confirm your gateway deployment already sends the -06
+`application/sustainability-data+json` media type and `X-Content-Type-Options:
+nosniff` on its 200 responses — if it does not yet, add the nosniff header at
+the proxy layer as an interim measure (see the commented example in each
+config file).
 
 This exact reverse-proxy pattern was verified end-to-end (2026-07-09) with Apache
 2.4.58 + `mod_proxy_http` fronting a live run of `publisher/`: query strings and

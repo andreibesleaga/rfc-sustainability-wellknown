@@ -7,6 +7,14 @@
  * Behavior asserted here is read from the actual publisher source
  * (publisher/src/publisher.ts, adapters/computed.ts, adapters/static.ts,
  * security.ts) rather than assumed — see comments inline.
+ *
+ * NOTE (-06): the sibling publisher is 0.6.0, so `createSustainabilityServer`
+ * serves the dedicated `application/sustainability-data+json` media type by
+ * default — test (h) below asserts that the pair agrees on it, which is the
+ * point of an interop suite. The rig runs over plain HTTP on 127.0.0.1, so the
+ * shared ALLOW_INSECURE opt-out from ./helpers carries the HTTPS exemption;
+ * the -05-compatibility path (a publisher serving `application/json`) is
+ * covered by the fixture servers in fetch.test.ts and conformance.test.ts.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import type { AddressInfo } from "node:net";
@@ -15,6 +23,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import { fetchSustainability, WELL_KNOWN_PATH } from "../src/fetch";
 import { SustainabilityClient } from "../src/client";
+import { ALLOW_INSECURE } from "./helpers";
 import { SustainabilityMetrics } from "../src/types";
 
 const publisherDistDir = path.resolve(__dirname, "../../publisher/dist");
@@ -62,6 +71,35 @@ describe("interop: consumer <-> real publisher package", () => {
   });
 
   it.runIf(hasPublisherDist)(
+    "(h) the publisher pair agrees on the -06 media type and sends nosniff",
+    async () => {
+      // Draft -06 Mandatory Minimum Supported Service: a successful response
+      // MUST use the registered media type and SHOULD send nosniff. This is
+      // the one place the two packages are checked against each other rather
+      // than against a hand-built fixture.
+      const publisher = new Publisher(
+        computedAdapter({
+          provider: "Interop Corp",
+          methodologyUri: "https://example.com/m",
+          reportingPeriod: "2026-02",
+          energy: { value: 100, unit: "kWh" },
+          gridIntensity: 276,
+        }),
+        { normalize: { target: "example.com" } },
+      );
+      const origin = await startPublisherServer(publisher);
+      const res = await fetch(`${origin}${WELL_KNOWN_PATH}`);
+      expect(res.headers.get("content-type")).toBe("application/sustainability-data+json");
+      expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+      await res.arrayBuffer();
+
+      const r = await fetchSustainability(origin, ALLOW_INSECURE);
+      expect(r.status).toBe("ok");
+      if (r.status === "ok") expect(r.mediaType).toBe("sustainability-data+json");
+    },
+  );
+
+  it.runIf(hasPublisherDist)(
     "(a) Basic fetch of a computedAdapter-backed publisher returns a single, valid object",
     async () => {
       // Since -03, `target` (the reporting subject) is mandatory: publisher's
@@ -79,7 +117,7 @@ describe("interop: consumer <-> real publisher package", () => {
       );
       const origin = await startPublisherServer(publisher);
 
-      const result = await fetchSustainability(origin);
+      const result = await fetchSustainability(origin, ALLOW_INSECURE);
       expect(result.status).toBe("ok");
       if (result.status !== "ok") return;
       expect(Array.isArray(result.document)).toBe(false);
@@ -120,7 +158,7 @@ describe("interop: consumer <-> real publisher package", () => {
       );
       const origin = await startPublisherServer(publisher);
 
-      const result = await fetchSustainability(origin, { period: "2026", granularity: "monthly" });
+      const result = await fetchSustainability(origin, { ...ALLOW_INSECURE, period: "2026", granularity: "monthly" });
       expect(result.status).toBe("ok");
       if (result.status !== "ok") return;
       expect(Array.isArray(result.document)).toBe(false);
@@ -150,7 +188,7 @@ describe("interop: consumer <-> real publisher package", () => {
       );
       const origin = await startPublisherServer(publisher);
 
-      const result = await fetchSustainability(origin, { period: "2026", granularity: "monthly" });
+      const result = await fetchSustainability(origin, { ...ALLOW_INSECURE, period: "2026", granularity: "monthly" });
       expect(result.status).toBe("ok");
       if (result.status !== "ok") return;
       expect(Array.isArray(result.document)).toBe(true);
@@ -161,7 +199,7 @@ describe("interop: consumer <-> real publisher package", () => {
       expect(new Set(docs.map((d) => d.target))).toEqual(new Set(["trend.example"]));
 
       // And getTrend() (client Tier 2) should also see it as a trend array.
-      const client = new SustainabilityClient();
+      const client = new SustainabilityClient(ALLOW_INSECURE);
       const trend = await client.getTrend(origin, { period: "2026", granularity: "monthly" });
       expect(trend.length).toBe(3);
     },
@@ -189,7 +227,7 @@ describe("interop: consumer <-> real publisher package", () => {
         return res;
       };
 
-      const client = new SustainabilityClient({ fetchImpl: spyFetch });
+      const client = new SustainabilityClient({ ...ALLOW_INSECURE, fetchImpl: spyFetch });
       const first = await client.get(origin);
       const second = await client.get(origin);
 
@@ -228,8 +266,8 @@ describe("interop: consumer <-> real publisher package", () => {
       );
       const origin = await startPublisherServer(publisher);
 
-      const withoutTarget = await fetchSustainability(origin);
-      const withUnknownTarget = await fetchSustainability(origin, { target: "/does/not/exist" });
+      const withoutTarget = await fetchSustainability(origin, ALLOW_INSECURE);
+      const withUnknownTarget = await fetchSustainability(origin, { ...ALLOW_INSECURE, target: "/does/not/exist" });
 
       expect(withoutTarget.status).toBe("ok");
       expect(withUnknownTarget.status).toBe("ok"); // observed real behavior: NOT "not-found"

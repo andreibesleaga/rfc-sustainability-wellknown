@@ -15,8 +15,15 @@ is the normal case for early ecosystem adoption, not a hypothetical. Built
 basic-first and M2M-oriented: every API is one line to call from a script (a cron
 job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad input.
 
-> **Version note:** consumer **0.5.2** (this tree)
-> implements the **-04**/**-05** draft revisions' `"2.0"` wire format — the renamed
+> **Version note:** consumer **0.6.0** (this tree)
+> implements the **-06** draft revision on the wire — the dedicated
+> `application/sustainability-data+json` media type (sent in `Accept`, reported
+> back as `result.mediaType`), the unconditional **HTTPS MUST** (an `http://`
+> origin, or an `http://` final URL after a redirect, is refused unless you opt
+> out with `--allow-http` / `allowInsecure: true`), the `https`-only URI members
+> (a non-`https` one is a warning, and `fetchDisclosure()` refuses to
+> dereference it), and the `X-Content-Type-Options: nosniff` recommendation in
+> the conformance battery — on top of the **-04**/**-05** revisions' `"2.0"` wire format — the renamed
 > `/.well-known/sustainability-data` URI (earlier revisions requested the suffix
 > `sustainability`), 8 mandatory fields (including the opaque `target` reporting
 > subject), 16 optional fields (the energy/carbon quartet is optional, with default
@@ -37,9 +44,15 @@ job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad in
 > origin (well-known at the root, the RFC 8615 case), a base URL with a path
 > prefix (`https://gateway.example/cloudflare.com` — the multi-subject
 > gateway/mirror pattern, resolving the well-known path under the prefix), or
-> the full document URL pasted as-is. The library API is otherwise unchanged
-> since 0.4.0. The earlier published **0.1.0** implements the -02 (`"1.1"`)
-> model.
+> the full document URL pasted as-is. **0.6.0 adds the -06 client behaviour
+> listed above while staying fully compatible with a -05 publisher**: a
+> response served as `application/json` is accepted (the draft's SHOULD) and
+> the battery reports it as `WARN`, not `FAIL`. No signature verification is
+> implemented: the detached JWS -06 defines at
+> `/.well-known/sustainability-data.jws` is OPTIONAL, and a client that cannot
+> establish the signer's identity out of band gains nothing it can rely on
+> from checking one. The earlier published **0.1.0** implements the -02
+> (`"1.1"`) model.
 
 ## Install & build
 
@@ -86,14 +99,15 @@ the transformation helpers, disclosure-link handling, and the conformance checke
 |---|---|
 | `types` | `SustainabilityMetrics`/`SustainabilityDocument`, `FetchParams`, `FetchResult`, `EnergyUnit`, `CarbonUnit`, `TargetType` — wire-format types mirroring the draft's field set |
 | `schema` | `RESPONSE_JTD_SCHEMA` — the JTD (RFC 8927) schema for a single metrics object, an exact embedded copy of `schemas-validators/response-schema.json` |
-| `validate` | `validateDocument()`/`assertValid()` — defensive validation of an incoming document: JTD schema gate plus the draft's cross-entry array rules |
-| `fetch` | `fetchSustainability(origin, options)` — the one-call, zero-extra-dependency fetch-and-validate function; its `legacyCompat` option (default true) derives a missing `target` from the legacy `target-path` value (origin host only when neither exists), disregards (strips + records in `disregarded`) wrong-JSON-typed optional members, a reported `sci-score` without `functional-unit`, and unrecognized `target-type` values, and returns the distinct `no-report` status for a 200 empty array, per the draft's compatibility/tolerance rules |
+| `media-type` | `MEDIA_TYPE` (`application/sustainability-data+json`), `LEGACY_MEDIA_TYPE` (`application/json`), `ACCEPTED_MEDIA_TYPES`, `ACCEPT_HEADER`, `classifyMediaType()` — the -06 media typing, in the one file a future rename would touch |
+| `validate` | `validateDocument()`/`assertValid()`/`URI_MEMBERS` — defensive validation of an incoming document: JTD schema gate plus the draft's cross-entry array rules; `result.warnings` carries advisory findings (an absolute non-`https` URI member) that never change `result.valid` |
+| `fetch` | `fetchSustainability(origin, options)` — the one-call, zero-extra-dependency fetch-and-validate function; its `legacyCompat` option (default true) derives a missing `target` from the legacy `target-path` value (origin host only when neither exists), disregards (strips + records in `disregarded`) wrong-JSON-typed optional members, a reported `sci-score` without `functional-unit`, and unrecognized `target-type` values, and returns the distinct `no-report` status for a 200 empty array, per the draft's compatibility/tolerance rules; sends the -06 `Accept` header, reports the response's media type as `mediaType`, and refuses a non-HTTPS retrieval (`status: "insecure-transport"`) unless `allowInsecure: true` |
 | `client` | `SustainabilityClient` — a class for repeated polling, with ETag-based conditional-request caching (threads `legacyCompat` through) |
 | `sentinel` | `isNotReported()`, `withoutSentinels()`, `NUMERIC_KEYS`, `TARGET_TYPES`, `isRecognizedTargetType()`, `isWrongJsonType()`, `legacyReportingSubject()`, `OPTIONAL_MEMBER_JSON_TYPES` — the legacy-compatibility/tolerance module: a negative value in a non-negative member reads as "not reported" (subsumes the historical 1.x sentinel — negative scopes are real data and are never stripped), a wrong-JSON-typed value (including `null`) in a defined optional member reads as "not reported", an unrecognized enumerated `target-type` value reads as "disregard the member" (draft §Value Constraints and Omitted Metrics), and `legacyReportingSubject()` resolves a 1.x document's subject from `target-path` (origin host as the fallback) |
 | `units` | `convertEnergy()`, `convertCarbon()` — unit conversion, matching `publisher/src/normalize.ts`'s tables exactly (parity-tested) |
 | `transform` | `toCsvRows()`, `toNdjson()`, `flatten()`, `aggregate()` — format transformations for a validated document |
-| `disclosure` | `resolveDisclosureLinks()` (passive), `fetchDisclosure()` (explicit opt-in) — disclosure/attestation link helpers |
-| `conformance` | `runConformanceChecks()` — a conformance-check battery for any origin, usable standalone or via the CLI's `--strict` |
+| `disclosure` | `resolveDisclosureLinks()` (passive), `fetchDisclosure()` (explicit opt-in, and refuses any non-`https` URI before making a request) — disclosure/attestation link helpers |
+| `conformance` | `runConformanceChecks()` — a conformance-check battery for any origin, usable standalone or via the CLI's `--strict`; each check carries a three-valued `outcome` (`"pass"`/`"fail"`/`"warn"`) alongside the original `pass` boolean |
 | `cli` | `runCli()` — argument parsing and dispatch for `bin/sustainability-fetch.js` |
 
 All of the above are re-exported from the package root (`src/index.ts`).
@@ -102,7 +116,7 @@ All of the above are re-exported from the package root (`src/index.ts`).
 
 ```bash
 sustainability-fetch <origin> [--target=/path] [--period=2026-02] [--granularity=monthly] \
-  [--format=json|csv|ndjson] [--strict] [--etag=<cached-etag>]
+  [--format=json|csv|ndjson] [--strict] [--etag=<cached-etag>] [--allow-http]
 ```
 
 Options may appear before or after the origin. A bare hostname is promoted to
@@ -116,6 +130,14 @@ one line per check, tagged with the strength of the requirement it tests: a
 failed `MUST` prints `FAIL` and exits non-zero, while an unmet `SHOULD` prints
 `WARN` and does not — an origin whose static host cannot emit an `Allow` header
 on a 405, for instance, is still conformant.
+
+Since 0.6.0 an `http://` origin is **refused** with a one-line message and exit
+code `2`: the draft makes HTTPS unconditional and says clients MUST NOT accept a
+document retrieved over unauthenticated HTTP. Pass `--allow-http` to override it
+against a local development server or in CI (`sustainability-fetch
+http://127.0.0.1:8080 --strict --allow-http`); there is deliberately no
+automatic loopback exemption. A bare hostname is still promoted to `https://`,
+and an `https` origin that redirects to plain HTTP is refused mid-flight.
 
 ```bash
 # Fetch and print as JSON (default):
@@ -140,8 +162,8 @@ URL to anyone — the exact battery used to verify
 reference deployment:
 
 ```bash
-# 1. correct media type + CORS + caching
-curl -sI https://example.org/.well-known/sustainability-data | grep -Ei 'HTTP/|content-type|cache-control|access-control'
+# 1. correct media type (-06: application/sustainability-data+json) + nosniff + CORS + caching
+curl -sI https://example.org/.well-known/sustainability-data | grep -Ei 'HTTP/|content-type|x-content-type-options|cache-control|access-control'
 
 # 2. valid JSON, correct content
 curl -s https://example.org/.well-known/sustainability-data | python3 -m json.tool
@@ -158,19 +180,38 @@ Expected `--strict` output for a fully conformant origin — every `MUST` PASS,
 
 ```
 PASS  [MUST] Basic request returns a schema-valid single object
-PASS  [MUST] Basic 200 response uses the application/json media type
+PASS  [MUST] Basic 200 response uses the application/sustainability-data+json media type
+PASS  [SHOULD] Response sends X-Content-Type-Options: nosniff
 PASS  [SHOULD] Response carries an ETag
 PASS  [SHOULD] Conditional GET with a fresh ETag returns 304
 PASS  [SHOULD] A method other than GET/HEAD gets 405 with Allow
 PASS  [MUST] Extended granularity request returns a valid response (sorted array when honored)
 ```
 
-A `WARN` line (not `FAIL`) is normal and does not affect the exit code: it flags
-an unmet `SHOULD`, not non-conformance. The most common one in practice is the
-405-with-`Allow` check on static hosting (Cloudflare Pages, GitHub Pages, S3):
-these platforms return `405` to a non-GET/HEAD request but cannot be configured
-to add an `Allow` header, and the draft states that requirement as a `SHOULD`
-for exactly this reason.
+A `WARN` line (not `FAIL`) is normal and does not affect the exit code. It means
+one of two things:
+
+* **an unmet `SHOULD`** — a recommendation the origin did not follow, not
+  non-conformance. The most common one in practice is the 405-with-`Allow`
+  check on static hosting (Cloudflare Pages, GitHub Pages, S3): these platforms
+  return `405` to a non-GET/HEAD request but cannot be configured to add an
+  `Allow` header, and the draft states that requirement as a `SHOULD` for
+  exactly this reason;
+* **an advisory finding** — currently only the media-type check against a
+  publisher that has not moved to -06 yet:
+
+```
+WARN  [MUST] Basic 200 response uses the application/sustainability-data+json media type — pre-06 media type (application/json): v05-compatible, not v06-conformant
+```
+
+That line says the origin is a valid **-05** publisher and is not yet **-06**
+conformant. It is reported rather than failed on purpose (see "-05
+compatibility" below), so `report.allPassed` stays true and the CLI still exits
+`0`. Programmatically, `check.outcome` is `"pass" | "fail" | "warn"`; the
+original `check.pass` boolean is still there and is exactly
+`outcome === "pass"`, so a `warn` reads as "not a pass" without being counted
+as a failure by `allPassed` (`allPassedIncludingRecommended` does drop, just as
+an unmet `SHOULD` drops it).
 
 > **Requires consumer 0.5.0 or later.** In 0.4.0, `sustainability-fetch` read
 > `argv[0]` as the origin, so both `--strict <origin>` and
@@ -181,6 +222,41 @@ for exactly this reason.
 > 0.5.0, options are accepted before or after the origin, a leading bin-name
 > token is dropped, a bare hostname is promoted to `https://`, and an unusable
 > origin prints a clear message and exits `2` instead of throwing.
+
+## -05 compatibility
+
+0.6.0 is a **-06 client that still works against every -05 publisher**, because
+that is what -06 itself asks for:
+
+* **Both media types are accepted.** Every fetch sends
+  `Accept: application/sustainability-data+json, application/json;q=0.9`.
+  A response is classified — `result.mediaType` is `"sustainability-data+json"`,
+  `"json"`, or `"other"` — but never refused on its media type alone: the draft
+  permits parsing a response of any type and says a client determines what the
+  document is from the document's own content, which is what
+  `validateDocument()` does.
+* **The battery warns rather than fails** on `application/json`, and will keep
+  doing so until the RFC publishes and IANA has registered the dedicated media
+  type. There is no strict/`--require-06` flag: the `WARN` line is the whole
+  message.
+* **`legacyCompat` tolerance is a courtesy beyond the spec** — deriving a
+  missing `target` from a 1.x `target-path`, disregarding wrong-typed optional
+  members, reading an empty array as "no report". It is not required of a
+  conformant client and it is scheduled for removal near RFC publication; do
+  not build on it. `legacyCompat: false` turns it off today.
+* **A non-`https` URI member is a warning, not a rejection** (`result.warnings`,
+  and `validateDocument().warnings`): the member is kept and the document stays
+  valid. The rule bites where it matters — `fetchDisclosure()` refuses to
+  dereference such a URI at all.
+* **No signature verification.** -06's detached JWS at
+  `/.well-known/sustainability-data.jws` is OPTIONAL, and verifying one proves
+  integrity and key continuity, not identity, unless the key is already known
+  out of band. Nothing in this package reads it.
+
+The one place -06 is enforced without compromise is transport: an `http://`
+origin is refused (`--allow-http` / `allowInsecure: true` to override), because
+that requirement is what lets a document be attributed to the origin that
+served it at all.
 
 ## Conformance
 

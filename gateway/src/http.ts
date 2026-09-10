@@ -18,11 +18,23 @@ export function corsHeaders(): Record<string, string> {
   return { "Access-Control-Allow-Origin": CORS_ORIGIN };
 }
 
-/** A JSON body with an explicit byte length, so HEAD carries Content-Length too. */
+/**
+ * A JSON body with an explicit byte length, so HEAD carries Content-Length
+ * too. Also the one seam every gateway-originated response (index, healthz,
+ * every `jsonError`, the no-data 404) passes through, so
+ * `X-Content-Type-Options: nosniff` is set here once rather than at each call
+ * site. A document response built from the publisher's own headers (which
+ * already carries `nosniff`, per `sustainability-wellknown-publisher` 0.6.0)
+ * is unaffected — the value is identical either way.
+ */
 export function withBody(status: number, headers: Record<string, string>, body: string): Result {
   return {
     status,
-    headers: { ...headers, "Content-Length": String(Buffer.byteLength(body)) },
+    headers: {
+      ...headers,
+      "X-Content-Type-Options": "nosniff",
+      "Content-Length": String(Buffer.byteLength(body)),
+    },
     body,
   };
 }

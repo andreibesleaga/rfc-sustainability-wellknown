@@ -17,12 +17,12 @@ Individual submission on the IETF **Independent Submission Stream** (Information
   Section 5.6 template and the Section 4.6 security analysis and required as the response
   type, `X-Content-Type-Options: nosniff`, an OPTIONAL but fully specified detached-JWS
   signature at a companion well-known resource, and a restructured threat-model section.
-  It adds **no member** — the CDDL and JTD schemas remain byte-identical to `-05`. Do not
-  cite `-06` as published.
+  It adds **no member** — the CDDL and JTD schemas remain byte-identical to `-05`. It was
+  **posted to the Datatracker on 2026-09-10** and is the latest posted revision; it is an
+  Internet-Draft under ISE review, so do not cite it as a published RFC.
 
-- **`-05`** is the **latest posted** revision — posted to the Datatracker 2026-07-28 and
-  under Independent Submissions Editor (ISE) review, responding to the ISE's initial
-  review of `-04`. It makes no change to the wire format: no member is added, removed,
+- **`-05`** is the **prior posted** revision — posted to the Datatracker 2026-07-28,
+  responding to the ISE's initial review of `-04`. It makes no change to the wire format: no member is added, removed,
   renamed, or retyped, the CDDL and JTD schemas are unchanged, and every document
   conformant to `-04` remains conformant to this revision. It removes the sentence in
   the `disclosure-uri` definition that named a Green Web Foundation carbon.txt file as
@@ -57,10 +57,10 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 | File | Role |
 |---|---|
 | `build.sh` | Build-and-check script for any revision (see "Building the draft" below). |
-| `draft-besleaga-sustainability-wellknown-06.md` | Markdown source of the current working revision. Edit this. |
+| `draft-besleaga-sustainability-wellknown-06.md` | Markdown source of the latest **posted** revision (2026-09-10). Edit this. |
 | `draft-besleaga-sustainability-wellknown-06.xml` | xml2rfc v3 XML of `-06` — the submission form. |
 | `draft-besleaga-sustainability-wellknown-06.txt` | Rendered plain-text form of `-06`. |
-| `draft-besleaga-sustainability-wellknown-05.md` | Markdown source of the latest **posted** revision. |
+| `draft-besleaga-sustainability-wellknown-05.md` | Markdown source of the prior posted revision. |
 | `draft-besleaga-sustainability-wellknown-05.xml` | xml2rfc v3 XML of `-05` — the authoritative submission form. |
 | `draft-besleaga-sustainability-wellknown-05.txt` | Rendered plain-text form of `-05`. |
 | `draft-besleaga-sustainability-wellknown-04.md` | Markdown source of a prior posted revision. |

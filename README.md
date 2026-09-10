@@ -6,7 +6,7 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-05** is the **latest posted** revision and is **under ISE review** for publication as an Informational RFC: **no change to the wire format**. Draft v02/v03 presented at IETF meeting 126 in SUSTAIN RG.
+**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-06** is the **latest posted** revision (posted 2026-09-10) and is **under ISE review** for publication as an Informational RFC: **no change to the wire format**. Draft v02/v03 presented at IETF meeting 126 in SUSTAIN RG.
 
 IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name).
 
@@ -131,8 +131,10 @@ Draft in multiple formats plus supplementary documents.
 
 | File | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-05.md` | **Latest posted revision** (posted 2026-07-28, under ISE review) — responds to the ISE's initial review of `-04`: removes the carbon.txt-path reference from `disclosure-uri` (now format- and location-agnostic), adds an Internationalization Considerations section, states the calendar-period rationale in-document, and recognizes the calendar year as the common Basic-service reporting cycle. No change to the wire format |
-| `draft-besleaga-sustainability-wellknown-05.xml` / `.txt` | xml2rfc v3 XML (authoritative submission form) and rendered text of `-05` |
+| `draft-besleaga-sustainability-wellknown-06.md` | **Latest posted revision** (posted 2026-09-10, under ISE review) — responds to the ISE's second round (security designed in from the start) and to the first commissioned review: registers and requires the `application/sustainability-data+json` media type, makes HTTPS a MUST, adds an OPTIONAL detached-JWS signature mechanism and a threat-model table, adds "Roles and Processing Model" and "Partial Knowledge and Incremental Adoption", and fixes the `version` label as a single value. No change to the wire format |
+| `draft-besleaga-sustainability-wellknown-06.xml` / `.txt` | xml2rfc v3 XML (authoritative submission form) and rendered text of `-06` |
+| `draft-besleaga-sustainability-wellknown-05.md` | Prior posted revision (posted 2026-07-28) — responds to the ISE's initial review of `-04`: removes the carbon.txt-path reference from `disclosure-uri` (now format- and location-agnostic), adds an Internationalization Considerations section, states the calendar-period rationale in-document, and recognizes the calendar year as the common Basic-service reporting cycle. No change to the wire format |
+| `draft-besleaga-sustainability-wellknown-05.xml` / `.txt` | xml2rfc v3 XML and rendered text of `-05` |
 | `draft-besleaga-sustainability-wellknown-04.md` | Prior posted revision — renames the requested URI suffix to `sustainability-data` (resolving the IANA naming feedback), adds the optional `target-type` member, places the `version` value space under change control, and defines the reverse-domain extension-member naming rule |
 | `draft-besleaga-sustainability-wellknown-04.xml` / `.txt` | xml2rfc v3 XML (authoritative submission form) and rendered text of `-04` |
 | `draft-besleaga-sustainability-wellknown-03.*` | Previous revision — posted to the Datatracker 2026-07-23; breaking data-model revision, schema label `"2.0"` |
@@ -200,7 +202,7 @@ Server-side security middleware implementing the operational safeguards from the
 |---|---|
 | `security.py` | Python — DoS cap, sub-daily filter, optional deterministic ~1% noise |
 | `security.js` | JavaScript (Node, zero dependencies) — same three safeguards |
-| `security.php` | PHP — same three safeguards + `Content-Type: application/json` header |
+| `security.php` | PHP — same three safeguards + `Content-Type: application/sustainability-data+json` header |
 | `request-handler.py` | Complete, zero-dependency (`http.server`) reference request handler: query-parameter parsing, Basic/Extended routing, single-object-vs-array shape, conditional requests, 404/405 — verified end-to-end against both schema validators |
 | `test_security.py` / `.js` / `.php` | Unit tests for the corresponding `security.*` safeguards file |
 | `test_request_handler.py` | End-to-end tests for `request-handler.py` (golden/error/edge-case paths, schema-validated) |
@@ -227,7 +229,7 @@ Drop-in configuration snippets for serving `/.well-known/sustainability-data`. S
 | `README.md` | Setup instructions, feature comparison table, security notes |
 
 Both configurations implement:
-- `Content-Type: application/json` (MUST)
+- `Content-Type: application/sustainability-data+json` (MUST)
 - `Cache-Control: public, max-age=86400` (RECOMMENDED)
 - `ETag` / `Last-Modified` (auto, RECOMMENDED)
 - `Access-Control-Allow-Origin: *` for browser-based aggregator access (successful responses SHOULD carry it, per the draft's CORS recommendation)
@@ -243,7 +245,7 @@ Both configurations implement:
 byte-equality checked in CI). This is the schema-`2.0` model of the `-03` and current
 `-04` revisions (`-04` adds the optional `target-type` member without changing
 the schema label); the differences from the `-02` / `1.x` model are summarized under
-"Omitted metrics & legacy compatibility" below. The posted `-05` revision makes no
+"Omitted metrics & legacy compatibility" below. The posted `-06` revision makes no
 change to this model — it is an editorial/reference revision only (see
 [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md)).
 
@@ -307,6 +309,28 @@ specification and its successors; implementer-defined extensions SHOULD use
 **reverse-domain-name notation** rooted in a domain the definer controls (e.g.
 `com.example.pue`), and `X-`/`vendor-`-style prefixes SHOULD NOT be used (per the
 RFC 6648 guidance against such markers).
+
+---
+
+## Compatibility between draft revisions
+
+The wire document itself is **byte-identical** across `-04`, `-05`, and `-06`: no
+member has been added, removed, renamed, or retyped, and the CDDL and JTD schemas in
+`schemas-validators/` are unchanged. `-06` changes only what sits around the document:
+it registers the `application/sustainability-data+json` media type in the standards
+tree and requires it for successful responses, makes HTTPS a MUST for both publication
+and retrieval (including every redirect hop), and adds an OPTIONAL detached-JWS
+signature mechanism (see the draft's "Document Integrity and Signing" section).
+
+Reference-implementation behavior for `0.6.0`: `consumer/` sends
+`Accept: application/sustainability-data+json, application/json;q=0.9`, accepts both
+media types, exposes a `mediaType` field on the result, and its conformance battery
+reports a publisher still serving the legacy `application/json` as **WARN**, not
+**FAIL**, until the RFC and IANA registration land. `publisher/` emits the new
+registered media type by default and offers a `mediaType: "json"` legacy option
+(v05-compatible, not v06-conformant). Neither package implements the `-06`
+detached-JWS signature mechanism, since the draft defines it as OPTIONAL and the
+reference implementation deliberately implements none.
 
 ---
 

@@ -1,5 +1,7 @@
 # Consumer implementation plan: `sustainability-wellknown-consumer`
 
+> **[Historical — 2026-09-10]** This document records the design as of an earlier revision. The wire media type is now `application/sustainability-data+json` and HTTPS is mandatory; see draft -06.
+
 *Architecture, design, and implementation plan for a reference **client/consumer**
 for `draft-besleaga-sustainability-wellknown`, complementing `publisher/` (the
 reference **producer**). Together they demonstrate and test the full protocol

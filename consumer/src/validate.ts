@@ -13,8 +13,65 @@ const ajv = new Ajv({ allErrors: true });
 const validateObject: ValidateFunction = ajv.compile(RESPONSE_JTD_SCHEMA as unknown as object);
 
 export interface ValidationResult {
+  /**
+   * True when the document carries NO errors. `warnings` never influence it:
+   * a warning is an advisory finding about a document that is valid and
+   * usable, and callers (the gateway among them) treat `valid === false` as
+   * a hard failure.
+   */
   valid: boolean;
   errors: string[];
+  /**
+   * Advisory findings that do NOT make the document invalid. See
+   * {@link URI_MEMBERS}: an absolute non-`https` URI member is reported here,
+   * never as an error, and the member is kept.
+   */
+  warnings: string[];
+}
+
+/**
+ * The three URI-valued members. Draft -06 §Payload Format: they "MUST be
+ * absolute URIs {{RFC3986}} using the 'https' scheme, for the same reason the
+ * document itself is served over HTTPS", and "clients MUST NOT automatically
+ * dereference a URI member carrying any other scheme".
+ */
+export const URI_MEMBERS = ["methodology-uri", "disclosure-uri", "verifiable-attestation-uri"] as const;
+
+/**
+ * Advisory findings for URI members carrying an absolute non-`https` URI.
+ *
+ * Deliberately a WARNING, not an error: the member is kept and the document
+ * stays valid (a -05-era publisher may legitimately carry an `http` link, and
+ * failing the whole document over a supporting link would lose the metrics
+ * with it). What the rule actually buys is protection at dereference time,
+ * which disclosure.ts enforces by refusing to fetch such a URI at all.
+ *
+ * A value that is not an absolute URI at all (a relative reference, or
+ * anything `new URL()` rejects) is left alone here: the draft's absolute-URI
+ * requirement is not this function's subject, and guessing a base would be
+ * worse than saying nothing.
+ */
+function uriMemberWarnings(obj: unknown): string[] {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return [];
+  const rec = obj as Record<string, unknown>;
+  const warnings: string[] = [];
+  for (const key of URI_MEMBERS) {
+    const value = rec[key];
+    if (typeof value !== "string" || value === "") continue;
+    let parsed: URL;
+    try {
+      parsed = new URL(value);
+    } catch {
+      continue; // not an absolute URI: out of scope for this check
+    }
+    if (parsed.protocol !== "https:") {
+      warnings.push(
+        `${key} is an absolute non-https URI ("${value}"): the draft restricts URI members to the "https" scheme ` +
+          `and clients MUST NOT automatically dereference another scheme (member kept; not a validation error)`,
+      );
+    }
+  }
+  return warnings;
 }
 
 function validateMetrics(obj: unknown): ValidationResult {
@@ -42,25 +99,33 @@ function validateMetrics(obj: unknown): ValidationResult {
     }
   }
 
-  return { valid: errors.length === 0, errors };
+  return { valid: errors.length === 0, errors, warnings: uriMemberWarnings(obj) };
 }
 
-/** Validate a full document (single object or array), incl. cross-entry array rules. */
+/**
+ * Validate a full document (single object or array), incl. cross-entry array
+ * rules. `valid` reflects errors ONLY; `warnings` are advisory and never
+ * change it.
+ */
 export function validateDocument(doc: unknown): ValidationResult {
   // An empty array conveys no report at all — the publisher side answers the
   // equivalent situation with 404 rather than serving []; treat it as invalid
   // instead of handing callers a vacuous "valid" document.
   if (Array.isArray(doc) && doc.length === 0) {
-    return { valid: false, errors: ["empty array conveys no report"] };
+    return { valid: false, errors: ["empty array conveys no report"], warnings: [] };
   }
   const items = Array.isArray(doc) ? doc : [doc];
   const errors: string[] = [];
+  const warnings: string[] = [];
   items.forEach((item, i) => {
     const r = validateMetrics(item);
+    const prefix = Array.isArray(doc) ? `[${i}]` : "";
     if (!r.valid) {
-      const prefix = Array.isArray(doc) ? `[${i}]` : "";
       errors.push(...r.errors.map((e) => `${prefix}${e}`));
     }
+    // Advisory findings are collected whether or not the entry validated:
+    // they describe the document, they do not judge it.
+    warnings.push(...r.warnings.map((w) => `${prefix}${w}`));
   });
 
   // Note on out-of-range values: the draft says a client encountering a value
@@ -104,7 +169,7 @@ export function validateDocument(doc: unknown): ValidationResult {
     }
   }
 
-  return { valid: errors.length === 0, errors };
+  return { valid: errors.length === 0, errors, warnings };
 }
 
 export class ValidationError extends Error {

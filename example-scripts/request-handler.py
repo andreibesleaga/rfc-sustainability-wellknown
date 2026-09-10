@@ -82,7 +82,14 @@ class Handler(BaseHTTPRequestHandler):
     def _send_405(self):
         body = json.dumps({"error": "method not allowed"}).encode()
         self.send_response(405)
+        # Not a Sustainability Metadata Document — a 405 error body stays
+        # application/json (draft -06 media type rule applies to successful
+        # (200) responses only; see _serve() below).
         self.send_header("Content-Type", "application/json")
+        # nosniff still applies: it hardens every response at this
+        # well-known URI, not just the 200 document response (draft -06
+        # §Mandatory Minimum Supported Service).
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Allow", "GET, HEAD")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -116,7 +123,15 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         self.send_response(200)
-        self.send_header("Content-Type", "application/json")
+        # Mandatory: correct media type (draft -06 §Mandatory Minimum
+        # Supported Service). Successful (200) responses MUST use the
+        # dedicated application/sustainability-data+json media type and
+        # MUST NOT use another.
+        self.send_header("Content-Type", "application/sustainability-data+json")
+        # -05 compatible (not -06 conformant): self.send_header("Content-Type", "application/json")
+        # Servers SHOULD send nosniff so the document can't be induced to be
+        # interpreted as some other, more dangerous type (draft -06).
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Cache-Control", "public, max-age=86400")
         self.send_header("ETag", etag)
         # Draft §2: successful responses SHOULD include this CORS header

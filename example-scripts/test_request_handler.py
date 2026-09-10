@@ -94,7 +94,10 @@ class RequestHandlerE2ETests(unittest.TestCase):
     def test_basic_returns_single_object(self):
         status, headers, body = self._get()
         self.assertEqual(status, 200)
-        self.assertEqual(headers["Content-Type"], "application/json")
+        # draft -06 §Mandatory Minimum Supported Service: successful (200)
+        # responses MUST use the dedicated media type.
+        self.assertEqual(headers["Content-Type"], "application/sustainability-data+json")
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
         self.assertIn("public, max-age=86400", headers["Cache-Control"])
         self.assertEqual(headers["Access-Control-Allow-Origin"], "*")
         doc = json.loads(body)
@@ -138,7 +141,12 @@ class RequestHandlerE2ETests(unittest.TestCase):
         status, headers, body = self._get(method="POST")
         self.assertEqual(status, 405)
         self.assertEqual(headers["Allow"], "GET, HEAD")
+        # A 405 error body is not a Sustainability Metadata Document, so it
+        # keeps application/json (draft -06 media type rule applies to
+        # successful (200) responses only); nosniff still applies to every
+        # response at this well-known URI.
         self.assertEqual(headers["Content-Type"], "application/json")
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
         json.loads(body)  # body is valid JSON
 
     def test_put_and_delete_also_405(self):

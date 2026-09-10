@@ -8,28 +8,38 @@ exports.runConformanceChecks = runConformanceChecks;
  */
 const fetch_1 = require("./fetch");
 const fetch_2 = require("./fetch");
+const media_type_1 = require("./media-type");
 async function check(name, level, fn) {
+    const made = (outcome, detail) => ({
+        name,
+        level,
+        outcome,
+        pass: outcome === "pass",
+        ...(detail !== undefined ? { detail } : {}),
+    });
     try {
         const result = await fn();
         if (result === true)
-            return { name, level, pass: true };
+            return made("pass");
         if (result === false)
-            return { name, level, pass: false };
-        return { name, level, pass: false, detail: result };
+            return made("fail");
+        if (typeof result === "string")
+            return made("fail", result);
+        return made(result.outcome, result.detail);
     }
     catch (err) {
-        return { name, level, pass: false, detail: err instanceof Error ? err.message : String(err) };
+        return made("fail", err instanceof Error ? err.message : String(err));
     }
 }
 async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, options = {}) {
     const checks = [];
-    const { timeoutMs, maxBytes } = options;
+    const { timeoutMs, maxBytes, allowInsecure } = options;
     // legacyCompat is disabled here on purpose: a conformance checker must see
     // the document as served. With the pre-pass on, a document missing the
     // mandatory `target` member would get the origin host injected and pass the
     // schema gate — masking exactly the non-conformance this battery exists to
     // detect. (The Basic check below thus inherently requires `target`.)
-    const fetchOpts = { fetchImpl, timeoutMs, maxBytes, legacyCompat: false };
+    const fetchOpts = { fetchImpl, timeoutMs, maxBytes, legacyCompat: false, allowInsecure };
     /** Signal for the raw (non-fetchSustainability) probes below, so they can't hang either. */
     // Raw probes get the same default timeout as fetchSustainability — a
     // hanging origin must not stall the battery on undici's ~5-minute defaults.
@@ -42,14 +52,53 @@ async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, option
             return "Basic request MUST return a single object, not an array";
         return true;
     }));
-    checks.push(await check("Basic 200 response uses the application/json media type", "MUST", async () => {
-        const res = await fetchImpl((0, fetch_2.resolveWellKnownUrl)(origin).toString(), { method: "GET", signal: rawSignal() });
+    checks.push(
+    // -06 §Mandatory Minimum Supported Service: a 200 response MUST use the
+    // registered `application/sustainability-data+json` media type and MUST
+    // NOT use any other. A publisher still on the pre-06 `application/json`
+    // is reported as WARN rather than FAIL: such documents are what -06 tells
+    // clients to keep accepting, the dedicated type is still awaiting IANA
+    // registration, and failing every deployed -05 publisher over it would
+    // make the battery useless during exactly the transition it exists for.
+    // Anything else is a fail — including a missing Content-Type.
+    await check(`Basic 200 response uses the ${media_type_1.MEDIA_TYPE} media type`, "MUST", async () => {
+        const res = await fetchImpl((0, fetch_2.resolveWellKnownUrl)(origin).toString(), {
+            method: "GET",
+            headers: { Accept: media_type_1.ACCEPT_HEADER },
+            signal: rawSignal(),
+        });
         // Drain the body so the socket is released promptly.
         await res.arrayBuffer().catch(() => undefined);
         if (res.status !== 200)
             return `expected 200 for the Basic request, got ${res.status}`;
-        const ct = (res.headers.get("content-type") ?? "").toLowerCase().trimStart();
-        return ct.startsWith("application/json") || `Content-Type is not application/json: "${res.headers.get("content-type") ?? ""}"`;
+        const raw = res.headers.get("content-type");
+        switch ((0, media_type_1.classifyMediaType)(raw)) {
+            case "sustainability-data+json":
+                return true;
+            case "json":
+                return {
+                    outcome: "warn",
+                    detail: `pre-06 media type (${media_type_1.LEGACY_MEDIA_TYPE}): v05-compatible, not v06-conformant`,
+                };
+            default:
+                return `Content-Type is neither ${media_type_1.MEDIA_TYPE} nor ${media_type_1.LEGACY_MEDIA_TYPE}: "${raw ?? ""}"`;
+        }
+    }));
+    checks.push(
+    // -06 §Mandatory Minimum Supported Service: "servers SHOULD send
+    // `X-Content-Type-Options: nosniff` on responses to the well-known URI,
+    // so that a client cannot be induced to interpret the document as some
+    // other, more dangerous type".
+    await check("Response sends X-Content-Type-Options: nosniff", "SHOULD", async () => {
+        const res = await fetchImpl((0, fetch_2.resolveWellKnownUrl)(origin).toString(), {
+            method: "GET",
+            headers: { Accept: media_type_1.ACCEPT_HEADER },
+            signal: rawSignal(),
+        });
+        await res.arrayBuffer().catch(() => undefined);
+        const raw = res.headers.get("x-content-type-options");
+        return ((raw ?? "").trim().toLowerCase() === "nosniff" ||
+            `X-Content-Type-Options is not "nosniff": "${raw ?? ""}"`);
     }));
     checks.push(await check("Response carries an ETag", "SHOULD", async () => {
         const r = await (0, fetch_1.fetchSustainability)(origin, fetchOpts);
@@ -87,7 +136,9 @@ async function runConformanceChecks(origin, fetchImpl = globalThis.fetch, option
     return {
         origin,
         checks,
-        allPassed: checks.every((c) => c.pass || c.level !== "MUST"),
-        allPassedIncludingRecommended: checks.every((c) => c.pass),
+        // Computed from `outcome`, not from `pass`: a MUST-level WARN (the pre-06
+        // media type) must not read as non-conformance.
+        allPassed: checks.every((c) => c.outcome !== "fail" || c.level !== "MUST"),
+        allPassedIncludingRecommended: checks.every((c) => c.outcome === "pass"),
     };
 }

@@ -154,6 +154,25 @@ if [ "$RUN_IDNITS" -eq 1 ]; then
   fi
 fi
 
+# --- warn if this rewrites an already-posted artifact -------------------------
+# Rebuilding regenerates the date line ("Intended status: ... <today>") and the
+# expiry, so re-running this on a revision that is already on the Datatracker
+# silently makes the repo copy differ from the posted bytes. That matters: the
+# repo is meant to carry exactly what was submitted. If you are preparing a NEW
+# submission this is expected; otherwise restore with the command shown.
+if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+  if git ls-files --error-unmatch "$DRAFT.txt" >/dev/null 2>&1 \
+     && ! git diff --quiet -- "$DRAFT.txt" 2>/dev/null; then
+    if git diff -U0 -- "$DRAFT.txt" | grep -qE '^[+-].*(Expires|Intended status)'; then
+      echo
+      echo "    NOTE: $DRAFT.txt now differs from the committed copy in its date/expiry"
+      echo "          lines. If this revision is already posted to the Datatracker, do not"
+      echo "          commit the rebuild -- restore it with:"
+      echo "            git checkout HEAD -- $DRAFT.txt $DRAFT.xml"
+    fi
+  fi
+fi
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "==> $DRAFT built and checked clean"

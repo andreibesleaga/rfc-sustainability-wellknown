@@ -7,6 +7,7 @@
  * gate → cache → HTTP exposure.
  */
 export * from "./types";
+export * from "./media-type";
 export * from "./normalize";
 export * from "./security";
 export * from "./validate";

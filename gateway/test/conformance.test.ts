@@ -34,9 +34,16 @@ function prefixed(domain: string): typeof fetch {
   }) as typeof fetch;
 }
 
+// The test server is a loopback http:// instance; consumer 0.6.0 refuses a
+// non-HTTPS origin by default (`{ status: "insecure-transport" }`), so the
+// battery needs the same `allowInsecure` escape hatch the CI smoke test uses
+// (`scripts/conformance.mjs --allow-http`) — never appropriate for a real
+// deployment, only for exercising the battery against this local instance.
+const LOCAL_INSTANCE = { allowInsecure: true };
+
 describe("repository conformance battery", () => {
   it("passes for the gateway's own report at the root", async () => {
-    const report = await runConformanceChecks(srv.base);
+    const report = await runConformanceChecks(srv.base, undefined, LOCAL_INSTANCE);
     const failed = report.checks.filter((c) => !c.pass);
     expect(failed.map((c) => `${c.name}: ${c.detail ?? ""}`)).toEqual([]);
     expect(report.allPassed).toBe(true);
@@ -44,7 +51,7 @@ describe("repository conformance battery", () => {
 
   it("passes for every registered subject", async () => {
     for (const domain of srv.gw.subjects.keys()) {
-      const report = await runConformanceChecks(srv.base, prefixed(domain));
+      const report = await runConformanceChecks(srv.base, prefixed(domain), LOCAL_INSTANCE);
       const failed = report.checks.filter((c) => !c.pass);
       expect(failed.map((c) => `${domain} — ${c.name}: ${c.detail ?? ""}`)).toEqual([]);
     }

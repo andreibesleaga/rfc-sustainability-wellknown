@@ -63,7 +63,13 @@ function secureSustainabilityReport(array $reports): array {
     return $securedReports;
 }
 
-// Set mandatory header
-header('Content-Type: application/json');
+// Set mandatory header (draft -06 §Mandatory Minimum Supported Service):
+// successful (200) responses MUST use the dedicated
+// application/sustainability-data+json media type and MUST NOT use another.
+header('Content-Type: application/sustainability-data+json');
+// -05 compatible (not -06 conformant): header('Content-Type: application/json');
+// Servers SHOULD send nosniff so the document can't be induced to be
+// interpreted as some other, more dangerous type (draft -06).
+header('X-Content-Type-Options: nosniff');
 // echo json_encode(secureSustainabilityReport($yourRawData));
 ?>

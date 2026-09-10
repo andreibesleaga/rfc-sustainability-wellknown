@@ -1,5 +1,7 @@
 # 06 — Technical Specification (Gateway)
 
+> **[Historical — 2026-09-10]** This document records the design as of an earlier revision. The wire media type is now `application/sustainability-data+json` and HTTPS is mandatory; see draft -06.
+
 *Implementation spec for the publisher/gateway. The **wire contract** is the
 Internet-Draft; this document specifies the software that satisfies it. Non-normative.*
 

@@ -115,6 +115,28 @@ describe("Express middleware", () => {
       await close();
     }
   });
+
+  // Draft -06 §Mandatory Minimum Supported Service: non-GET/HEAD requests to
+  // the well-known path SHOULD get 405 + Allow: GET, HEAD. That error body is
+  // not a Sustainability Metadata Document, so it stays application/json
+  // regardless of the handler's `mediaType` option.
+  it("405 on the well-known path stays application/json with Allow: GET, HEAD", async () => {
+    const app = express();
+    app.use(expressSustainability(demoPublisher()));
+    const server = httpCreateServer(app);
+    const { base, close } = await listen(server);
+    try {
+      const r = await fetch(`${base}/.well-known/sustainability-data`, { method: "POST" });
+      expect(r.status).toBe(405);
+      // express's res.send(string) appends "; charset=utf-8" to whatever
+      // Content-Type was set via res.set(); the handler-level value is
+      // "application/json" (see src/middleware/express.ts).
+      expect(r.headers.get("content-type")).toBe("application/json; charset=utf-8");
+      expect(r.headers.get("allow")).toBe("GET, HEAD");
+    } finally {
+      await close();
+    }
+  });
 });
 
 describe("Fastify plugin (mock runtime)", () => {

@@ -5,24 +5,34 @@
  * in /index.json.
  *
  *   node scripts/conformance.mjs https://your-gateway.example.org
+ *   node scripts/conformance.mjs http://127.0.0.1:8080 --allow-http
  *
  * The battery (`sustainability-wellknown-consumer`) always requests
  * `/.well-known/sustainability-data` at the origin root. This gateway serves
  * subjects under a path prefix, so each subject run injects a `fetch` that
  * rewrites that one path. Every other check is unmodified.
  *
- * Exit code 0 if every check passes for every subject, 1 otherwise.
+ * `--allow-http` (anywhere in argv) permits a non-HTTPS origin — consumer
+ * 0.6.0 refuses `http:` by default (`{ status: "insecure-transport" }`) — and
+ * is what CI needs to reach a local `http://127.0.0.1:...` instance.
+ *
+ * Exit code 0 if every MUST-level check passes for every subject, 1 otherwise.
+ * A `warn` (e.g. a subject still on the pre-06 media type) is reported but
+ * never sets a non-zero exit code.
  */
 import { runConformanceChecks } from "sustainability-wellknown-consumer";
 
 const WELL_KNOWN = "/.well-known/sustainability-data";
 
-const origin = process.argv[2];
+const args = process.argv.slice(2);
+const allowHttp = args.includes("--allow-http");
+const origin = args.find((a) => a !== "--allow-http" && !a.startsWith("-"));
 if (!origin) {
-  console.error("usage: node scripts/conformance.mjs <origin>");
+  console.error("usage: node scripts/conformance.mjs <origin> [--allow-http]");
   process.exit(2);
 }
 const base = origin.replace(/\/+$/, "");
+const options = { allowInsecure: allowHttp };
 
 const prefixed = (domain) => (input, init) => {
   const u = new URL(typeof input === "string" ? input : input.toString());
@@ -34,15 +44,23 @@ let failures = 0;
 let warnings = 0;
 
 const report = async (label, fetchImpl) => {
-  const r = await runConformanceChecks(base, fetchImpl);
+  const r = await runConformanceChecks(base, fetchImpl, options);
   console.log(`\n${label}`);
   for (const c of r.checks) {
     // `level` arrives with consumer >= 0.5.0; older releases report every check
     // flatly, so an unlabelled check is treated as a MUST (the prior behaviour).
     const level = c.level ?? "MUST";
-    const label = c.pass ? "PASS" : level === "MUST" ? "FAIL" : "WARN";
+    // `outcome` arrives with consumer >= 0.6.0 (adds the third "warn" state,
+    // e.g. a subject still on the pre-06 media type — reported, never a
+    // failure). Older releases carry no `outcome`; derive an equivalent from
+    // `pass`/`level` so the script still works against them, matching the
+    // existing defensive pattern for `level` above.
+    const outcome = c.outcome ?? (c.pass ? "pass" : level === "MUST" ? "fail" : "warn");
+    const label = outcome === "pass" ? "PASS" : outcome === "warn" ? "WARN" : level === "MUST" ? "FAIL" : "WARN";
     console.log(`  ${label}  [${level}] ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
-    if (!c.pass) {
+    if (outcome === "warn") {
+      warnings++;
+    } else if (outcome === "fail") {
       if (level === "MUST") failures++;
       else warnings++;
     }

@@ -34,15 +34,67 @@ tagged `FetchResult`:
 
 ```ts
 type FetchResult =
-  | { status: "ok"; document: SustainabilityDocument; etag?: string; legacy?: boolean; disregarded?: string[] }
+  | {
+      status: "ok";
+      document: SustainabilityDocument;
+      etag?: string;
+      mediaType: "sustainability-data+json" | "json" | "other"; // what the response was typed as
+      warnings?: string[];                      // advisory findings; the document is valid
+      legacy?: boolean;
+      disregarded?: string[];
+    }
   | { status: "not-modified" }
   | { status: "not-found" }
   | { status: "no-report" }                   // 200 with an empty array: conveys no report
   | { status: "invalid"; errors: string[] }   // fetched but failed validation
   | { status: "http-error"; httpStatus: number }
   | { status: "timeout"; timeoutMs: number }     // no complete response in time
-  | { status: "too-large"; detail: string };     // body exceeded maxBytes
+  | { status: "too-large"; detail: string }      // body exceeded maxBytes
+  | { status: "insecure-transport"; url: string; detail: string }; // not retrieved over HTTPS
 ```
+
+**Media typing (-06).** Every request sends
+`Accept: application/sustainability-data+json, application/json;q=0.9` — the
+media type the draft registers, plus the `application/json` that every -05-era
+publisher still serves, at a lower q-value. The response's own `Content-Type`
+comes back as `result.mediaType`:
+
+| `mediaType` | Meaning |
+|---|---|
+| `"sustainability-data+json"` | the -06 registered media type: conformant |
+| `"json"` | the pre-06 generic type: a -05 publisher, accepted (the draft's SHOULD) but not -06 conformant |
+| `"other"` | anything else, including a missing `Content-Type` |
+
+A response is **never refused on its media type alone** — the draft permits
+parsing one of any type and has the client decide what the document is from the
+document's own content, which is exactly what the validation gate does. Use
+`MEDIA_TYPE`, `LEGACY_MEDIA_TYPE`, `ACCEPTED_MEDIA_TYPES`, `ACCEPT_HEADER` and
+`classifyMediaType()` (all exported) if you need the same names elsewhere.
+
+**HTTPS is required (-06), with one explicit escape hatch.** The draft makes
+HTTPS unconditional: the document MUST be published and retrieved over HTTPS,
+clients MUST NOT accept one retrieved over unauthenticated HTTP, and every hop
+of a followed redirect MUST be HTTPS — that requirement, and nothing in the
+data model, is what lets you attribute a document to the origin that served it.
+So a non-HTTPS URL — the one you asked for, or the final URL after a redirect —
+comes back as `{ status: "insecure-transport", url, detail }` rather than a
+document, and rather than a thrown error. Pass `allowInsecure: true` (CLI:
+`--allow-http`) to override it for a local development server or CI against
+`http://127.0.0.1`. There is deliberately **no automatic loopback exemption**:
+the opt-out has to be written down.
+
+```ts
+const result = await fetchSustainability("http://127.0.0.1:8080", { allowInsecure: true });
+```
+
+**Advisory warnings.** `result.warnings` (present only when non-empty) carries
+findings that do **not** make a document invalid. Today that is a URI-valued
+member (`methodology-uri`, `disclosure-uri`, `verifiable-attestation-uri`)
+holding an absolute non-`https` URI, which -06 restricts to the `https` scheme:
+the member is kept, the document stays valid, and the rule is enforced where it
+matters — `fetchDisclosure()` refuses to dereference such a URI (§4).
+`validateDocument()` reports the same list as `result.warnings`; its `valid`
+boolean is unaffected by them, by design.
 
 **Legacy compatibility** (`legacyCompat`, default `true`): per the draft's
 field-driven compatibility rules (§Versioning and Extensibility, final -04), a
@@ -218,8 +270,11 @@ console.log(monthly.length, "months returned");
 
 `maxCacheEntries` (default 256) bounds the client's internal ETag cache — useful
 when polling a large, dynamic set of origins. The client also accepts
-`legacyCompat` (default `true`) and threads it through to every underlying
-`fetchSustainability` call — see §1.
+`legacyCompat` (default `true`) and `allowInsecure` (default `false`, the -06
+HTTPS requirement) and threads both through to every underlying
+`fetchSustainability` call — see §1. An `ok` result resolved from the cache
+after a `304` reports the `mediaType` (and any `warnings`) of the cached
+representation, since a `304` carries no `Content-Type` of its own.
 
 ## 3. Transformation utilities
 
@@ -303,6 +358,13 @@ entry reports a metric at all the summary omits it.
 
 ## 4. Disclosure links (passive by design)
 
+> **-06 (`https` only):** the three URI-valued members MUST be absolute `https`
+> URIs, and clients MUST NOT automatically dereference one carrying any other
+> scheme. `fetchDisclosure()` therefore refuses a non-`https` (or non-absolute)
+> URI **before** making a request — `http:`, `ftp:`, `file:` and `data:` never
+> reach your fetch implementation. A document carrying one is still valid and
+> still usable; you just cannot follow that link with this helper.
+
 `resolveDisclosureLinks(doc)` reads the `disclosure-uri` and
 `verifiable-attestation-uri` fields off an already-fetched document. **It never
 makes a network call.** This is deliberate, not an oversight:
@@ -346,33 +408,63 @@ you.
 
 ## 5. Conformance-checking any origin
 
-`runConformanceChecks(origin)` (also exposed as the CLI's `--strict` flag) runs
-a small battery of six checks against a target origin: a Basic request returns
-a single object, the 200 response uses the `application/json` media type (a
-draft MUST), the response carries an ETag, a conditional GET with that ETag
-returns `304`, a non-GET/HEAD method returns `405` with an `Allow` header, and
-an Extended `granularity` request returns a valid (sorted, schema-conformant)
-array.
+`runConformanceChecks(origin, fetchImpl?, options?)` (also exposed as the CLI's
+`--strict` flag) runs a small battery of seven checks against a target origin:
+a Basic request returns a single object, the 200 response uses the
+`application/sustainability-data+json` media type (a -06 MUST), the response
+sends `X-Content-Type-Options: nosniff` (a -06 SHOULD), the response carries an
+ETag, a conditional GET with that ETag returns `304`, a non-GET/HEAD method
+returns `405` with an `Allow` header, and an Extended `granularity` request
+returns a valid (sorted, schema-conformant) array.
 
 Each check carries the BCP 14 strength of the requirement it tests in
 `check.level` (`"MUST"` or `"SHOULD"`), because the two are not equivalent
-verdicts: `report.allPassed` is true when every **MUST**-level check passed —
+verdicts: `report.allPassed` is true when no **MUST**-level check failed —
 that is the conformance verdict — while `report.allPassedIncludingRecommended`
-additionally requires every SHOULD. An origin on static hosting that returns
-`405` but cannot be configured to add an `Allow` header is conformant, and
-should not be reported as failing. Render a failed SHOULD as a warning:
+additionally requires every SHOULD to pass. An origin on static hosting that
+returns `405` but cannot be configured to add an `Allow` header is conformant,
+and should not be reported as failing.
+
+Each check also carries a three-valued `check.outcome`:
+
+| `outcome` | `pass` | Meaning |
+|---|---|---|
+| `"pass"` | `true` | the requirement is met |
+| `"fail"` | `false` | it is not — a failed MUST is non-conformance and sets the exit code; a failed SHOULD is an unmet recommendation |
+| `"warn"` | `false` | reported, but not held against the origin: it affects neither `allPassed` nor the exit code |
+
+The only `warn` today is a publisher still serving the pre-06
+`application/json` media type — detail `pre-06 media type (application/json):
+v05-compatible, not v06-conformant`. That is a **MUST**-level check reporting a
+non-conformance the battery deliberately does not fail an origin over while the
+dedicated media type is awaiting IANA registration and -06 still tells clients
+to accept it. There is no strict/`--require-06` flag: the `WARN` line is the
+whole message. Anything that is neither media type (`text/html`, say) is a
+plain `fail`. The `check.pass` boolean is unchanged and is exactly
+`outcome === "pass"`, so existing code keeps working — read `outcome` to tell a
+`warn` apart from a `fail`:
 
 ```ts
 import { runConformanceChecks } from "sustainability-wellknown-consumer";
 
 const report = await runConformanceChecks("https://new-server-im-building.example.org");
 for (const c of report.checks) {
-  const label = c.pass ? "PASS" : c.level === "MUST" ? "FAIL" : "WARN";
+  const label =
+    c.outcome === "pass" ? "PASS" : c.outcome === "warn" ? "WARN" : c.level === "MUST" ? "FAIL" : "WARN";
   console.log(`${label}  [${c.level}] ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
 }
-// allPassed = MUST-level only; use allPassedIncludingRecommended to hold
-// yourself to the recommendations too.
+// allPassed = MUST-level failures only; use allPassedIncludingRecommended to
+// hold yourself to the recommendations (and to the warns) too.
 process.exitCode = report.allPassed ? 0 : 1;
+```
+
+`options` accepts `timeoutMs`, `maxBytes` and `allowInsecure` — the last one
+forwarded to `fetchSustainability`, which is what you need to run the battery
+against a local instance over plain HTTP (`http://127.0.0.1:8080` in CI), since
+-06 otherwise refuses a non-HTTPS retrieval:
+
+```ts
+const report = await runConformanceChecks("http://127.0.0.1:8080", undefined, { allowInsecure: true });
 ```
 
 This is **not limited to this repo's own `publisher/`** — point it at any
@@ -381,10 +473,51 @@ scratch in a different language entirely. It's the same battery the CLI runs:
 
 ```bash
 sustainability-fetch https://new-server-im-building.example.org --strict
+
+# ...or against a locally started instance, over plain HTTP:
+sustainability-fetch http://127.0.0.1:8080 --strict --allow-http
 ```
 
 Useful in your own server's CI: run it against a locally-started instance of
-your implementation as a smoke test before shipping a change.
+your implementation as a smoke test before shipping a change. Without
+`--allow-http` an `http://` origin exits `2` with a one-line message naming the
+flag — the draft's HTTPS requirement is unconditional, and a bare hostname is
+promoted to `https://` rather than downgraded.
+
+Sample output against a **-05** publisher (valid, not yet -06 conformant), which
+still exits `0`:
+
+```
+PASS  [MUST] Basic request returns a schema-valid single object
+WARN  [MUST] Basic 200 response uses the application/sustainability-data+json media type — pre-06 media type (application/json): v05-compatible, not v06-conformant
+PASS  [SHOULD] Response sends X-Content-Type-Options: nosniff
+PASS  [SHOULD] Response carries an ETag
+PASS  [SHOULD] Conditional GET with a fresh ETag returns 304
+PASS  [SHOULD] A method other than GET/HEAD gets 405 with Allow
+PASS  [MUST] Extended granularity request returns a valid response (sorted array when honored)
+
+Conformant: all MUST-level checks passed. WARN lines are unmet recommendations or advisory findings (such as a pre-06 media type).
+```
+
+### -05 compatibility, and what is deliberately not implemented
+
+This is a **-06 client that still works against every -05 publisher**, because
+-06 asks for exactly that. `fetchSustainability` accepts both media types (the
+registered one and `application/json`), the battery **warns** rather than fails
+on the old one — and will keep doing so until the RFC publishes and IANA has
+registered the dedicated type — and a non-`https` URI member is a warning that
+never invalidates a document. The `legacyCompat` tolerances described in §1 go
+further still: they are a **courtesy beyond the specification** (deriving a
+missing `target` from a 1.x `target-path`, disregarding wrong-typed optional
+members, reading `[]` as "no report"), they are not required of a conformant
+client, and they are scheduled for removal near RFC publication — do not build
+on them; `legacyCompat: false` turns them off today.
+
+**No signature verification is implemented.** -06 defines an OPTIONAL detached
+JWS at `/.well-known/sustainability-data.jws`; a valid signature proves
+integrity and key continuity, not identity, unless the key is already known out
+of band — and a valid signature over false data is still false data. Nothing in
+this package fetches or checks one.
 
 ## 6. Using it as a library
 

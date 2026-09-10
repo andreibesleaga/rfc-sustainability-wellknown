@@ -4,18 +4,24 @@ import { toCsvRows, toNdjson } from "./transform";
 import { runConformanceChecks } from "./conformance";
 
 const USAGE =
-  "Usage: sustainability-fetch <origin> [--target=] [--period=] [--granularity=] [--format=json|csv|ndjson] [--strict] [--etag=]\n" +
+  "Usage: sustainability-fetch <origin> [--target=] [--period=] [--granularity=] [--format=json|csv|ndjson] [--strict] [--etag=] [--allow-http]\n" +
   "\n" +
-  "  <origin>  Origin to fetch from, e.g. https://example.org — the\n" +
-  "            /.well-known/sustainability-data path is appended for you.\n" +
-  "            A base URL with a path prefix (a multi-subject gateway, e.g.\n" +
-  "            https://gateway.example/cloudflare.com) resolves the well-known\n" +
-  "            path under that prefix, and a full document URL is used as-is.\n" +
-  "            Options may appear before or after the origin.\n" +
+  "  <origin>      Origin to fetch from, e.g. https://example.org — the\n" +
+  "                /.well-known/sustainability-data path is appended for you.\n" +
+  "                A base URL with a path prefix (a multi-subject gateway, e.g.\n" +
+  "                https://gateway.example/cloudflare.com) resolves the well-known\n" +
+  "                path under that prefix, and a full document URL is used as-is.\n" +
+  "                A bare hostname is promoted to https://.\n" +
+  "                Options may appear before or after the origin.\n" +
+  "  --allow-http  Permit a plain-HTTP origin. The draft requires HTTPS and says\n" +
+  "                clients MUST NOT accept a document retrieved over unauthenticated\n" +
+  "                HTTP, so an http:// origin is refused without this flag — use it\n" +
+  "                only against a local development server or in CI.\n" +
   "\n" +
   "Examples:\n" +
   "  sustainability-fetch https://example.org\n" +
   "  sustainability-fetch https://example.org --strict\n" +
+  "  sustainability-fetch http://127.0.0.1:8080 --strict --allow-http\n" +
   "  npx -p sustainability-wellknown-consumer sustainability-fetch https://example.org --strict";
 
 /**
@@ -67,17 +73,34 @@ export async function runCli(argv: string[]): Promise<number> {
     return 2;
   }
 
+  // Draft MUST: clients MUST NOT accept a document retrieved over
+  // unauthenticated HTTP. A bare hostname was already promoted to https above;
+  // an explicit http:// origin is a deliberate choice, so it gets a deliberate
+  // flag rather than a silent downgrade.
+  const allowInsecure = opts["allow-http"] === true;
+  if (!allowInsecure && new URL(origin).protocol === "http:") {
+    console.error(
+      `Refusing plain HTTP for ${origin}: the draft requires HTTPS — pass --allow-http for a local/CI origin.`,
+    );
+    return 2;
+  }
+
   if (opts.strict) {
-    const report = await runConformanceChecks(origin);
+    const report = await runConformanceChecks(origin, undefined, { allowInsecure });
     for (const c of report.checks) {
       // A failed SHOULD is reported as WARN: it is a recommendation the origin
       // did not follow, not a conformance failure, and only MUST failures set
-      // a non-zero exit code.
-      const label = c.pass ? "PASS" : c.level === "MUST" ? "FAIL" : "WARN";
+      // a non-zero exit code. A check whose own outcome is "warn" (a pre-06
+      // media type) renders the same way, at either level.
+      const label =
+        c.outcome === "pass" ? "PASS" : c.outcome === "warn" ? "WARN" : c.level === "MUST" ? "FAIL" : "WARN";
       console.log(`${label}  [${c.level}] ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
     }
     if (report.allPassed && !report.allPassedIncludingRecommended) {
-      console.log("\nConformant: all MUST-level checks passed. WARN lines are unmet recommendations.");
+      console.log(
+        "\nConformant: all MUST-level checks passed. WARN lines are unmet recommendations" +
+          " or advisory findings (such as a pre-06 media type).",
+      );
     }
     return report.allPassed ? 0 : 1;
   }
@@ -87,6 +110,7 @@ export async function runCli(argv: string[]): Promise<number> {
     period: typeof opts.period === "string" ? opts.period : undefined,
     granularity: opts.granularity === "monthly" || opts.granularity === "daily" ? opts.granularity : undefined,
     ifNoneMatch: typeof opts.etag === "string" ? opts.etag : undefined,
+    allowInsecure,
   });
 
   switch (result.status) {
@@ -119,6 +143,12 @@ export async function runCli(argv: string[]): Promise<number> {
       return 1;
     case "too-large":
       console.error(`Response too large: ${result.detail}`);
+      return 1;
+    case "insecure-transport":
+      // With an http:// origin already refused above, this can only be an
+      // https origin redirecting to plain HTTP — a server-side conformance
+      // failure, not a usage error, so it exits 1 like the other fetch faults.
+      console.error(`Insecure transport: ${result.detail}`);
       return 1;
   }
 }

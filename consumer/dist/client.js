@@ -23,12 +23,17 @@ class SustainabilityClient {
             timeoutMs: this.options.timeoutMs,
             maxBytes: this.options.maxBytes,
             legacyCompat: this.options.legacyCompat,
+            allowInsecure: this.options.allowInsecure,
         });
         if (result.status === "not-modified" && cached) {
             return {
                 status: "ok",
                 document: cached.document,
                 etag: cached.etag,
+                // A 304 carries no Content-Type: the media type reported is the one
+                // the cached representation was served under.
+                mediaType: cached.mediaType,
+                ...(cached.warnings ? { warnings: cached.warnings } : {}),
                 ...(cached.legacy ? { legacy: true } : {}),
                 ...(cached.disregarded ? { disregarded: cached.disregarded } : {}),
             };
@@ -42,6 +47,8 @@ class SustainabilityClient {
             this.cache.set(key, {
                 etag: result.etag,
                 document: result.document,
+                mediaType: result.mediaType,
+                warnings: result.warnings,
                 legacy: result.legacy,
                 disregarded: result.disregarded,
             });

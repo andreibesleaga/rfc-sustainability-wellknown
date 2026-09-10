@@ -246,3 +246,69 @@ describe("final-audit fixes: legacy sci-score sentinel + empty array", () => {
     expect(r.errors.some((e) => /empty array/i.test(e))).toBe(true);
   });
 });
+
+describe("-06: URI members restricted to https — WARNINGS, never errors", () => {
+  // The `valid` boolean is a contract: the gateway calls validateDocument() at
+  // boot and throws when it is false. A non-https URI member must therefore
+  // never reach `errors`, no matter how many of them a document carries.
+  it("warns about an absolute non-https methodology-uri while staying valid", () => {
+    const r = validateDocument(metrics({ "methodology-uri": "http://example.com/methodology" }));
+    expect(r.valid).toBe(true);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings).toHaveLength(1);
+    expect(r.warnings[0]).toContain("methodology-uri");
+    expect(r.warnings[0]).toContain("https");
+  });
+
+  it("warns about disclosure-uri and verifiable-attestation-uri too", () => {
+    const r = validateDocument(
+      metrics({
+        "disclosure-uri": "http://example.com/disclosures",
+        "verifiable-attestation-uri": "ftp://example.com/vc",
+      } as Partial<SustainabilityMetrics>),
+    );
+    expect(r.valid).toBe(true);
+    expect(r.warnings).toHaveLength(2);
+    expect(r.warnings.some((w) => w.includes("disclosure-uri"))).toBe(true);
+    expect(r.warnings.some((w) => w.includes("verifiable-attestation-uri"))).toBe(true);
+  });
+
+  it("keeps URI members out of the warning list when they are https", () => {
+    const r = validateDocument(
+      metrics({
+        "disclosure-uri": "https://example.com/disclosures",
+        "verifiable-attestation-uri": "https://example.com/vc",
+      } as Partial<SustainabilityMetrics>),
+    );
+    expect(r.valid).toBe(true);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it("says nothing about a value that is not an absolute URI at all", () => {
+    // Out of scope for this check: no base to resolve against, and the
+    // absolute-URI requirement is a separate rule.
+    const r = validateDocument(metrics({ "methodology-uri": "/methodology" }));
+    expect(r.valid).toBe(true);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it("prefixes array-entry warnings with the entry index, like errors", () => {
+    const r = validateDocument([
+      metrics({ "reporting-period": "2026-01" }),
+      metrics({ "reporting-period": "2026-02", "methodology-uri": "http://example.com/m" }),
+    ]);
+    expect(r.valid).toBe(true);
+    expect(r.warnings).toHaveLength(1);
+    expect(r.warnings[0]).toMatch(/^\[1\]/);
+  });
+
+  it("still reports warnings for a document that ALSO has errors, without conflating them", () => {
+    const doc = metrics({ "methodology-uri": "http://example.com/m" }) as Record<string, unknown>;
+    delete doc["provider"]; // a real error, unrelated to the URI scheme
+    const r = validateDocument(doc);
+    expect(r.valid).toBe(false);
+    expect(r.errors.length).toBeGreaterThan(0);
+    expect(r.errors.every((e) => !e.includes("methodology-uri"))).toBe(true);
+    expect(r.warnings).toHaveLength(1);
+  });
+});

@@ -82,6 +82,7 @@ safe to ingest without negotiation).
 | Concern | Reality |
 |---|---|
 | New protocol machinery? | **None.** It reuses HTTP GET/HEAD (RFC 9110), `application/json`, and the existing RFC 8615 well-known mechanism. |
+| **[Superseded 2026-09-10]** | `-06` (posted to the Datatracker 2026-09-10) reverses the `application/json`-reuse part of the row above: it registers `application/sustainability-data+json` in the IANA standards tree and requires it for successful responses (publishers MUST NOT use another type); clients MUST accept it and SHOULD also accept `application/json`, under which documents published before the registration are found. `-06` also makes HTTPS a MUST (previously SHOULD) and adds an OPTIONAL detached-JWS signature mechanism. The row above remains an accurate record of the `-04`/`-05` position. |
 | New media type / IANA burden? | **No new media type.** One entry in the existing "Well-Known URIs" registry — the same footprint as security.txt (RFC 9116). |
 | Registration bar | The registry's policy is **Specification Required** (RFC 8615 §3.1) — which includes designated-expert review per RFC 8126 and is designed exactly for stable specs like this; no WG/RG adoption is required. |
 | Registry status requested | **Provisional** — the honest ask for an Independent Submission per RFC 8615 §3.1, and what the designated expert assigns to comparable new entries (gpc.json, change-password, ecips); explicitly promotable to permanent once in broad use. No over-claim for the expert to push back on. |
@@ -352,7 +353,7 @@ never positioning against it.
 
 ## 8. Possible objections — each pre-empted in the draft text
 
-*(Revision **-04** — posted to the Datatracker, schema label `"2.0"` — is a prior posted revision; **-05** is now the latest posted revision (see below). Revision -04 renames the
+*(Revision **-04** — posted to the Datatracker, schema label `"2.0"` — is a prior posted revision; **-05** and **-06** are later posted revisions (see below). Revision -04 renames the
 requested suffix to `sustainability-data`, adds the optional `target-type` member, and
 applies a final audit round: a CORS recommendation (`Access-Control-Allow-Origin: *`) for
 browser clients, an all-or-none array rule for `target-type`, client tolerance for
@@ -362,8 +363,13 @@ for redirects, revalidation, and rate limiting. A follow-up revision, **-05**, w
 to the Datatracker on 2026-07-28 in response to the ISE's initial review — removing the
 carbon.txt-path reference from `disclosure-uri`, adding Internationalization
 Considerations, and recognizing the calendar year as the common Basic-service reporting
-cycle — with no wire-format change; `-05` is now the latest posted revision (also under
-ISE review), and every answer below applies unchanged to it.)*
+cycle — with no wire-format change. A further revision, **-06**, was posted on 2026-09-10,
+responding to the ISE's second round and the first commissioned review: it registers and
+requires the `application/sustainability-data+json` media type, makes HTTPS a MUST, adds an
+OPTIONAL detached-JWS signature mechanism, and adds the "Roles and Processing Model" and
+"Partial Knowledge and Incremental Adoption" sections — again with no wire-format change.
+`-06` is now the latest posted revision (under ISE review), and every answer below applies
+unchanged to it.)*
 
 | Objection | Answer (and where the draft already settles it) |
 |---|---|
@@ -379,6 +385,7 @@ ISE review), and every answer below applies unchanged to it.)*
 | "Missing HTTP references." | RFC 9110 (HTTP Semantics, STD 97) and RFC 9111 (Caching) are normative references, cited at every status-code, `Allow`, `ETag`/conditional-request, and caching statement. |
 | "Does it belong in GREEN or SUSTAIN?" | Neither venue takes it: GREEN's charter *explicitly excludes* the carbon accounting and reporting of sustainability data; SUSTAIN defers standardization to the IETF and itself steered this draft to an independent publication path (sustain list, July 2026). The ISE exists precisely for this profile, and the IANA registration needs only Specification Required regardless (see §7). |
 | "Should it register a media type?" | Not required — security.txt registered none; the draft deliberately reuses `application/json` + I-JSON and says so in the registration's Related Information. A structured-suffix type (`application/sustainability+json`) remains possible later without breaking anything, if the expert prefers it. |
+| **[Superseded 2026-09-10]** | `-06` reverses this: `application/sustainability-data+json` is now registered in the IANA standards tree and is **required** — successful responses MUST use it and MUST NOT use another media type. Transition rule: clients MUST accept the new type and SHOULD also accept `application/json`, under which documents published before the registration are found in the field. The "Not required" answer above was accurate through `-05` and is retained there as the historical record. |
 | "Why an RFC instead of a community convention?" | The Well-Known URIs registry is IANA's, and its policy is Specification Required — a stable, citable spec is the entry ticket. An Independent-stream Informational RFC is the lightest instrument that clears that bar, exactly as RFC 9116 did. |
 | "Isn't this just for websites?" | No — a well-known URI is scoped to an HTTP(S) origin (RFC 8615), not to "a website." IoT/embedded devices already use the analogous convention for discovery (CoAP's `/.well-known/core`, registered by RFC 6690); a blockchain RPC gateway or validator dashboard is an ordinary HTTP origin. Separately, the data model reports the *entity* (`provider`), not the box: EU MiCA already mandates near-identical fields (consensus-mechanism energy, renewable share, per-transaction intensity, GHG emissions) for crypto-asset issuers — an entity, not a website (§3). |
 | "No cryptographic assurance — anyone can publish numbers." | True of every well-known URI, including security.txt, and the draft says so normatively: clients MUST NOT treat the document as proof of any claim (§Trust and Spoofing). Verification composes on top — `verifiable-attestation-uri` carries signed W3C Verifiable Credentials, `disclosure-uri` reaches audited filings — and no wire format can conjure assurance in-band (§7.3). |
@@ -390,9 +397,10 @@ ISE review), and every answer below applies unchanged to it.)*
 
 ## 9. Readiness evidence (in this repository)
 
-- Draft at **draft-besleaga-sustainability-wellknown-05** — the latest **posted**
-  revision (posted to the Datatracker 2026-07-28), under ISE review as an Independent
-  Submission, responding to the ISE's initial review of the prior, also-posted **-04**
+- Draft at **draft-besleaga-sustainability-wellknown-06** — the latest **posted**
+  revision (posted to the Datatracker 2026-09-10), under ISE review as an Independent
+  Submission, responding to the ISE's second round and the first commissioned review;
+  the prior posted revisions are **-05** (2026-07-28) and **-04**
   revision (`-03` before that was posted 2026-07-23). The series continues and replaces the
   draft-besleaga-green-sustainability-wellknown -00–-05 series, with the Datatracker
   "Replaces" relationship recorded. Revisions build strict-clean (`xml2rfc --strict`,
@@ -878,6 +886,7 @@ specified now even though deploying it stays optional.
 | # | Item | What changes | Cost, given no installed base |
 |---|---|---|---|
 | **S1** | **Dedicated media type** | Register `application/<suffix>+json` in the standards tree and make it the **required** response type for publishers; `application/json` remains acceptable for consumers to accept but not for publishers to emit. The registration carries a real security analysis (RFC 8259 §12 plus format-specific risks: self-asserted veracity/greenwashing, operational-metrics privacy, staleness, absence of active content). | None on the wire. Resolves MIME confusion and lets a retriever know precisely what it is getting (§15.4). |
+| — | **[Superseded 2026-09-10]** | `-06` (posted to the Datatracker 2026-09-10) implements S1 exactly as planned here: `application/sustainability-data+json` is registered in the IANA standards tree and is now the required media type for successful responses; `application/json` remains acceptable for clients to accept (not for publishers to emit), under which pre-registration documents are found. Software: `publisher` 0.6.0 emits the new type by default with a `mediaType: "json"` legacy option (v05-compatible, not v06-conformant); `consumer` 0.6.0 sends `Accept: application/sustainability-data+json, application/json;q=0.9`, accepts both, and its conformance battery reports a legacy `application/json` publisher as WARN, not FAIL, until the RFC and IANA registration land. | Already paid for — see §9 and the `publisher`/`consumer` 0.6.0 packages. |
 | **S2** | **TLS SHOULD → MUST** | Required for both retrieval and publication; clients MUST NOT accept the document over unauthenticated transport. | None — and it promotes the entire TLS/WebPKI apparatus into the baseline integrity-and-authenticity story. |
 | **S3** | **Document integrity beyond TLS — specified now, optional to deploy** | A **detached JWS over the exact octets served**, published at a sibling well-known resource. No canonicalization dependency (deliberately avoiding RFC 8785 JCS), works on any static host, verifiable offline; the JOSE header carries `jwk`/`x5c`. The draft will state plainly what this does give — **integrity and key continuity** — and what it does not: **authenticity**, absent a trust path to the key from outside the document. `verifiable-attestation-uri` remains the third-party channel and gets sharpened against W3C VC 2.0 (the whole VC 2.0 family reached Recommendation on 2025-05-15, verified). Alternatives considered and documented with reasons: embedded JWS member (needs JCS — heavier), HTTP Message Signatures RFC 9421 (elegant, tooling thin), OpenPGP as in RFC 9116 (poor fit for a JSON ecosystem). | **Adds no schema member**, because the signature lives at a sibling resource — so schema byte-identity with `-04`/`-05` is preserved. |
 | **S4** | **`X-Content-Type-Options: nosniff`** | SHOULD be sent on responses. | None; belt for S1's braces. |

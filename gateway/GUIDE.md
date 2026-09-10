@@ -94,7 +94,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 cd gateway
 npm install
 npm run build
-npm test                       # 215 tests
+npm test                       # 232 tests
 node dist/index.js             # binds 0.0.0.0:8080
 ```
 
@@ -121,7 +121,7 @@ trend array (see [Wiring an adapter](#wiring-an-adapter)).
 
 | Route | Behaviour |
 |---|---|
-| `GET\|HEAD /{domain}/.well-known/sustainability-data` | The subject's document. `200` + `application/json`, or `404` if the subject is unknown. |
+| `GET\|HEAD /{domain}/.well-known/sustainability-data` | The subject's document. `200` + the dedicated `application/sustainability-data+json` media type (or the legacy `application/json`, per [Configuration reference](#configuration-reference)), or `404` if the subject is unknown. |
 | `GET\|HEAD /.well-known/sustainability-data` | The gateway's own report, `target-type: "service"`. |
 | `GET\|HEAD /` | HTML index: every subject, the honesty notice, the gaps. |
 | `GET\|HEAD /index.json` | The same index, machine-readable. |
@@ -135,7 +135,8 @@ Observed on a `200` for a subject document:
 HTTP/1.1 200 OK
 Cache-Control: public, max-age=86400
 Access-Control-Allow-Origin: *
-Content-Type: application/json
+Content-Type: application/sustainability-data+json
+X-Content-Type-Options: nosniff
 ETag: "eaf71630ba91732fd7654c506d04d128bad209be"
 Last-Modified: Tue, 15 Jul 2025 00:00:00 GMT
 Content-Language: en
@@ -144,6 +145,20 @@ Content-Length: 939
 
 Notes on each of those, and on the rules behind them:
 
+- **`Content-Type` is the dedicated `application/sustainability-data+json`
+  media type by default** — draft -06's §Mandatory Minimum Supported Service
+  requires it for a Basic `200` response and forbids any other media type
+  there. Set `SUSTAINABILITY_MEDIA_TYPE=json` to switch the whole service to
+  the legacy `application/json` type instead (the type draft -05 and earlier
+  used; **not** -06-conformant, but useful for a v05-compatible deployment),
+  or pin one subject to it regardless of the service default via
+  [`data/_media-type.json`](#pinning-a-subject-to-the-legacy-media-type) — so a
+  live v05 subject and a live v06 subject can be demonstrated side by side. Error responses
+  (`404`/`405`/`503`) always use `application/json`, never the dedicated type.
+- **`X-Content-Type-Options: nosniff` is sent on every response**, document or
+  not — draft -06's same section SHOULDs it on the well-known URI so a client
+  cannot be induced to interpret the document as some other, more dangerous
+  type.
 - **`ETag` is strong** (no `W/`), a SHA-1 of the exact body, produced by the
   publisher package. `If-None-Match` — including `*` — yields `304` with the
   same validator and no body.
@@ -288,6 +303,28 @@ evidence URLs, no `checked` date, or a `finding` shorter than a sentence.
 
 These appear in the index under "publishes no machine-readable data", and their
 document route returns the informative `404` shown above.
+
+### Pinning a subject to the legacy media type
+
+The service-wide default response media type (`SUSTAINABILITY_MEDIA_TYPE`, see
+[Configuration reference](#configuration-reference)) can be overridden for one
+subject at a time via [`data/_media-type.json`](data/_media-type.json) — the
+leading underscore keeps it out of the subject registry, the same convention
+as `_no-data.json`:
+
+```json
+{ "legacy-demo.example": "json" }
+```
+
+Each key is a domain already served by this gateway (a curated file, an
+adapter demonstration, or a wire-format example); the value is `"json"` (the
+legacy `application/json` type) or `"sustainability-data+json"` (the -06
+dedicated type, spelled out explicitly — only useful to override a `json`
+service default back to the default for one subject). A domain not listed
+here simply inherits the service default. The file is optional; absent, no
+subject is overridden. The loader rejects an unrecognized value, an invalid
+domain key, or a domain that is not actually a served subject — the same
+fail-fast-at-boot treatment as every other data problem.
 
 ## Wiring an adapter
 
@@ -546,6 +583,7 @@ injects.
 | `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`. |
 | `BASE_URL` | *(empty)* | Public base URL for absolute links in the index. Also enables the co2js demonstration's live Greencheck lookup of this host. |
 | `EXAMPLES_DIR` | `<app>/examples` | Where the canonical wire-format example documents are read from. |
+| `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` document response media type, service-wide. `sustainability-data+json` (default) serves the -06 dedicated `application/sustainability-data+json` type; `json` serves the legacy `application/json` type (-05-compatible, not -06-conformant). Per-subject overrides live in [`data/_media-type.json`](#pinning-a-subject-to-the-legacy-media-type). |
 | `GWF_API_KEY` | *(unset)* | Free Green Web Foundation API key; when set, the carbontxt demonstration runs live against the carbon.txt validator API. |
 | `CLIMATIQ_API_KEY` | *(unset)* | Sets the climatiq demonstration live. Only set this under your own Climatiq license — their terms restrict redistribution; replay is the default for a public gateway. |
 | `SELF_TARGET` | `sustainability-data-gateway` | `target` of the gateway's own report. |

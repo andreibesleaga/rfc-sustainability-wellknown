@@ -226,7 +226,7 @@ Two service levels:
 
 * **Basic (mandatory minimum)** — a parameterless `GET` (or `HEAD`) MUST return
   `200 OK` with a **single JSON object** covering the whole origin for the most
-  recently completed period, media type `application/json`. No published data ⇒
+  recently completed period, media type `application/sustainability-data+json`. No published data ⇒
   `404`. Any method other than GET/HEAD ⇒ `405` with `Allow: GET, HEAD`.
 * **Extended (optional)** — three query parameters: `target` (path-prefix
   scoping, honored only for a deliberately published prefix set — a
@@ -255,7 +255,7 @@ sequenceDiagram
 
     Note over C,S: 1 — Basic service (Mandatory Minimum)
     C->>S: GET /.well-known/sustainability-data
-    S-->>C: 200 OK · application/json · ETag: "abc" · Cache-Control: public, max-age=86400<br/>single JSON object (most recent completed period, origin-wide target)
+    S-->>C: 200 OK · application/sustainability-data+json · ETag: "abc" · Cache-Control: public, max-age=86400<br/>single JSON object (most recent completed period, origin-wide target)
 
     Note over C,S: 2 — Conditional revalidation (RFC 9110/9111)
     C->>S: GET /.well-known/sustainability-data · If-None-Match: "abc"
@@ -625,8 +625,9 @@ in early adoption), and transform. Three tiers:
    (origin + params) ETag cache; a `304` transparently replays the cached
    document; `getTrend()` asserts the array shape.
 3. **CLI `sustainability-fetch`** — JSON/CSV/NDJSON output, plus `--strict`,
-   which runs the **6-check conformance battery** (`conformance.ts`) against
-   *any* implementation: Basic single object · `application/json` media type ·
+   which runs the **7-check conformance battery** (`conformance.ts`) against
+   *any* implementation: Basic single object · media type (`application/sustainability-data+json`;
+   legacy `application/json` ⇒ WARN, not FAIL) · `X-Content-Type-Options: nosniff` present ·
    ETag present · fresh ETag ⇒ 304 · POST ⇒ 405 + `Allow` · granularity request
    yields a valid (sorted-array-when-honored) response. The battery deliberately
    disables the legacy-compat pre-pass so it sees the document exactly as served.
@@ -696,7 +697,7 @@ flowchart TB
         UNITS["units.ts<br/>convertEnergy / convertCarbon"]
         TRANS["transform.ts<br/>toCsvRows · toNdjson · flatten (one row/metric,<br/>default units kWh/gCO2e) · aggregate (sum/average,<br/>unit-normalized)"]
         CLIENT2["client.ts — SustainabilityClient<br/>ETag cache per origin+params (bounded 256);<br/>304 ⇒ replay cached document; getTrend()"]
-        CONF["conformance.ts — runConformanceChecks()<br/>6 checks: basic single object · application/json ·<br/>ETag present · fresh ETag ⇒ 304 · POST ⇒ 405+Allow ·<br/>granularity ⇒ valid (sorted array when honored);<br/>legacyCompat OFF (sees the document as served)"]
+        CONF["conformance.ts — runConformanceChecks()<br/>7 checks: basic single object · media type (application/sustainability-data+json;<br/>legacy application/json ⇒ WARN) · nosniff header present ·<br/>ETag present · fresh ETag ⇒ 304 · POST ⇒ 405+Allow ·<br/>granularity ⇒ valid (sorted array when honored);<br/>legacyCompat OFF (sees the document as served)"]
         DISC["disclosure.ts<br/>resolveDisclosureLinks (passive — never auto-fetches);<br/>fetchDisclosure only on explicit opt-in"]
         CLI3["cli.ts / bin/sustainability-fetch<br/>--format=json|csv|ndjson · --strict = conformance battery ·<br/>exit codes per status"]
         TYPES["types.ts — wire-format types,<br/>FetchResult status union: ok · not-modified · not-found ·<br/>invalid · http-error · timeout · too-large"]
@@ -770,7 +771,7 @@ flowchart TB
 
     subgraph T3["Topology 3 — Static file + web server"]
         GEN["Pre-generated sustainability.json<br/>(publisher CLI --once, or hand-written;<br/>validated by schemas-validators/)"]
-        NG["nginx location block / Apache Alias<br/>server-configurations/: application/json,<br/>Cache-Control max-age=86400, auto ETag/Last-Modified,<br/>CORS *, GET/HEAD only (405 + Allow)"]
+        NG["nginx location block / Apache Alias<br/>server-configurations/: application/sustainability-data+json,<br/>Cache-Control max-age=86400, auto ETag/Last-Modified,<br/>CORS *, GET/HEAD only (405 + Allow)"]
         GEN --> NG
     end
 

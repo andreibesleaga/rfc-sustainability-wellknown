@@ -8,7 +8,8 @@ This **README.md** provides your development team with the technical specificati
 * **Path**: Metadata MUST be published at `/.well-known/sustainability-data`.
 * **Protocol**: The resource SHOULD be served over **HTTPS** to ensure integrity.
 * **HTTP Method**: Servers MUST respond to `GET` requests (and `HEAD`); other methods SHOULD receive `405 Method Not Allowed` with `Allow: GET, HEAD`.
-* **Media Type**: Successful (`200 OK`) responses MUST use the `application/json` media type.
+* **Media Type**: Successful (`200 OK`) responses MUST use the dedicated `application/sustainability-data+json` media type (draft -06) and MUST NOT use another; clients MUST accept it and SHOULD also accept `application/json`, under which documents published before the registration are found in the field. Error bodies (`404`/`405`/`500`) are not Sustainability Metadata Documents and keep `application/json`.
+* **Content Sniffing**: Successful responses SHOULD also include `X-Content-Type-Options: nosniff` (draft -06), so a client cannot be induced to interpret the document as some other, more dangerous type.
 * **CORS**: Successful responses SHOULD include `Access-Control-Allow-Origin: *` (the document is public and intended for browser-based clients; follows WebFinger practice).
 * **Status Codes**:
     * `200 OK`: Successful retrieval of metadata.

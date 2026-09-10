@@ -1,5 +1,7 @@
 # 04 — Requirements
 
+> **[Historical — 2026-09-10]** This document records the design as of an earlier revision. The wire media type is now `application/sustainability-data+json` and HTTPS is mandatory; see draft -06.
+
 *Non-normative. Requirements trace to clauses of
 draft-besleaga-sustainability-wellknown.*
 

@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runConformanceChecks = exports.fetchDisclosure = exports.resolveDisclosureLinks = exports.aggregate = exports.flatten = exports.toNdjson = exports.toCsvRows = exports.convertCarbon = exports.convertEnergy = exports.OPTIONAL_MEMBER_JSON_TYPES = exports.legacyReportingSubject = exports.isWrongJsonType = exports.isRecognizedTargetType = exports.TARGET_TYPES = exports.NUMERIC_KEYS = exports.withoutSentinels = exports.isNotReported = exports.SustainabilityClient = exports.WELL_KNOWN_PATH = exports.fetchSustainability = exports.ValidationError = exports.assertValid = exports.validateDocument = exports.RESPONSE_JTD_SCHEMA = void 0;
+exports.runConformanceChecks = exports.fetchDisclosure = exports.resolveDisclosureLinks = exports.aggregate = exports.flatten = exports.toNdjson = exports.toCsvRows = exports.convertCarbon = exports.convertEnergy = exports.OPTIONAL_MEMBER_JSON_TYPES = exports.legacyReportingSubject = exports.isWrongJsonType = exports.isRecognizedTargetType = exports.TARGET_TYPES = exports.NUMERIC_KEYS = exports.withoutSentinels = exports.isNotReported = exports.SustainabilityClient = exports.WELL_KNOWN_PATH = exports.fetchSustainability = exports.URI_MEMBERS = exports.ValidationError = exports.assertValid = exports.validateDocument = exports.classifyMediaType = exports.ACCEPT_HEADER = exports.ACCEPTED_MEDIA_TYPES = exports.LEGACY_MEDIA_TYPE = exports.MEDIA_TYPE = exports.RESPONSE_JTD_SCHEMA = void 0;
 /**
  * sustainability-wellknown-consumer
  *
@@ -25,10 +25,17 @@ exports.runConformanceChecks = exports.fetchDisclosure = exports.resolveDisclosu
 __exportStar(require("./types"), exports);
 var schema_1 = require("./schema");
 Object.defineProperty(exports, "RESPONSE_JTD_SCHEMA", { enumerable: true, get: function () { return schema_1.RESPONSE_JTD_SCHEMA; } });
+var media_type_1 = require("./media-type");
+Object.defineProperty(exports, "MEDIA_TYPE", { enumerable: true, get: function () { return media_type_1.MEDIA_TYPE; } });
+Object.defineProperty(exports, "LEGACY_MEDIA_TYPE", { enumerable: true, get: function () { return media_type_1.LEGACY_MEDIA_TYPE; } });
+Object.defineProperty(exports, "ACCEPTED_MEDIA_TYPES", { enumerable: true, get: function () { return media_type_1.ACCEPTED_MEDIA_TYPES; } });
+Object.defineProperty(exports, "ACCEPT_HEADER", { enumerable: true, get: function () { return media_type_1.ACCEPT_HEADER; } });
+Object.defineProperty(exports, "classifyMediaType", { enumerable: true, get: function () { return media_type_1.classifyMediaType; } });
 var validate_1 = require("./validate");
 Object.defineProperty(exports, "validateDocument", { enumerable: true, get: function () { return validate_1.validateDocument; } });
 Object.defineProperty(exports, "assertValid", { enumerable: true, get: function () { return validate_1.assertValid; } });
 Object.defineProperty(exports, "ValidationError", { enumerable: true, get: function () { return validate_1.ValidationError; } });
+Object.defineProperty(exports, "URI_MEMBERS", { enumerable: true, get: function () { return validate_1.URI_MEMBERS; } });
 var fetch_1 = require("./fetch");
 Object.defineProperty(exports, "fetchSustainability", { enumerable: true, get: function () { return fetch_1.fetchSustainability; } });
 Object.defineProperty(exports, "WELL_KNOWN_PATH", { enumerable: true, get: function () { return fetch_1.WELL_KNOWN_PATH; } });

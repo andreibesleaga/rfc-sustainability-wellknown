@@ -109,6 +109,43 @@ tolerance: an unrecognized `granularity` value (e.g. `weekly`) and a malformed
 `period` are ignored rather than erroring, and `granularity` without `period`
 applies to the default reporting period — see `USAGE.md` §3b.
 
+## Media type and -05 compatibility
+
+Draft -06 §Mandatory Minimum Supported Service requires that a successful
+(`200 OK`) response carrying a Sustainability Metadata Document use the
+registered `application/sustainability-data+json` media type, and forbids any
+other media type on that response. By default, every entry point in this
+package (the standalone server, `expressSustainability`, `fastifySustainability`,
+and `handleRequest` directly) does exactly that, and also sends
+`X-Content-Type-Options: nosniff` on the document response, as the draft says
+servers SHOULD, so a client cannot be induced to interpret the document as some
+other, more dangerous type.
+
+Documents published before that media type was registered (draft -05 and
+earlier) are found in the field as plain `application/json`; the draft
+acknowledges this and says clients SHOULD also accept it. For a deployment that
+still needs to serve that legacy media type, pass `mediaType: "json"` to any
+entry point's options:
+
+```ts
+app.use(expressSustainability(publisher, { mediaType: "json" }));
+```
+
+`mediaType: "json"` is **v05-compatible but NOT -06 conformant** — use it only
+when you know a consumer in your deployment depends on the older, undifferentiated
+`application/json` type. It still sends `X-Content-Type-Options: nosniff`. Error
+responses (404/405/503 JSON error objects) are never Sustainability Metadata
+Documents, so they always use `application/json` regardless of this option, and
+a `304 Not Modified` response carries no `Content-Type` at all (there is no
+body to type). `HEAD` responses carry the same `Content-Type` as the
+corresponding `GET`, per the draft's "same status and header fields, no body"
+rule. The two media-type strings are exported as `MEDIA_TYPE` and
+`LEGACY_MEDIA_TYPE` from the package root.
+
+This package implements no document signing: the draft's detached-JWS
+mechanism at `/.well-known/sustainability-data.jws` (Document Integrity and
+Signing) is entirely OPTIONAL, and nothing here produces or verifies one.
+
 ## Adapters
 
 Every adapter implements `SourceAdapter { name, capabilities, fetch(query) }` and returns

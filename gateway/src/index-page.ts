@@ -454,10 +454,19 @@ ignored and the Basic response is returned — never an error. The one deliberat
 exception: the wire-format examples that themselves declare
 <code>capabilities: "extended"</code> honor the <code>granularity</code> parameter and
 return their full sorted trend array, exactly as the draft's Extended service defines.
-Successful responses are
-<code>application/json</code> with <code>Cache-Control: public, max-age=86400</code>,
+Successful responses use the dedicated <code>application/sustainability-data+json</code>
+media type — the type draft -06's Mandatory Minimum Supported Service requires for a
+Basic response — sent with <code>X-Content-Type-Options: nosniff</code>, plus
+<code>Cache-Control: public, max-age=86400</code>,
 <code>Access-Control-Allow-Origin: *</code>, a strong <code>ETag</code> and
-<code>Last-Modified</code>; <code>If-None-Match</code> yields <code>304</code>.
+<code>Last-Modified</code>; <code>If-None-Match</code> yields <code>304</code>. This
+deployment's service-wide default can instead be set to the legacy
+<code>application/json</code> type (the type draft -05 and earlier used; not -06-conformant)
+via the <code>SUSTAINABILITY_MEDIA_TYPE</code> environment variable, and an individual
+subject may be pinned to the legacy type regardless of the service default — a
+compatibility demonstration of a v05-style subject served alongside -06-default ones.
+Error responses (<code>404</code>/<code>405</code>/<code>503</code>) always use
+<code>application/json</code>, and also carry <code>X-Content-Type-Options: nosniff</code>.
 A method other than <code>GET</code> or <code>HEAD</code> yields <code>405</code> with
 <code>Allow: GET, HEAD</code>. An unknown subject yields <code>404</code>.</p>
 
@@ -465,10 +474,12 @@ A method other than <code>GET</code> or <code>HEAD</code> yields <code>405</code
 <p>Every document served here can be fetched and validated with the specification's
 published reference consumer
 (<a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer"><code>sustainability-wellknown-consumer</code></a>,
-version 0.5.2 or later). <code>--strict</code> runs the full conformance battery —
+version 0.6.0 or later — earlier releases predate the dedicated media type and will
+misreport it). <code>--strict</code> runs the full conformance battery —
 schema validation, media type, caching, conditional requests, method handling — and
 labels each check with the strength of the requirement it tests (a failed
-<code>MUST</code> is a conformance failure; an unmet <code>SHOULD</code> is a warning).</p>
+<code>MUST</code> is a conformance failure; an unmet <code>SHOULD</code>, or a subject
+still on the legacy media type, is reported but does not fail the battery).</p>
 
 <p>The gateway's own report, at this origin's true well-known location:</p>
 <pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --strict</code></pre>

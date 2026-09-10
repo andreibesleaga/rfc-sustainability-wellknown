@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ValidationError = void 0;
+exports.ValidationError = exports.URI_MEMBERS = void 0;
 exports.validateDocument = validateDocument;
 exports.assertValid = assertValid;
 /**
@@ -17,6 +17,50 @@ const jtd_1 = __importDefault(require("ajv/dist/jtd"));
 const schema_1 = require("./schema");
 const ajv = new jtd_1.default({ allErrors: true });
 const validateObject = ajv.compile(schema_1.RESPONSE_JTD_SCHEMA);
+/**
+ * The three URI-valued members. Draft -06 §Payload Format: they "MUST be
+ * absolute URIs {{RFC3986}} using the 'https' scheme, for the same reason the
+ * document itself is served over HTTPS", and "clients MUST NOT automatically
+ * dereference a URI member carrying any other scheme".
+ */
+exports.URI_MEMBERS = ["methodology-uri", "disclosure-uri", "verifiable-attestation-uri"];
+/**
+ * Advisory findings for URI members carrying an absolute non-`https` URI.
+ *
+ * Deliberately a WARNING, not an error: the member is kept and the document
+ * stays valid (a -05-era publisher may legitimately carry an `http` link, and
+ * failing the whole document over a supporting link would lose the metrics
+ * with it). What the rule actually buys is protection at dereference time,
+ * which disclosure.ts enforces by refusing to fetch such a URI at all.
+ *
+ * A value that is not an absolute URI at all (a relative reference, or
+ * anything `new URL()` rejects) is left alone here: the draft's absolute-URI
+ * requirement is not this function's subject, and guessing a base would be
+ * worse than saying nothing.
+ */
+function uriMemberWarnings(obj) {
+    if (!obj || typeof obj !== "object" || Array.isArray(obj))
+        return [];
+    const rec = obj;
+    const warnings = [];
+    for (const key of exports.URI_MEMBERS) {
+        const value = rec[key];
+        if (typeof value !== "string" || value === "")
+            continue;
+        let parsed;
+        try {
+            parsed = new URL(value);
+        }
+        catch {
+            continue; // not an absolute URI: out of scope for this check
+        }
+        if (parsed.protocol !== "https:") {
+            warnings.push(`${key} is an absolute non-https URI ("${value}"): the draft restricts URI members to the "https" scheme ` +
+                `and clients MUST NOT automatically dereference another scheme (member kept; not a validation error)`);
+        }
+    }
+    return warnings;
+}
 function validateMetrics(obj) {
     const valid = validateObject(obj);
     const errors = valid
@@ -38,24 +82,32 @@ function validateMetrics(obj) {
             errors.push("sci-score is present but functional-unit is missing (draft MUST)");
         }
     }
-    return { valid: errors.length === 0, errors };
+    return { valid: errors.length === 0, errors, warnings: uriMemberWarnings(obj) };
 }
-/** Validate a full document (single object or array), incl. cross-entry array rules. */
+/**
+ * Validate a full document (single object or array), incl. cross-entry array
+ * rules. `valid` reflects errors ONLY; `warnings` are advisory and never
+ * change it.
+ */
 function validateDocument(doc) {
     // An empty array conveys no report at all — the publisher side answers the
     // equivalent situation with 404 rather than serving []; treat it as invalid
     // instead of handing callers a vacuous "valid" document.
     if (Array.isArray(doc) && doc.length === 0) {
-        return { valid: false, errors: ["empty array conveys no report"] };
+        return { valid: false, errors: ["empty array conveys no report"], warnings: [] };
     }
     const items = Array.isArray(doc) ? doc : [doc];
     const errors = [];
+    const warnings = [];
     items.forEach((item, i) => {
         const r = validateMetrics(item);
+        const prefix = Array.isArray(doc) ? `[${i}]` : "";
         if (!r.valid) {
-            const prefix = Array.isArray(doc) ? `[${i}]` : "";
             errors.push(...r.errors.map((e) => `${prefix}${e}`));
         }
+        // Advisory findings are collected whether or not the entry validated:
+        // they describe the document, they do not judge it.
+        warnings.push(...r.warnings.map((w) => `${prefix}${w}`));
     });
     // Note on out-of-range values: the draft says a client encountering a value
     // outside a member's stated range (e.g. a negative energy-consumption)
@@ -93,7 +145,7 @@ function validateDocument(doc) {
             errors.push("array entries carry differing target-type values");
         }
     }
-    return { valid: errors.length === 0, errors };
+    return { valid: errors.length === 0, errors, warnings };
 }
 class ValidationError extends Error {
     constructor(errors) {

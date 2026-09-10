@@ -1,6 +1,7 @@
 /** Tier 2: a client for repeated polling, with ETag-based conditional-request caching. */
 import { fetchSustainability, FetchOptions } from "./fetch";
 import { FetchParams, FetchResult, SustainabilityDocument, SustainabilityMetrics } from "./types";
+import { MediaTypeClassification } from "./media-type";
 
 export interface SustainabilityClientOptions {
   fetchImpl?: typeof fetch;
@@ -12,11 +13,19 @@ export interface SustainabilityClientOptions {
   maxBytes?: number;
   /** Legacy-compatibility pre-pass applied to every fetch (default true); see fetchSustainability. */
   legacyCompat?: boolean;
+  /**
+   * Opt out of the draft's HTTPS requirement on every fetch (default false);
+   * see fetchSustainability. Local development and CI only.
+   */
+  allowInsecure?: boolean;
 }
 
 interface CacheEntry {
   etag: string;
   document: SustainabilityDocument;
+  /** The media type the cached representation was served under. */
+  mediaType: MediaTypeClassification;
+  warnings?: string[];
   legacy?: boolean;
   disregarded?: string[];
 }
@@ -45,6 +54,7 @@ export class SustainabilityClient {
       timeoutMs: this.options.timeoutMs,
       maxBytes: this.options.maxBytes,
       legacyCompat: this.options.legacyCompat,
+      allowInsecure: this.options.allowInsecure,
     } satisfies FetchOptions);
 
     if (result.status === "not-modified" && cached) {
@@ -52,6 +62,10 @@ export class SustainabilityClient {
         status: "ok",
         document: cached.document,
         etag: cached.etag,
+        // A 304 carries no Content-Type: the media type reported is the one
+        // the cached representation was served under.
+        mediaType: cached.mediaType,
+        ...(cached.warnings ? { warnings: cached.warnings } : {}),
         ...(cached.legacy ? { legacy: true } : {}),
         ...(cached.disregarded ? { disregarded: cached.disregarded } : {}),
       };
@@ -64,6 +78,8 @@ export class SustainabilityClient {
       this.cache.set(key, {
         etag: result.etag,
         document: result.document,
+        mediaType: result.mediaType,
+        warnings: result.warnings,
         legacy: result.legacy,
         disregarded: result.disregarded,
       });

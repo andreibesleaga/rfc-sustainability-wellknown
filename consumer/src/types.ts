@@ -1,4 +1,5 @@
 /** Wire-format types for a Sustainability Metadata Document (mirrors the -04 draft's field set). */
+import { MediaTypeClassification } from "./media-type";
 
 export type EnergyUnit = "Wh" | "kWh" | "MWh" | "GWh";
 export type CarbonUnit = "gCO2e" | "kgCO2e" | "mtCO2e";
@@ -72,6 +73,25 @@ export type FetchResult =
       document: SustainabilityDocument;
       etag?: string;
       /**
+       * How the response's `Content-Type` read (draft -06 §Mandatory Minimum
+       * Supported Service): `"sustainability-data+json"` for the registered
+       * media type, `"json"` for the pre-06 generic type a -05 publisher
+       * serves (accepted — a client SHOULD — but not -06-conformant), and
+       * `"other"` for anything else, including a missing header. A response
+       * is never refused on media type alone: the draft's MAY lets a client
+       * parse it, and what the document IS is decided from its content.
+       */
+      mediaType: MediaTypeClassification;
+      /**
+       * Advisory findings about the document that are NOT validation errors:
+       * the document is valid and usable. Currently: a URI-valued member
+       * (`methodology-uri`, `disclosure-uri`, `verifiable-attestation-uri`)
+       * carrying an absolute non-`https` URI, which -06 §Payload Format
+       * restricts to the "https" scheme and which clients MUST NOT
+       * automatically dereference. Only set when non-empty.
+       */
+      warnings?: string[];
+      /**
        * Set when the document lacked the mandatory `target` member and the
        * legacy-compatibility pre-pass derived it (draft §Versioning and
        * Extensibility, -04): from the historical `target-path` member's value
@@ -105,4 +125,15 @@ export type FetchResult =
   | { status: "invalid"; errors: string[] }
   | { status: "http-error"; httpStatus: number }
   | { status: "timeout"; timeoutMs: number }
-  | { status: "too-large"; detail: string };
+  | { status: "too-large"; detail: string }
+  /**
+   * The document was NOT retrieved over HTTPS, so it was refused without being
+   * used. Draft -06 §Mandatory Minimum Supported Service: the resource MUST be
+   * published and retrieved over HTTPS, clients MUST NOT accept a document
+   * retrieved over unauthenticated HTTP, and a followed redirect MUST require
+   * HTTPS on every hop. Returned both for the requested URL and for an
+   * `http:` FINAL url after a redirect; `url` names the offending one.
+   * Opt out with `allowInsecure: true` (development and CI against a local
+   * origin only).
+   */
+  | { status: "insecure-transport"; url: string; detail: string };

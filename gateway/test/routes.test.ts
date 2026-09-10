@@ -3,6 +3,7 @@
  * in draft-besleaga-sustainability-wellknown, Mandatory Minimum Supported
  * Service / Operational Considerations, or to the gateway's own route contract.
  */
+import { MEDIA_TYPE } from "sustainability-wellknown-publisher";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startGateway, type TestServer } from "./helpers";
 
@@ -20,11 +21,13 @@ afterAll(async () => {
 const url = (p: string) => srv.base + p;
 
 describe("GET /{domain}/.well-known/sustainability-data", () => {
-  it("returns 200 application/json with the full required header set", async () => {
+  it("returns 200 with the dedicated media type and the full required header set", async () => {
     const r = await fetch(url(DOC));
     expect(r.status).toBe(200);
-    // MUST use the application/json media type.
-    expect(r.headers.get("content-type")).toBe("application/json");
+    // MUST use the -06 dedicated media type (draft §Mandatory Minimum Supported Service).
+    expect(r.headers.get("content-type")).toBe(MEDIA_TYPE);
+    // SHOULD send X-Content-Type-Options: nosniff (draft, same section).
+    expect(r.headers.get("x-content-type-options")).toBe("nosniff");
     // SHOULD include appropriate caching directives.
     expect(r.headers.get("cache-control")).toBe("public, max-age=86400");
     // SHOULD include Access-Control-Allow-Origin: * (browser clients).
@@ -146,7 +149,7 @@ describe("Basic service: query parameters are IGNORED, never an error", () => {
     for (const q of cases) {
       const r = await fetch(url(DOC + q));
       expect(r.status, q).toBe(200);
-      expect(r.headers.get("content-type"), q).toBe("application/json");
+      expect(r.headers.get("content-type"), q).toBe(MEDIA_TYPE);
       expect(r.headers.get("etag"), q).toBe(baseEtag);
       expect(await r.text(), q).toBe(baseBody);
     }
@@ -162,7 +165,7 @@ describe("GET /.well-known/sustainability-data (the gateway's own report)", () =
   it("reports on the gateway service itself", async () => {
     const r = await fetch(url(SELF));
     expect(r.status).toBe(200);
-    expect(r.headers.get("content-type")).toBe("application/json");
+    expect(r.headers.get("content-type")).toBe(MEDIA_TYPE);
     expect(r.headers.get("cache-control")).toBe("public, max-age=86400");
     expect(r.headers.get("access-control-allow-origin")).toBe("*");
     expect(r.headers.get("etag")).toBeTruthy();
@@ -260,7 +263,7 @@ describe("index routes", () => {
     for (const path of paths) {
       const r = await fetch(url(path));
       expect(r.status, path).toBe(200);
-      expect(r.headers.get("content-type"), path).toBe("application/json");
+      expect(r.headers.get("content-type"), path).toBe(MEDIA_TYPE);
       await r.text();
     }
   });

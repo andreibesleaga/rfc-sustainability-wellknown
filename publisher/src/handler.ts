@@ -4,6 +4,7 @@
  * headers, ETag/conditional GET, caching) live in exactly one place.
  */
 import { emitCarbonTxt, EmitCarbonTxtOptions } from "./carbontxt";
+import { LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "./media-type";
 import { PERIOD_RE } from "./normalize";
 import { Publisher, NotFoundError } from "./publisher";
 import { ServiceQuery } from "./types";
@@ -19,6 +20,19 @@ export interface HandlerOptions {
    * failures are never silent; pass a no-op to suppress.
    */
   onError?: (err: unknown) => void;
+  /**
+   * Media type for the 200 document response. Defaults to
+   * `"sustainability-data+json"`, which serves `Content-Type:
+   * application/sustainability-data+json` — draft -06 §Mandatory Minimum
+   * Supported Service requires this for a successful response and forbids any
+   * other media type there. Pass `"json"` to instead serve `Content-Type:
+   * application/json`, the media type documents published under draft -05 and
+   * earlier carry, for a v05-compatible legacy deployment; this legacy mode is
+   * NOT -06 conformant. Both settings send `X-Content-Type-Options: nosniff`.
+   * Error responses (404/405/503) always use `application/json`, and the 304
+   * response carries no Content-Type, regardless of this option.
+   */
+  mediaType?: "sustainability-data+json" | "json";
 }
 
 /**
@@ -157,11 +171,13 @@ export async function handleRequest(
       return { status: 304, headers: { ...baseHeaders, ETag: etag }, body: "" };
     }
 
+    const contentType = opts.mediaType === "json" ? LEGACY_MEDIA_TYPE : MEDIA_TYPE;
     return {
       status: 200,
       headers: {
         ...baseHeaders,
-        "Content-Type": "application/json",
+        "Content-Type": contentType,
+        "X-Content-Type-Options": "nosniff",
         ETag: etag,
       },
       body,

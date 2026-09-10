@@ -9,6 +9,11 @@ export interface SustainabilityClientOptions {
     maxBytes?: number;
     /** Legacy-compatibility pre-pass applied to every fetch (default true); see fetchSustainability. */
     legacyCompat?: boolean;
+    /**
+     * Opt out of the draft's HTTPS requirement on every fetch (default false);
+     * see fetchSustainability. Local development and CI only.
+     */
+    allowInsecure?: boolean;
 }
 export declare class SustainabilityClient {
     private readonly options;

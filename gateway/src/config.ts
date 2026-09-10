@@ -22,6 +22,30 @@ function envNum(name: string, fallback: number): number {
   return n;
 }
 
+/**
+ * The two media types `handleRequest` (from `sustainability-wellknown-publisher`
+ * 0.6.0) can serve a 200 document response as. Mirrors its `HandlerOptions.mediaType`
+ * union exactly, kept local so `config.ts` does not need a compile-time dependency
+ * on the publisher package just for this literal type.
+ */
+export type MediaTypeSetting = "sustainability-data+json" | "json";
+
+export const MEDIA_TYPE_VALUES: readonly MediaTypeSetting[] = [
+  "sustainability-data+json",
+  "json",
+];
+
+function envMediaType(name: string, fallback: MediaTypeSetting): MediaTypeSetting {
+  const v = process.env[name];
+  if (v === undefined || v === "") return fallback;
+  if (!MEDIA_TYPE_VALUES.includes(v as MediaTypeSetting)) {
+    throw new Error(
+      `config: ${name} must be one of ${MEDIA_TYPE_VALUES.join(", ")} (got ${JSON.stringify(v)})`,
+    );
+  }
+  return v as MediaTypeSetting;
+}
+
 export interface GatewayConfig {
   port: number;
   host: string;
@@ -33,6 +57,20 @@ export interface GatewayConfig {
   maxAge: number;
   /** Public base URL, used only for absolute links in the HTML/JSON index. */
   baseUrl: string;
+  /**
+   * Whole-service default media type for a 200 document response.
+   * `"sustainability-data+json"` (default) serves the -06 dedicated
+   * `application/sustainability-data+json` type, required by draft -06
+   * §Mandatory Minimum Supported Service. `"json"` serves the legacy
+   * `application/json` type that draft -05 and earlier used, for a
+   * v05-compatible deployment — NOT -06 conformant. Set via
+   * `SUSTAINABILITY_MEDIA_TYPE`. A subject listed in `data/_media-type.json`
+   * (see `media-type.ts`) overrides this default for that one domain, so a
+   * legacy subject can coexist with -06-default subjects on the same gateway.
+   * Both settings send `X-Content-Type-Options: nosniff`; error responses
+   * (404/405/503) always use `application/json`, unaffected by this setting.
+   */
+  mediaType: MediaTypeSetting;
 
   /** ---- the gateway's OWN report (target-type: "service") ---- */
   self: {
@@ -87,6 +125,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
     examplesDir: resolve(env("EXAMPLES_DIR", resolve(__dirname, "..", "examples"))),
     maxAge: envNum("MAX_AGE", 86_400),
     baseUrl: env("BASE_URL", "").replace(/\/+$/, ""),
+    mediaType: envMediaType("SUSTAINABILITY_MEDIA_TYPE", "sustainability-data+json"),
     self: {
       target: env("SELF_TARGET", "sustainability-data-gateway"),
       provider: env(

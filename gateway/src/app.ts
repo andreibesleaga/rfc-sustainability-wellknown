@@ -12,7 +12,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { handleRequest } from "sustainability-wellknown-publisher";
 import { demoSpecs } from "./adapters/demo-specs";
 import { lastCompletedMonth, selfReportAdapter } from "./adapters/self-report";
-import { LIMITS, type GatewayConfig } from "./config";
+import { LIMITS, type GatewayConfig, type MediaTypeSetting } from "./config";
 import { loadWireExamples, type WireExample } from "./examples";
 import { CORS_ORIGIN, corsHeaders, jsonError, methodNotAllowed, withBody, type Result } from "./http";
 import {
@@ -22,6 +22,7 @@ import {
   type IndexDocument,
 } from "./index-page";
 import { LiveRegistry, type LiveSpec } from "./live";
+import { loadMediaTypeOverrides } from "./media-type";
 import { loadNoData, type NoDataEntry } from "./no-data";
 import { loadRegistry, subjectFromAdapter, type Subject } from "./registry";
 import { crossValidate, type CrossValidation } from "./verify";
@@ -59,6 +60,11 @@ export interface Gateway {
   refreshSelf?: () => Promise<Subject>;
   /** Subjects known to publish nothing machine-readable, keyed by domain. */
   noData: Map<string, NoDataEntry>;
+  /**
+   * Per-subject media-type override from `data/_media-type.json`, keyed by
+   * domain. A domain absent here inherits `config.mediaType`.
+   */
+  mediaTypeOverrides: Map<string, MediaTypeSetting>;
   index: IndexDocument;
   indexHtml: string;
 }
@@ -100,13 +106,14 @@ async function serveDocument(
   subject: Subject,
   config: GatewayConfig,
   ifNoneMatch: string | undefined,
-  ifModifiedSince?: string,
+  ifModifiedSince: string | undefined,
+  mediaType: MediaTypeSetting,
   query: Record<string, string> = {},
 ): Promise<Result> {
   const r = await handleRequest(
     subject.publisher,
     query,
-    { maxAge: config.maxAge, cors: CORS_ORIGIN },
+    { maxAge: config.maxAge, cors: CORS_ORIGIN, mediaType },
     ifNoneMatch,
   );
   const headers: Record<string, string> = { ...r.headers, "Last-Modified": subject.lastModified };
@@ -132,7 +139,10 @@ async function serveDocument(
 
 /** Resolve one request to a fully-formed response. Exported for tests. */
 export async function route(
-  gw: Pick<Gateway, "config" | "subjects" | "self" | "noData" | "index" | "indexHtml"> &
+  gw: Pick<
+    Gateway,
+    "config" | "subjects" | "self" | "noData" | "mediaTypeOverrides" | "index" | "indexHtml"
+  > &
     Partial<Pick<Gateway, "refreshSelf" | "examples">>,
   method: string,
   rawUrl: string,
@@ -188,7 +198,7 @@ export async function route(
 
   if (path === WELL_KNOWN_PATH) {
     const self = gw.refreshSelf ? await gw.refreshSelf() : gw.self;
-    return serveDocument(self, gw.config, ifNoneMatch, ifModifiedSince);
+    return serveDocument(self, gw.config, ifNoneMatch, ifModifiedSince, gw.config.mediaType);
   }
 
   const m = SUBJECT_ROUTE.exec(path);
@@ -238,11 +248,13 @@ export async function route(
     // here, before the publisher.
     const ex = gw.examples?.get(domain);
     const requested = ex?.granularity ? url.searchParams.get("granularity") : null;
+    const mediaType = gw.mediaTypeOverrides.get(domain) ?? gw.config.mediaType;
     return serveDocument(
       subject,
       gw.config,
       ifNoneMatch,
       ifModifiedSince,
+      mediaType,
       requested !== null && requested === ex?.granularity ? { granularity: requested } : {},
     );
   }
@@ -257,6 +269,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
 
   const subjects = await loadRegistry(config.dataDir);
   const noData = loadNoData(config.dataDir);
+  const mediaTypeOverrides = loadMediaTypeOverrides(config.dataDir);
 
   // ---- Worked adapter example #1: the gateway's own report, produced by the
   // published `computedAdapter` rather than hand-written. ----
@@ -331,6 +344,14 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     }
   }
 
+  for (const domain of mediaTypeOverrides.keys()) {
+    if (!subjects.has(domain)) {
+      throw new Error(
+        `gateway: ${domain} is listed in _media-type.json but is not a served subject`,
+      );
+    }
+  }
+
   const makeIndex = (): IndexDocument =>
     buildIndex(subjects.values(), self, config, noData.values(), {
       demos: [...live.managed.values()],
@@ -400,6 +421,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     refreshLive,
     self,
     noData,
+    mediaTypeOverrides,
     index,
     indexHtml,
     refreshSelf,

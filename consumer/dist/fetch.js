@@ -5,6 +5,7 @@ exports.resolveWellKnownUrl = resolveWellKnownUrl;
 exports.fetchSustainability = fetchSustainability;
 const sentinel_1 = require("./sentinel");
 const validate_1 = require("./validate");
+const media_type_1 = require("./media-type");
 exports.WELL_KNOWN_PATH = "/.well-known/sustainability-data";
 /**
  * Resolves the well-known document URL for an origin or base URL.
@@ -99,7 +100,20 @@ async function fetchSustainability(origin, options = {}) {
         url.searchParams.set("period", options.period);
     if (options.granularity)
         url.searchParams.set("granularity", options.granularity);
-    const headers = {};
+    // Draft -06 MUST: refuse a non-HTTPS retrieval before making the request.
+    if (!options.allowInsecure && url.protocol !== "https:") {
+        return {
+            status: "insecure-transport",
+            url: url.toString(),
+            detail: `refusing to retrieve ${url.toString()} over "${url.protocol.replace(/:$/, "")}": the draft requires HTTPS ` +
+                `and clients MUST NOT accept a document retrieved over unauthenticated HTTP ` +
+                `(pass allowInsecure: true to override, for local development only)`,
+        };
+    }
+    // Accept both media types on every document fetch: the -06 registered type
+    // outright, the pre-06 generic type at a lower q-value (draft -06: clients
+    // MUST accept the former and SHOULD also accept the latter).
+    const headers = { Accept: media_type_1.ACCEPT_HEADER };
     if (options.ifNoneMatch)
         headers["If-None-Match"] = options.ifNoneMatch;
     let res;
@@ -111,6 +125,31 @@ async function fetchSustainability(origin, options = {}) {
             return { status: "timeout", timeoutMs };
         throw err;
     }
+    // Same MUST, applied to a followed redirect: "clients that follow a redirect
+    // ... MUST require HTTPS for every hop". Only the FINAL url is observable
+    // from the Fetch API, and only where the runtime populates res.url (a
+    // hand-built Response in a test/mock leaves it empty) — check it when it is.
+    if (!options.allowInsecure && typeof res.url === "string" && res.url !== "") {
+        let finalUrl;
+        try {
+            finalUrl = new URL(res.url);
+        }
+        catch {
+            finalUrl = undefined;
+        }
+        if (finalUrl && finalUrl.protocol !== "https:") {
+            // Release the connection rather than buffering a body we will not use.
+            await res.body?.cancel().catch(() => undefined);
+            return {
+                status: "insecure-transport",
+                url: finalUrl.toString(),
+                detail: `refusing a response whose final URL ${finalUrl.toString()} is not HTTPS` +
+                    `${res.redirected ? " (reached through a redirect)" : ""}: the draft requires HTTPS on every hop ` +
+                    `(pass allowInsecure: true to override, for local development only)`,
+            };
+        }
+    }
+    const mediaType = (0, media_type_1.classifyMediaType)(res.headers.get("content-type"));
     if (res.status === 304)
         return { status: "not-modified" };
     if (res.status === 404)
@@ -228,6 +267,8 @@ async function fetchSustainability(origin, options = {}) {
         status: "ok",
         document: parsed,
         etag,
+        mediaType,
+        ...(result.warnings.length > 0 ? { warnings: result.warnings } : {}),
         ...(legacy ? { legacy } : {}),
         ...(disregarded.length > 0 ? { disregarded } : {}),
     };

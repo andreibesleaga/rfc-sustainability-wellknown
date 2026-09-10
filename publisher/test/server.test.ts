@@ -2,13 +2,14 @@ import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { computedAdapter, staticAdapter } from "../src/adapters";
 import { parseQuery } from "../src/handler";
+import { LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "../src/media-type";
 import { Publisher } from "../src/publisher";
-import { createSustainabilityServer } from "../src/server";
+import { createSustainabilityServer, ServerOptions } from "../src/server";
 import { secureReports } from "../src/security";
 import type { RawMetrics, SustainabilityMetrics } from "../src/types";
 
-function makeServer(publisher: Publisher) {
-  const server = createSustainabilityServer(publisher, { maxAge: 86400 });
+function makeServer(publisher: Publisher, opts: ServerOptions = {}) {
+  const server = createSustainabilityServer(publisher, { maxAge: 86400, ...opts });
   return new Promise<{ url: string; close: () => Promise<void> }>((res) => {
     server.listen(0, () => {
       const { port } = server.address() as AddressInfo;
@@ -42,10 +43,10 @@ describe("standalone server", () => {
     await srv.close();
   });
 
-  it("serves 200 application/json with an ETag and cache headers", async () => {
+  it("serves 200 application/sustainability-data+json with an ETag and cache headers", async () => {
     const r = await fetch(srv.url);
     expect(r.status).toBe(200);
-    expect(r.headers.get("content-type")).toContain("application/json");
+    expect(r.headers.get("content-type")).toBe(MEDIA_TYPE);
     expect(r.headers.get("cache-control")).toContain("max-age=86400");
     expect(r.headers.get("etag")).toBeTruthy();
     const body = await r.json();
@@ -81,6 +82,79 @@ describe("standalone server", () => {
     const notAllowed = await fetch(srv.url, { method: "POST" });
     expect(notAllowed.status).toBe(405);
     expect(notAllowed.headers.get("access-control-allow-origin")).toBe("*");
+  });
+});
+
+// Draft -06 §Mandatory Minimum Supported Service: a successful (200 OK)
+// response carrying a Sustainability Metadata Document MUST use
+// application/sustainability-data+json and MUST NOT use another; servers
+// SHOULD send X-Content-Type-Options: nosniff. `mediaType: "json"` is this
+// package's opt-in v05-compatible legacy mode (NOT -06 conformant).
+describe("media type (-06 conformance) and the v05-compatible legacy option", () => {
+  function legacyPublisher() {
+    return new Publisher(
+      computedAdapter({
+        provider: "Example Corp",
+        methodologyUri: "https://example.com/m",
+        reportingPeriod: "2026-02",
+        energy: { value: 1250, unit: "kWh" },
+        gridIntensity: 276,
+        capabilities: "basic",
+      }),
+      { cacheTtlMs: 0, normalize: { target: "example.com" } },
+    );
+  }
+
+  it("default: 200 emits application/sustainability-data+json with nosniff", async () => {
+    const srv2 = await makeServer(legacyPublisher());
+    try {
+      const r = await fetch(srv2.url);
+      expect(r.status).toBe(200);
+      expect(r.headers.get("content-type")).toBe(MEDIA_TYPE);
+      expect(r.headers.get("x-content-type-options")).toBe("nosniff");
+    } finally {
+      await srv2.close();
+    }
+  });
+
+  it('mediaType: "json" (legacy): 200 emits application/json with nosniff', async () => {
+    const srv2 = await makeServer(legacyPublisher(), { mediaType: "json" });
+    try {
+      const r = await fetch(srv2.url);
+      expect(r.status).toBe(200);
+      expect(r.headers.get("content-type")).toBe(LEGACY_MEDIA_TYPE);
+      expect(r.headers.get("x-content-type-options")).toBe("nosniff");
+    } finally {
+      await srv2.close();
+    }
+  });
+
+  it("404 no-data body stays application/json regardless of mediaType", async () => {
+    const publisher = new Publisher(staticAdapter({ data: [] }), { cacheTtlMs: 0 });
+    const srv2 = await makeServer(publisher, { mediaType: "json" });
+    try {
+      const r = await fetch(srv2.url);
+      expect(r.status).toBe(404);
+      expect(r.headers.get("content-type")).toBe(LEGACY_MEDIA_TYPE);
+    } finally {
+      await srv2.close();
+    }
+  });
+
+  it("HEAD Content-Type equals GET's (draft: same status and header fields, no body)", async () => {
+    const srv2 = await makeServer(legacyPublisher());
+    try {
+      const [getRes, headRes] = await Promise.all([
+        fetch(srv2.url),
+        fetch(srv2.url, { method: "HEAD" }),
+      ]);
+      expect(headRes.status).toBe(getRes.status);
+      expect(headRes.headers.get("content-type")).toBe(getRes.headers.get("content-type"));
+      expect(headRes.headers.get("content-type")).toBe(MEDIA_TYPE);
+      expect(await headRes.text()).toBe("");
+    } finally {
+      await srv2.close();
+    }
   });
 });
 

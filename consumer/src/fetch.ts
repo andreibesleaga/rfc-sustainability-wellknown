@@ -1,7 +1,29 @@
-/** The one-call, zero-extra-dependency client: fetchSustainability(origin, options). */
+/**
+ * The one-call, zero-extra-dependency client: fetchSustainability(origin, options).
+ *
+ * Transport rule (draft -06 §Mandatory Minimum Supported Service): "The
+ * resource MUST be published and retrieved over HTTPS, and clients MUST NOT
+ * accept a Sustainability Metadata Document retrieved over unauthenticated
+ * HTTP" — that requirement, and nothing in the data model, is what lets a
+ * consumer attribute a document to the origin that served it. It applies to
+ * every hop of a followed redirect ("clients that follow a redirect ... MUST
+ * require HTTPS for every hop"), so an `http:` FINAL url is refused too.
+ * This module therefore refuses a non-HTTPS URL before and after the request,
+ * returning `{ status: "insecure-transport" }` rather than throwing. The one
+ * escape hatch is `allowInsecure: true`, for a local development server or a
+ * CI battery run against `http://127.0.0.1` — there is deliberately NO
+ * automatic loopback exemption: the refusal is the specified behaviour and an
+ * opt-out has to be written down by the caller.
+ *
+ * Media typing (same section, -06): the request advertises
+ * `application/sustainability-data+json` and, at a lower q-value, the pre-06
+ * `application/json`; the response's own type is classified and reported as
+ * `mediaType`, but a response is never refused on media type alone.
+ */
 import { FetchParams, FetchResult, SustainabilityDocument } from "./types";
 import { isRecognizedTargetType, isWrongJsonType, legacyReportingSubject } from "./sentinel";
 import { validateDocument } from "./validate";
+import { ACCEPT_HEADER, classifyMediaType } from "./media-type";
 
 export const WELL_KNOWN_PATH = "/.well-known/sustainability-data";
 
@@ -48,6 +70,18 @@ export interface FetchOptions extends FetchParams {
   timeoutMs?: number;
   /** Reject a response body larger than this many bytes, without buffering it (default {@link DEFAULT_MAX_BYTES}). */
   maxBytes?: number;
+  /**
+   * Opt out of the HTTPS requirement (default false — the requirement is
+   * unconditional in the draft, and the draft makes no exception for
+   * constrained or legacy origins).
+   *
+   * With the default, a URL whose scheme is not `https:` — and an `http:`
+   * FINAL url after a redirect, where the runtime exposes one — is refused
+   * with `{ status: "insecure-transport" }` before the document is used.
+   * Set true ONLY for a local development server or a CI run against an
+   * `http://127.0.0.1` instance; there is no loopback exemption on purpose.
+   */
+  allowInsecure?: boolean;
   /**
    * Legacy-compatibility pre-pass (default true). Draft §Versioning and
    * Extensibility (-04): a document without the mandatory `target` member is
@@ -141,7 +175,22 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
   if (options.period) url.searchParams.set("period", options.period);
   if (options.granularity) url.searchParams.set("granularity", options.granularity);
 
-  const headers: Record<string, string> = {};
+  // Draft -06 MUST: refuse a non-HTTPS retrieval before making the request.
+  if (!options.allowInsecure && url.protocol !== "https:") {
+    return {
+      status: "insecure-transport",
+      url: url.toString(),
+      detail:
+        `refusing to retrieve ${url.toString()} over "${url.protocol.replace(/:$/, "")}": the draft requires HTTPS ` +
+        `and clients MUST NOT accept a document retrieved over unauthenticated HTTP ` +
+        `(pass allowInsecure: true to override, for local development only)`,
+    };
+  }
+
+  // Accept both media types on every document fetch: the -06 registered type
+  // outright, the pre-06 generic type at a lower q-value (draft -06: clients
+  // MUST accept the former and SHOULD also accept the latter).
+  const headers: Record<string, string> = { Accept: ACCEPT_HEADER };
   if (options.ifNoneMatch) headers["If-None-Match"] = options.ifNoneMatch;
 
   let res: Response;
@@ -151,6 +200,33 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
     if (isAbortOrTimeout(err)) return { status: "timeout", timeoutMs };
     throw err;
   }
+
+  // Same MUST, applied to a followed redirect: "clients that follow a redirect
+  // ... MUST require HTTPS for every hop". Only the FINAL url is observable
+  // from the Fetch API, and only where the runtime populates res.url (a
+  // hand-built Response in a test/mock leaves it empty) — check it when it is.
+  if (!options.allowInsecure && typeof res.url === "string" && res.url !== "") {
+    let finalUrl: URL | undefined;
+    try {
+      finalUrl = new URL(res.url);
+    } catch {
+      finalUrl = undefined;
+    }
+    if (finalUrl && finalUrl.protocol !== "https:") {
+      // Release the connection rather than buffering a body we will not use.
+      await res.body?.cancel().catch(() => undefined);
+      return {
+        status: "insecure-transport",
+        url: finalUrl.toString(),
+        detail:
+          `refusing a response whose final URL ${finalUrl.toString()} is not HTTPS` +
+          `${res.redirected ? " (reached through a redirect)" : ""}: the draft requires HTTPS on every hop ` +
+          `(pass allowInsecure: true to override, for local development only)`,
+      };
+    }
+  }
+
+  const mediaType = classifyMediaType(res.headers.get("content-type"));
 
   if (res.status === 304) return { status: "not-modified" };
   if (res.status === 404) return { status: "not-found" };
@@ -269,6 +345,8 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
     status: "ok",
     document: parsed as SustainabilityDocument,
     etag,
+    mediaType,
+    ...(result.warnings.length > 0 ? { warnings: result.warnings } : {}),
     ...(legacy ? { legacy } : {}),
     ...(disregarded.length > 0 ? { disregarded } : {}),
   };

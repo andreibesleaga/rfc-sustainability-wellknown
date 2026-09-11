@@ -1,6 +1,6 @@
 /**
- * Illustrative multi-origin aggregation script — NOT a shipped feature (see
- * PLAN.md §2 Non-goals: no built-in crawler). Shows how a real aggregator
+ * Illustrative multi-origin aggregation script — NOT a shipped feature
+ * (a built-in crawler is a non-goal). Shows how a real aggregator
  * would be built ON TOP of this library: fetch each origin's Basic document,
  * skip/report failures individually (one bad origin must not abort the
  * batch), and combine the successes into one summary.

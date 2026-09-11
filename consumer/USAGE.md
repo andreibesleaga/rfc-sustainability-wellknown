@@ -590,4 +590,4 @@ A "crawl N origins and aggregate" tool is a reasonable thing to *build with*
 this library (loop the script above over a list of origins, `Promise.all`-ed
 with modest concurrency), but a full crawler with politeness/rate-limiting/
 persistence is a separate project, not a feature of this package (see
-[PLAN.md §2](PLAN.md#2-non-goals-explicitly-out-of-scope-for-v0)).
+the library's non-goals: no built-in crawler).

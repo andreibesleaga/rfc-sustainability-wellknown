@@ -64,8 +64,8 @@ consumption contexts at once:
 | Carbon-aware tooling (schedulers, dashboards) | M2M | HTTP caching + `ETag` conditional requests for cheap polling |
 | AI agents | Automated | Machine-discoverable at a fixed location, schema-validatable, safe to ingest without negotiation |
 
-**Surrounding ecosystem.** IANA holds the requested `sustainability-data` well-known
-URI registration (provisional, [well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95);
+**Surrounding ecosystem.** A provisional registration request for the `sustainability-data`
+well-known URI is open with IANA ([well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95);
 the suffix was renamed from `sustainability` in the `-04` revision, per ISE
 feedback on RFC 8615 precision).
 The Green Web Foundation **carbon.txt** convention composes bidirectionally with
@@ -820,7 +820,7 @@ flowchart TB
   the protocol needs no framework.
 * **`server-configurations/`** — the nginx/Apache snippets used by topology 3/4,
   live-tested in CI (below).
-* **`example-responses/`** — five golden documents covering every service level
+* **`example-responses/`** — 14 golden documents covering every service level
   and field combination; all pass both validators.
 
 ## 8. CI / verification architecture

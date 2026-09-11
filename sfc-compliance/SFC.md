@@ -7,16 +7,17 @@ compatible and mutually reinforcing.*
 
 ## 0. Citation
 
-SFC is defined in the accepted article to be published in Communications of the
-Association for Computing Machinery:
+SFC is a framework **by this document's own author**. It is defined in an article accepted
+by the Association for Computing Machinery and scheduled for publication in December 2026;
+the DOI below does not resolve until then. Nothing in this appendix is an independent
+endorsement of the Internet-Draft.
 
 > Besleaga, A. N. (2026). *"Sustainability-First Consensus" Ledgers for a Green Digital
 > Future.* Association for Computing Machinery. DOI: 10.1145/3809296 ·
 > ORCID [0009-0001-3464-5283](https://orcid.org/0009-0001-3464-5283)
 
-Any deployment claiming SFC alignment should cite the article. This document summarizes
-only what is needed to show the engineering relationship; for the framework's rationale,
-thresholds, and argumentation, read the article.
+This document summarizes only what is needed to show the engineering relationship; for the
+framework's rationale, thresholds, and argumentation, read the article once it is published.
 
 ## 1. What SFC is (as defined in the article)
 
@@ -197,9 +198,9 @@ regulators and standards bodies already use, so nothing is invented twice:
 
 - **MiCA (EU 2023/1114 + ESMA RTS 2025/422)** — mandates consensus-mechanism energy
   disclosure for crypto-asset providers (renewable share, per-transaction intensity, and
-  GHG emissions above 500,000 kWh/year): a field-for-field match to the draft's
+  GHG emissions above 500,000 kWh/year): these map onto the draft's
   `energy-consumption`, `renewable-energy`, `sci-score`/`functional-unit`
-  ("per-transaction"), and scope members — for exactly the class of systems SFC evaluates.
+  ("per-transaction"), and scope members, with unit conversion required — for exactly the class of systems SFC evaluates.
 - **CSRD/ESRS E1, ESPR Digital Product Passport** — the entity- and product-level
   disclosure regimes the draft's optional members align with, and SFC C4's explicit
   compatibility target.

@@ -127,7 +127,7 @@ The transition from v04 to v05 re-targets the document to the **Independent Subm
 * **Stream:** Set the submission type to the Independent Submission Stream; removed the GREEN working group and "Operations and Management" area designations. The document is an individual submission and not a product of any IETF working group.
 * **New optional field `disclosure-uri` (schema version `1.1`):** A format-agnostic URI linking a metrics document to a machine-readable **sustainability disclosure index** for the origin. The canonical example is a Green Web Foundation **carbon.txt** file (added as informative reference); the field is optional and additive, so `1.0` documents remain valid. Added to the prose, CDDL, JTD, the highly-detailed example, the repo schemas, and `example-response-extended.json`.
 * **Informative reference:** Added security.txt (**RFC 9116**) as precedent for machine-readable well-known files.
-* **Reference publisher:** The companion `publisher/` gained a `co2js` adapter (bytes → metrics via CO2.js), a `carbontxt-api` adapter (Green Web Foundation hosted API), a carbon.txt emit/parse/discover helper, and bidirectional `/carbon.txt` serving. See [discovery/07-greenweb-carbontxt-integration.md](../discovery/07-greenweb-carbontxt-integration.md).
+* **Reference publisher:** The companion `publisher/` gained a `co2js` adapter (bytes → metrics via CO2.js), a `carbontxt-api` adapter (Green Web Foundation hosted API), a carbon.txt emit/parse/discover helper, and bidirectional `/carbon.txt` serving.
 
 ---
 

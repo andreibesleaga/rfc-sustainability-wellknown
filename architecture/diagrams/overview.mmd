@@ -1,0 +1,25 @@
+%%{init: {"flowchart": {"wrappingWidth": 520, "htmlLabels": true, "curve": "basis"}} }%%
+flowchart LR
+    PUB["<b>Any HTTP(S) origin</b><br/><br/>a website or web service<br/>an API or platform tenant<br/>an IoT or embedded device<br/>a node operator or RPC gateway"]
+
+    DOC["<b>GET /.well-known/sustainability-data</b><br/><br/>200 &nbsp;·&nbsp; application/sustainability-data+json<br/>one JSON object, or an array for a trend"]
+
+    MEM["<b>Mandatory</b><br/>version 2.0 &nbsp;·&nbsp; updated &nbsp;·&nbsp; capabilities<br/>provider &nbsp;·&nbsp; measurement-method<br/>methodology-uri &nbsp;·&nbsp; reporting-period &nbsp;·&nbsp; target<br/><br/><b>Optional</b><br/>energy-consumption &nbsp;·&nbsp; carbon-footprint<br/>renewable-energy &nbsp;·&nbsp; GHG scopes &nbsp;·&nbsp; sci-score<br/>disclosure-uri &nbsp;·&nbsp; verifiable-attestation-uri"]
+
+    CON["<b>Any consumer</b><br/><br/>aggregators and directories<br/>automated and AI agents<br/>procurement and reporting tools<br/>a person opening the URL"]
+
+    NOTE["<b>Self-asserted.</b> Retrieving the document establishes who<br/>published it, not that the figures are correct."]
+
+    PUB -- publishes --> DOC
+    DOC -- is read by --> CON
+    DOC --- MEM
+    DOC -.-> NOTE
+
+    classDef box fill:#f6f8fa,stroke:#d8d8d8,color:#111
+    classDef doc fill:#e8f7ef,stroke:#0b5,stroke-width:2px,color:#111
+    classDef mem fill:#ffffff,stroke:#d8d8d8,color:#111
+    classDef note fill:#fff6e6,stroke:#8a4b00,color:#111
+    class PUB,CON box
+    class DOC doc
+    class MEM mem
+    class NOTE note

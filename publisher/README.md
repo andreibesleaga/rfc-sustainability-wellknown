@@ -1,6 +1,6 @@
 # sustainability-wellknown-publisher
 
-A production-grade gateway that serves a **fully draft-conformant** `/.well-known/sustainability-data`
+A reference publisher that serves a **fully draft-conformant** `/.well-known/sustainability-data`
 document, as defined by
 [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/).
 

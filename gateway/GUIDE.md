@@ -51,7 +51,7 @@ distinction is the whole design.
 
 The gateway does not reimplement the format. It depends on the published
 [`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)
-package (v0.5.0) for normalization, the JTD validation gate, ETag generation,
+package (0.6.0) for normalization, the JTD validation gate, ETag generation,
 caching and the per-document HTTP semantics; the gateway adds multi-subject
 routing, `Last-Modified`, the index, and the honesty machinery.
 
@@ -464,7 +464,7 @@ for f in ../gateway/data/*.json; do
 done
 ```
 
-Last run 2026-07-29: **11 files, 22/22 JTD + CDDL checks passed** (also enforced continuously by `.github/workflows/gateway.yml`, which boots the server and runs the conformance battery on every push).
+Every registry document passes both validators (also enforced continuously by `.github/workflows/gateway.yml`, which boots the server and runs the conformance battery on every push).
 
 **3. Against a running server**, including the documents produced by adapters
 rather than files:
@@ -526,7 +526,7 @@ battery per subject, `scripts/conformance.mjs` injects a `fetch` that rewrites
 that one path to each subject's route; everything else about the battery is
 unchanged. It is also part of `npm test`.
 
-Expected result: **every check PASS, for the root and for all 12 subjects.**
+Expected result: **every check PASS, for the root and for every subject served.**
 
 ## Deploying
 

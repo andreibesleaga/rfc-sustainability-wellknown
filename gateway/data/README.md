@@ -57,11 +57,9 @@ Plus `kepler-demo.example`, which has no file: it is generated in code by a
 publisher adapter (see below). And [`_no-data.json`](_no-data.json), which
 records the subjects that publish nothing.
 
-All primary sources were read on **2026-07-28 / 2026-07-29**; the full
-verification record, with verbatim quotes from each source, is in
-[`../research/inventories-verified.md`](../research/inventories-verified.md),
-[`../research/microsoft-github-verified.md`](../research/microsoft-github-verified.md)
-and [`../research/hosters-verified.md`](../research/hosters-verified.md).
+All primary sources were read on **2026-07-28 / 2026-07-29**. Each entry below
+cites the source document and the figures read from it; the working verification
+logs are not carried in the repository.
 
 ---
 
@@ -259,7 +257,7 @@ Balance" infographic PDF has no extractable text layer and was not used.
 | Source (`methodology-uri`) | <https://cdn.hetzner.com/assets/Uploads/downloads/Umwelterklaerung.pdf> (EMAS Umwelterklärung 2025, covering 2022–2024) |
 | Disclosure index | <https://www.hetzner.com/unternehmen/nachhaltigkeit/> |
 | Retrieved | 2026-07-29 |
-| `carbon-footprint` | 272.5 mtCO2e — read ("Die direkten und indirekten CO₂-Emissionen (Scope 1 und 2) beliefen sich im Jahr 2024 auf insgesamt 272,5 Tonnen CO₂-Äquivalente.") |
+| `carbon-footprint` | 272.5 mtCO2e — read from the report's combined Scope 1 and Scope 2 figure for 2024 |
 | Energy / renewable | 235 GWh / 100% — read |
 | Assurance | EMAS-validated by verifier DE-V-0404, 21 July 2025; EMAS registration DE-158-00156 |
 

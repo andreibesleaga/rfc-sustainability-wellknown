@@ -63,13 +63,9 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 | `draft-besleaga-sustainability-wellknown-05.md` | Markdown source of the prior posted revision. |
 | `draft-besleaga-sustainability-wellknown-05.xml` | xml2rfc v3 XML of `-05` — the authoritative submission form. |
 | `draft-besleaga-sustainability-wellknown-05.txt` | Rendered plain-text form of `-05`. |
-| `draft-besleaga-sustainability-wellknown-04.md` | Markdown source of a prior posted revision. |
-| `draft-besleaga-sustainability-wellknown-04.xml` | xml2rfc v3 XML of `-04` — the authoritative submission form. |
-| `draft-besleaga-sustainability-wellknown-04.txt` | Rendered plain-text form of `-04`. |
-| `draft-besleaga-sustainability-wellknown-03.*` | Previous revision (posted 2026-07-23). |
-| `draft-besleaga-sustainability-wellknown-02.*` | Previous submitted revision (posted 2026-07-03). |
-| `draft-besleaga-sustainability-wellknown-01.*` | Previous revision (posted 2026-07-02). |
-| `draft-besleaga-sustainability-wellknown-00.*` | Earlier revision. |
+
+Only `-05` and `-06` are kept as files here. Revisions `-00` through `-04` were removed once
+posted; they remain on the Datatracker and in this repository's git history.
 
 Datatracker: <https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/>
 

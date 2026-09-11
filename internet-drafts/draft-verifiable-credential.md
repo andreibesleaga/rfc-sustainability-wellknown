@@ -1,6 +1,6 @@
 # Verifiable Credential
 
-To combat greenwashing and provide high-assurance data, the draft recommends linking to a W3C Verifiable Credential (VC). This structure allows a trusted third party (like an environmental auditor) to cryptographically sign the metrics you have published at the .well-known/sustainability-data URI.
+The draft defines an OPTIONAL `verifiable-attestation-uri` member, which MAY point to a W3C Verifiable Credential (VC). This structure allows a trusted third party (like an environmental auditor) to cryptographically sign the metrics you have published at the .well-known/sustainability-data URI.
 
 Here is an Example Draft structure for the Verifiable Credential, following the W3C VC Data Model and aligned with the metrics in draft-besleaga-sustainability-wellknown.
 
@@ -50,7 +50,7 @@ Here is an Example Draft structure for the Verifiable Credential, following the 
 ## Key Components Explained
 * **issuer**: This is the Decentralized Identifier (DID) of the authoritative entity (e.g., a certified carbon auditor) that verified the data.
 * **credentialSubject**: This block mirrors fields defined in the draft — the mandatory members (such as reporting-period and the `target` reporting subject) plus reported metrics like energy-consumption and carbon-footprint. It serves as the "claims" being made.
-* **proof**: This is the cryptographic signature. It ensures that if even a single digit of the energy consumption is changed in the .well-known file, the VC signature will no longer match, alerting the client to a potential misrepresentation.
+* **proof**: The issuer's cryptographic signature over the credential. Note what it does and does not cover: the signature protects the figures **inside this credential**, not the document served at `/.well-known/sustainability-data`. Editing the served document does not invalidate the VC. A consumer that wants assurance must fetch both and compare the values itself; the served document on its own proves nothinhe client to a potential misrepresentation.
 
 ## Anti-Greenwashing
 By hosting this VC at the URL specified in your verifiable-attestation-uri field, you provide a "discovery surface" for automated tools to verify your sustainability claims against external authoritative reports.

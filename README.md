@@ -6,13 +6,15 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-06** is the **latest posted** revision (posted 2026-09-10) and is **under ISE review** for publication as an Informational RFC: **no change to the wire format**. Draft v02/v03 presented at IETF meeting 126 in SUSTAIN RG.
+**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-06** is the **latest posted** revision (posted 2026-09-10) and is **under ISE review** for publication as an Informational RFC: **no change to the wire format**. Revisions v02/v03 were presented in the [IRTF SUSTAIN RG session at IETF 126](https://datatracker.ietf.org/meeting/126/session/sustain/); the research group has taken no position on the draft.
 
 IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name).
 
 This repository contains initial drafts and supporting documents, examples, sources, tooling, etc. Previous drafts are release tagged, in internet-drafts folder, and system architecture with diagrams in: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md).
 
-Reference testing gateway for real sustainability data from different services: https://sustainability.up.railway.app/ — curated real-org documents, plus one live/replay demonstration subject per publisher adapter (live upstreams refreshed daily where licenses permit) and every canonical wire-format example served end to end, all cross-validated at boot by the published consumer library.
+Reference testing gateway: https://sustainability.up.railway.app/ — one live/replay demonstration subject per publisher adapter (live upstreams refreshed daily where licenses permit) and every canonical wire-format example served end to end, all cross-validated at boot by the published consumer library.
+
+It also serves documents *about* real organizations. Those are **illustrative mappings prepared by the author** from each organization's own published reports: they are **not published, reviewed, authorized or endorsed by their reporting subjects**, who have not been contacted about them. Every such document says so in its `provider` member, and [gateway/README.md](gateway/README.md) and [gateway/data/README.md](gateway/data/README.md) record the source and retrieval date for each figure. They exist to exercise the format against real-world reporting shapes, not to speak for anyone.
 
 ---
 
@@ -29,8 +31,12 @@ A universal `/.well-known/sustainability-data` URI that allows any organization 
 
 A well-known URI is scoped to an HTTP(S) *origin* (RFC 8615) — any device or service that speaks HTTP can serve one alongside its normal API. That includes IoT and embedded devices (constrained devices already use the analogous well-known convention for discovery, e.g. CoAP's `/.well-known/core`, registered by RFC 6690) and Web3/Blockchain infrastructure — a RPC gateway, validator dashboard, or node operator's endpoint is an ordinary HTTP origin like any other. 
 
+![Overview: any HTTP(S) origin publishes the document; any consumer reads it](architecture/images/overview.png)
 
-Separately, the `provider` field names "the entity operating the origin," `measurement-method` is a token with RECOMMENDED machine-matchable values (or otherwise a short human-readable description), and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) already publish *organization-level* figures through this same endpoint — so it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — exactly the shape of this schema's optional fields, for an entity that is not a website at all.
+<sub>Source: [`architecture/diagrams/overview.mmd`](architecture/diagrams/overview.mmd) — every member name in the diagram is checked against [`schemas-validators/response-schema.json`](schemas-validators/response-schema.json).</sub>
+
+
+Separately, the `provider` field names "the entity operating the origin," `measurement-method` is a token with RECOMMENDED machine-matchable values (or otherwise a short human-readable description), and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) already publish *organization-level* figures through this same endpoint — so it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — quantities this schema's optional fields already carry (with unit conversion), for an entity that is not a website at all.
 
 #### Why? (what it solves, how, and why now)
 
@@ -115,9 +121,8 @@ rfc-sustainability-wellknown/
 ├── schemas-validators/      # Formal schemas (CDDL, JTD) and validation tooling
 ├── example-scripts/         # Server-side security middleware + reference request handler (Python, JS, PHP), with tests
 ├── server-configurations/   # Web server configuration snippets (nginx, Apache)
-├── publisher/               # Production publisher/gateway (TypeScript): adapters → conformant /.well-known/sustainability-data
+├── publisher/               # Reference publisher (TypeScript): adapters → conformant /.well-known/sustainability-data
 ├── consumer/                # Reference client (TypeScript): fetch, validate, transform a /.well-known/sustainability-data document
-├── discovery/               # Product discovery: market scan, opportunity, problem, requirements, PRD, spec
 ├── sfc-compliance/              # SFC framework alignment (relationship to the SFC framework)
 └── ADOPTION.md              # The case for RFC/IANA adoption (business, technical, regulatory benefits)
 
@@ -342,10 +347,11 @@ reference implementation deliberately implements none.
 
 ## Anti-greenwashing: Verifiable Credentials
 
-The `verifiable-attestation-uri` field links to a W3C Verifiable Credential (VC) signed by a trusted third-party auditor. 
+The OPTIONAL `verifiable-attestation-uri` member MAY link to a signed attestation, such as a W3C Verifiable Credential issued by a third-party auditor.
 
-Example VC structure is documented in [internet-drafts/draft-verifiable-credential.md](internet-drafts/draft-verifiable-credential.md). 
-This allows automated tools to cryptographically verify published sustainability claims against external authoritative reports.
+An example structure is documented in [internet-drafts/draft-verifiable-credential.md](internet-drafts/draft-verifiable-credential.md).
+
+What this does and does not give you: the signature covers the figures **inside the attestation**, not the document served at the well-known URI. Retrieving the document establishes only that the origin published it. A consumer wanting assurance must fetch the attestation as well and compare the values itself. Nothing here makes a self-asserted figure true.
 
 ---
 
@@ -353,7 +359,7 @@ This allows automated tools to cryptographically verify published sustainability
 
 Published on npm: **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)** (`npm install sustainability-wellknown-publisher`). The `0.1.0` release on the registry implements the historical `-02` / schema-`1.1` model; the `0.4.0` release implements the current schema-`2.0` model (revision `-04`; neither `-05` nor the latest posted `-06` revision makes any schema change). `0.5.0` and `0.5.2` are version-only bumps keeping the two packages in lockstep — the publisher's code is unchanged from `0.4.0`. **`0.6.0` is the current release**: it implements `-06` (dedicated media type, HTTPS, `nosniff`) while staying `-05` compatible via the `mediaType: "json"` option.
 
-[publisher/](publisher/) is a production-grade TypeScript implementation that publishes a fully draft-conformant `/.well-known/sustainability-data` document. It ingests metrics from pluggable source adapters — static/computed values, Kepler/Prometheus energy telemetry, the Climatiq estimate API, **Green Web Foundation CO2.js (bytes → carbon)**, the **Green Web Foundation carbon.txt hosted API**, and enterprise suites (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) — normalizes them to the draft's field model, **validates every payload against this repo's JTD and CDDL schemas before serving** (publish-only-if-valid), and exposes the Basic and Extended service levels with the draft's mandated DoS/privacy safeguards. It can also **serve a bidirectional `carbon.txt`** that points back to the metrics document. It ships as Express and Fastify middleware plus a standalone server that any web server can reverse-proxy. See [publisher/README.md](publisher/README.md) and [publisher/USAGE.md](publisher/USAGE.md).
+[publisher/](publisher/) is a reference TypeScript implementation that publishes a fully draft-conformant `/.well-known/sustainability-data` document. It ingests metrics from pluggable source adapters — static/computed values, Kepler/Prometheus energy telemetry, the Climatiq estimate API, **Green Web Foundation CO2.js (bytes → carbon)**, the **Green Web Foundation carbon.txt hosted API**, and enterprise suites (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) — normalizes them to the draft's field model, **validates every payload against this repo's JTD and CDDL schemas before serving** (publish-only-if-valid), and exposes the Basic and Extended service levels with the draft's mandated DoS/privacy safeguards. It can also **serve a bidirectional `carbon.txt`** that points back to the metrics document. It ships as Express and Fastify middleware plus a standalone server that any web server can reverse-proxy. See [publisher/README.md](publisher/README.md) and [publisher/USAGE.md](publisher/USAGE.md).
 
 ## Reference implementation (consumer/)
 
@@ -393,10 +399,11 @@ its own `405` — is `WARN` and does not fail the check) are in
 [consumer/README.md § Verify a live deployment](consumer/README.md#verify-a-live-deployment).
 That section also has the version note: this requires consumer `0.5.0` or later.
 
-## Discovery & SFC compliance
+## Supporting material (non-normative)
 
-* [discovery/](discovery/) — product discovery suite (market scan, opportunity assessment, problem statement, requirements, PRD, technical spec) framing the gateway against the enterprise carbon-accounting ecosystem, plus [a deep-research companion to the draft](discovery/07-greenweb-carbontxt-integration.md) on the Green Web Foundation / carbon.txt / CO2.js integration.
-* [sfc-compliance/SFC.md](sfc-compliance/SFC.md) — additional optional appendix on how this draft and the publisher relate to the Sustainability-First Consensus (SFC) framework, with a field-level mapping (article concept → draft member).
+* [sfc-compliance/SFC.md](sfc-compliance/SFC.md) — optional appendix mapping this draft's members onto the author's own Sustainability-First Consensus (SFC) proposal. It is the author's work, not an independent endorsement of this draft.
+
+The product-discovery notes and the deployment research logs that informed earlier revisions are working material, not part of the specification, and are no longer carried in the repository. Their conclusions are in the draft and in `ADOPTION.md`.
 
 
 ## CHANGELOG

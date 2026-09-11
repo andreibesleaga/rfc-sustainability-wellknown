@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -31,12 +31,12 @@ jobs:
       - name: Build publisher (for the interop test)
         working-directory: publisher
         run: |
-          npm ci || npm install
+          npm ci
           npm run build
 
       - name: Install consumer dependencies
         working-directory: consumer
-        run: npm ci || npm install
+        run: npm ci
 
       - name: Build consumer
         working-directory: consumer

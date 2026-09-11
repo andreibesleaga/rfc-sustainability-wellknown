@@ -1,43 +1,57 @@
-# Dependency update configuration.
+# Dependency policy: LOCKED, SECURITY UPDATES ONLY.
 #
-# Security updates are enabled repository-wide in GitHub's settings; this file adds
-# scheduled version updates for each npm workspace and for the Actions used by CI.
+# This repository accompanies an Internet-Draft under review. Its value is that the
+# published artifacts stay reproducible and stable over years, not that they track the
+# newest release of every dependency. Routine version churn costs review attention and
+# risks breaking a reference implementation that reviewers are asked to run.
 #
-# Grouping keeps the PR volume low: one PR per ecosystem per week for the routine
-# bumps, with major versions separated so a breaking change is never mixed into a
-# batch of patches.
+# So: `open-pull-requests-limit: 0` disables SCHEDULED VERSION UPDATES for every
+# ecosystem below. GitHub's security updates are NOT affected by that setting — a
+# vulnerable dependency still raises a pull request automatically. That is the only
+# automatic dependency change this repository accepts.
+#
+# The runtime is pinned to an LTS Node major (currently 22, LTS until 2027-04):
+#   * `engines.node` in publisher, consumer and gateway
+#   * `node:22-bookworm-slim` in gateway/Dockerfile
+#   * `node-version` in the CI workflows
+#   * `@types/node` on the matching 22.x major, so the types describe the runtime the
+#     code actually runs on
+# Those five move together, deliberately, when the Node LTS line is changed — not
+# because a bot proposed it.
+#
+# To take a routine update anyway, either bump it by hand, or raise the limit here
+# temporarily and lower it again afterwards.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /publisher
-    schedule: { interval: weekly }
-    open-pull-requests-limit: 3
-    groups:
-      minor-and-patch:
-        update-types: [minor, patch]
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
 
   - package-ecosystem: npm
     directory: /consumer
-    schedule: { interval: weekly }
-    open-pull-requests-limit: 3
-    groups:
-      minor-and-patch:
-        update-types: [minor, patch]
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
 
   - package-ecosystem: npm
     directory: /gateway
-    schedule: { interval: weekly }
-    open-pull-requests-limit: 3
-    groups:
-      minor-and-patch:
-        update-types: [minor, patch]
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
 
+  # CI actions: locked too. GitHub retires old action runtimes on its own schedule,
+  # so review these by hand once a year rather than on every release.
   - package-ecosystem: github-actions
     directory: /
-    schedule: { interval: monthly }
-    open-pull-requests-limit: 2
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
 
+  # Base image: pinned to the Node LTS line. Security rebuilds still come through.
   - package-ecosystem: docker
     directory: /gateway
-    schedule: { interval: monthly }
-    open-pull-requests-limit: 1
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0

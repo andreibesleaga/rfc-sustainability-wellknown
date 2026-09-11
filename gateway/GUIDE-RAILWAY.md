@@ -147,8 +147,8 @@ citation, and lets you serve the gateway's own report from a stable origin.
    the same target.
 3. Wait for propagation. Railway shows the domain as **Active** and issues a
    Let's Encrypt certificate automatically — no configuration and no manual
-   renewal. The draft says the resource SHOULD be served over HTTPS; this is
-   how that is satisfied.
+   renewal. The draft requires the resource to be served over HTTPS (a MUST
+   since -06); this is how that is satisfied.
 4. If you use Cloudflare in front, set the record to **DNS only (grey cloud)**
    until Railway reports the domain Active, then re-enable the proxy if you want
    it. Proxying before issuance can stall certificate validation.

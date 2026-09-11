@@ -357,7 +357,7 @@ ${gaps.subjects.map(gapRow).join("\n")}
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>sustainability-data Repository Gateway</title>
+<title>Sustainability Data Reference Gateway</title>
 <style>
 :root { color-scheme: light dark; --fg:#111; --dim:#555; --bg:#fff; --line:#d8d8d8; --accent:#0b5; --warn:#8a4b00; --warnbg:#fff6e6; }
 @media (prefers-color-scheme: dark) {
@@ -376,6 +376,19 @@ a { color:inherit; text-underline-offset:2px; }
   color:var(--fg); padding:.9rem 1rem; border-radius:4px; }
 .notice strong { color:var(--warn); }
 .scroll { overflow-x:auto; }
+.fig { margin:1.5rem 0 0; max-width:800px; }
+.fig svg { width:100%; height:auto; display:block; }
+.fig .stage rect { fill:none; stroke:var(--line); stroke-width:1; }
+.fig .stage.out rect { stroke:var(--accent); }
+.fig text { font-family:inherit; text-anchor:middle; }
+.fig .t { font-size:14px; font-weight:600; fill:var(--fg); }
+.fig .s { font-size:11px; fill:var(--dim); }
+.fig .arrow path { stroke:var(--line); stroke-width:1.5; fill:none; marker-end:url(#fa); }
+.fig .wire rect { fill:none; stroke:var(--line); stroke-dasharray:3 3; }
+.fig .k, .fig .k2 { text-anchor:start; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+.fig .k { font-size:13px; fill:var(--fg); }
+.fig .k2 { font-size:11px; fill:var(--dim); }
+.fig figcaption { color:var(--dim); font-size:.85rem; margin-top:.5rem; }
 table { border-collapse:collapse; width:100%; margin-top:.5rem; min-width:44rem; }
 th,td { text-align:left; padding:.5rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; }
 th { font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var(--dim); font-weight:600; }
@@ -395,13 +408,65 @@ footer { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); co
 </style>
 </head>
 <body>
-<h1>sustainability-data Repository Gateway</h1>
+<h1>Sustainability Data Reference Gateway</h1>
 <p class="sub">A reference deployment of <code>/.well-known/sustainability-data</code>
 (<a href="${escapeHtml(doc.specification)}" rel="noopener noreferrer">draft-besleaga-sustainability-wellknown</a>).</p>
 
 <p>${escapeHtml(doc.about)}</p>
 
 <p class="notice"><strong>Please read.</strong> ${escapeHtml(doc.notice)}</p>
+
+<figure class="fig">
+<svg viewBox="0 0 800 232" role="img" aria-labelledby="figtitle figdesc" preserveAspectRatio="xMidYMid meet">
+<defs><marker id="fa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="var(--line)"/></marker></defs>
+<title id="figtitle">How this gateway produces a conformant document</title>
+<desc id="figdesc">Heterogeneous source data passes through adapters, unit and period
+normalization, and schema validation, and is served over HTTPS at
+/.well-known/sustainability-data with the media type application/sustainability-data+json.</desc>
+<g class="stage">
+<rect x="4" y="30" width="140" height="76" rx="5"/>
+<text class="t" x="74" y="60">Sources</text>
+<text class="s" x="74" y="80">files, APIs,</text>
+<text class="s" x="74" y="95">exporters</text>
+</g>
+<g class="stage">
+<rect x="172" y="30" width="140" height="76" rx="5"/>
+<text class="t" x="242" y="60">Adapters</text>
+<text class="s" x="242" y="80">per-source</text>
+<text class="s" x="242" y="95">mapping</text>
+</g>
+<g class="stage">
+<rect x="340" y="30" width="140" height="76" rx="5"/>
+<text class="t" x="410" y="60">Normalize</text>
+<text class="s" x="410" y="80">units, period,</text>
+<text class="s" x="410" y="95">reporting subject</text>
+</g>
+<g class="stage">
+<rect x="508" y="30" width="140" height="76" rx="5"/>
+<text class="t" x="578" y="60">Validate</text>
+<text class="s" x="578" y="80">CDDL and JTD</text>
+<text class="s" x="578" y="95">schemas</text>
+</g>
+<g class="stage out">
+<rect x="676" y="30" width="120" height="76" rx="5"/>
+<text class="t" x="736" y="60">Serve</text>
+<text class="s" x="736" y="80">HTTPS, ETag,</text>
+<text class="s" x="736" y="95">conditional GET</text>
+</g>
+<g class="arrow">
+<path d="M148 68 H166"/><path d="M316 68 H334"/>
+<path d="M484 68 H502"/><path d="M652 68 H670"/>
+</g>
+<g class="wire">
+<rect x="4" y="140" width="792" height="72" rx="5"/>
+<text class="k" x="24" y="166">GET /.well-known/sustainability-data</text>
+<text class="k2" x="24" y="192">200 &#8594; Content-Type: application/sustainability-data+json &#183; X-Content-Type-Options: nosniff</text>
+</g>
+</svg>
+<figcaption>Every document below is produced by this path. The media type and the HTTPS
+requirement are those of draft revision -06; a deployment kept on the
+pre-06 <code>application/json</code> type is still served, and flagged as such.</figcaption>
+</figure>
 
 <h2>Subjects served (${doc.count})</h2>
 <div class="scroll">

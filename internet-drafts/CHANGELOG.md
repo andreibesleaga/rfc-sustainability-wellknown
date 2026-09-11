@@ -4,7 +4,7 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
-### **Version 05 to Version 06 (`draft-besleaga-sustainability-wellknown`) — prepared, not yet posted**
+### **Version 05 to Version 06 (`draft-besleaga-sustainability-wellknown`) — latest posted revision (posted 2026-09-10)**
 
 Responds to two rounds of Independent-Stream feedback: the Editor's direction that security belong in the document from the beginning, and the first commissioned review, which asked that the protocol be separated cleanly from policy, that the consumer be defined, and that the incremental-adoption path be made explicit. Makes **no change to the wire format**: no member is added, removed, renamed, or retyped; the CDDL and JTD schemas are byte-for-byte unchanged; every document conformant to `-04` or `-05` remains conformant.
 
@@ -39,7 +39,7 @@ Responds to two rounds of Independent-Stream feedback: the Editor's direction th
 
 ---
 
-### **Version 04 to Version 05 (`draft-besleaga-sustainability-wellknown`) — latest posted revision**
+### **Version 04 to Version 05 (`draft-besleaga-sustainability-wellknown`) — prior posted revision (posted 2026-07-28)**
 
 Posted to the Datatracker 2026-07-28, responding to the Independent Submission Editor's initial review of `-04`. Makes no change to the wire format: no member is added, removed, renamed, or retyped, the CDDL and JTD schemas are unchanged, and every document conformant to `-04` remains conformant to this revision.
 

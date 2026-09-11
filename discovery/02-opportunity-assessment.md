@@ -1,5 +1,9 @@
 # 02 — Opportunity Assessment
 
+> **[Historical — 2026-09-11]** This document records the assessment as of an earlier
+> revision. The latest posted revision is draft -06 (2026-09-10): the wire media type is
+> now `application/sustainability-data+json` and HTTPS is mandatory.
+
 *Non-normative.*
 
 ## 1. Drivers

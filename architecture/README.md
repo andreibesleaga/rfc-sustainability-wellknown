@@ -11,7 +11,7 @@ Context → Level 2 Container → Level 3 Component), written in
 inline (Mermaid source) and as a pre-rendered image in [`images/`](images/); the
 sources live in [`diagrams/`](diagrams/).
 
-**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-04.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-04.md)
+**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-06.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-06.md)
 (the latest "2.0" protocol revision, carrying the `sustainability-data` URI rename), [`../README.md`](../README.md),
 [`publisher/src/`](../publisher/src/), [`consumer/src/`](../consumer/src/),
 [`schemas-validators/`](../schemas-validators/),
@@ -212,11 +212,14 @@ flowchart TB
 
 ## 3. The protocol subsystem
 
-The normative artifact is the Internet-Draft (`internet-drafts/`). Revision **-04**
-(schema `2.0`) is the *latest* revision — posted to the Datatracker, under ISE
-review: it renames the requested URI suffix to `sustainability-data` and adds the
-optional `target-type` member. Revision **-03** (also schema `2.0`, posted
-2026-07-23) is the previous revision.
+The normative artifact is the Internet-Draft (`internet-drafts/`). Revision **-06**
+(schema `2.0`) is the *latest* revision — posted to the Datatracker 2026-09-10,
+under ISE review: it requires the dedicated `application/sustainability-data+json`
+media type, raises HTTPS from SHOULD to MUST, adds `X-Content-Type-Options: nosniff`
+and an OPTIONAL detached JWS, with no wire-format change. Revisions **-05** (posted
+2026-07-28), **-04** (URI suffix renamed to `sustainability-data`, optional
+`target-type` member added) and **-03** (posted 2026-07-23) are the prior revisions;
+the schema label has been `2.0` since `-03`.
 The whole codebase implements the **2.0** model,
 with field-driven compatibility for historical `1.x` documents.
 
@@ -393,9 +396,10 @@ through two **field-driven** rules:
    (what the historical absence of `target-path` conveyed).
 
 The same diagram tracks the draft's own revision lifecycle, from the renamed
-predecessor series through `-02` and `-03` to the latest, ISE-reviewed
-`-04` (URI suffix renamed to `sustainability-data`, optional
-`target-type` added) and the eventual Informational RFC + IANA registration.
+predecessor series through `-02`, `-03` and `-04` (URI suffix renamed to
+`sustainability-data`, optional `target-type` added) to the latest, ISE-reviewed
+`-06` (media type required, HTTPS MUST, nosniff, OPTIONAL detached JWS) and the
+eventual Informational RFC + IANA registration.
 
 ![Version & revision states](images/version-state.png)
 
@@ -406,7 +410,7 @@ stateDiagram-v2
     state "Schema / data-model lifecycle" as SCHEMA {
         state "1.0 (historical): 4 metric members mandatory, negative value = not-reported sentinel, optional target-path (absent = origin-wide)" as V10
         state "1.1 (historical): adds optional disclosure-uri" as V11
-        state "2.0 (current, -03/-04): 8 mandatory + 16 optional members, omission is the only not-reported mechanism, mandatory target (+ optional target-type hint since -04), CO2e renames, energy/carbon optional with kWh/gCO2e defaults; value space under change control (new labels only via a revising RFC)" as V20
+        state "2.0 (current, -03 onward): 8 mandatory + 16 optional members, omission is the only not-reported mechanism, mandatory target (+ optional target-type hint since -04), CO2e renames, energy/carbon optional with kWh/gCO2e defaults; -06 fixes 2.0 as the single defined label a publisher MUST use" as V20
         state "Client processing of ANY document (field-driven, never version-driven): negative value in a non-negative member = not reported (subsumes the sentinel); missing target = origin-wide report; unknown members ignored; version label never rejected or branched on" as COMPAT
 
         [*] --> V10
@@ -422,7 +426,9 @@ stateDiagram-v2
         state "-00 .. -01 renamed series (replaces the green- draft)" as EARLY
         state "-02 SUBMITTED: posted 2026-07-03, ISE 'Submission Received' (schema 1.1 model)" as SUBMITTED
         state "-03 POSTED: schema 2.0 revision, posted 2026-07-23 (SUSTAIN RG presentation at IETF 126)" as POSTED
-        state "-04 LATEST: posted to the Datatracker, under ISE review — URI suffix renamed to sustainability-data (ISE naming feedback), optional target-type member added" as POSTED4
+        state "-04 POSTED: URI suffix renamed to sustainability-data (ISE naming feedback), optional target-type member added" as POSTED4
+        state "-05 POSTED: posted 2026-07-28 — disclosure-uri made format- and location-agnostic, Internationalization Considerations added; no wire change" as POSTED5
+        state "-06 LATEST: posted 2026-09-10, under ISE review — application/sustainability-data+json required, HTTPS raised to MUST, nosniff, OPTIONAL detached JWS, version fixed as a single label; no wire change" as POSTED6
         state "Informational RFC + IANA 'sustainability-data' well-known URI (provisional, promotable to permanent)" as RFC
 
         [*] --> GREEN
@@ -430,7 +436,9 @@ stateDiagram-v2
         EARLY --> SUBMITTED
         SUBMITTED --> POSTED : rework data model to 2.0
         POSTED --> POSTED4 : ISE naming feedback (RFC 8615 precision)
-        POSTED4 --> RFC : ISE approval + RFC Editor
+        POSTED4 --> POSTED5 : ISE review of -04
+        POSTED5 --> POSTED6 : ISE security round + first commissioned review
+        POSTED6 --> RFC : ISE approval + RFC Editor
         RFC --> [*]
     }
 ```
@@ -860,7 +868,7 @@ same JTD schema enforced, byte-identically, at every layer.
 * Diagrams rendered with
   [`@mermaid-js/mermaid-cli`](https://github.com/mermaid-js/mermaid-cli)
   (`mmdc -s 2 -b white`).
-* **Repository ground truth** — the `-04` draft, root `README.md`,
+* **Repository ground truth** — the `-06` draft, root `README.md`,
   `publisher/src/`, `consumer/src/`, `schemas-validators/`,
   `server-configurations/`, `example-scripts/`, and `.github/workflows/` as
   cited throughout.

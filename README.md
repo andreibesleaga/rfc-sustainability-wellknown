@@ -32,11 +32,15 @@ A universal `/.well-known/sustainability-data` URI that allows any organization 
 
 A well-known URI is scoped to an HTTP(S) *origin* (RFC 8615) — any device or service that speaks HTTP can serve one alongside its normal API. That includes IoT and embedded devices (constrained devices already use the analogous well-known convention for discovery, e.g. CoAP's `/.well-known/core`, registered by RFC 6690) and Web3/Blockchain infrastructure — a RPC gateway, validator dashboard, or node operator's endpoint is an ordinary HTTP origin like any other. 
 
+![Overview](architecture/images/sustainabilitydraft.png)
+
 Separately, the `provider` field names "the entity operating the origin," `measurement-method` is a token with RECOMMENDED machine-matchable values (or otherwise a short human-readable description), and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) already publish *organization-level* figures through this same endpoint — so it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — exactly the shape of this schema's optional fields, for an entity that is not a website at all.
 
 #### Why? (what it solves, how, and why now)
 
 Sustainability data about digital services exists today — inside enterprise carbon platforms, annual PDF reports, cloud-billing dashboards, and regulatory filings — but there is **no universally known location to publish it and no common machine-readable shape to consume it**. Every consumer that wants the numbers (a regulator, an aggregator, a procurement team, a carbon-aware scheduler, an AI agent) must build a bespoke integration per provider, and most simply don't. Sometimes the gap is publication, sometimes measurement — and sometimes simply no agreed place to look.
+
+![C4 Level 1 — System Context](architecture/images/c4-context.png)
 
 **What it solves:**
 * **Discovery** — today there is no agreed place to look for an organization's or service's environmental metrics; every provider that publishes at all invents its own URL, format, and access path.
@@ -144,6 +148,11 @@ Draft in multiple formats plus supplementary documents.
 | `draft-besleaga-green-sustainability-wellknown-05/04/03/02/01/00.*` | Earlier revisions (previous name) |
 | `draft-verifiable-credential.md` | Supplementary: W3C Verifiable Credential structure for anti-greenwashing attestations |
 
+Only `-05` and `-06` are kept as files in this directory; the rows above `-05` are the
+revision history, whose sources were removed once posted and remain available on the
+[Datatracker](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/)
+and in this repository's git history.
+
 The draft defines the full data model, mandatory/optional fields, CDDL and JTD formal schemas, security, privacy, and internationalization considerations, and IANA registration request.
 
 ---
@@ -242,16 +251,17 @@ Both configurations implement:
 
 8 mandatory fields + 16 optional fields (24 total — matches
 `schemas-validators/response-schema.json` and both packages' embedded schema copies,
-byte-equality checked in CI). This is the schema-`2.0` model of the `-03` and current
-`-04` revisions (`-04` adds the optional `target-type` member without changing
+byte-equality checked in CI). This is the schema-`2.0` model, unchanged from `-03` through the current
+`-06` (`-04` adds the optional `target-type` member without changing
 the schema label); the differences from the `-02` / `1.x` model are summarized under
 "Omitted metrics & legacy compatibility" below. The posted `-06` revision makes no
-change to this model — it is an editorial/reference revision only (see
+change to this model, though it does change the response media type and transport
+requirements (see
 [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md)).
 
 | Field | Required | Type | Notes |
 |---|---|---|---|
-| `version` | Yes | string | Informational schema-revision label, e.g. `"2.0"` — no negotiation/conformance semantics; clients MUST NOT reject a document or change processing based on its value. The value space is under change control since `-04`: the defined labels are `"1.0"`, `"1.1"`, and `"2.0"`, and new values may be defined only by a future RFC revising the spec — publishers MUST NOT mint other values |
+| `version` | Yes | string | Informational schema-revision label, e.g. `"2.0"` — no negotiation/conformance semantics; clients MUST NOT reject a document or change processing based on its value. `-06` defines exactly one value, `"2.0"`, which a conforming publisher MUST use; a client treats any other value exactly as it treats `"2.0"`, since processing is driven by the members present. (The former change-control regime and the `"1.0"`/`"1.1"` definitions were removed in `-06`.) |
 | `updated` | Yes | string | RFC 3339 date-time the document was last generated |
 | `capabilities` | Yes | `"basic"` / `"extended"` | Self-declared indicator of **query-parameter support only**: `basic` = only the no-parameter Mandatory Minimum Supported Service; `extended` = one or more Extended query parameters supported. It says nothing about member presence — a `basic` document MAY carry any optional fields |
 | `provider` | Yes | string | The entity operating the origin and publishing the metadata — not necessarily the hardware; enterprise adapters populate this from organization-level platforms |
@@ -345,15 +355,15 @@ This allows automated tools to cryptographically verify published sustainability
 
 ## Reference implementation (publisher/)
 
-Published on npm: **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)** (`npm install sustainability-wellknown-publisher`). The `0.1.0` release on the registry implements the historical `-02` / schema-`1.1` model; the `0.4.0` release implements the current schema-`2.0` model (revision `-04`; the latest posted `-05` revision makes no schema change). `0.5.0` and `0.5.2` are version-only bumps keeping the two packages in lockstep — the publisher's code is unchanged from `0.4.0`.
+Published on npm: **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)** (`npm install sustainability-wellknown-publisher`). The `0.1.0` release on the registry implements the historical `-02` / schema-`1.1` model; the `0.4.0` release implements the current schema-`2.0` model (revision `-04`; neither `-05` nor the latest posted `-06` revision makes any schema change). `0.5.0` and `0.5.2` are version-only bumps keeping the two packages in lockstep — the publisher's code is unchanged from `0.4.0`. **`0.6.0` is the current release**: it implements `-06` (dedicated media type, HTTPS, `nosniff`) while staying `-05` compatible via the `mediaType: "json"` option.
 
 [publisher/](publisher/) is a production-grade TypeScript implementation that publishes a fully draft-conformant `/.well-known/sustainability-data` document. It ingests metrics from pluggable source adapters — static/computed values, Kepler/Prometheus energy telemetry, the Climatiq estimate API, **Green Web Foundation CO2.js (bytes → carbon)**, the **Green Web Foundation carbon.txt hosted API**, and enterprise suites (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) — normalizes them to the draft's field model, **validates every payload against this repo's JTD and CDDL schemas before serving** (publish-only-if-valid), and exposes the Basic and Extended service levels with the draft's mandated DoS/privacy safeguards. It can also **serve a bidirectional `carbon.txt`** that points back to the metrics document. It ships as Express and Fastify middleware plus a standalone server that any web server can reverse-proxy. See [publisher/README.md](publisher/README.md) and [publisher/USAGE.md](publisher/USAGE.md).
 
 ## Reference implementation (consumer/)
 
-Published on npm: **[`sustainability-wellknown-consumer`](https://www.npmjs.com/package/sustainability-wellknown-consumer)** (`npm install sustainability-wellknown-consumer`). As with the publisher, `0.1.0` on the registry implements the `-02` / schema-`1.1` model; the `0.4.0` release implements the current schema-`2.0` model (revision `-04`; the latest posted `-05` revision makes no schema change). `0.5.0` fixed a CLI argument-parsing bug found while verifying the first live deployment, and `0.5.2` added path-prefixed base URLs (the multi-subject gateway pattern) — see the note under "Verify a live deployment" below.
+Published on npm: **[`sustainability-wellknown-consumer`](https://www.npmjs.com/package/sustainability-wellknown-consumer)** (`npm install sustainability-wellknown-consumer`). As with the publisher, `0.1.0` on the registry implements the `-02` / schema-`1.1` model; the `0.4.0` release implements the current schema-`2.0` model (revision `-04`; neither `-05` nor the latest posted `-06` revision makes any schema change). `0.5.0` fixed a CLI argument-parsing bug found while verifying the first live deployment, and `0.5.2` added path-prefixed base URLs (the multi-subject gateway pattern) — see the note under "Verify a live deployment" below. **`0.6.0` is the current release**: it requires the `-06` media type (reporting a pre-`-06` `application/json` document as a WARN, not a failure), refuses plain HTTP unless `--allow-http` is given, and checks for `nosniff`.
 
-[consumer/](consumer/) is a reference **client** for `/.well-known/sustainability-data`, complementing `publisher/`'s reference producer: fetch, defensively validate (JTD schema plus the draft's cross-entry array rules, since a non-conformant upstream server is the normal case for early ecosystem adoption), and transform (CSV, NDJSON, a flattened one-row-per-metric shape, trend aggregation) a document from any origin. It ships a zero-dependency one-call function (`fetchSustainability`) and a richer `SustainabilityClient` class for repeated, ETag-cached polling, plus a `sustainability-fetch` CLI whose `--strict` mode doubles as a standalone conformance checker usable against **any** implementation, not just this repo's own `publisher/`. Its `interop.test.ts` — a live, in-process round trip against a real `Publisher` instance — is concrete, running proof of the draft's client-side MUSTs (accept both response shapes; ignore unknown fields; apply the legacy-compatibility rules for historical `1.x` documents). See [consumer/README.md](consumer/README.md) and [consumer/USAGE.md](consumer/USAGE.md).
+[consumer/](consumer/) is a reference **client** for `/.well-known/sustainability-data`, complementing `publisher/`'s reference producer: fetch, defensively validate (JTD schema plus the draft's cross-entry array rules, since a non-conformant upstream server is the normal case for early ecosystem adoption), and transform (CSV, NDJSON, a flattened one-row-per-metric shape, trend aggregation) a document from any origin. It ships a zero-dependency one-call function (`fetchSustainability`) and a richer `SustainabilityClient` class for repeated, ETag-cached polling, plus a `sustainability-fetch` CLI whose `--strict` mode doubles as a standalone conformance checker usable against **any** implementation, not just this repo's own `publisher/`. Its `interop.test.ts` — a live, in-process round trip against a real `Publisher` instance — is concrete, running proof of the draft's client-side MUSTs (accept both response shapes; ignore unknown fields) and of the packages' own tolerance for historical `1.x` documents (a rule `-06` no longer specifies). See [consumer/README.md](consumer/README.md) and [consumer/USAGE.md](consumer/USAGE.md).
 
 Both packages are verified working together, installed from the live npm registry: a
 real HTTP producer→consumer round trip (fetch, CSV/NDJSON/flatten transforms, ETag

@@ -308,7 +308,7 @@ document route returns the informative `404` shown above.
 
 The service-wide default response media type (`SUSTAINABILITY_MEDIA_TYPE`, see
 [Configuration reference](#configuration-reference)) can be overridden for one
-subject at a time via [`data/_media-type.json`](data/_media-type.json) — the
+subject at a time via `data/_media-type.json` — the
 leading underscore keeps it out of the subject registry, the same convention
 as `_no-data.json`:
 

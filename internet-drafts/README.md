@@ -9,17 +9,17 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 Well-Known URI* — the Datatracker document name is unchanged).
 Individual submission on the IETF **Independent Submission Stream** (Informational).
 
-- **`-06`** is **prepared but NOT posted** — it is staged in this directory
-  (`draft-besleaga-sustainability-wellknown-06.{md,xml,txt}`) and held pending the ISE's
-  limited review. It carries the security package the ISE asked for ("security is not
+- **`-06`** is the **latest posted** revision — its sources live in this directory
+  (`draft-besleaga-sustainability-wellknown-06.{md,xml,txt}`) and it is under the ISE's
+  review. It carries the security package the ISE asked for ("security is not
   optional"): HTTPS raised from SHOULD to MUST, a dedicated
   `application/sustainability-data+json` media type registered with the full RFC 6838
   Section 5.6 template and the Section 4.6 security analysis and required as the response
   type, `X-Content-Type-Options: nosniff`, an OPTIONAL but fully specified detached-JWS
   signature at a companion well-known resource, and a restructured threat-model section.
   It adds **no member** — the CDDL and JTD schemas remain byte-identical to `-05`. It was
-  **posted to the Datatracker on 2026-09-10** and is the latest posted revision; it is an
-  Internet-Draft under ISE review, so do not cite it as a published RFC.
+  **posted to the Datatracker on 2026-09-10**; it is an Internet-Draft under ISE review,
+  so do not cite it as a published RFC.
 
 - **`-05`** is the **prior posted** revision — posted to the Datatracker 2026-07-28,
   responding to the ISE's initial review of `-04`. It makes no change to the wire format: no member is added, removed,

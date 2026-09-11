@@ -143,5 +143,5 @@ every upstream header (including the 405/Allow path) passed through correctly.
 
 - **Rate limiting** is RECOMMENDED on requests that include `period` or `granularity` query parameters, as dynamic aggregation can be CPU/DB-intensive.
 - **Array size cap** of 366 objects should be enforced in your application layer (see `example-scripts/security.*`, or `publisher/` if running the dynamic gateway).
-- **HTTPS** is RECOMMENDED — configure TLS in your server block separately; these snippets cover the endpoint behaviour only.
+- **HTTPS** is a **MUST** (draft -06; RECOMMENDED through -05) — configure TLS in your server block separately; these snippets cover the endpoint behaviour only.
 - The endpoint publishes no PII; metrics SHOULD be aggregated to ≥ 24-hour granularity before serving (enforced in `example-scripts/security.*`).

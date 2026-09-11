@@ -25,7 +25,7 @@
     "sustainability-wellknown-publisher": "^0.6.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.5.0",
     "typescript": "^5.9.3",
     "vitest": "^5.0.0"
   },

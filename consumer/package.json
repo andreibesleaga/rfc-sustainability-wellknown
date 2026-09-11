@@ -8,7 +8,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "repository": {
     "type": "git",
@@ -23,6 +23,7 @@
     "sustainability-fetch": "bin/sustainability-fetch.js"
   },
   "files": [
+    "LICENSE",
     "dist",
     "bin",
     "README.md"

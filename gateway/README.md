@@ -55,6 +55,8 @@ Anything invented lives under a reserved `.example` name (RFC 2606), says
 
 ## Quick start
 
+**Node.js 22 or newer** is required at runtime; the test suite (Vitest 5) needs **22.12 or newer**.
+
 ```bash
 npm install
 npm run build

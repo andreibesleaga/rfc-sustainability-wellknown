@@ -32,6 +32,8 @@ publishes unverified or malformed data (the circuit-breaker rule).
 
 ## Install & build
 
+**Node.js 22 or newer** is required at runtime; the test suite (Vitest 5) needs **22.12 or newer**.
+
 ```bash
 cd publisher
 npm install

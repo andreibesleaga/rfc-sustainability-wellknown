@@ -169,7 +169,7 @@ The draft defines the full data model, mandatory/optional fields, CDDL and JTD f
 | `example-response_yearly.json` | Extended service — array of 12 monthly objects for a full year trend (location-based) |
 | `example-response-yearly-monthly-target.json` | Extended service — array scoped to a specific path prefix, echoed in the mandatory `target` member |
 | `example-response-unreported.json` | Partial reporting — demonstrates metric omission (the only "not reported" mechanism in schema 2.0) and the default units (`kWh`/`gCO2e`), with a `disclosure-uri` pointer |
-| `example-response-organization.json` | Organization-level reporting (`target-type: "organization"`) — an illustrative mapping of a real, independently verified corporate GHG inventory (Cloudflare's published 2024 figures: Scope 1/2/3 in `mtCO2e`, scopes summing to `carbon-footprint`, location-based) into this schema. Documentation only: it is **not** published or endorsed by the reporting subject, and must not be served as a live well-known document by anyone other than that subject. |
+| `example-response-organization.json` | Organization-level reporting (`target-type: "organization"`) — a synthetic corporate GHG inventory in the shape a real one takes: Scope 1/2/3 in `mtCO2e`, the three scopes summing to `carbon-footprint`, location-based accounting. Every value is invented; no real organization is named. |
 | `example-response-origin-annual.json` | Basic service — annual origin-level report (`target-type: "origin"`), the primary real-world static-file use case: no query parameters, one calendar year |
 | `example-response-service.json` | Basic service — SaaS `target-type: "service"` annual report, with `sci-score`/`functional-unit` |
 | `example-response-product.json` | Basic service — hardware product carbon disclosure (`target-type: "product"`), Digital Product Passport style, per-unit lifecycle `functional-unit` |
@@ -250,78 +250,33 @@ Both configurations implement:
 
 ## Key data model fields
 
-8 mandatory fields + 16 optional fields (24 total — matches
-`schemas-validators/response-schema.json` and both packages' embedded schema copies,
-byte-equality checked in CI). This is the schema-`2.0` model, unchanged from `-03` through the current
-`-06` (`-04` adds the optional `target-type` member without changing
-the schema label); the differences from the `-02` / `1.x` model are summarized under
-"Omitted metrics & legacy compatibility" below. The posted `-06` revision makes no
-change to this model, though it does change the response media type and transport
-requirements (see
-[internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md)).
+The data model is **8 mandatory and 16 optional members**. It has been stable since `-03`;
+`-04` added the optional `target-type` hint, and `-06` changed no member at all. The
+authoritative definitions, with every requirement level, are in the draft itself — this
+README does not restate them, so the two cannot drift apart:
 
-| Field | Required | Type | Notes |
-|---|---|---|---|
-| `version` | Yes | string | Informational schema-revision label, e.g. `"2.0"` — no negotiation/conformance semantics; clients MUST NOT reject a document or change processing based on its value. `-06` defines exactly one value, `"2.0"`, which a conforming publisher MUST use; a client treats any other value exactly as it treats `"2.0"`, since processing is driven by the members present. (The former change-control regime and the `"1.0"`/`"1.1"` definitions were removed in `-06`.) |
-| `updated` | Yes | string | RFC 3339 date-time the document was last generated |
-| `capabilities` | Yes | `"basic"` / `"extended"` | Self-declared indicator of **query-parameter support only**: `basic` = only the no-parameter Mandatory Minimum Supported Service; `extended` = one or more Extended query parameters supported. It says nothing about member presence — a `basic` document MAY carry any optional fields |
-| `provider` | Yes | string | The entity operating the origin and publishing the metadata — not necessarily the hardware; enterprise adapters populate this from organization-level platforms |
-| `measurement-method` | Yes | string | A token; RECOMMENDED machine-matchable values `hardware-metered`, `hardware-estimated`, `cloud-billing`, `third-party-modeled` — or otherwise a short human-readable description |
-| `methodology-uri` | Yes | string | Link to the full calculation methodology (see the minimum-reporting rule below) |
-| `reporting-period` | Yes | string | Calendar-date precision: `"2025"`, `"2026-02"`, or `"2026-03-20"` (only the last is an RFC 3339 `full-date`) |
-| `target` | Yes | string | Opaque identifier of the **reporting subject** the metrics are attributed to — a protocol element compared octet-for-octet and never translated (see the draft's Internationalization Considerations): for an origin-wide report the origin's host (e.g. `"example.com"`) is RECOMMENDED; other typical values are a resource path prefix (`"/api/v1"`), an organizational entity, a cloud tenant or provider scope, or a software product or data source. When the response is scoped by the `target` query parameter, this member echoes the matched path prefix |
-| `target-type` | No | enum | Classifies the reporting subject named by `target`, to aid machine interpretation of that opaque member: `"origin"`, `"path"`, `"organization"`, `"service"`, `"product"`, `"device"`, `"tenant"`, `"data-source"`. Purely a hint — it does not change `target`'s syntax or attribution rules; a client that does not recognize the value (or receives none) interprets `target` as it would in this member's absence. In an array response the rule is all-or-none: either every entry carries the same value or none carries the member |
-| `energy-consumption` | No | number | Total energy for the period; **MUST NOT be negative**. Expressed in `energy-unit`; when `energy-unit` is absent, the default `kWh` applies |
-| `energy-unit` | No | enum | `"Wh"`, `"kWh"`, `"MWh"`, `"GWh"`; defaults to `kWh` when absent and `energy-consumption` is present |
-| `carbon-footprint` | No | number | Total **gross** emissions for the period; MUST NOT be negative. Expressed in `carbon-unit`; when `carbon-unit` is absent, the default `gCO2e` applies |
-| `carbon-unit` | No | enum | `"gCO2e"`, `"kgCO2e"`, `"mtCO2e"`; defaults to `gCO2e` when absent (the default also parameterizes `scope-1/2/3`) |
-| `carbon-accounting` | No | enum | `"location-based"` / `"market-based"` (GHG Protocol) |
-| `scope-1` / `scope-2` / `scope-3` | No | number | GHG Protocol Scope 1/2/3 emissions, expressed in `carbon-unit` (default `gCO2e`); **MAY be negative** to express removals or net accounting (the net-accounting basis SHOULD be explained in the `methodology-uri` document) |
-| `sci-score` | No | number | Green Software Foundation Software Carbon Intensity (now ISO/IEC 21031:2024), in gCO2e per the declared `functional-unit`; non-negative; requires `functional-unit` to also be present |
-| `functional-unit` | No | string | e.g. `"per-request"`, `"per-terabyte-day"` — required alongside `sci-score` |
-| `carbon-intensity-gCO2e-per-kWh` | No | number | Weighted grid carbon intensity (grams CO2e per kWh) used to derive `carbon-footprint` from energy; non-negative |
-| `estimated-annual-emissions-kgCO2e` | No | number | Estimated annual gross emissions in kg CO2e (regardless of `carbon-unit`); non-negative. An annualized extrapolation when the period is shorter than a year — the method belongs in the `methodology-uri` document |
-| `renewable-energy` | No | number | Percentage of energy from renewable sources; MUST be between 0 and 100 **inclusive** |
-| `verifiable-attestation-uri` | No | string | Link to a W3C Verifiable Credential or similar signed attestation, to support independent verification (not proof — see below) |
-| `disclosure-uri` | No | string | URI of a machine-readable sustainability disclosure index for the origin or reporting subject — format- and location-agnostic: this document neither defines nor recommends a path for such an index. The Green Web Foundation's [carbon.txt](https://carbontxt.org/) convention is one such form among others, and remains cited as complementary adjacent work (see "Reference implementation" below) |
+* **Member definitions** — draft `-06`, "Payload Format (JSON Data Model)".
+* **Formal schemas** — [`schemas-validators/response-schema.cddl`](schemas-validators/response-schema.cddl)
+  and [`response-schema.json`](schemas-validators/response-schema.json) (JSON Type Definition).
+  These are byte-identical to the draft's own blocks and to both packages' embedded copies;
+  CI checks that equality on every push.
+* **Worked documents** — [`example-responses/`](example-responses/), one per service level,
+  all validated against both schemas in CI.
 
-**Omitted metrics & legacy compatibility**: in schema `2.0`, **omission is the only
-"not reported" mechanism** — an unreported metric is simply left out of the document,
-and a member that is present always carries an actual value. Gross-quantity members
-are non-negative; negative values are no longer special. Legacy `1.x` documents (the
-submitted `-02` model) instead used a **negative sentinel** in mandatory numeric fields
-and an optional `target-path` member; clients apply the draft's field-driven
-compatibility (tolerance) rules: a negative value in a member defined as non-negative
-is treated as *not reported* (subsuming the historical sentinel); a member carrying a
-value of the wrong JSON type (including `null`) is likewise treated as not
-reported/absent, as is an `sci-score` without its required `functional-unit`; a
-document without a `target` member is treated as an *origin-wide* report (as the
-historical absence of `target-path` conveyed); and a legacy document that does carry
-`target-path` has its metrics attributed to that declared subject, not to the whole
-origin.
+Four properties are worth knowing before you read any of that, because they shape everything
+else:
 
-**Minimum-reporting rule**: a document SHOULD carry at least one reported numeric
-metric or a `disclosure-uri`/`verifiable-attestation-uri`; a document with none of
-these is conformant only because the publisher MUST ensure the mandatory
-`methodology-uri` leads to the substantive disclosure — so the guaranteed floor is
-still "real numbers, or a machine-followable pointer to where they are."
-
-**Trust posture**: the endpoint *asserts*, it does not *verify* — clients MUST NOT
-treat the presence of this document as proof of any claim. `verifiable-attestation-uri`
-and `disclosure-uri` are the composable path to independent verification; they are
-never fetched automatically by the reference `consumer/` package (see its
-[disclosure-link docs](consumer/USAGE.md) for why).
-
-**Extension members**: the formal schemas are open (`additionalProperties`/`* tstr =>
-any`) — unrecognized fields are permitted and clients MUST ignore them. This is how
-the schema stays extensible without a version bump or a new IANA registry. Since `-04`
-the naming rule is normative: member names **without a "."** are reserved for the
-specification and its successors; implementer-defined extensions SHOULD use
-**reverse-domain-name notation** rooted in a domain the definer controls (e.g.
-`com.example.pue`), and `X-`/`vendor-`-style prefixes SHOULD NOT be used (per the
-RFC 6648 guidance against such markers).
-
----
+* **Omission is the only "not reported" mechanism.** There is no in-band sentinel. A member
+  that is present always carries a real value; a metric you cannot stand behind is left out.
+* **The document asserts, it does not verify.** Retrieving it establishes who published it,
+  nothing more. `disclosure-uri` and `verifiable-attestation-uri` are the composable path to
+  independent verification, and the reference consumer never follows them automatically.
+* **Unknown members must be ignored.** The schemas are open, which is how the format absorbs
+  future metrics without a new revision or registry. Extension members use reverse-domain
+  names (`com.example.pue`); undotted names are reserved for the specification.
+* **The reporting subject is declared, not inferred.** The mandatory `target` member says what
+  the figures describe — an origin, a subdomain, a service, a device, a tenant, a product, or
+  the organization itself.
 
 ## Compatibility between draft revisions
 

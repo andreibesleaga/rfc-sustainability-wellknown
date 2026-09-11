@@ -21,8 +21,7 @@ from that row to a public document, it does not belong in this directory.
 3. **Every document about a third party states in band, in its `provider`
    member, that it is an illustrative mapping prepared by the gateway operator
    and is not published or endorsed by the reporting subject**, followed by the
-   scope caveats that apply to it. The wording follows
-   `example-responses/example-response-organization.json` in this repository.
+   scope caveats that apply to it.
 4. **Omit rather than approximate.** A member the source does not support is
    left out. The specification has no in-band "not reported" marker precisely so
    that omission carries that meaning; filling a gap with a plausible number is
@@ -91,10 +90,10 @@ Caveats, disclosed here and in the document's `provider`:
   claim, not a share of energy from renewable sources, and mapping it onto this
   member would overstate what the source says.
 
-These figures are the ones already carried by
-`example-responses/example-response-organization.json` in this repository, where
-they were transcribed by the draft author from the source PDF. They are reused
-unchanged rather than re-derived.
+These figures were transcribed by the draft author from the source PDF cited
+above. The canonical example set in `example-responses/` is entirely synthetic and
+names no real organization; real-organization documents live only here, where each
+figure's source and retrieval date are recorded.
 
 ### `akamai.com.json` — Akamai Technologies, Inc., CY2025
 

@@ -1,4 +1,10 @@
 temp
 __pycache__/
+.pytest_cache/
 node_modules/
 CHANGELOGS.md
+coverage/
+*.log
+.env
+.env.*
+.DS_Store

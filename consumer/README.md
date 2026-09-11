@@ -56,6 +56,8 @@ job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad in
 
 ## Install & build
 
+**Node.js 22 or newer** is required at runtime; the test suite (Vitest 5) needs **22.12 or newer**.
+
 ```bash
 cd consumer
 npm install

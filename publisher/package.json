@@ -58,7 +58,7 @@
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.0",
-    "express": "^4.21.2",
+    "express": "^5.2.1",
     "typescript": "^5.7.2",
     "vitest": "^5.0.0"
   },

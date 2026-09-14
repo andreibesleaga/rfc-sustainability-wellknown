@@ -1,6 +1,6 @@
 {
   "name": "sustainability-wellknown-publisher",
-  "version": "0.6.0",
+  "version": "0.6.5",
   "description": "Reference publisher for /.well-known/sustainability-data (Internet-Draft draft-besleaga-sustainability-wellknown). Serves a draft-conformant document from pluggable metric sources (static/computed, Kepler/Prometheus, Climatiq, Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed).",
   "license": "BSD-3-Clause",
   "author": "Andrei Nicolae Besleaga",
@@ -8,7 +8,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12"
   },
   "repository": {
     "type": "git",
@@ -53,7 +53,8 @@
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "@tgwf/co2": "^0.19.0",
-    "ajv": "^8.17.1"
+    "ajv": "^8.17.1",
+    "jose": "^6.2.12"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

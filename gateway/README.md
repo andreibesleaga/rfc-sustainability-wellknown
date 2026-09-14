@@ -8,7 +8,8 @@ the right headers.
 
 ```
 GET  /{domain}/.well-known/sustainability-data   one subject's document
-GET  /.well-known/sustainability-data            the gateway's own report
+GET  /.well-known/sustainability-data            the gateway's own report (Extended: ?period= &granularity=)
+GET  /.well-known/sustainability-data.jws        detached signature of that report (draft -06, OPTIONAL)
 GET  /                                           human-readable index
 GET  /index.json                                 machine-readable index
 GET  /healthz                                    liveness
@@ -25,6 +26,12 @@ GET  /healthz                                    liveness
   [`data/README.md`](data/README.md).
 - A **worked example** of generating these documents from a publisher adapter
   rather than by hand — see [GUIDE.md](GUIDE.md#wiring-an-adapter).
+- A **complete -06 publication** for its own report: the Extended service
+  (`period`/`granularity` since go-live), the OPTIONAL detached signature, a
+  linked Verifiable Credential attesting the reporting model, and per-client
+  rate limiting — with the honesty caveats stated on the page (the figures are a
+  model; operator and attester are the same person). See
+  [METHODOLOGY.md](METHODOLOGY.md#5-signature-and-attestation).
 
 It reuses the published
 [`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)
@@ -46,16 +53,19 @@ routing and the honesty machinery.
 - **Not a replacement** for an organization publishing at its own origin, which
   is what the specification actually describes. A gateway is what you do while
   waiting.
-- **Not an Extended-service implementation.** It declares
-  `capabilities: "basic"` and ignores query parameters, as the specification
-  requires of a Basic server.
+- **Not an Extended-service relay.** Relayed documents declare
+  `capabilities: "basic"` and ignore query parameters, as the specification
+  requires of a Basic server; only the gateway's *own* report is Extended,
+  because only its figures come from a model the gateway can evaluate for any
+  period. Nor does it sign or attest anything on a third party's behalf: the
+  per-subject `.jws` paths are `404` on purpose.
 
 Anything invented lives under a reserved `.example` name (RFC 2606), says
 `SYNTHETIC EXAMPLE` in capitals, and is badged as such in the index.
 
 ## Quick start
 
-**Node.js 22 or newer** is required at runtime; the test suite (Vitest 5) needs **22.12 or newer**.
+**Node.js 22.12 or newer** is required (runtime and tests: the JOSE library is loaded as an ES module through `require()`, unflagged since 22.12; Vitest 5 needs 22.12 too).
 
 ```bash
 npm install

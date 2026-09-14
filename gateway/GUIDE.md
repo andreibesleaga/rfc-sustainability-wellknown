@@ -113,21 +113,26 @@ the reason.
 
 ## Routes and HTTP contract
 
-The gateway implements the **Basic** service level: `capabilities: "basic"`, no
-query parameters — with one deliberate, draft-conformant exception: the
-wire-format example subjects whose documents themselves declare
+Relayed subject documents implement the **Basic** service level:
+`capabilities: "basic"`, no query parameters — with two deliberate,
+draft-conformant exceptions. The gateway's **own** report is an Extended
+publisher (`period` and `granularity` honoured, `target` ignored; see
+[The gateway's own report](#the-gateways-own-report-extended-signed-attested)),
+and the wire-format example subjects whose documents themselves declare
 `capabilities: "extended"` honor `?granularity=` and return their full sorted
 trend array (see [Wiring an adapter](#wiring-an-adapter)).
 
 | Route | Behaviour |
 |---|---|
 | `GET\|HEAD /{domain}/.well-known/sustainability-data` | The subject's document. `200` + the dedicated `application/sustainability-data+json` media type (or the legacy `application/json`, per [Configuration reference](#configuration-reference)), or `404` if the subject is unknown. |
-| `GET\|HEAD /.well-known/sustainability-data` | The gateway's own report, `target-type: "service"`. |
+| `GET\|HEAD /.well-known/sustainability-data` | The gateway's own report, `target-type: "service"`, `capabilities: "extended"`: `?period=YYYY[-MM[-DD]]` and `?granularity=monthly\|daily` honoured (array only when the granularity is finer than the period), `404` for a period wholly before go-live, `target` ignored. |
+| `GET\|HEAD /.well-known/sustainability-data.jws` | The detached JWS over the exact bytes of the parameterless self document (`application/jose`, ETag `"<doc-etag>+jws"`), when `SUSTAINABILITY_SIGNING_KEY` is set; `404` otherwise (draft: "does not sign"). Per-subject `.jws` paths are always `404`. |
 | `GET\|HEAD /` | HTML index: every subject, the honesty notice, the gaps. |
 | `GET\|HEAD /index.json` | The same index, machine-readable. |
 | `GET\|HEAD /healthz` | `{"status":"ok","subjects":N}`, `Cache-Control: no-store`. |
 | any other method on any of the above | `405` + `Allow: GET, HEAD`. |
 | anything else | `404` with a JSON body. |
+| more than `RATE_LIMIT_PER_MINUTE` requests from one client in a minute (any path but `/healthz`) | `429` + `Retry-After`, `Cache-Control: no-store`. |
 
 Observed on a `200` for a subject document:
 
@@ -598,6 +603,12 @@ injects.
 | `SELF_PERIOD` | last completed calendar month | Pin the gateway's own period (`YYYY` or `YYYY-MM`). |
 | `SELF_WATTS` | `3` | Modelled average container power draw. |
 | `SELF_GRID_INTENSITY` | `373` | gCO2e/kWh; sourced and caveated in METHODOLOGY.md. |
+| `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When the gateway went live (RFC 3339). The self model counts no hours before it; a period wholly before it is `404`. |
+| `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report — the URL of a signed third-party statement (the reference deployment: a `vc+jwt` credential issued with `scripts/issue-attestation.mjs`). |
+| `SELF_SIGNING_KEY_URL` | *(unset)* | Where the PUBLIC signing key is hosted; shown on the index so verifiers can pin it. The key itself travels in the JWS header. |
+| `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | The PRIVATE JWK (JSON) that signs the self report. Unset: `.jws` is `404`. Generate with `npx -p sustainability-wellknown-publisher sustainability-publisher keygen --out <file>` and paste the file's contents; never commit it. |
+| `RATE_LIMIT_PER_MINUTE` | `600` | Requests per client per minute on every path but `/healthz`; `0` disables. 600 leaves room for the repository's own conformance script, which fires ~340 requests from one client in well under a minute. |
+| `TRUST_PROXY` | `1` | Trusted proxies in front of the process (the client is the last `X-Forwarded-For` entry); `0` when exposed directly. |
 
 Bounds enforced by the loader (specification, Security Considerations), in
 `src/config.ts`:
@@ -620,13 +631,57 @@ decimal places than the normalizer keeps, or an `sci-score` missing its required
 `functional-unit` (which the publisher's client-tolerance rule would otherwise
 silently drop).
 
-**Why the Basic service, and no query parameters at all.** The gateway relays
-static annual disclosures. It has no finer-grained data to slice, so `period`
-and `granularity` would be honest only as no-ops — and the specification's
-answer for a server that does not support them is to ignore them and return the
-Basic response, which is exactly what happens. The side benefit is that the
-cache-key space is one entry per subject, which is the specification's
-Denial-of-Service guidance.
+**Why the relayed subjects are Basic, and no query parameters there.** The
+gateway relays static annual disclosures. It has no finer-grained data to
+slice, so `period` and `granularity` would be honest only as no-ops — and the
+specification's answer for a server that does not support them is to ignore
+them and return the Basic response, which is exactly what happens. The side
+benefit is that the cache-key space is one entry per subject, which is the
+specification's Denial-of-Service guidance.
+
+## The gateway's own report: Extended, signed, attested
+
+The self report is the one document whose figures the gateway *computes*, from
+a closed-form model (see [METHODOLOGY.md](METHODOLOGY.md#2-the-gateways-own-report)),
+so it is the one document that can honestly offer more than the Basic service.
+Since 0.6.5 it exercises every optional part of the draft:
+
+- **Extended service.** `?period=` (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`) and
+  `?granularity=` (`monthly`, `daily`) are honoured; an array is returned only
+  when the granularity is finer than the period. Only hours inside
+  `[SELF_LIVE_SINCE, now)` count: a period wholly before go-live is `404` (the
+  no-data rule), a period in progress reports the completed portion to date
+  (`updated` = the current hour, so its ETag is stable within the hour). The
+  `target` parameter is ignored (one process, no path prefixes; METHODOLOGY.md
+  publishes that empty prefix set). The parameterless document is still the
+  most recently completed month. The key space is bounded by construction:
+  periods with any live overlap × two granularities × three shapes, behind a
+  64-entry, one-hour variant cache.
+- **Detached signature.** With `SUSTAINABILITY_SIGNING_KEY` set (a private JWK
+  as `sustainability-publisher keygen --out` writes it), the parameterless
+  self document is signed and the JWS served at
+  `/.well-known/sustainability-data.jws` — the publisher library's
+  `handleSignatureRequest`, over the very string it serves, one signature per
+  document generation, regenerated at month rollover. At boot the gateway signs
+  and verifies once with the consumer library and refuses to start if that
+  fails; a key that cannot be imported also stops the boot. Relayed documents
+  are never signed (their `.jws` paths answer `404` with an explicit message):
+  the gateway can vouch for its own bytes, never for a third party's figures.
+- **Attestation.** `SELF_ATTESTATION_URI` puts `verifiable-attestation-uri`
+  in the self document (and nowhere else). The reference deployment links a
+  W3C Verifiable Credential 2.0 secured as `vc+jwt`, issued with
+  `scripts/issue-attestation.mjs`, attesting the *model* for five years. The
+  index page states that operator and issuer are the same person.
+- **Rate limiting.** `rate-limiter-flexible`, in memory, per client, fixed
+  one-minute window, before routing (`/healthz` exempt). Behind Railway the
+  client is the last `X-Forwarded-For` entry (`TRUST_PROXY=1`, the default);
+  set `TRUST_PROXY=0` when exposing the process directly, or a client could
+  rotate spoofed addresses. Railway's edge cache answers repeat hits before
+  they reach the process, so the limiter is a backstop, not the primary control.
+
+Verify all of it with the consumer: `sustainability-fetch <base> --strict
+--verify-attestation` (battery incl. the signature check, then the credential)
+or `--verify --verify-attestation` (one fetch, both outcomes on stderr).
 
 **Why `node:http` rather than Express or Fastify.** The specification pins exact
 status codes and header sets, and a framework that adds `X-Powered-By`, rewrites

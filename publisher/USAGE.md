@@ -39,6 +39,14 @@ and exit instead of serving), `--emit-carbon-txt` (print a matching
 carbon.txt to stdout INSTEAD of the metrics document; requires
 `server.carbonTxt.sustainabilityUrl` in the config). See `bin/sustainability-publisher.js` / `src/cli.ts`.
 
+Two subcommands support the draft's OPTIONAL detached signature (0.6.5):
+`keygen [--alg EdDSA|ES256] [--out <private.jwk>]` writes the private JWK
+(mode 0600, never overwriting) and prints the public JWK; `sign <document>
+--key <private.jwk> [--no-jwk]` prints the detached JWS over the file's exact
+bytes, for static hosts. A served deployment signs by setting
+`SUSTAINABILITY_SIGNING_KEY` (the private JWK JSON) or `server.signingKeyFile`.
+See `README.md` § Signing the document.
+
 ## 2. Embedded middleware in an existing app
 
 If you already run Express or Fastify, add the endpoint to your existing server
@@ -307,7 +315,13 @@ The three option bags accepted by `new Publisher(adapter, options)`:
   Fingerprinting rules).
 - **Handler/middleware options** (`HandlerOptions`, `src/handler.ts`): `cors`
   (default `"*"`; `false` disables), `onError` (hook for 503 logging),
-  `carbonTxt` (see `README.md` §Adapters for the bidirectional carbon.txt setup).
+  `carbonTxt` (see `README.md` §Adapters for the bidirectional carbon.txt setup),
+  `signingKey` (a `SigningKey` from `importSigningKey()`/`generateSigningKey()`;
+  enables the `/.well-known/sustainability-data.jws` route — see `README.md`
+  § Signing the document).
+- **CLI config `server.signingKeyFile`**: path of the private JWK written by
+  `keygen --out`; the `SUSTAINABILITY_SIGNING_KEY` environment variable (the
+  JWK JSON itself) takes precedence.
 
 See `README.md` for the full adapter-by-adapter config field reference and the
 JSON config-file schema used by the CLI.

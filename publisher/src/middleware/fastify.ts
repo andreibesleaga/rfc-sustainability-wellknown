@@ -10,10 +10,12 @@ import {
   CARBON_TXT_PATHS,
   carbonTxtResult,
   handleRequest,
+  handleSignatureRequest,
   HandlerOptions,
   parseQuery,
   WELL_KNOWN_PATH,
 } from "../handler";
+import { SIGNATURE_PATH } from "../jws";
 import { Publisher } from "../publisher";
 
 type FastifyHandler = (req: any, reply: any) => Promise<unknown>;
@@ -102,6 +104,18 @@ export async function fastifySustainability(
     }
     return reply.send(result.body);
   });
+
+  if (handlerOpts.signingKey) {
+    registerAllMethods(fastify, SIGNATURE_PATH, async (req: any, reply: any) => {
+      if (isDisallowed(req.method)) return send405(reply);
+      const result = await handleSignatureRequest(publisher, handlerOpts, req.headers?.["if-none-match"]);
+      reply.code(result.status).headers(result.headers);
+      if (result.status === 304 || String(req.method).toUpperCase() === "HEAD") {
+        return reply.send();
+      }
+      return reply.send(result.body);
+    });
+  }
 
   if (carbonTxt) {
     for (const path of CARBON_TXT_PATHS) {

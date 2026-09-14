@@ -183,6 +183,10 @@ export async function subjectFromAdapter(opts: {
   targetType?: SustainabilityMetrics["target-type"];
   /** Human label recorded as the Subject's `source`. */
   label?: string;
+  /** Variant cache lifetime. Default: the process lifetime (static documents). */
+  cacheTtlMs?: number;
+  /** Bound on cached query variants. Default 4. */
+  maxCacheEntries?: number;
 }): Promise<Subject> {
   const domain = opts.domain.toLowerCase();
   if (!DOMAIN_RE.test(domain) || domain.length > LIMITS.maxDomainLength) {
@@ -190,8 +194,8 @@ export async function subjectFromAdapter(opts: {
   }
   const publisher = new Publisher(opts.adapter, {
     normalize: { target: opts.target, targetType: opts.targetType },
-    cacheTtlMs: 365 * 24 * 60 * 60 * 1000,
-    maxCacheEntries: 4,
+    cacheTtlMs: opts.cacheTtlMs ?? 365 * 24 * 60 * 60 * 1000,
+    maxCacheEntries: opts.maxCacheEntries ?? 4,
   });
   const { body } = await publisher.getSerialized({});
   if (Buffer.byteLength(body) > LIMITS.maxDocumentBytes) {

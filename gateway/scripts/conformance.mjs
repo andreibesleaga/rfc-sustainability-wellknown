@@ -34,9 +34,15 @@ if (!origin) {
 const base = origin.replace(/\/+$/, "");
 const options = { allowInsecure: allowHttp };
 
+// The document path AND its signature companion are rewritten under the
+// subject's prefix: the battery's signature check (consumer >= 0.6.5) fetches
+// `/.well-known/sustainability-data.jws`, and a per-subject run must see the
+// subject's own (404, "not published") signature path, never the root one.
 const prefixed = (domain) => (input, init) => {
   const u = new URL(typeof input === "string" ? input : input.toString());
-  if (u.pathname === WELL_KNOWN) u.pathname = `/${domain}${WELL_KNOWN}`;
+  if (u.pathname === WELL_KNOWN || u.pathname === `${WELL_KNOWN}.jws`) {
+    u.pathname = `/${domain}${u.pathname}`;
+  }
   return fetch(u, init);
 };
 

@@ -8,7 +8,7 @@
  * (publisher/src/publisher.ts, adapters/computed.ts, adapters/static.ts,
  * security.ts) rather than assumed — see comments inline.
  *
- * NOTE (-06): the sibling publisher is 0.6.0, so `createSustainabilityServer`
+ * NOTE (-06): the sibling publisher is 0.6.5, so `createSustainabilityServer`
  * serves the dedicated `application/sustainability-data+json` media type by
  * default — test (h) below asserts that the pair agrees on it, which is the
  * point of an interop suite. The rig runs over plain HTTP on 127.0.0.1, so the

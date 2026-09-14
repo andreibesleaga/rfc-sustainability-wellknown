@@ -19,11 +19,17 @@
  * `application/sustainability-data+json` and, at a lower q-value, the pre-06
  * `application/json`; the response's own type is classified and reported as
  * `mediaType`, but a response is never refused on media type alone.
+ *
+ * Duplicate member names (draft §Denial-of-Service / RFC 8259): the body is
+ * parsed with `JSON.parse`, whose documented behaviour keeps the LAST value of
+ * a duplicated name; that behaviour is applied consistently, which is the
+ * alternative the draft permits to rejecting such a document.
  */
-import { FetchParams, FetchResult, SustainabilityDocument } from "./types";
+import { FetchParams, FetchResult, SignatureResult, SustainabilityDocument } from "./types";
 import { isRecognizedTargetType, isWrongJsonType, legacyReportingSubject } from "./sentinel";
 import { validateDocument } from "./validate";
 import { ACCEPT_HEADER, classifyMediaType } from "./media-type";
+import { JOSE_MEDIA_TYPE, PublicJwk, SIGNATURE_PATH, verifyDetachedJws, VerifyPolicy } from "./jws";
 
 export const WELL_KNOWN_PATH = "/.well-known/sustainability-data";
 
@@ -115,6 +121,24 @@ export interface FetchOptions extends FetchParams {
    * fail validation.
    */
   legacyCompat?: boolean;
+  /**
+   * Also retrieve the OPTIONAL detached signature resource
+   * (`/.well-known/sustainability-data.jws`, draft -06 §Document Signing)
+   * and verify it over the EXACT octets of the document response. The
+   * outcome is reported in `signature` on an `ok` result and never changes
+   * the document's own status: the draft says an absent signature is not
+   * evidence of anything, and a failed one makes the document "unverified",
+   * never "false". Default false (an extra request).
+   */
+  verifySignature?: boolean;
+  /**
+   * Verification policy for `verifySignature`: keys pinned out of band (a
+   * hosted JWK), and/or a restriction on accepted algorithms. Without
+   * trusted keys, the key carried in the signature's own header is used and
+   * the result is `keySource: "header"` — integrity and key continuity, not
+   * identity.
+   */
+  signaturePolicy?: VerifyPolicy;
 }
 
 /** Internal marker: the response body exceeded the configured byte cap. */
@@ -136,12 +160,12 @@ function isAbortOrTimeout(err: unknown): boolean {
  * fully buffered. Streams when the runtime exposes res.body; falls back to a
  * length-checked text read otherwise.
  */
-async function readBodyCapped(res: Response, maxBytes: number): Promise<string> {
+async function readBodyCapped(res: Response, maxBytes: number): Promise<{ bytes: Uint8Array; text: string }> {
   const body = res.body;
   if (!body || typeof body.getReader !== "function") {
     const text = await res.text();
     if (Buffer.byteLength(text) > maxBytes) throw new BodyTooLargeError(Buffer.byteLength(text), maxBytes);
-    return text;
+    return { bytes: Buffer.from(text, "utf8"), text };
   }
   const reader = body.getReader();
   const chunks: Uint8Array[] = [];
@@ -158,7 +182,142 @@ async function readBodyCapped(res: Response, maxBytes: number): Promise<string> 
       chunks.push(value);
     }
   }
-  return Buffer.concat(chunks).toString("utf8");
+  // The exact octets are kept alongside the decoded text: a detached
+  // signature is verified over the bytes as served, never over a re-encoding.
+  const bytes = Buffer.concat(chunks);
+  return { bytes, text: bytes.toString("utf8") };
+}
+
+export interface FetchSignatureOptions {
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
+  /** Byte cap for the signature body (default 8192: a compact JWS with an embedded key is well under 1 KB). */
+  maxBytes?: number;
+  allowInsecure?: boolean;
+  /**
+   * The origin the DOCUMENT was attributed to (its final-response origin).
+   * The draft forbids following a redirect of the signature resource to any
+   * other origin; when given, a final signature URL on a different origin is
+   * refused.
+   */
+  documentOrigin?: string;
+}
+
+export type FetchSignatureResult =
+  | { status: "absent" }
+  | { status: "present"; jws: string; contentType: string | null; url: string }
+  | { status: "error"; reason: string; detail?: string };
+
+/**
+ * Retrieve the detached signature resource for an origin (same URL rules as
+ * {@link resolveWellKnownUrl}, with `.jws` appended to the well-known path).
+ * 404 means only that the publisher does not sign (`absent`); anything else
+ * that is not a 200 is an `error` the caller reports as "unverified".
+ */
+export async function fetchSignature(origin: string, options: FetchSignatureOptions = {}): Promise<FetchSignatureResult> {
+  const doFetch = options.fetchImpl ?? globalThis.fetch;
+  if (!doFetch) throw new Error("fetchSignature: no fetch implementation available; pass options.fetchImpl");
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const maxBytes = options.maxBytes ?? 8192;
+
+  const url = resolveWellKnownUrl(origin);
+  url.pathname = url.pathname.replace(/\/\.well-known\/sustainability-data$/, SIGNATURE_PATH);
+  url.search = "";
+  if (!options.allowInsecure && url.protocol !== "https:") {
+    return { status: "error", reason: "insecure-transport", detail: `signature URL ${url} is not HTTPS` };
+  }
+
+  let res: Response;
+  try {
+    res = await doFetch(url.toString(), {
+      method: "GET",
+      headers: { Accept: JOSE_MEDIA_TYPE },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (err) {
+    if (isAbortOrTimeout(err)) return { status: "error", reason: "timeout" };
+    return { status: "error", reason: "network-error", detail: err instanceof Error ? err.message : String(err) };
+  }
+
+  if (typeof res.url === "string" && res.url !== "") {
+    let finalUrl: URL | undefined;
+    try {
+      finalUrl = new URL(res.url);
+    } catch {
+      finalUrl = undefined;
+    }
+    if (finalUrl) {
+      if (!options.allowInsecure && finalUrl.protocol !== "https:") {
+        await res.body?.cancel().catch(() => undefined);
+        return { status: "error", reason: "insecure-transport", detail: `final signature URL ${finalUrl} is not HTTPS` };
+      }
+      // Draft: "a client MUST NOT follow a redirect of the signature resource
+      // to any other origin" — the signature must come from the origin the
+      // document was attributed to.
+      const expected = options.documentOrigin ?? url.origin;
+      if (finalUrl.origin !== expected) {
+        await res.body?.cancel().catch(() => undefined);
+        return {
+          status: "error",
+          reason: "cross-origin-redirect",
+          detail: `signature resource redirected to ${finalUrl.origin}, not the document's origin ${expected}`,
+        };
+      }
+    }
+  }
+
+  if (res.status === 404) {
+    await res.body?.cancel().catch(() => undefined);
+    return { status: "absent" };
+  }
+  if (res.status !== 200) {
+    await res.body?.cancel().catch(() => undefined);
+    return { status: "error", reason: `http-${res.status}` };
+  }
+  try {
+    const { text } = await readBodyCapped(res, maxBytes);
+    return { status: "present", jws: text.trim(), contentType: res.headers.get("content-type"), url: url.toString() };
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) return { status: "error", reason: "too-large", detail: err.message };
+    if (isAbortOrTimeout(err)) return { status: "error", reason: "timeout" };
+    throw err;
+  }
+}
+
+/**
+ * Fetch the signature resource and verify it over `documentBytes`. The
+ * result is the draft's three-way outcome: `absent`, `verified`, or
+ * `unverified` with a reason — never a judgement on the document's truth.
+ */
+export async function verifyDocumentSignature(
+  origin: string,
+  documentBytes: Uint8Array,
+  options: FetchSignatureOptions & { policy?: VerifyPolicy } = {},
+): Promise<SignatureResult> {
+  const fetched = await fetchSignature(origin, options);
+  if (fetched.status === "absent") return { status: "absent" };
+  if (fetched.status === "error") return { status: "unverified", reason: fetched.reason, detail: fetched.detail };
+  const mediaTypeOk = (fetched.contentType ?? "").split(";")[0].trim().toLowerCase() === JOSE_MEDIA_TYPE;
+  const v = await verifyDetachedJws(fetched.jws, documentBytes, options.policy ?? {});
+  if (!v.valid) {
+    return {
+      status: "unverified",
+      reason: v.reason ?? "invalid-signature",
+      mediaType: fetched.contentType,
+      mediaTypeOk,
+      ...(v.alg ? { alg: v.alg } : {}),
+      ...(v.kid ? { kid: v.kid } : {}),
+    };
+  }
+  return {
+    status: "verified",
+    alg: v.alg!,
+    kid: v.kid,
+    publicJwk: v.publicJwk as PublicJwk,
+    keySource: v.keySource!,
+    mediaType: fetched.contentType,
+    mediaTypeOk,
+  };
 }
 
 export async function fetchSustainability(origin: string, options: FetchOptions = {}): Promise<FetchResult> {
@@ -244,8 +403,9 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
   }
 
   let text: string;
+  let bytes: Uint8Array;
   try {
-    text = await readBodyCapped(res, maxBytes);
+    ({ bytes, text } = await readBodyCapped(res, maxBytes));
   } catch (err) {
     if (err instanceof BodyTooLargeError) return { status: "too-large", detail: err.message };
     if (isAbortOrTimeout(err)) return { status: "timeout", timeoutMs };
@@ -340,6 +500,25 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
   const result = validateDocument(parsed);
   if (!result.valid) return { status: "invalid", errors: result.errors };
 
+  // OPTIONAL signature (draft -06 §Document Signing). The signing input is the
+  // parameterless representation only ("What the Signature Covers"), so a
+  // request that carried Extended parameters cannot be checked against it.
+  let signature: SignatureResult | undefined;
+  if (options.verifySignature) {
+    if (options.target || options.period || options.granularity) {
+      signature = { status: "not-applicable", reason: "parameters-present" };
+    } else {
+      const documentOrigin = res.url ? new URL(res.url).origin : url.origin;
+      signature = await verifyDocumentSignature(origin, bytes, {
+        fetchImpl: doFetch,
+        timeoutMs,
+        allowInsecure: options.allowInsecure,
+        documentOrigin,
+        policy: options.signaturePolicy,
+      });
+    }
+  }
+
   const etag = res.headers.get("etag") ?? undefined;
   return {
     status: "ok",
@@ -349,5 +528,6 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
     ...(result.warnings.length > 0 ? { warnings: result.warnings } : {}),
     ...(legacy ? { legacy } : {}),
     ...(disregarded.length > 0 ? { disregarded } : {}),
+    ...(signature ? { signature } : {}),
   };
 }

@@ -13,6 +13,7 @@ export * from "./security";
 export * from "./validate";
 export * from "./publisher";
 export * from "./handler";
+export * from "./jws";
 export * from "./server";
 export * from "./carbontxt";
 export * from "./adapters";

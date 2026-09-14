@@ -56,7 +56,7 @@ job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad in
 
 ## Install & build
 
-**Node.js 22 or newer** is required at runtime; the test suite (Vitest 5) needs **22.12 or newer**.
+**Node.js 22.12 or newer** is required (runtime and tests: the JOSE library is loaded as an ES module through `require()`, unflagged since 22.12; Vitest 5 needs 22.12 too).
 
 ```bash
 cd consumer
@@ -103,7 +103,10 @@ the transformation helpers, disclosure-link handling, and the conformance checke
 | `schema` | `RESPONSE_JTD_SCHEMA` — the JTD (RFC 8927) schema for a single metrics object, an exact embedded copy of `schemas-validators/response-schema.json` |
 | `media-type` | `MEDIA_TYPE` (`application/sustainability-data+json`), `LEGACY_MEDIA_TYPE` (`application/json`), `ACCEPTED_MEDIA_TYPES`, `ACCEPT_HEADER`, `classifyMediaType()` — the -06 media typing, in the one file a future rename would touch |
 | `validate` | `validateDocument()`/`assertValid()`/`URI_MEMBERS` — defensive validation of an incoming document: JTD schema gate plus the draft's cross-entry array rules; `result.warnings` carries advisory findings (an absolute non-`https` URI member) that never change `result.valid` |
-| `fetch` | `fetchSustainability(origin, options)` — the one-call, zero-extra-dependency fetch-and-validate function; its `legacyCompat` option (default true) derives a missing `target` from the legacy `target-path` value (origin host only when neither exists), disregards (strips + records in `disregarded`) wrong-JSON-typed optional members, a reported `sci-score` without `functional-unit`, and unrecognized `target-type` values, and returns the distinct `no-report` status for a 200 empty array, per the draft's compatibility/tolerance rules; sends the -06 `Accept` header, reports the response's media type as `mediaType`, and refuses a non-HTTPS retrieval (`status: "insecure-transport"`) unless `allowInsecure: true` |
+| `jws` | `verifyDetachedJws()`, `verifyJws()`, `algForKey()`, `SIGNATURE_PATH`, `JOSE_MEDIA_TYPE`, `VC_JWT_MEDIA_TYPE` — JWS verification on top of [`jose`](https://github.com/panva/jose) with the draft's verifier policy (RFC 8725): the algorithm is determined by the key and the caller's policy, `none`/MACs and unknown `crit` are rejected, a header `jwk` must be a public key and is ignored when the caller pins `trustedKeys`; every failure is a stable `reason`, never a throw |
+| `attestation` | `verifyAttestation(uri, options)` (explicit; never automatic), `verifyCredentialJwt()`, `checkCredentialShape()`, `VC_V2_CONTEXT` — a W3C Verifiable Credential 2.0 secured as `vc+jwt`: HTTPS only, signature + VC shape + validity window, `assurance: "issuer-key-pinned" \| "self-asserted-key"` |
+| `text` | `isolate()` — Unicode bidi isolation (FSI…PDI) for document-derived text in human-readable output |
+| `fetch` | `fetchSustainability(origin, options)` — the one-call fetch-and-validate function; `verifySignature: true` adds a `signature` outcome (`absent`/`verified`/`unverified`/`not-applicable`) via `fetchSignature()`/`verifyDocumentSignature()`, verified over the exact octets served and refusing a cross-origin redirect of the signature resource; its `legacyCompat` option (default true) derives a missing `target` from the legacy `target-path` value (origin host only when neither exists), disregards (strips + records in `disregarded`) wrong-JSON-typed optional members, a reported `sci-score` without `functional-unit`, and unrecognized `target-type` values, and returns the distinct `no-report` status for a 200 empty array, per the draft's compatibility/tolerance rules; sends the -06 `Accept` header, reports the response's media type as `mediaType`, and refuses a non-HTTPS retrieval (`status: "insecure-transport"`) unless `allowInsecure: true` |
 | `client` | `SustainabilityClient` — a class for repeated polling, with ETag-based conditional-request caching (threads `legacyCompat` through) |
 | `sentinel` | `isNotReported()`, `withoutSentinels()`, `NUMERIC_KEYS`, `TARGET_TYPES`, `isRecognizedTargetType()`, `isWrongJsonType()`, `legacyReportingSubject()`, `OPTIONAL_MEMBER_JSON_TYPES` — the legacy-compatibility/tolerance module: a negative value in a non-negative member reads as "not reported" (subsumes the historical 1.x sentinel — negative scopes are real data and are never stripped), a wrong-JSON-typed value (including `null`) in a defined optional member reads as "not reported", an unrecognized enumerated `target-type` value reads as "disregard the member" (draft §Value Constraints and Omitted Metrics), and `legacyReportingSubject()` resolves a 1.x document's subject from `target-path` (origin host as the fallback) |
 | `units` | `convertEnergy()`, `convertCarbon()` — unit conversion, matching `publisher/src/normalize.ts`'s tables exactly (parity-tested) |
@@ -118,7 +121,8 @@ All of the above are re-exported from the package root (`src/index.ts`).
 
 ```bash
 sustainability-fetch <origin> [--target=/path] [--period=2026-02] [--granularity=monthly] \
-  [--format=json|csv|ndjson] [--strict] [--etag=<cached-etag>] [--allow-http]
+  [--format=json|csv|ndjson] [--strict] [--etag=<cached-etag>] [--allow-http] \
+  [--verify] [--verify-attestation[=<issuer JWK url or file>]]
 ```
 
 Options may appear before or after the origin. A bare hostname is promoted to
@@ -150,7 +154,26 @@ npx -y -p sustainability-wellknown-consumer sustainability-fetch https://example
 
 # Conformance-check a target origin (any implementation, not just this repo's):
 npx -y -p sustainability-wellknown-consumer sustainability-fetch https://example.org --strict
+
+# Also check the OPTIONAL detached signature and the linked attestation (0.6.5):
+npx -y -p sustainability-wellknown-consumer sustainability-fetch https://example.org --verify --verify-attestation
 ```
+
+Since 0.6.5, `--verify` also retrieves `/.well-known/sustainability-data.jws`
+(the draft's OPTIONAL detached signature) and verifies it over the exact bytes
+served, printing one line on stderr — `signature: verified EdDSA kid=…`,
+`signature: absent …` or `signature: unverified (<reason>) …` — without ever
+changing the document's own outcome, as the draft requires (absent is not
+evidence; failed means *unverified*, never *false*). `--verify-attestation`
+dereferences the document's `verifiable-attestation-uri` — explicitly, never
+automatically — and verifies it as a W3C Verifiable Credential (Data Model 2.0)
+secured as `vc+jwt`; give it the issuer's public JWK (an `https` URL or a file)
+to pin the issuer key, otherwise the key in the credential's header is used and
+the result is reported as self-asserted. Under `--strict` the signature is part
+of the battery, and an invalid attestation sets exit code 1. Human-readable
+output isolates document text with Unicode FSI/PDI, per the draft's
+Internationalization Considerations; JSON/CSV/NDJSON output carries the data
+unchanged.
 
 Non-zero exit code on any HTTP error, validation failure, or (for `--strict`) any
 conformance check failure — directly scriptable in cron/CI (`&&`/`set -e`). See
@@ -184,6 +207,7 @@ Expected `--strict` output for a fully conformant origin — every `MUST` PASS,
 PASS  [MUST] Basic request returns a schema-valid single object
 PASS  [MUST] Basic 200 response uses the application/sustainability-data+json media type
 PASS  [SHOULD] Response sends X-Content-Type-Options: nosniff
+PASS  [MUST] Detached signature resource (OPTIONAL): absent, or present and verifiable over the served bytes — not published (optional)
 PASS  [SHOULD] Response carries an ETag
 PASS  [SHOULD] Conditional GET with a fresh ETag returns 304
 PASS  [SHOULD] A method other than GET/HEAD gets 405 with Allow
@@ -215,6 +239,12 @@ original `check.pass` boolean is still there and is exactly
 as a failure by `allPassed` (`allPassedIncludingRecommended` does drop, just as
 an unmet `SHOULD` drops it).
 
+> **Hardening notes.** The body is read with a byte cap and parsed with
+> `JSON.parse`, whose documented behaviour keeps the *last* value of a
+> duplicated member name; that behaviour is applied consistently, which is the
+> alternative the draft permits to rejecting such a document. The signature and
+> attestation fetches carry the same timeouts and byte caps.
+>
 > **Requires consumer 0.5.0 or later.** In 0.4.0, `sustainability-fetch` read
 > `argv[0]` as the origin, so both `--strict <origin>` and
 > `<origin> --strict` — and the bin-name token `npx <pkg> sustainability-fetch`

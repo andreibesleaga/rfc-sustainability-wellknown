@@ -25,8 +25,18 @@ import {
   staticFileAdapter,
   watershedAdapter,
 } from "./adapters";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { emitCarbonTxt } from "./carbontxt";
 import { CarbonTxtServeOptions } from "./handler";
+import {
+  exportPrivateJwk,
+  generateSigningKey,
+  importSigningKey,
+  signDetached,
+  SigningAlg,
+  SigningKey,
+} from "./jws";
 import { Publisher, PublisherOptions } from "./publisher";
 import { createSustainabilityServer } from "./server";
 import { SourceAdapter } from "./types";
@@ -54,6 +64,14 @@ export interface PublisherConfig {
     extraPaths?: string[];
     /** When set, also serve a bidirectional carbon.txt. */
     carbonTxt?: CarbonTxtServeOptions;
+    /**
+     * Path of a private JWK file (as written by `keygen --out`); when set the
+     * server signs its document and serves the detached JWS at
+     * `/.well-known/sustainability-data.jws`. The environment variable
+     * `SUSTAINABILITY_SIGNING_KEY` (the JWK JSON itself) takes precedence, so
+     * a container platform can inject the key without a file.
+     */
+    signingKeyFile?: string;
   };
 }
 
@@ -91,12 +109,85 @@ function parseArgs(argv: string[]): CliArgs {
   return out;
 }
 
+const USAGE =
+  "Usage: sustainability-publisher --config <config.json> [--once] [--emit-carbon-txt] [--port <n>]\n" +
+  "       sustainability-publisher keygen [--alg EdDSA|ES256] [--out <private.jwk>]\n" +
+  "       sustainability-publisher sign <document.json> --key <private.jwk> [--no-jwk]\n";
+
+/**
+ * Resolve the signing key for the server from the environment (the JWK JSON
+ * in `SUSTAINABILITY_SIGNING_KEY`) or the config's `server.signingKeyFile`.
+ * Undefined when neither is set: the publisher then does not sign.
+ */
+export async function loadSigningKey(
+  config: PublisherConfig,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<SigningKey | undefined> {
+  const fromEnv = env.SUSTAINABILITY_SIGNING_KEY;
+  if (fromEnv && fromEnv.trim() !== "") return importSigningKey(fromEnv);
+  const file = config.server?.signingKeyFile;
+  if (file) return importSigningKey(readFileSync(file, "utf8"));
+  return undefined;
+}
+
+/**
+ * `keygen`: generate a key pair, write the PRIVATE JWK to `--out` (mode 0600,
+ * directories created) and print only the PUBLIC JWK to stdout — the file
+ * goes into the deployment's secret store, the printed key is what gets hosted.
+ */
+export async function runKeygen(argv: string[], out: NodeJS.WritableStream = process.stdout): Promise<void> {
+  let alg: SigningAlg = "EdDSA";
+  let outFile: string | undefined;
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--alg") {
+      const v = argv[++i];
+      if (v !== "EdDSA" && v !== "ES256") throw new Error(`keygen: --alg must be EdDSA or ES256 (got "${v}")`);
+      alg = v;
+    } else if (a === "--out") outFile = argv[++i];
+    else throw new Error(`keygen: unknown argument "${a}"`);
+  }
+  const key = await generateSigningKey(alg);
+  if (outFile) {
+    mkdirSync(dirname(outFile), { recursive: true, mode: 0o700 });
+    const privateJwk = await exportPrivateJwk(key);
+    writeFileSync(outFile, JSON.stringify(privateJwk, null, 2) + "\n", { mode: 0o600, flag: "wx" });
+  }
+  out.write(JSON.stringify(key.publicJwk, null, 2) + "\n");
+}
+
+/**
+ * `sign`: produce the detached JWS over the EXACT bytes of a document file —
+ * the offline path for static hosts, which then serve the output at
+ * `/.well-known/sustainability-data.jws` with `Content-Type: application/jose`.
+ * The bytes signed are the bytes of the file, so the file must be served
+ * unchanged (no re-serialisation, no reformatting).
+ */
+export async function runSign(argv: string[], out: NodeJS.WritableStream = process.stdout): Promise<void> {
+  let document: string | undefined;
+  let keyFile: string | undefined;
+  let includeJwk = true;
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--key") keyFile = argv[++i];
+    else if (a === "--no-jwk") includeJwk = false;
+    else if (a.startsWith("-")) throw new Error(`sign: unknown argument "${a}"`);
+    else document = a;
+  }
+  if (!document) throw new Error("sign: a document file is required");
+  if (!keyFile) throw new Error("sign: --key <private.jwk> is required");
+  const key = await importSigningKey(readFileSync(keyFile, "utf8"));
+  const bytes = readFileSync(document);
+  out.write((await signDetached(bytes, key, { includeJwk })) + "\n");
+}
+
 export async function runCli(argv: string[]): Promise<void> {
+  if (argv[0] === "keygen") return runKeygen(argv.slice(1));
+  if (argv[0] === "sign") return runSign(argv.slice(1));
+
   const args = parseArgs(argv);
   if (!args.config) {
-    process.stderr.write(
-      "Usage: sustainability-publisher --config <config.json> [--once] [--emit-carbon-txt] [--port <n>]\n",
-    );
+    process.stderr.write(USAGE);
     process.exit(2);
   }
 
@@ -122,14 +213,19 @@ export async function runCli(argv: string[]): Promise<void> {
   }
 
   const port = args.port ?? config.server?.port ?? 8080;
+  const signingKey = await loadSigningKey(config);
   const server = createSustainabilityServer(publisher, {
     maxAge: config.server?.maxAge,
     extraPaths: config.server?.extraPaths,
     carbonTxt: config.server?.carbonTxt,
+    signingKey,
   });
   server.listen(port, () => {
     process.stdout.write(
-      `sustainability-publisher listening on http://localhost:${port}/.well-known/sustainability-data\n`,
+      `sustainability-publisher listening on http://localhost:${port}/.well-known/sustainability-data\n` +
+        (signingKey
+          ? `signing enabled (${signingKey.alg}, kid ${signingKey.kid}); detached JWS at /.well-known/sustainability-data.jws\n`
+          : ""),
     );
   });
 }

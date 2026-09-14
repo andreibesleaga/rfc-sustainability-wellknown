@@ -242,3 +242,97 @@ describe("-06: the CLI's HTTPS requirement and the --allow-http escape hatch", (
     expect(code).toBe(0);
   });
 });
+
+describe("--verify and --verify-attestation", () => {
+  const publisherDist = path.resolve(__dirname, "../../publisher/dist");
+  const hasPublisher = fs.existsSync(path.join(publisherDist, "jws.js"));
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const pub = hasPublisher ? require(publisherDist) : undefined;
+
+  function captureStderr() {
+    const lines: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      lines.push(args.map(String).join(" "));
+    });
+    return lines;
+  }
+
+  async function signedPublisher(attestationUri?: string): Promise<string> {
+    const signingKey = await pub.generateSigningKey();
+    const inner = pub.computedAdapter({
+      provider: "Example Corp",
+      methodologyUri: "https://example.com/m",
+      reportingPeriod: "2026-02",
+      energy: { value: 1250, unit: "kWh" },
+      gridIntensity: 276,
+    });
+    // The attestation URI is a deployment-level member (the gateway's own
+    // adapter adds it the same way), so wrap the computed adapter here.
+    const adapter = {
+      name: "attested",
+      capabilities: "basic",
+      fetch: async (q: unknown) => ({ ...(await inner.fetch(q)), ...(attestationUri ? { verifiableAttestationUri: attestationUri } : {}) }),
+    };
+    const publisher = new pub.Publisher(adapter, { cacheTtlMs: 60_000, normalize: { target: "example.com" } });
+    server = pub.createSustainabilityServer(publisher, { signingKey }) as Server;
+    return new Promise((resolve) =>
+      server!.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`)),
+    );
+  }
+
+  it.skipIf(!hasPublisher)("--verify prints the signature outcome on stderr and keeps the document on stdout", async () => {
+    const origin = await signedPublisher();
+    const out = captureStdout();
+    const err = captureStderr();
+    const code = await runCli([origin, "--verify", "--allow-http"]);
+    expect(code).toBe(0);
+    expect(JSON.parse(out.join("\n")).target).toBe("example.com");
+    expect(err.find((l) => l.startsWith("signature:"))).toMatch(/^signature: verified EdDSA kid=/);
+  });
+
+  it.skipIf(!hasPublisher)("--verify with an Extended parameter reports not-applicable", async () => {
+    const origin = await signedPublisher();
+    captureStdout();
+    const err = captureStderr();
+    expect(await runCli([origin, "--verify", "--period=2026", "--allow-http"])).toBe(0);
+    expect(err.find((l) => l.startsWith("signature:"))).toContain("not applicable");
+  });
+
+  it("--verify against an unsigned pre-06 origin reports absent, exit 0", async () => {
+    const origin = await startServer();
+    captureStdout();
+    const err = captureStderr();
+    expect(await runCli([origin, "--verify", "--allow-http"])).toBe(0);
+    expect(err.find((l) => l.startsWith("signature:"))).toContain("absent");
+  });
+
+  it("--verify-attestation on a document without the member says so and does not fail", async () => {
+    const origin = await startServer();
+    captureStdout();
+    const err = captureStderr();
+    expect(await runCli([origin, "--verify-attestation", "--allow-http"])).toBe(0);
+    expect(err.find((l) => l.startsWith("attestation:"))).toContain("none");
+  });
+
+  it.skipIf(!hasPublisher)("--strict --verify-attestation exits 1 when the credential cannot be retrieved", async () => {
+    // A local origin whose credential path answers 404 (no live network; the
+    // --allow-http flag also lifts the https rule for the credential URI).
+    const missing = createServer((_req, res) => {
+      res.writeHead(404);
+      res.end();
+    });
+    const missingBase = await new Promise<string>((resolve) =>
+      missing.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(missing.address() as AddressInfo).port}`)),
+    );
+    try {
+      const origin = await signedPublisher(`${missingBase}/a.vc.jwt`);
+      captureStdout();
+      const err = captureStderr();
+      const code = await runCli([origin, "--strict", "--verify-attestation", "--allow-http"]);
+      expect(code).toBe(1);
+      expect(err.find((l) => l.startsWith("attestation:"))).toBe("attestation: invalid (http-404)");
+    } finally {
+      await new Promise<void>((r) => missing.close(() => r()));
+    }
+  });
+});

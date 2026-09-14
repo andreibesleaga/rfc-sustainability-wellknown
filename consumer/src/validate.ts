@@ -5,6 +5,7 @@
  * upstream server is the normal case for early ecosystem adoption, not a
  * hypothetical) before being handed to caller code.
  */
+import { isolate } from "./text";
 import Ajv, { ValidateFunction } from "ajv/dist/jtd";
 import { RESPONSE_JTD_SCHEMA } from "./schema";
 import { SustainabilityDocument, SustainabilityMetrics } from "./types";
@@ -66,7 +67,7 @@ function uriMemberWarnings(obj: unknown): string[] {
     }
     if (parsed.protocol !== "https:") {
       warnings.push(
-        `${key} is an absolute non-https URI ("${value}"): the draft restricts URI members to the "https" scheme ` +
+        `${key} is an absolute non-https URI ("${isolate(value)}"): the draft restricts URI members to the "https" scheme ` +
           `and clients MUST NOT automatically dereference another scheme (member kept; not a validation error)`,
       );
     }
@@ -147,7 +148,7 @@ export function validateDocument(doc: unknown): ValidationResult {
     for (let i = 1; i < periods.length; i++) {
       if (periods[i] <= periods[i - 1]) {
         errors.push(
-          `array entries not strictly ascending by reporting-period at [${i}] ("${periods[i]}" after "${periods[i - 1]}")`,
+          `array entries not strictly ascending by reporting-period at [${i}] ("${isolate(periods[i])}" after "${isolate(periods[i - 1])}")`,
         );
         break;
       }

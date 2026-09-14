@@ -89,8 +89,22 @@ export interface IndexDocument {
   specification: string;
   about: string;
   notice: string;
+  /** Service level of the RELAYED subject documents (the self report is Extended, see `self`). */
   capabilities: "basic";
-  self: { path: string; target: string };
+  self: {
+    path: string;
+    target: string;
+    /** The self report honours `period` and `granularity` (draft Extended service). */
+    capabilities: "extended";
+    /** The instant the gateway went live; the model counts no hours before it. */
+    "live-since": string;
+    /** Working Extended requests on the self report. */
+    "extended-examples": string[];
+    /** The OPTIONAL detached signature of the self report (draft -06 §Document Signing), or null. */
+    signature: { path: string; alg: string; kid: string; "public-key-url": string | null } | null;
+    /** The third-party attestation the self report links to, or null. */
+    attestation: { uri: string; note: string } | null;
+  };
   count: number;
   subjects: IndexEntry[];
   /** Boot-time validation of every served document by the consumer library. */
@@ -176,6 +190,23 @@ export interface IndexExtras {
   demos: ManagedSubject[];
   examples: WireExample[];
   crossValidation: CrossValidation;
+  /** Set when the gateway signs its own report. */
+  signing?: { alg: string; kid: string };
+}
+
+export const SIGNATURE_PATH = "/.well-known/sustainability-data.jws";
+
+/** Carried in index.json next to the attestation URI. Also the front page's disclosure. */
+export const ATTESTATION_NOTE =
+  "A W3C Verifiable Credential (Data Model 2.0, secured as vc+jwt) in which the issuer " +
+  "attests the MODEL this gateway's own report is derived from — not the figures of any " +
+  "third party. The operator of this gateway and the issuer of that credential are the " +
+  "same person, so it demonstrates the attestation mechanism and is not independent " +
+  "assurance of the figures.";
+
+/** Wrap document-derived text so a right-to-left value cannot reorder the page around it. */
+function bdi(text: string): string {
+  return `<bdi>${escapeHtml(text)}</bdi>`;
 }
 
 function demoEntry(m: ManagedSubject): DemoEntry {
@@ -236,7 +267,28 @@ export function buildIndex(
     about: ABOUT,
     notice: THIRD_PARTY_NOTICE,
     capabilities: "basic",
-    self: { path: WELL_KNOWN_PATH, target: self.document.target },
+    self: {
+      path: WELL_KNOWN_PATH,
+      target: self.document.target,
+      capabilities: "extended",
+      "live-since": config.self.liveSince,
+      "extended-examples": [
+        `${WELL_KNOWN_PATH}?period=${config.self.liveSince.slice(0, 7)}`,
+        `${WELL_KNOWN_PATH}?period=${config.self.liveSince.slice(0, 4)}&granularity=monthly`,
+        `${WELL_KNOWN_PATH}?period=${config.self.liveSince.slice(0, 7)}&granularity=daily`,
+      ],
+      signature: extras?.signing
+        ? {
+            path: SIGNATURE_PATH,
+            alg: extras.signing.alg,
+            kid: extras.signing.kid,
+            "public-key-url": config.self.signingKeyUrl ?? null,
+          }
+        : null,
+      attestation: config.self.verifiableAttestationUri
+        ? { uri: config.self.verifiableAttestationUri, note: ATTESTATION_NOTE }
+        : null,
+    },
     count: list.length,
     subjects: list,
     "consumer-cross-validation": {
@@ -268,7 +320,7 @@ function row(e: IndexEntry): string {
     : '<span class="badge sourced">sourced</span>';
   return `<tr>
   <td><a href="${escapeHtml(e.path)}"><code>${escapeHtml(e.domain)}</code></a> ${badge}</td>
-  <td>${escapeHtml(e.target)}${e["target-type"] ? ` <span class="dim">(${escapeHtml(e["target-type"])})</span>` : ""}</td>
+  <td>${bdi(e.target)}${e["target-type"] ? ` <span class="dim">(${escapeHtml(e["target-type"])})</span>` : ""}</td>
   <td><code>${escapeHtml(e["reporting-period"])}</code></td>
   <td><code>${escapeHtml(e["measurement-method"])}</code></td>
   <td><a href="${escapeHtml(e["methodology-uri"])}" rel="noopener noreferrer nofollow">source document</a></td>
@@ -286,7 +338,7 @@ function demoRow(e: DemoEntry): string {
   return `<tr>
   <td><a href="${escapeHtml(e.path)}"><code>${escapeHtml(e.domain)}</code></a> ${badge}</td>
   <td><code>${escapeHtml(e.adapter.replace(/^adapter:/, ""))}</code></td>
-  <td>${escapeHtml(e.upstream)}<br><span class="dim">${escapeHtml(e.attribution)}</span>${err}</td>
+  <td>${bdi(e.upstream)}<br><span class="dim">${bdi(e.attribution)}</span>${err}</td>
   <td><code>${escapeHtml(e["reporting-period"])}</code></td>
 </tr>`;
 }
@@ -298,9 +350,9 @@ function exampleRow(e: ExampleEntry): string {
       : "object";
   return `<tr>
   <td><a href="${escapeHtml(e.path)}"><code>${escapeHtml(e.domain)}</code></a> <span class="badge example">example</span></td>
-  <td>${escapeHtml(e.case)}</td>
+  <td>${bdi(e.case)}</td>
   <td>${shape}</td>
-  <td>${escapeHtml(e.note)}</td>
+  <td>${bdi(e.note)}</td>
 </tr>`;
 }
 
@@ -318,8 +370,8 @@ function gapRow(e: NoDataEntry): string {
     .join(", ");
   return `<tr>
   <td><code>${escapeHtml(e.domain)}</code></td>
-  <td>${escapeHtml(e.entity)}<br><span class="dim">${escapeHtml(STATUS_LABEL[e.status] ?? e.status)}${e.see ? ` — see <code>${escapeHtml(e.see)}</code>` : ""}</span></td>
-  <td>${escapeHtml(e.finding)}</td>
+  <td>${bdi(e.entity)}<br><span class="dim">${escapeHtml(STATUS_LABEL[e.status] ?? e.status)}${e.see ? ` — see <code>${escapeHtml(e.see)}</code>` : ""}</span></td>
+  <td>${bdi(e.finding)}</td>
   <td>${evidence}<br><span class="dim">checked ${escapeHtml(e.checked)}</span></td>
 </tr>`;
 }
@@ -505,7 +557,64 @@ ${doc["wire-format-examples"].entries.map(exampleRow).join("\n")}
 <h2>This gateway's own report</h2>
 <p>The gateway also reports on itself, as a service, at
 <a href="${escapeHtml(doc.self.path)}"><code>${escapeHtml(doc.self.path)}</code></a>
-(<code>target</code>: <code>${escapeHtml(doc.self.target)}</code>).</p>
+(<code>target</code>: <code>${bdi(doc.self.target)}</code>). The figures are a model, not
+a measurement — a constant container power draw times the hours the gateway has been live,
+times a cited grid intensity — and the document says so (<code>measurement-method:
+third-party-modeled</code>; every constant is in the methodology document it links).</p>
+
+<p>This one document implements the draft's <strong>Extended</strong> service: the model is
+closed-form, so any period since the gateway went live (<code>${escapeHtml(doc.self["live-since"])}</code>)
+can be requested with <code>period</code> (<code>YYYY</code>, <code>YYYY-MM</code> or
+<code>YYYY-MM-DD</code>) and sliced with <code>granularity</code> (<code>monthly</code> or
+<code>daily</code>). A period before go-live has no data and returns <code>404</code>; a period
+in progress reports the completed portion to date; the <code>target</code> parameter is ignored,
+because one process has no path prefixes to scope to. The parameterless request still returns
+the most recently completed month.</p>
+<pre class="cmd"><code>${doc.self["extended-examples"].map((p) => `curl -s "<span class="host">${BASE_TOKEN}</span>${escapeHtml(p)}"`).join("\n")}</code></pre>
+
+<h2>Integrity and attestation</h2>
+${
+  doc.self.signature
+    ? `<p><strong>Signature.</strong> The parameterless self document is signed: a detached JWS
+(RFC 7515 Appendix F, <code>${escapeHtml(doc.self.signature.alg)}</code>, key id
+<code>${bdi(doc.self.signature.kid)}</code>) is served at
+<a href="${escapeHtml(doc.self.signature.path)}"><code>${escapeHtml(doc.self.signature.path)}</code></a>
+as <code>application/jose</code>, over the exact bytes of the document as served. The public key
+travels in the signature's own header${
+        doc.self.signature["public-key-url"]
+          ? ` and is also published at <a href="${escapeHtml(doc.self.signature["public-key-url"])}" rel="noopener noreferrer"><code>${escapeHtml(doc.self.signature["public-key-url"])}</code></a>, so a verifier can pin it out of band`
+          : ""
+      }. What it establishes is integrity after the fact and key continuity — that the bytes a
+consumer holds are the bytes this key signed, and that successive documents came from the same
+key. It does not establish who holds the key, and it says nothing about whether the figures are
+accurate: a correctly signed estimate is still an estimate.</p>`
+    : `<p><strong>Signature.</strong> This deployment does not sign its own report: the draft's
+detached signature resource at <code>${SIGNATURE_PATH}</code> answers <code>404</code>, which the
+draft defines as meaning only that the publisher does not sign — not evidence of anything.</p>`
+}
+${
+  doc.self.attestation
+    ? `<p><strong>Attestation.</strong> The self document carries
+<code>verifiable-attestation-uri</code>, pointing at
+<a href="${escapeHtml(doc.self.attestation.uri)}" rel="noopener noreferrer"><code>${escapeHtml(doc.self.attestation.uri)}</code></a>:
+a W3C Verifiable Credential (Data Model 2.0) secured as <code>vc+jwt</code>, valid for five years,
+in which the issuer attests the <em>model</em> the report is derived from — the constants and the
+formula — so every month's document is consistent with it and nothing needs re-issuing. This is
+the draft's only mechanism that speaks to authenticity, and it is exercised here exactly as the
+draft describes it. <strong>The operator of this gateway and the issuer of that credential are the
+same person.</strong> The credential therefore demonstrates the mechanism — a second key, a second
+identity, a statement that can be verified against a published key — and is not independent
+assurance of the figures.</p>`
+    : `<p><strong>Attestation.</strong> The self document carries no
+<code>verifiable-attestation-uri</code>: no third-party statement about it exists.</p>`
+}
+<p>The relayed third-party documents are deliberately <em>not</em> signed and carry no
+attestation: this gateway can vouch for its own bytes, never for another organization's figures,
+and a signature at a per-subject path would suggest otherwise (such paths answer <code>404</code>).
+Verify both with the reference consumer, which reports <em>verified</em>, <em>absent</em> or
+<em>unverified</em> for the signature — never "true" or "false" for the data:</p>
+<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --strict --verify-attestation
+npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --verify --verify-attestation</code></pre>
 
 <h2>Consumer cross-validation</h2>
 <p>${escapeHtml(doc["consumer-cross-validation"].note)}
@@ -514,11 +623,12 @@ validated <strong>${doc["consumer-cross-validation"]["documents-validated"]}</st
 documents at boot.</p>
 
 <h2>Service level</h2>
-<p>This gateway implements the <strong>Basic</strong> service: query parameters are
-ignored and the Basic response is returned — never an error. The one deliberate
-exception: the wire-format examples that themselves declare
-<code>capabilities: "extended"</code> honor the <code>granularity</code> parameter and
-return their full sorted trend array, exactly as the draft's Extended service defines.
+<p>The relayed subject documents implement the <strong>Basic</strong> service: query
+parameters are ignored and the Basic response is returned — never an error. Two deliberate
+exceptions: the gateway's own report is an Extended publisher (above), and the wire-format
+examples that themselves declare <code>capabilities: "extended"</code> honor the
+<code>granularity</code> parameter and return their full sorted trend array, exactly as the
+draft's Extended service defines.
 Successful responses use the dedicated <code>application/sustainability-data+json</code>
 media type — the type draft -06's Mandatory Minimum Supported Service requires for a
 Basic response — sent with <code>X-Content-Type-Options: nosniff</code>, plus
@@ -539,9 +649,10 @@ A method other than <code>GET</code> or <code>HEAD</code> yields <code>405</code
 <p>Every document served here can be fetched and validated with the specification's
 published reference consumer
 (<a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer"><code>sustainability-wellknown-consumer</code></a>,
-version 0.6.0 or later — earlier releases predate the dedicated media type and will
-misreport it). <code>--strict</code> runs the full conformance battery —
-schema validation, media type, caching, conditional requests, method handling — and
+version 0.6.5 or later — earlier releases predate the dedicated media type or the
+signature check). <code>--strict</code> runs the full conformance battery —
+schema validation, media type, caching, conditional requests, method handling, the
+optional detached signature — and
 labels each check with the strength of the requirement it tests (a failed
 <code>MUST</code> is a conformance failure; an unmet <code>SHOULD</code>, or a subject
 still on the legacy media type, is reported but does not fail the battery).</p>

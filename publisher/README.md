@@ -32,7 +32,7 @@ publishes unverified or malformed data (the circuit-breaker rule).
 
 ## Install & build
 
-**Node.js 22 or newer** is required at runtime; the test suite (Vitest 5) needs **22.12 or newer**.
+**Node.js 22.12 or newer** is required (runtime and tests: the JOSE library is loaded as an ES module through `require()`, unflagged since 22.12; Vitest 5 needs 22.12 too).
 
 ```bash
 cd publisher
@@ -144,9 +144,48 @@ corresponding `GET`, per the draft's "same status and header fields, no body"
 rule. The two media-type strings are exported as `MEDIA_TYPE` and
 `LEGACY_MEDIA_TYPE` from the package root.
 
-This package implements no document signing: the draft's detached-JWS
-mechanism at `/.well-known/sustainability-data.jws` (Document Integrity and
-Signing) is entirely OPTIONAL, and nothing here produces or verifies one.
+## Signing the document (draft -06, Document Integrity and Signing)
+
+Since 0.6.5 the publisher can sign its document. The mechanism is the draft's
+OPTIONAL detached JWS: a compact serialization with an empty payload part
+(RFC 7515 Appendix F), served at `/.well-known/sustainability-data.jws` as
+`application/jose`, over the **exact bytes** of the parameterless document —
+there is no canonicalization, so the handler signs the very string it serves and
+caches one signature per document generation (keyed by the document's ETag).
+Algorithms are the two the draft recommends, EdDSA (Ed25519) and ES256; all JOSE
+work is done by [`jose`](https://github.com/panva/jose).
+
+```bash
+# 1. one key, once; the PRIVATE half goes to a file (0600), the PUBLIC half is printed
+sustainability-publisher keygen --out ~/.config/sustainability-publisher/private.jwk > public.jwk
+
+# 2a. a served deployment: the key by environment variable (its JWK JSON) …
+SUSTAINABILITY_SIGNING_KEY="$(cat ~/.config/sustainability-publisher/private.jwk)" \
+  sustainability-publisher --config config.json
+# … or by config: "server": { "signingKeyFile": "~/.config/sustainability-publisher/private.jwk" }
+
+# 2b. a static host: sign the file you serve, and serve the output next to it
+sustainability-publisher sign /var/www/.well-known/sustainability-data --key ~/.config/sustainability-publisher/private.jwk \
+  > /var/www/.well-known/sustainability-data.jws     # Content-Type: application/jose
+```
+
+In code, pass `signingKey` (from `importSigningKey()` or `generateSigningKey()`)
+in the options of `createSustainabilityServer`, `expressSustainability` or
+`fastifySustainability`, and the `.jws` route appears; `handleSignatureRequest()`
+is the framework-agnostic handler. Without a key the path is `404`, which the
+draft defines as meaning only that the publisher does not sign. The public key
+travels in the signature's own header (`jwk`, the draft's SHOULD) and should
+also be hosted out of band so verifiers can pin it. `signAttached()` produces
+an attached JWS — used to secure a Verifiable Credential as `vc+jwt` for the
+`verifiable-attestation-uri` member (see
+[`internet-drafts/draft-verifiable-credential.md`](../internet-drafts/draft-verifiable-credential.md)).
+
+What the signature establishes is integrity after the fact and key continuity,
+not identity and not accuracy: a signed estimate is still an estimate, and the
+draft says a failed or absent signature makes a document *unverified*, never
+*false*. Key rotation: run `keygen` again, host the new public key, replace the
+variable, redeploy — earlier signatures then stop verifying against the new key,
+which is the point.
 
 ## Adapters
 
@@ -272,7 +311,7 @@ Once a server built with this publisher is deployed, verify it the same way any
 consumer's `--strict` conformance battery. See
 [consumer/README.md § Verify a live deployment](../consumer/README.md#verify-a-live-deployment)
 for the four commands and expected output (requires `sustainability-wellknown-consumer`
-0.5.0 or later — 0.4.0's CLI could not parse the documented invocation).
+0.6.5 or later for the signature check; `--verify` reports the signature outcome).
 
 ## License
 

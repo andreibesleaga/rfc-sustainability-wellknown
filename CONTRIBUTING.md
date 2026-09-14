@@ -5,8 +5,9 @@ deliberately in step, so which one you are changing determines how to proceed.
 
 ## Requirements
 
-**Node.js 22.12 or newer** for all three packages. The runtime needs only Node 22, but the
-test runner (Vitest 5) requires 22.12, so an older Node will install and build yet fail to
+**Node.js 22.12 or newer** for all three packages, at runtime too: since 0.6.5 the publisher
+and consumer load `jose` (an ES module) through `require()`, which Node supports unflagged
+from 22.12, and the test runner (Vitest 5) requires 22.12 as well, so an older Node will install and build yet fail to
 run the tests.
 
 For the schema validators and the draft build you also need Python 3 and Ruby 3:

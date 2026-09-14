@@ -35,6 +35,15 @@ export const MEDIA_TYPE_VALUES: readonly MediaTypeSetting[] = [
   "json",
 ];
 
+/** An RFC 3339 instant from the environment, validated at load time. */
+function envInstant(name: string, fallback: string): string {
+  const v = env(name, fallback);
+  if (Number.isNaN(Date.parse(v))) {
+    throw new Error(`config: ${name} must be an RFC 3339 date-time (got ${JSON.stringify(v)})`);
+  }
+  return new Date(v).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
 function envMediaType(name: string, fallback: MediaTypeSetting): MediaTypeSetting {
   const v = process.env[name];
   if (v === undefined || v === "") return fallback;
@@ -71,6 +80,23 @@ export interface GatewayConfig {
    * (404/405/503) always use `application/json`, unaffected by this setting.
    */
   mediaType: MediaTypeSetting;
+  /**
+   * Request rate limiting (draft Operational Considerations: servers SHOULD
+   * rate-limit requests to the well-known URI). Applied per client, before
+   * routing, to every path except `/healthz`. `perMinute: 0` disables it.
+   * The client is identified by the last `X-Forwarded-For` entry when
+   * `trustProxy` is 1 (the reference deployment sits behind Railway's proxy),
+   * else by the socket address — set `TRUST_PROXY=0` when exposing the
+   * process directly, or a client could rotate spoofed addresses.
+   */
+  rateLimit: { perMinute: number; trustProxy: number };
+  /**
+   * Private JWK (JSON text) of the key that signs the gateway's OWN report
+   * (draft -06 §Document Signing). Unset: the gateway does not sign and
+   * `/.well-known/sustainability-data.jws` is 404. Set via
+   * `SUSTAINABILITY_SIGNING_KEY`; imported and checked at boot.
+   */
+  signingKeyJwk?: string;
 
   /** ---- the gateway's OWN report (target-type: "service") ---- */
   self: {
@@ -93,6 +119,16 @@ export interface GatewayConfig {
     watts: number;
     /** Grid carbon intensity used for the estimate, gCO2e/kWh. */
     gridIntensity: number;
+    /**
+     * The instant this gateway went live (RFC 3339). The model counts only
+     * hours inside `[liveSince, now)`: a period before it has no data (404),
+     * a period in progress reports the completed portion to date.
+     */
+    liveSince: string;
+    /** `verifiable-attestation-uri` of the self report: a third-party signed statement about the model. */
+    verifiableAttestationUri?: string;
+    /** Where the PUBLIC signing key is hosted (display and index only; the key travels in the JWS header). */
+    signingKeyUrl?: string;
   };
 }
 
@@ -126,6 +162,11 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
     maxAge: envNum("MAX_AGE", 86_400),
     baseUrl: env("BASE_URL", "").replace(/\/+$/, ""),
     mediaType: envMediaType("SUSTAINABILITY_MEDIA_TYPE", "sustainability-data+json"),
+    rateLimit: {
+      perMinute: envNum("RATE_LIMIT_PER_MINUTE", 600),
+      trustProxy: envNum("TRUST_PROXY", 1),
+    },
+    signingKeyJwk: process.env.SUSTAINABILITY_SIGNING_KEY || undefined,
     self: {
       target: env("SELF_TARGET", "sustainability-data-gateway"),
       provider: env(
@@ -143,7 +184,15 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
       period: process.env.SELF_PERIOD || undefined,
       watts: envNum("SELF_WATTS", 3),
       gridIntensity: envNum("SELF_GRID_INTENSITY", 373),
+      liveSince: envInstant("SELF_LIVE_SINCE", "2026-07-30T00:00:00Z"),
+      verifiableAttestationUri: process.env.SELF_ATTESTATION_URI || undefined,
+      signingKeyUrl: process.env.SELF_SIGNING_KEY_URL || undefined,
     },
   };
-  return { ...base, ...overrides, self: { ...base.self, ...overrides.self } };
+  return {
+    ...base,
+    ...overrides,
+    rateLimit: { ...base.rateLimit, ...overrides.rateLimit },
+    self: { ...base.self, ...overrides.self },
+  };
 }

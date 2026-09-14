@@ -172,7 +172,8 @@ describe("GET /.well-known/sustainability-data (the gateway's own report)", () =
     expect(r.headers.get("last-modified")).toBeTruthy();
     const body = await r.json();
     expect(body["target-type"]).toBe("service");
-    expect(body.capabilities).toBe("basic");
+    // The self report is the gateway's one Extended publisher (see self-extended.test.ts).
+    expect(body.capabilities).toBe("extended");
     expect(body.target).toBe(srv.gw.config.self.target);
     // Modelled, not metered — see METHODOLOGY.md.
     expect(body["measurement-method"]).toBe("third-party-modeled");
@@ -367,6 +368,7 @@ describe("self-report month rollover (draft: most recently completed period)", (
 
     let nowMs = Date.parse("2026-06-15T12:00:00Z");
     const config = loadConfig({ port: 0, host: "127.0.0.1", dataDir: DATA_DIR, maxAge: 86_400 });
+    config.self.liveSince = "2026-01-01T00:00:00Z";
     // NOT pinning config.self.period: this test is about the default path.
     const gw = await createGateway({
       config,

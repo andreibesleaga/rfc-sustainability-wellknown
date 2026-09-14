@@ -14,21 +14,43 @@ export interface TestServer {
   close: () => Promise<void>;
 }
 
-export async function startGateway(): Promise<TestServer> {
+export interface StartOptions {
+  /** Private JWK (JSON text) for the gateway's own signature; unset = the gateway does not sign. */
+  signingKeyJwk?: string;
+  /** Requests per client per minute; the default 0 disables the limiter for the suites. */
+  rateLimitPerMinute?: number;
+  /** `verifiable-attestation-uri` of the self report. */
+  attestationUri?: string;
+  /** Override the fixed clock (both `now` and the running clock). */
+  now?: Date;
+  /** Leave `SELF_PERIOD` unpinned (Extended self-report tests) . */
+  unpinPeriod?: boolean;
+}
+
+export async function startGateway(opts: StartOptions = {}): Promise<TestServer> {
   const config = loadConfig({
     port: 0,
     host: "127.0.0.1",
     dataDir: DATA_DIR,
     maxAge: 86_400,
+    // The suites fire hundreds of requests at one server from one address;
+    // the limiter has its own tests.
+    rateLimit: { perMinute: opts.rateLimitPerMinute ?? 0, trustProxy: 1 },
+    signingKeyJwk: opts.signingKeyJwk,
   });
-  // Pin the self-report period so ETags and bodies are byte-stable.
-  config.self.period = "2025";
+  // Pin the self-report period so ETags and bodies are byte-stable, and put
+  // go-live before it so the pinned period has its full hours.
+  if (!opts.unpinPeriod) config.self.period = "2025";
+  config.self.liveSince = "2025-01-01T00:00:00Z";
+  config.self.verifiableAttestationUri = opts.attestationUri;
   // fetchImpl: null — live upstreams are DISABLED in tests; every adapter
   // demonstration boots from its recorded fixture (deterministic, offline).
+  const now = opts.now ?? FIXED_NOW;
   const gw = await createGateway({
     config,
     log: () => undefined,
-    now: FIXED_NOW,
+    now,
+    clock: () => now,
     fetchImpl: null,
     env: {},
   });

@@ -294,9 +294,19 @@ media types, exposes a `mediaType` field on the result, and its conformance batt
 reports a publisher still serving the legacy `application/json` as **WARN**, not
 **FAIL**, until the RFC and IANA registration land. `publisher/` emits the new
 registered media type by default and offers a `mediaType: "json"` legacy option
-(v05-compatible, not v06-conformant). Neither package implements the `-06`
-detached-JWS signature mechanism, since the draft defines it as OPTIONAL and the
-reference implementation deliberately implements none.
+(v05-compatible, not v06-conformant).
+
+Reference-implementation behavior for `0.6.5`: the OPTIONAL parts of `-06` are now
+exercised end to end, all opt-in. `publisher/` can sign its document (detached JWS at
+`/.well-known/sustainability-data.jws`, EdDSA or ES256, over the exact bytes served;
+`keygen`/`sign` CLI subcommands; `signAttached()` for a `vc+jwt` credential) and
+`consumer/` verifies it (`--verify`, a new battery check that passes on *absent*,
+never turns a failure into "false") and can verify a linked W3C Verifiable Credential
+2.0 (`--verify-attestation`). All JOSE work is delegated to `jose`. The reference
+gateway signs its own report, links a credential attesting its reporting *model*
+(issued by the same person who operates it, and saying so), serves that report at
+the draft's Extended service level, and rate-limits the well-known URI; relayed
+third-party documents stay unsigned and unattested by design.
 
 ---
 

@@ -23,7 +23,8 @@ describe("period arithmetic", () => {
     expect(periodHours("2025-02")).toBe(672);
     expect(periodHours("2024-02")).toBe(696); // leap February
     expect(periodHours("2025-04")).toBe(720);
-    expect(() => periodHours("2025-04-01")).toThrow();
+    expect(periodHours("2025-04-01")).toBe(24); // a day is a valid Extended period
+    expect(() => periodHours("2025-4")).toThrow();
   });
 
   it("reports the instant a period closed", () => {
@@ -48,6 +49,8 @@ describe("self-report adapter (computedAdapter)", () => {
       period,
       watts: 3,
       gridIntensity: 373,
+      liveSince: "2020-01-01T00:00:00Z",
+      clock: () => new Date("2026-03-10T00:00:00Z"),
     });
 
   it("derives energy from power x hours and carbon from energy x intensity", async () => {

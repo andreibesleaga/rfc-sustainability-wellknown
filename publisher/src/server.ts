@@ -9,10 +9,12 @@ import {
   CARBON_TXT_PATHS,
   carbonTxtResult,
   handleRequest,
+  handleSignatureRequest,
   HandlerOptions,
   parseQuery,
   WELL_KNOWN_PATH,
 } from "./handler";
+import { SIGNATURE_PATH } from "./jws";
 import { Publisher } from "./publisher";
 
 export interface ServerOptions extends HandlerOptions {
@@ -28,6 +30,9 @@ export function createSustainabilityServer(
 ): Server {
   const paths = new Set([WELL_KNOWN_PATH, ...(opts.extraPaths ?? [])]);
   const carbonPaths = new Set(opts.carbonTxt ? CARBON_TXT_PATHS : []);
+  // The signature resource exists only for a signing publisher (draft: 404
+  // otherwise means exactly "does not sign").
+  const signaturePath = opts.signingKey ? SIGNATURE_PATH : undefined;
 
   // CORS header echoed on every response (incl. 404/405/500) so cross-origin
   // aggregators can read error statuses, not just 200s.
@@ -39,8 +44,9 @@ export function createSustainabilityServer(
       const url = new URL(req.url ?? "/", "http://localhost");
       const isSustainability = paths.has(url.pathname);
       const isCarbonTxt = carbonPaths.has(url.pathname);
+      const isSignature = url.pathname === signaturePath;
 
-      if (!isSustainability && !isCarbonTxt) {
+      if (!isSustainability && !isCarbonTxt && !isSignature) {
         res.writeHead(404, { ...corsHeaders(), "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "not found" }));
         return;
@@ -55,6 +61,15 @@ export function createSustainabilityServer(
         const result = carbonTxtResult(opts.carbonTxt!, opts, req.headers.host);
         res.writeHead(result.status, result.headers);
         if (req.method === "HEAD") res.end();
+        else res.end(result.body);
+        return;
+      }
+
+      if (isSignature) {
+        const ifNoneMatch = req.headers["if-none-match"] as string | undefined;
+        const result = await handleSignatureRequest(publisher, opts, ifNoneMatch);
+        res.writeHead(result.status, result.headers);
+        if (req.method === "HEAD" || result.status === 304) res.end();
         else res.end(result.body);
         return;
       }

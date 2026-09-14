@@ -3,8 +3,9 @@
  * origin — usable against this repo's own implementations or any third
  * party's, not just via the CLI's --strict flag.
  */
-import { DEFAULT_TIMEOUT_MS, fetchSustainability } from "./fetch";
+import { DEFAULT_TIMEOUT_MS, fetchSustainability, verifyDocumentSignature } from "./fetch";
 import { resolveWellKnownUrl } from "./fetch";
+import { JOSE_MEDIA_TYPE } from "./jws";
 import { ACCEPT_HEADER, classifyMediaType, LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "./media-type";
 
 /**
@@ -179,6 +180,52 @@ export async function runConformanceChecks(
         `X-Content-Type-Options is not "nosniff": "${raw ?? ""}"`
       );
     }),
+  );
+
+  checks.push(
+    // -06 §Document Signing: the detached signature resource is OPTIONAL. A
+    // 404 there "means only that the publisher does not sign" (pass). When it
+    // IS published it must be a detached JWS that verifies over the exact
+    // octets of the parameterless document, under an asymmetric algorithm
+    // (`none` and MACs MUST be rejected); a signature served under a media
+    // type other than application/jose is a SHOULD gap (warn), not a failure.
+    await check(
+      "Detached signature resource (OPTIONAL): absent, or present and verifiable over the served bytes",
+      "MUST",
+      async () => {
+        const res = await fetchImpl(resolveWellKnownUrl(origin).toString(), {
+          method: "GET",
+          headers: { Accept: ACCEPT_HEADER },
+          signal: rawSignal(),
+        });
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (res.status !== 200) return `expected 200 for the Basic request, got ${res.status}`;
+        const sig = await verifyDocumentSignature(origin, bytes, {
+          fetchImpl,
+          timeoutMs,
+          allowInsecure,
+          documentOrigin: res.url ? new URL(res.url).origin : undefined,
+        });
+        switch (sig.status) {
+          case "absent":
+            return { outcome: "pass", detail: "not published (optional)" };
+          case "verified": {
+            const who = `${sig.alg}${sig.kid ? ` kid=${sig.kid}` : ""} (key from ${sig.keySource === "trusted" ? "pinned key" : "signature header"})`;
+            if (!sig.mediaTypeOk) {
+              return {
+                outcome: "warn",
+                detail: `verified ${who}, but served as "${sig.mediaType ?? ""}" rather than ${JOSE_MEDIA_TYPE} (draft SHOULD)`,
+              };
+            }
+            return { outcome: "pass", detail: `verified ${who}` };
+          }
+          case "unverified":
+            return `signature published but not verifiable over the served bytes: ${sig.reason}${sig.detail ? ` (${sig.detail})` : ""}`;
+          default:
+            return "unexpected signature outcome";
+        }
+      },
+    ),
   );
 
   checks.push(

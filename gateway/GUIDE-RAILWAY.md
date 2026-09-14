@@ -119,6 +119,45 @@ default; set them under **Variables** (dashboard) or with
 | `SELF_PERIOD` | last completed calendar month | Pin the gateway's own reporting period (`YYYY` or `YYYY-MM`). |
 | `SELF_WATTS` | `3` | Modelled average container power draw. |
 | `SELF_GRID_INTENSITY` | `373` | gCO2e/kWh. Cited in `METHODOLOGY.md`. |
+| `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When this gateway went live; the self model counts no hours before it. |
+| `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | Private JWK (JSON) signing the gateway's own report → `/.well-known/sustainability-data.jws`. See [Signing and attestation](#signing-and-attestation). |
+| `SELF_SIGNING_KEY_URL` | *(unset)* | Public URL of the signing key's public half (index display). |
+| `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report. |
+| `RATE_LIMIT_PER_MINUTE` | `600` | Per-client limit; `0` disables. `TRUST_PROXY` stays `1` on Railway. |
+
+### Signing and attestation
+
+All three files below are hosted on a site you control (the reference deployment
+uses `andreibesleaga.com`); private keys never enter the repository or Railway
+except `SUSTAINABILITY_SIGNING_KEY` itself.
+
+```bash
+# 1. the gateway's signing key: private half to a local file, public half printed
+npx -y -p sustainability-wellknown-publisher sustainability-publisher keygen \
+  --out ~/.config/sustainability-gateway/private.jwk > gateway-signing-key.jwk
+#    host gateway-signing-key.jwk at  https://<your-site>/.well-known/sustainability-gateway-signing-key.jwk  (application/jwk+json)
+
+# 2. the attester's key (a second identity)
+npx -y -p sustainability-wellknown-publisher sustainability-publisher keygen \
+  --out ~/.config/sustainability-attester/private.jwk > attester.jwk
+#    host attester.jwk at  https://<your-site>/.well-known/sustainability-attester.jwk
+
+# 3. the credential attesting the reporting model (VC 2.0 as vc+jwt, valid five years)
+node scripts/issue-attestation.mjs --issuer https://<your-site> \
+  --attester-key-url https://<your-site>/.well-known/sustainability-attester.jwk \
+  --id https://<your-site>/attestations/sustainability-data-gateway-2026.vc.jwt \
+  --gateway https://<your-gateway> --out sustainability-data-gateway-2026.vc.jwt
+#    host it at the --id URL  (application/vc+jwt)
+
+# 4. tell the gateway
+railway variables --set "SUSTAINABILITY_SIGNING_KEY=$(cat ~/.config/sustainability-gateway/private.jwk)" \
+  --set SELF_SIGNING_KEY_URL=https://<your-site>/.well-known/sustainability-gateway-signing-key.jwk \
+  --set SELF_ATTESTATION_URI=https://<your-site>/attestations/sustainability-data-gateway-2026.vc.jwt
+```
+
+Rotation: run step 1 again, host the new public key, replace the variable,
+redeploy. Old signatures stop verifying against the new key — expected. The
+credential stays valid until its `validUntil`.
 
 > **Do this before citing the deployment.** `SELF_METHODOLOGY_URI` is a
 > mandatory member of a document you are publishing, and the draft requires the
@@ -202,11 +241,23 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 # 9. The gateway's own report
 curl -sS "$BASE/.well-known/sustainability-data" | jq .
 
-# 10. The repository's own conformance battery, root endpoint
-npx -y -p sustainability-wellknown-consumer sustainability-fetch "$BASE" --strict
+# 10. The repository's own conformance battery, root endpoint (includes the signature check)
+npx -y -p sustainability-wellknown-consumer sustainability-fetch "$BASE" --strict --verify-attestation
 
 # 11. The same battery, every subject (uses this repo's script)
 npm run conformance -- "$BASE"
+
+# 12. The self report's Extended service: a month, a year of months, a pre-go-live month (404)
+curl -sS "$BASE/.well-known/sustainability-data?period=2026-08" | jq '.["reporting-period"]'
+curl -sS "$BASE/.well-known/sustainability-data?period=2026&granularity=monthly" | jq 'map(.["reporting-period"])'
+curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data?period=2026-06"   # -> 404
+
+# 13. The signature resource and the attestation, verified over the wire bytes
+curl -sSI "$BASE/.well-known/sustainability-data.jws" | grep -Ei 'HTTP/|content-type|etag'
+npx -y -p sustainability-wellknown-consumer sustainability-fetch "$BASE" --verify --verify-attestation >/dev/null
+
+# 14. Rate limiting: a burst from one client ends in 429 + Retry-After
+for i in $(seq 1 650); do curl -sS -o /dev/null -w '%{http_code}\n' -I "$BASE/healthz-not/"; done | sort | uniq -c
 ```
 
 ---

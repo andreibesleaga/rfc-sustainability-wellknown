@@ -6,6 +6,7 @@
 import { emitCarbonTxt, EmitCarbonTxtOptions } from "./carbontxt";
 import { LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "./media-type";
 import { PERIOD_RE } from "./normalize";
+import { JOSE_MEDIA_TYPE, signDetached, SigningKey } from "./jws";
 import { Publisher, NotFoundError } from "./publisher";
 import { ServiceQuery } from "./types";
 
@@ -33,6 +34,14 @@ export interface HandlerOptions {
    * response carries no Content-Type, regardless of this option.
    */
   mediaType?: "sustainability-data+json" | "json";
+  /**
+   * When set, the publisher signs its document: {@link handleSignatureRequest}
+   * serves a detached JWS (draft -06 §Document Signing) over the exact bytes
+   * of the parameterless document, and the server/middleware route
+   * `/.well-known/sustainability-data.jws`. Unset (the default) leaves that
+   * path 404, which the draft defines as "this publisher does not sign".
+   */
+  signingKey?: SigningKey;
 }
 
 /**
@@ -201,3 +210,101 @@ export async function handleRequest(
 }
 
 export const WELL_KNOWN_PATH = "/.well-known/sustainability-data";
+
+/**
+ * Per-publisher cache of detached signatures keyed by the document's ETag, so
+ * one document generation is served with one signature body (ES256 signatures
+ * are randomized; ETag-keying also guarantees the signature and the served
+ * bytes come from the same generation). Bounded: oldest entries evicted.
+ */
+const signatureCache = new WeakMap<Publisher, Map<string, string>>();
+const SIGNATURE_CACHE_MAX = 8;
+
+async function cachedSignature(
+  publisher: Publisher,
+  etag: string,
+  body: string,
+  key: SigningKey,
+): Promise<string> {
+  let cache = signatureCache.get(publisher);
+  if (!cache) {
+    cache = new Map();
+    signatureCache.set(publisher, cache);
+  }
+  const hit = cache.get(etag);
+  if (hit !== undefined) return hit;
+  const jws = await signDetached(body, key);
+  while (cache.size >= SIGNATURE_CACHE_MAX) {
+    cache.delete(cache.keys().next().value as string);
+  }
+  cache.set(etag, jws);
+  return jws;
+}
+
+/** Entity-tag of the signature resource, correlated with the document's. */
+export function signatureEtag(documentEtag: string): string {
+  return documentEtag.replace(/"$/, '+jws"');
+}
+
+/**
+ * Produce the HTTP response for `/.well-known/sustainability-data.jws`
+ * (draft -06 §Document Signing): a detached JWS over the very octets
+ * {@link handleRequest} serves for the PARAMETERLESS request — the same
+ * serialized string, never a re-serialization — with `application/jose`,
+ * the document's caching directives, and an ETag correlated with the
+ * document's. Without `opts.signingKey` the answer is 404, which the draft
+ * defines as meaning only that the publisher does not sign.
+ */
+export async function handleSignatureRequest(
+  publisher: Publisher,
+  opts: HandlerOptions = {},
+  ifNoneMatch?: string,
+): Promise<HandlerResult> {
+  const maxAge = opts.maxAge ?? 86_400;
+  const baseHeaders: Record<string, string> = {
+    "Cache-Control": `public, max-age=${maxAge}`,
+  };
+  if (opts.cors !== false) baseHeaders["Access-Control-Allow-Origin"] = opts.cors ?? "*";
+
+  if (!opts.signingKey) {
+    return {
+      status: 404,
+      headers: { ...baseHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({ status: 404, error: "this publisher does not sign its document" }),
+    };
+  }
+
+  try {
+    const { body, etag } = await publisher.getSerialized({});
+    const jwsEtag = signatureEtag(etag);
+    if (ifNoneMatch && ifNoneMatchMatches(ifNoneMatch, jwsEtag)) {
+      return { status: 304, headers: { ...baseHeaders, ETag: jwsEtag }, body: "" };
+    }
+    const jws = await cachedSignature(publisher, etag, body, opts.signingKey);
+    return {
+      status: 200,
+      headers: {
+        ...baseHeaders,
+        "Content-Type": JOSE_MEDIA_TYPE,
+        "X-Content-Type-Options": "nosniff",
+        "Content-Length": String(Buffer.byteLength(jws)),
+        ETag: jwsEtag,
+      },
+      body: jws,
+    };
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      return {
+        status: 404,
+        headers: { ...baseHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "no sustainability metadata available" }),
+      };
+    }
+    (opts.onError ?? ((e: unknown) => console.error("sustainability-publisher:", e)))(err);
+    return {
+      status: 503,
+      headers: { ...baseHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "sustainability metadata temporarily unavailable" }),
+    };
+  }
+}

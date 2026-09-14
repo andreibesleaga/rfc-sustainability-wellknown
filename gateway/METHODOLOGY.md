@@ -64,16 +64,41 @@ energy-consumption (kWh) = watts x hours(reporting-period) / 1000
 carbon-footprint  (gCO2e) = energy-consumption (kWh) x carbon-intensity-gCO2e-per-kWh
 ```
 
-`hours(reporting-period)` is the exact number of hours in the named calendar
-period, in UTC (so a 30-day month is 720 h, a 31-day month 744 h, a common year
-8760 h, a leap year 8784 h). The document therefore covers the whole period, as
-the Basic service requires, and is fully determined by it.
+`hours(reporting-period)` is the number of hours of the named calendar period,
+in UTC, that fall inside the gateway's **live window** `[live-since, now)`. For
+a complete period after go-live that is the whole period (a 30-day month is
+720 h, a 31-day month 744 h, a common year 8760 h, a leap year 8784 h); for the
+go-live month it is the hours from go-live to the month's end (July 2026: 48 h,
+live since 2026-07-30); for a period in progress it is the hours to date; for a
+period wholly before go-live it is zero, and the document does not exist (the
+draft's no-data rule, `404`). The document is fully determined by the period,
+the live window, and the two constants below.
 
 | Input | Default | Environment variable | Basis |
 |---|---|---|---|
 | Average power draw | 3 W | `SELF_WATTS` | Assumption. A single always-on Node.js process serving small cached JSON documents, on a shared vCPU slice. Set this to your platform's figure if you have one. |
 | Grid carbon intensity | 373 gCO2e/kWh | `SELF_GRID_INTENSITY` | US national average output emission rate, 823.1 lb CO2/MWh (eGRID2022), as published by the US EPA — see below. |
-| Reporting period | most recently completed calendar month | `SELF_PERIOD` | The draft's Basic default for a publisher reporting more frequently than annually. |
+| Reporting period | most recently completed calendar month | `SELF_PERIOD` | The draft's Basic default for a publisher reporting more frequently than annually; any other period since go-live is available through the Extended parameters below. |
+| Live since | 2026-07-30T00:00:00Z | `SELF_LIVE_SINCE` | The earliest surviving deployment record of the reference gateway. No hours before it are counted. |
+
+### Extended parameters and the live window
+
+The self report declares `capabilities: "extended"` and honours two of the
+draft's three Extended parameters:
+
+- `period` — `YYYY`, `YYYY-MM` or `YYYY-MM-DD`; the model is evaluated on the
+  hours of that period inside the live window;
+- `granularity` — `monthly` or `daily`; when finer than the period, one object
+  per slice with data, in ascending order (a year of daily slices is at most
+  366 objects, so the draft's array cap is never exceeded). A granularity that is
+  not finer than the period, or any other value, is ignored.
+
+The `target` parameter is **ignored**: the gateway is one process with no path
+prefixes to scope a report to, so the set of honoured prefixes the draft asks a
+publisher to document here is empty. A malformed `period` is ignored as well
+(the draft's "ignore the offending parameter" option). Every slice is the same
+closed-form model evaluated on a shorter window, so aggregation and evaluation
+coincide and there is nothing to sum.
 
 ### The grid intensity factor, and its limits
 
@@ -114,9 +139,9 @@ marker — so omission is the conformant, and the honest, thing to do.
 
 ### Anti-fingerprinting noise
 
-None is applied. The figure is a model output at monthly granularity, from
-published assumptions; there is no hardware signal in it to obscure. Nothing
-finer than 24 hours is ever reported.
+None is applied. The figure is a model output at monthly or daily granularity,
+from published assumptions; there is no hardware signal in it to obscure.
+Nothing finer than 24 hours is ever reported.
 
 ## 3. The reserved `.example` documents
 
@@ -175,5 +200,48 @@ The remaining five (`carbontxt-demo`, `climatiq-demo`, `salesforce-nzc-demo`,
 and run in the modes documented in GUIDE.md, "Wiring an adapter": live where
 an upstream's license permits attributed republication, replay of a recorded
 response otherwise, always saying which in band.
+
+## 5. Signature and attestation
+
+The self report is the reference deployment's demonstration of the draft's two
+optional integrity mechanisms. Neither changes a figure; both are described here
+so that what they do — and do not — establish is on record.
+
+### The detached signature
+
+`/.well-known/sustainability-data.jws` is a detached JWS (RFC 7515 Appendix F,
+EdDSA/Ed25519) over the exact bytes of the parameterless self document, served
+as `application/jose` with the document's caching directives and a correlated
+ETag. The public key travels in the signature's header and is also hosted at the
+URL the index names (`SELF_SIGNING_KEY_URL`), so a verifier can pin it. The
+signing key lives only in the deployment's environment. What the signature
+establishes: that the bytes a consumer holds are the bytes this key signed, and
+that successive documents came from the same key. What it does not establish:
+who holds the key, and whether the figures are right — a correctly signed
+estimate is still an estimate. Extended variants (any request with parameters)
+are not signed; the draft's signature covers the parameterless representation
+only.
+
+### The attestation
+
+`verifiable-attestation-uri` points at a W3C Verifiable Credential (Data Model
+2.0) secured as `vc+jwt`, issued with `scripts/issue-attestation.mjs` and hosted
+by the issuer. It attests the **model** of §2 — the two constants, the live
+window and the formula — for five years, so every document derived from the
+model is covered and nothing is re-issued monthly. The issuer's public key is
+hosted at the URL the credential's `kid` names.
+
+**The operator of this gateway and the issuer of that credential are the same
+person.** The credential therefore demonstrates the mechanism — a second key, a
+second identity, a statement that can be verified against a published key — and
+is not independent assurance of the figures. The draft says a consumer MUST NOT
+treat the presence of the member as verification; this deployment says the same
+in its own words, on its index page and in the credential's description.
+
+### Third parties
+
+The relayed documents are not signed and carry no attestation, and their
+per-subject `.jws` paths answer `404`: the gateway can vouch for its own bytes,
+never for another organization's figures.
 
 [draft]: https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/

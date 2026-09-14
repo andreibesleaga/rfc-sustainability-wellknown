@@ -1,5 +1,39 @@
 /** Wire-format types for a Sustainability Metadata Document (mirrors the -04 draft's field set). */
 import { MediaTypeClassification } from "./media-type";
+import type { PublicJwk, SigningAlg } from "./jws";
+
+/**
+ * Outcome of checking the OPTIONAL detached signature (draft -06 §Document
+ * Signing). Exactly the draft's vocabulary: `absent` is not evidence of
+ * anything; `unverified` means the document could not be tied to a key and
+ * MUST NOT be read as "false"; `verified` establishes integrity after the
+ * fact and key continuity — with `keySource: "header"` it says nothing about
+ * WHO holds the key, only that the same key signed. `not-applicable` is
+ * returned when the request carried Extended parameters: the signature covers
+ * the parameterless representation only.
+ */
+export type SignatureResult =
+  | { status: "absent" }
+  | {
+      status: "verified";
+      alg: SigningAlg;
+      kid?: string;
+      publicJwk: PublicJwk;
+      keySource: "trusted" | "header";
+      mediaType: string | null;
+      /** Whether the signature resource was served as `application/jose` (draft SHOULD). */
+      mediaTypeOk: boolean;
+    }
+  | {
+      status: "unverified";
+      reason: string;
+      detail?: string;
+      mediaType?: string | null;
+      mediaTypeOk?: boolean;
+      alg?: SigningAlg;
+      kid?: string;
+    }
+  | { status: "not-applicable"; reason: "parameters-present" };
 
 export type EnergyUnit = "Wh" | "kWh" | "MWh" | "GWh";
 export type CarbonUnit = "gCO2e" | "kgCO2e" | "mtCO2e";
@@ -111,6 +145,8 @@ export type FetchResult =
        * when at least one member was disregarded; absent on a clean document.
        */
       disregarded?: string[];
+      /** Present only when `verifySignature` was requested. See {@link SignatureResult}. */
+      signature?: SignatureResult;
     }
   | { status: "not-modified" }
   | { status: "not-found" }

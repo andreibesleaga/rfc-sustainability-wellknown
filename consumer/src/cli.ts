@@ -1,10 +1,16 @@
 /** M2M CLI: fetch (and optionally conformance-check) a /.well-known/sustainability-data origin. */
+import { readFileSync } from "node:fs";
 import { fetchSustainability } from "./fetch";
 import { toCsvRows, toNdjson } from "./transform";
 import { runConformanceChecks } from "./conformance";
+import { verifyAttestation, AttestationResult } from "./attestation";
+import { PublicJwk } from "./jws";
+import { isolate } from "./text";
+import { SignatureResult, SustainabilityMetrics } from "./types";
 
 const USAGE =
   "Usage: sustainability-fetch <origin> [--target=] [--period=] [--granularity=] [--format=json|csv|ndjson] [--strict] [--etag=] [--allow-http]\n" +
+  "                            [--verify] [--verify-attestation[=<issuer JWK url or file>]]\n" +
   "\n" +
   "  <origin>      Origin to fetch from, e.g. https://example.org — the\n" +
   "                /.well-known/sustainability-data path is appended for you.\n" +
@@ -17,12 +23,86 @@ const USAGE =
   "                clients MUST NOT accept a document retrieved over unauthenticated\n" +
   "                HTTP, so an http:// origin is refused without this flag — use it\n" +
   "                only against a local development server or in CI.\n" +
+  "  --verify      Also retrieve /.well-known/sustainability-data.jws (the OPTIONAL\n" +
+  "                detached signature) and verify it over the exact bytes served.\n" +
+  "                Reports verified / absent / unverified (<reason>); the document's\n" +
+  "                own outcome is unchanged either way, as the draft requires.\n" +
+  "  --verify-attestation[=<source>]\n" +
+  "                Dereference the document's verifiable-attestation-uri (explicitly —\n" +
+  "                never automatic) and verify it as a W3C Verifiable Credential secured\n" +
+  "                as vc+jwt. <source> pins the issuer's public JWK (an https URL or a\n" +
+  "                local file); without it the key in the credential's own header is\n" +
+  "                used and the result is reported as self-asserted.\n" +
   "\n" +
   "Examples:\n" +
   "  sustainability-fetch https://example.org\n" +
   "  sustainability-fetch https://example.org --strict\n" +
   "  sustainability-fetch http://127.0.0.1:8080 --strict --allow-http\n" +
+  "  sustainability-fetch https://example.org --verify --verify-attestation\n" +
   "  npx -p sustainability-wellknown-consumer sustainability-fetch https://example.org --strict";
+
+/** One line describing a signature outcome, for stderr. */
+export function describeSignature(sig: SignatureResult): string {
+  switch (sig.status) {
+    case "verified":
+      return (
+        `signature: verified ${sig.alg}${sig.kid ? ` kid=${isolate(sig.kid)}` : ""}` +
+        ` (key from ${sig.keySource === "trusted" ? "pinned key" : "signature header"}` +
+        `${sig.mediaTypeOk ? "" : `; served as "${sig.mediaType ?? ""}", not application/jose`})`
+      );
+    case "absent":
+      return "signature: absent (the publisher does not sign; not evidence of anything)";
+    case "unverified":
+      return `signature: unverified (${sig.reason}${sig.detail ? `: ${sig.detail}` : ""}) — the document is unverified, not false`;
+    case "not-applicable":
+      return "signature: not applicable (the signature covers the parameterless document only)";
+  }
+}
+
+/** One line describing an attestation outcome, for stderr. */
+export function describeAttestation(a: AttestationResult): string {
+  if (!a.valid) return `attestation: invalid (${a.reason}${a.detail ? `: ${a.detail}` : ""})`;
+  const window = `${a.validFrom}${a.validUntil ? ` .. ${a.validUntil}` : " (no validUntil)"}`;
+  const key = a.assurance === "issuer-key-pinned" ? "issuer key pinned" : "self-asserted key from the credential header";
+  return `attestation: valid — issuer ${isolate(a.issuer)}, ${a.alg}, valid ${window}, ${key}${a.mediaTypeOk ? "" : `; served as "${a.mediaType ?? ""}", not application/vc+jwt`}`;
+}
+
+/** Load pinned issuer keys from an https URL (a JWK or a JWK Set) or a local file. */
+async function loadIssuerKeys(source: string): Promise<PublicJwk[]> {
+  let text: string;
+  if (/^https:\/\//.test(source)) {
+    const res = await fetch(source, { signal: AbortSignal.timeout(30_000) });
+    if (!res.ok) throw new Error(`issuer key source ${source} responded ${res.status}`);
+    text = await res.text();
+  } else {
+    text = readFileSync(source, "utf8");
+  }
+  const parsed = JSON.parse(text);
+  const keys: unknown[] = Array.isArray(parsed?.keys) ? parsed.keys : [parsed];
+  return keys.filter((k): k is PublicJwk => typeof k === "object" && k !== null && !("d" in (k as object)));
+}
+
+/** The attestation URI of a fetched document (first entry of an array). */
+function attestationUriOf(document: SustainabilityMetrics | SustainabilityMetrics[]): string | undefined {
+  const first = Array.isArray(document) ? document[0] : document;
+  return first?.["verifiable-attestation-uri"];
+}
+
+async function runAttestationCheck(
+  document: SustainabilityMetrics | SustainabilityMetrics[],
+  source: string | true,
+  allowInsecure: boolean,
+): Promise<AttestationResult | undefined> {
+  const uri = attestationUriOf(document);
+  if (!uri) {
+    console.error("attestation: none (the document carries no verifiable-attestation-uri)");
+    return undefined;
+  }
+  const trustedIssuerKeys = typeof source === "string" ? await loadIssuerKeys(source) : undefined;
+  const result = await verifyAttestation(uri, { trustedIssuerKeys, allowInsecure });
+  console.error(describeAttestation(result));
+  return result;
+}
 
 /**
  * Options may appear in any position, so `--strict <origin>` works as well as
@@ -85,6 +165,8 @@ export async function runCli(argv: string[]): Promise<number> {
     return 2;
   }
 
+  const verifyAttestationOpt = opts["verify-attestation"] as string | true | undefined;
+
   if (opts.strict) {
     const report = await runConformanceChecks(origin, undefined, { allowInsecure });
     for (const c of report.checks) {
@@ -102,7 +184,16 @@ export async function runCli(argv: string[]): Promise<number> {
           " or advisory findings (such as a pre-06 media type).",
       );
     }
-    return report.allPassed ? 0 : 1;
+    // The signature is part of the battery; the attestation is an explicit extra.
+    let attestationOk = true;
+    if (verifyAttestationOpt !== undefined) {
+      const doc = await fetchSustainability(origin, { allowInsecure, legacyCompat: false });
+      if (doc.status === "ok") {
+        const a = await runAttestationCheck(doc.document, verifyAttestationOpt, allowInsecure);
+        attestationOk = a === undefined || a.valid;
+      }
+    }
+    return report.allPassed && attestationOk ? 0 : 1;
   }
 
   const result = await fetchSustainability(origin, {
@@ -111,6 +202,7 @@ export async function runCli(argv: string[]): Promise<number> {
     granularity: opts.granularity === "monthly" || opts.granularity === "daily" ? opts.granularity : undefined,
     ifNoneMatch: typeof opts.etag === "string" ? opts.etag : undefined,
     allowInsecure,
+    verifySignature: opts.verify === true,
   });
 
   switch (result.status) {
@@ -120,6 +212,10 @@ export async function runCli(argv: string[]): Promise<number> {
       else if (format === "ndjson") console.log(toNdjson(result.document));
       else console.log(JSON.stringify(result.document, null, 2));
       if (result.etag) console.error(`ETag: ${result.etag}`);
+      if (result.signature) console.error(describeSignature(result.signature));
+      if (verifyAttestationOpt !== undefined) {
+        await runAttestationCheck(result.document, verifyAttestationOpt, allowInsecure);
+      }
       return 0;
     }
     case "not-modified":

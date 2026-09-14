@@ -14,10 +14,12 @@ import {
   CARBON_TXT_PATHS,
   carbonTxtResult,
   handleRequest,
+  handleSignatureRequest,
   HandlerOptions,
   parseQuery,
   WELL_KNOWN_PATH,
 } from "../handler";
+import { SIGNATURE_PATH } from "../jws";
 import { Publisher } from "../publisher";
 
 interface ReqLike {
@@ -31,7 +33,7 @@ interface ResLike {
   status(code: number): ResLike;
   set(headers: Record<string, string>): ResLike;
   send(body: string): unknown;
-  end(): unknown;
+  end(body?: string): unknown;
 }
 type NextLike = (err?: unknown) => void;
 
@@ -45,13 +47,17 @@ export function expressSustainability(
   opts: ExpressSustainabilityOptions = {},
 ) {
   const carbonPaths = new Set(opts.carbonTxt ? CARBON_TXT_PATHS : []);
+  const signaturePath = opts.signingKey ? SIGNATURE_PATH : undefined;
   return async function sustainabilityMiddleware(
     req: ReqLike,
     res: ResLike,
     next: NextLike,
   ): Promise<void> {
     const path = req.path ?? (req.url ?? "").split("?")[0];
-    const handledPath = path === WELL_KNOWN_PATH || (opts.carbonTxt && carbonPaths.has(path));
+    const handledPath =
+      path === WELL_KNOWN_PATH ||
+      path === signaturePath ||
+      (opts.carbonTxt && carbonPaths.has(path));
     if (req.method && req.method !== "GET" && req.method !== "HEAD") {
       // Draft: other methods on the well-known path SHOULD get 405 + Allow.
       if (handledPath) {
@@ -74,6 +80,17 @@ export function expressSustainability(
       res.status(result.status).set(result.headers);
       if (req.method === "HEAD") res.end();
       else res.send(result.body);
+      return;
+    }
+
+    if (path === signaturePath) {
+      const ifNoneMatch = req.headers?.["if-none-match"] as string | undefined;
+      const result = await handleSignatureRequest(publisher, opts, ifNoneMatch);
+      res.status(result.status).set(result.headers);
+      // `res.end`, not `res.send`: Express's send() appends "; charset=utf-8"
+      // to the Content-Type, and application/jose defines no charset parameter.
+      if (req.method === "HEAD" || result.status === 304) res.end();
+      else res.end(result.body);
       return;
     }
 

@@ -17,8 +17,20 @@ export {
 export type { MediaTypeClassification } from "./media-type";
 export { validateDocument, assertValid, ValidationError, URI_MEMBERS } from "./validate";
 export type { ValidationResult } from "./validate";
-export { fetchSustainability, WELL_KNOWN_PATH } from "./fetch";
-export type { FetchOptions } from "./fetch";
+export { fetchSustainability, fetchSignature, verifyDocumentSignature, WELL_KNOWN_PATH } from "./fetch";
+export type { FetchOptions, FetchSignatureOptions, FetchSignatureResult } from "./fetch";
+export {
+  verifyDetachedJws,
+  verifyJws,
+  algForKey,
+  SIGNATURE_PATH,
+  JOSE_MEDIA_TYPE,
+  VC_JWT_MEDIA_TYPE,
+} from "./jws";
+export type { PublicJwk, SigningAlg, VerifyPolicy, VerifyReason, VerifyResult } from "./jws";
+export { verifyAttestation, verifyCredentialJwt, checkCredentialShape, VC_V2_CONTEXT } from "./attestation";
+export type { AttestationOptions, AttestationResult } from "./attestation";
+export { isolate } from "./text";
 export { SustainabilityClient } from "./client";
 export type { SustainabilityClientOptions } from "./client";
 export {

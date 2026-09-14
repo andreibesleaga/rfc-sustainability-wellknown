@@ -9,7 +9,15 @@
  * the method/404 rules.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { handleRequest } from "sustainability-wellknown-publisher";
+import {
+  handleRequest,
+  handleSignatureRequest,
+  importSigningKey,
+  parseQuery,
+  SIGNATURE_PATH,
+  type SigningKey,
+} from "sustainability-wellknown-publisher";
+import { verifyDetachedJws } from "sustainability-wellknown-consumer";
 import { demoSpecs } from "./adapters/demo-specs";
 import { lastCompletedMonth, selfReportAdapter } from "./adapters/self-report";
 import { LIMITS, type GatewayConfig, type MediaTypeSetting } from "./config";
@@ -24,11 +32,17 @@ import {
 import { LiveRegistry, type LiveSpec } from "./live";
 import { loadMediaTypeOverrides } from "./media-type";
 import { loadNoData, type NoDataEntry } from "./no-data";
+import { clientKey, createRateLimiter, type RateLimiter } from "./rate-limit";
 import { loadRegistry, subjectFromAdapter, type Subject } from "./registry";
 import { crossValidate, type CrossValidation } from "./verify";
 
 /** `/{domain}/.well-known/sustainability-data` — the primary route. */
 const SUBJECT_ROUTE = /^\/([^/]{1,253})\/\.well-known\/sustainability-data$/;
+/** A per-subject signature path: never served — the gateway signs only its own report. */
+const SUBJECT_SIGNATURE_ROUTE = /^\/([^/]{1,253})\/\.well-known\/sustainability-data\.jws$/;
+/** The self report's variant cache: in-progress periods change hourly. */
+const SELF_CACHE_TTL_MS = 60 * 60 * 1000;
+const SELF_CACHE_ENTRIES = 64;
 
 /** Domain served by the adapter-generated demonstration document. */
 export const KEPLER_DEMO_DOMAIN = "kepler-demo.example";
@@ -67,6 +81,10 @@ export interface Gateway {
   mediaTypeOverrides: Map<string, MediaTypeSetting>;
   index: IndexDocument;
   indexHtml: string;
+  /** The key signing the gateway's own report; unset ⇒ `.jws` is 404 (draft: "does not sign"). */
+  signingKey?: SigningKey;
+  /** Per-client request limiter; unset when disabled. */
+  rateLimiter?: RateLimiter;
 }
 
 export type LogFn = (line: Record<string, unknown>) => void;
@@ -88,6 +106,18 @@ export interface CreateGatewayOptions {
   fetchImpl?: typeof fetch | null;
   /** Injectable environment for API-key lookups (defaults to process.env). */
   env?: Record<string, string | undefined>;
+}
+
+/** `Last-Modified` for a served body: the `updated` of the object, or of an array's last entry. */
+function lastUpdatedIn(body: string): string | undefined {
+  try {
+    const parsed = JSON.parse(body) as { updated?: string } | { updated?: string }[];
+    const last = Array.isArray(parsed) ? parsed[parsed.length - 1] : parsed;
+    const d = new Date(String(last?.updated));
+    return Number.isNaN(d.getTime()) ? undefined : d.toUTCString();
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -117,13 +147,19 @@ async function serveDocument(
     ifNoneMatch,
   );
   const headers: Record<string, string> = { ...r.headers, "Last-Modified": subject.lastModified };
+  // A query variant describes a different period than the subject's own
+  // document, so its `Last-Modified` comes from the variant's `updated`.
+  if (r.status === 200 && Object.keys(query).length > 0) {
+    const variantUpdated = lastUpdatedIn(r.body);
+    if (variantUpdated) headers["Last-Modified"] = variantUpdated;
+  }
   if (r.status === 200) {
     // RFC 9110 §13.1.3: If-Modified-Since applies to GET/HEAD only when
     // If-None-Match is absent (an ETag comparison always wins). The document
     // is unmodified when its Last-Modified is not later than the given date.
     if (ifNoneMatch === undefined && ifModifiedSince !== undefined) {
       const since = Date.parse(ifModifiedSince);
-      const lastModified = Date.parse(subject.lastModified);
+      const lastModified = Date.parse(headers["Last-Modified"]);
       if (!Number.isNaN(since) && !Number.isNaN(lastModified) && lastModified <= since) {
         return { status: 304, headers, body: "" };
       }
@@ -143,7 +179,7 @@ export async function route(
     Gateway,
     "config" | "subjects" | "self" | "noData" | "mediaTypeOverrides" | "index" | "indexHtml"
   > &
-    Partial<Pick<Gateway, "refreshSelf" | "examples">>,
+    Partial<Pick<Gateway, "refreshSelf" | "examples" | "signingKey">>,
   method: string,
   rawUrl: string,
   headers: { "if-none-match"?: string; "if-modified-since"?: string } = {},
@@ -158,6 +194,7 @@ export async function route(
     path === "/index.json" ||
     path === "/healthz" ||
     path === WELL_KNOWN_PATH ||
+    path === SIGNATURE_PATH ||
     SUBJECT_ROUTE.test(path);
 
   if (isKnown && method !== "GET" && method !== "HEAD") return methodNotAllowed();
@@ -198,7 +235,35 @@ export async function route(
 
   if (path === WELL_KNOWN_PATH) {
     const self = gw.refreshSelf ? await gw.refreshSelf() : gw.self;
-    return serveDocument(self, gw.config, ifNoneMatch, ifModifiedSince, gw.config.mediaType);
+    // The self report is an Extended publisher: `period` and `granularity`
+    // pass through the publisher's own parameter-tolerance rules (a malformed
+    // period and an unknown granularity are dropped, per the draft); `target`
+    // is ignored, so it never reaches the publisher.
+    const parsed = parseQuery(Object.fromEntries(url.searchParams.entries()));
+    const query: Record<string, string> = {};
+    if (parsed.period !== undefined) query.period = parsed.period;
+    if (parsed.granularity !== undefined) query.granularity = parsed.granularity;
+    return serveDocument(self, gw.config, ifNoneMatch, ifModifiedSince, gw.config.mediaType, query);
+  }
+
+  if (path === SIGNATURE_PATH) {
+    // Draft -06 §Document Signing: the detached JWS over the exact bytes of
+    // the parameterless self document. Without a key the publisher answers
+    // 404, which the draft defines as meaning only "does not sign".
+    const self = gw.refreshSelf ? await gw.refreshSelf() : gw.self;
+    const r = await handleSignatureRequest(
+      self.publisher,
+      { maxAge: gw.config.maxAge, cors: CORS_ORIGIN, signingKey: gw.signingKey },
+      ifNoneMatch,
+    );
+    const headers = { ...r.headers, "Last-Modified": self.lastModified };
+    return r.status === 304 ? { status: 304, headers, body: "" } : withBody(r.status, headers, r.body);
+  }
+
+  if (SUBJECT_SIGNATURE_ROUTE.test(path)) {
+    // A relayed document is not the gateway's to sign: it can vouch for its own
+    // bytes, never for a third party's figures.
+    return jsonError(404, `this gateway signs only its own report, at ${SIGNATURE_PATH}`);
   }
 
   const m = SUBJECT_ROUTE.exec(path);
@@ -270,25 +335,52 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   const subjects = await loadRegistry(config.dataDir);
   const noData = loadNoData(config.dataDir);
   const mediaTypeOverrides = loadMediaTypeOverrides(config.dataDir);
+  const clock = opts.clock ?? (() => new Date());
+  /**
+   * The clock the self report sees: the injected running clock when there is
+   * one (month-rollover tests advance it), else the fixed `now`, else real time.
+   */
+  const selfClock = () => (opts.clock ? opts.clock() : opts.now ?? new Date());
+
+  // ---- The signing key for the gateway's OWN report (draft -06 §Document
+  // Signing). A key that cannot be imported stops the deploy, like a bad data
+  // file: a gateway that claims to sign and cannot is worse than one that
+  // does not sign. ----
+  let signingKey: SigningKey | undefined;
+  if (config.signingKeyJwk) {
+    try {
+      signingKey = await importSigningKey(config.signingKeyJwk);
+    } catch (err) {
+      throw new Error(`SUSTAINABILITY_SIGNING_KEY: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 
   // ---- Worked adapter example #1: the gateway's own report, produced by the
   // published `computedAdapter` rather than hand-written. ----
-  const self = await subjectFromAdapter({
-    domain: "gateway.invalid", // never routed: served at the bare well-known path
-    adapter: selfReportAdapter({
+  const selfAdapter = (period: string | undefined) =>
+    selfReportAdapter({
       target: config.self.target,
       provider: config.self.provider,
       methodologyUri: config.self.methodologyUri,
       disclosureUri: config.self.disclosureUri,
-      period: config.self.period,
+      period,
       watts: config.self.watts,
       gridIntensity: config.self.gridIntensity,
-      now: opts.now,
-    }),
-    target: config.self.target,
-    targetType: "service",
-    label: "adapter:computed (gateway self-report)",
-  });
+      liveSince: config.self.liveSince,
+      verifiableAttestationUri: config.self.verifiableAttestationUri,
+      clock: selfClock,
+    });
+  const selfSubject = (period: string | undefined) =>
+    subjectFromAdapter({
+      domain: "gateway.invalid", // never routed: served at the bare well-known path
+      adapter: selfAdapter(period),
+      target: config.self.target,
+      targetType: "service",
+      label: "adapter:computed (gateway self-report)",
+      cacheTtlMs: SELF_CACHE_TTL_MS,
+      maxCacheEntries: SELF_CACHE_ENTRIES,
+    });
+  const self = await selfSubject(config.self.period);
 
   // ---- Wire-format examples: every case from the repository's canonical
   // example-responses set, served under reserved .example names. ----
@@ -311,7 +403,6 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
 
   // ---- Adapter demonstrations: one subject per published adapter, live
   // where an upstream's license permits it, replay otherwise. ----
-  const clock = opts.clock ?? (() => new Date());
   const live = new LiveRegistry({
     fetchImpl: opts.fetchImpl === undefined ? fetch : opts.fetchImpl,
     env: opts.env ?? process.env,
@@ -335,6 +426,26 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     examples.values(),
   );
 
+  // ---- Boot self-check of the signature: sign the self document exactly as
+  // it will be served and verify it with the consumer library, in-process.
+  // A signature the ecosystem's own verifier rejects must not go live. ----
+  if (signingKey) {
+    const served = await handleRequest(self.publisher, {}, { cors: CORS_ORIGIN });
+    const sig = await handleSignatureRequest(self.publisher, { cors: CORS_ORIGIN, signingKey });
+    const verdict = await verifyDetachedJws(sig.body, Buffer.from(served.body, "utf8"));
+    if (sig.status !== 200 || !verdict.valid) {
+      throw new Error(`self-signature check failed: ${verdict.reason ?? `signature status ${sig.status}`}`);
+    }
+    log({
+      ts: clock().toISOString(),
+      level: "info",
+      event: "self-signature",
+      valid: true,
+      alg: verdict.alg,
+      kid: verdict.kid,
+    });
+  }
+
   for (const domain of noData.keys()) {
     if (subjects.has(domain)) {
       throw new Error(
@@ -357,6 +468,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       demos: [...live.managed.values()],
       examples: [...examples.values()],
       crossValidation,
+      signing: signingKey ? { alg: signingKey.alg, kid: signingKey.kid } : undefined,
     });
   let index = makeIndex();
   let indexHtml = renderIndexHtml(index, config.baseUrl);
@@ -372,21 +484,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     if (config.self.period) return currentSelf;
     const month = lastCompletedMonth(clock());
     if (month !== currentMonth) {
-      currentSelf = await subjectFromAdapter({
-        domain: "gateway.invalid",
-        adapter: selfReportAdapter({
-          target: config.self.target,
-          provider: config.self.provider,
-          methodologyUri: config.self.methodologyUri,
-          disclosureUri: config.self.disclosureUri,
-          period: month,
-          watts: config.self.watts,
-          gridIntensity: config.self.gridIntensity,
-        }),
-        target: config.self.target,
-        targetType: "service",
-        label: "adapter:computed (gateway self-report)",
-      });
+      currentSelf = await selfSubject(month);
       currentMonth = month;
     }
     return currentSelf;
@@ -425,12 +523,15 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     index,
     indexHtml,
     refreshSelf,
+    signingKey,
+    rateLimiter: createRateLimiter(config.rateLimit),
   };
 
   gw.server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const started = process.hrtime.bigint();
     const method = req.method ?? "GET";
     const rawUrl = req.url ?? "/";
+    const pathname = rawUrl.split("?")[0];
 
     const finish = (result: Result) => {
       res.writeHead(result.status, result.headers);
@@ -450,10 +551,28 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       });
     };
 
-    route(gw, method, rawUrl, {
-      "if-none-match": req.headers["if-none-match"] as string | undefined,
-      "if-modified-since": req.headers["if-modified-since"] as string | undefined,
-    })
+    // Draft Operational Considerations: rate-limit the well-known URI. Applied
+    // before routing so every path but the health check counts; the platform
+    // health checker must never be throttled.
+    const limited = async (): Promise<Result | undefined> => {
+      if (!gw.rateLimiter || pathname === "/healthz") return undefined;
+      const decision = await gw.rateLimiter.check(clientKey(req, gw.config.rateLimit.trustProxy));
+      if (decision.allowed) return undefined;
+      return jsonError(429, "rate limit exceeded; retry after the indicated delay", {
+        "Retry-After": String(decision.retryAfterSec),
+        "Cache-Control": "no-store",
+      });
+    };
+
+    limited()
+      .then(
+        (refusal) =>
+          refusal ??
+          route(gw, method, rawUrl, {
+            "if-none-match": req.headers["if-none-match"] as string | undefined,
+            "if-modified-since": req.headers["if-modified-since"] as string | undefined,
+          }),
+      )
       .then(finish)
       .catch((err: unknown) => {
         log({

@@ -31,7 +31,9 @@ GET  /healthz                                    liveness
   linked Verifiable Credential attesting the reporting model, and per-client
   rate limiting — with the honesty caveats stated on the page (the figures are a
   model; operator and attester are the same person). See
-  [METHODOLOGY.md](METHODOLOGY.md#5-signature-and-attestation).
+  [METHODOLOGY.md](METHODOLOGY.md#5-signature-and-attestation) and, for the
+  deployment procedure for any publisher or attester,
+  [SIGNING-AND-ATTESTATION.md](../SIGNING-AND-ATTESTATION.md).
 
 It reuses the published
 [`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)

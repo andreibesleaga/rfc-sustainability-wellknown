@@ -159,6 +159,14 @@ Rotation: run step 1 again, host the new public key, replace the variable,
 redeploy. Old signatures stop verifying against the new key — expected. The
 credential stays valid until its `validUntil`.
 
+> **Railway CLI note (seen 2026-09-14 while setting these variables).** The CLI
+> now warns: *"Config as Code (railway.json / railway.toml) is deprecated. Prefer
+> Infrastructure as Code (.railway/railway.ts). Run `railway config migrate` …
+> Existing files keep working until 2026-12-01."* The committed `railway.json`
+> therefore keeps working until that date; before it, run `railway config
+> migrate` (it generates `.railway/railway.ts` from `railway.json`), commit the
+> result, and delete `railway.json`. Nothing in this guide changes otherwise.
+
 > **Do this before citing the deployment.** `SELF_METHODOLOGY_URI` is a
 > mandatory member of a document you are publishing, and the draft requires the
 > resource behind it to be publicly retrievable without authentication. Make

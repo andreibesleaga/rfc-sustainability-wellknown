@@ -185,7 +185,8 @@ not identity and not accuracy: a signed estimate is still an estimate, and the
 draft says a failed or absent signature makes a document *unverified*, never
 *false*. Key rotation: run `keygen` again, host the new public key, replace the
 variable, redeploy — earlier signatures then stop verifying against the new key,
-which is the point.
+which is the point. The end-to-end procedure for publishers, attesters and
+consumers is in [SIGNING-AND-ATTESTATION.md](../SIGNING-AND-ATTESTATION.md).
 
 ## Adapters
 

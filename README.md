@@ -123,7 +123,9 @@ rfc-sustainability-wellknown/
 ├── server-configurations/   # Web server configuration snippets (nginx, Apache)
 ├── publisher/               # Reference publisher (TypeScript): adapters → conformant /.well-known/sustainability-data
 ├── consumer/                # Reference client (TypeScript): fetch, validate, transform a /.well-known/sustainability-data document
+├── gateway/                 # Reference multi-subject gateway (the live deployment: Extended self report, signed, attested)
 ├── sfc-compliance/              # SFC framework alignment (relationship to the SFC framework)
+├── SIGNING-AND-ATTESTATION.md  # How to deploy the OPTIONAL detached signature and a Verifiable Credential (publisher, attester, consumer)
 └── ADOPTION.md              # The case for RFC/IANA adoption (business, technical, regulatory benefits)
 
 ```
@@ -317,6 +319,8 @@ The OPTIONAL `verifiable-attestation-uri` member MAY link to a signed attestatio
 An example structure is documented in [internet-drafts/draft-verifiable-credential.md](internet-drafts/draft-verifiable-credential.md).
 
 What this does and does not give you: the signature covers the figures **inside the attestation**, not the document served at the well-known URI. Retrieving the document establishes only that the origin published it. A consumer wanting assurance must fetch the attestation as well and compare the values itself. Nothing here makes a self-asserted figure true.
+
+How to deploy it — and the draft's other optional mechanism, the detached signature of the served bytes — as a publisher, an attester or a consumer, in a few commands each: [SIGNING-AND-ATTESTATION.md](SIGNING-AND-ATTESTATION.md). The reference gateway runs both live.
 
 ---
 

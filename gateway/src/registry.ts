@@ -89,7 +89,7 @@ export function lastModifiedFrom(doc: SustainabilityMetrics): string {
 export function publisherForDocument(doc: SustainabilityMetrics): Publisher {
   const raw: RawMetrics = fromWire(doc);
   return new Publisher(staticAdapter({ data: raw, capabilities: doc.capabilities }), {
-    normalize: { version: doc.version, target: doc.target },
+    normalize: { target: doc.target },
     // Documents are static and loaded at startup, so the cache never needs to
     // expire during a process lifetime; a single entry is ever created because
     // the gateway serves the Basic service and never varies on the query.

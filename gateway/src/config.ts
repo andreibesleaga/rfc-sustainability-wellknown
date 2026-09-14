@@ -12,6 +12,15 @@ function env(name: string, fallback: string): string {
   return v === undefined || v === "" ? fallback : v;
 }
 
+/** A non-negative whole number, e.g. a count of proxies. */
+function envCount(name: string, fallback: number): number {
+  const n = envNum(name, fallback);
+  if (!Number.isInteger(n) || n < 0) {
+    throw new Error(`config: ${name} must be a non-negative whole number (got ${n})`);
+  }
+  return n;
+}
+
 function envNum(name: string, fallback: number): number {
   const v = process.env[name];
   if (v === undefined || v === "") return fallback;
@@ -81,7 +90,7 @@ export interface GatewayConfig {
    */
   mediaType: MediaTypeSetting;
   /**
-   * Request rate limiting (draft Operational Considerations: servers SHOULD
+   * Request rate limiting (draft Security Considerations §Denial of Service: servers SHOULD
    * rate-limit requests to the well-known URI). Applied per client, before
    * routing, to every path except `/healthz`. `perMinute: 0` disables it.
    * The client is identified by the last `X-Forwarded-For` entry when
@@ -141,10 +150,11 @@ export const LIMITS = {
   /** Largest source document accepted from `data/`, and largest body served. */
   maxDocumentBytes: 256 * 1024,
   /**
-   * Draft RECOMMENDED cap on array entries. The gateway serves the Basic
-   * service, whose parameterless response MUST be a single JSON object, so
-   * array documents are refused outright; the cap is kept as a second,
-   * explicit bound.
+   * Draft RECOMMENDED cap on array entries. Relayed subjects are served at
+   * the Basic service, whose parameterless response MUST be a single JSON
+   * object, so array source documents are refused outright; the gateway's own
+   * report is Extended (period/granularity honoured), and the cap is kept as
+   * a second, explicit bound.
    */
   maxArrayEntries: 366,
   /** Longest domain label path segment accepted on a request line. */
@@ -164,7 +174,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
     mediaType: envMediaType("SUSTAINABILITY_MEDIA_TYPE", "sustainability-data+json"),
     rateLimit: {
       perMinute: envNum("RATE_LIMIT_PER_MINUTE", 600),
-      trustProxy: envNum("TRUST_PROXY", 1),
+      trustProxy: envCount("TRUST_PROXY", 1),
     },
     signingKeyJwk: process.env.SUSTAINABILITY_SIGNING_KEY || undefined,
     self: {

@@ -15,6 +15,7 @@ import {
   carbonTxtResult,
   handleRequest,
   handleSignatureRequest,
+  assertSignable,
   HandlerOptions,
   parseQuery,
   WELL_KNOWN_PATH,
@@ -46,6 +47,7 @@ export function expressSustainability(
   publisher: Publisher,
   opts: ExpressSustainabilityOptions = {},
 ) {
+  assertSignable(publisher, opts);
   const carbonPaths = new Set(opts.carbonTxt ? CARBON_TXT_PATHS : []);
   const signaturePath = opts.signingKey ? SIGNATURE_PATH : undefined;
   return async function sustainabilityMiddleware(
@@ -100,10 +102,10 @@ export function expressSustainability(
     const result = await handleRequest(publisher, parseQuery(req.query ?? {}), opts, ifNoneMatch);
 
     res.status(result.status).set(result.headers);
-    if (req.method === "HEAD" || result.status === 304) {
-      res.end();
-    } else {
-      res.send(result.body);
-    }
+    // `res.end`, not `res.send`: send() appends "; charset=utf-8" to the
+    // Content-Type (the registered type defines no parameters) and would
+    // give GET and HEAD different header fields.
+    if (req.method === "HEAD" || result.status === 304) res.end();
+    else res.end(result.body);
   };
 }

@@ -1,10 +1,10 @@
 /**
- * The three mandated safeguards from the draft's Security and Privacy sections,
+ * The three safeguards from the draft's Security and Privacy sections,
  * ported from `example-scripts/security.js` into the gateway:
  *
- *  1. DoS protection      — cap arrays at 366 objects (draft §"Array Size Limits").
- *  2. Traffic analysis    — drop entries finer than 24h (draft §"Traffic Analysis").
- *  3. Anti-fingerprinting — apply ~1% noise to numeric fields (draft §"Hardware Fingerprinting").
+ *  1. DoS protection      — cap arrays at 366 objects (draft §"Array Size Limits", MUST cap; 366 RECOMMENDED).
+ *  2. Traffic analysis    — drop entries finer than 24h (draft §"Traffic Analysis", SHOULD NOT report finer).
+ *  3. Anti-fingerprinting — apply ~1% noise to numeric fields (draft §"Hardware Fingerprinting", MAY; off by default).
  */
 import { SustainabilityMetrics } from "./types";
 

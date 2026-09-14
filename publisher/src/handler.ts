@@ -5,9 +5,9 @@
  */
 import { emitCarbonTxt, EmitCarbonTxtOptions } from "./carbontxt";
 import { LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "./media-type";
-import { PERIOD_RE } from "./normalize";
+import { isCalendarPeriod } from "./period";
 import { JOSE_MEDIA_TYPE, signDetached, SigningKey } from "./jws";
-import { Publisher, NotFoundError } from "./publisher";
+import { Publisher, NotFoundError, SerializedDocument } from "./publisher";
 import { ServiceQuery } from "./types";
 
 export interface HandlerOptions {
@@ -110,7 +110,8 @@ export interface HandlerResult {
 }
 
 /** The granularity values this document defines (draft §Optional Extended Query Parameters). */
-const KNOWN_GRANULARITIES = new Set(["monthly", "daily"]);
+const KNOWN_GRANULARITIES: ReadonlySet<string> = new Set(["monthly", "daily"]);
+const isGranularity = (v: string): v is "monthly" | "daily" => KNOWN_GRANULARITIES.has(v);
 
 /**
  * Parse the three Extended query parameters from a generic query bag,
@@ -135,9 +136,8 @@ export function parseQuery(q: Record<string, unknown>): ServiceQuery {
   const granularity = str(q.granularity);
   return {
     target: str(q.target),
-    period: period !== undefined && PERIOD_RE.test(period) ? period : undefined,
-    granularity:
-      granularity !== undefined && KNOWN_GRANULARITIES.has(granularity) ? granularity : undefined,
+    period: period !== undefined && isCalendarPeriod(period) ? period : undefined,
+    granularity: granularity !== undefined && isGranularity(granularity) ? granularity : undefined,
   };
 }
 
@@ -186,6 +186,9 @@ export async function handleRequest(
       headers: {
         ...baseHeaders,
         "Content-Type": contentType,
+        // Fixed here so GET and HEAD carry the same header fields (draft:
+        // HEAD "MUST receive the same status and header fields").
+        "Content-Length": String(Buffer.byteLength(body)),
         "X-Content-Type-Options": "nosniff",
         ETag: etag,
       },
@@ -212,33 +215,39 @@ export async function handleRequest(
 export const WELL_KNOWN_PATH = "/.well-known/sustainability-data";
 
 /**
- * Per-publisher cache of detached signatures keyed by the document's ETag, so
- * one document generation is served with one signature body (ES256 signatures
- * are randomized; ETag-keying also guarantees the signature and the served
- * bytes come from the same generation). Bounded: oldest entries evicted.
+ * One signature per document generation: the detached JWS is remembered on
+ * the very {@link SerializedDocument} the publisher's cache hands out, so the
+ * document request and the signature request that hit the same cache entry
+ * are signed and served from one generation, concurrent first requests share
+ * one signing (ES256 signatures are randomized), and the entry is collected
+ * with the document.
  */
-const signatureCache = new WeakMap<Publisher, Map<string, string>>();
-const SIGNATURE_CACHE_MAX = 8;
+const signatureOf = new WeakMap<SerializedDocument, Promise<string>>();
 
-async function cachedSignature(
-  publisher: Publisher,
-  etag: string,
-  body: string,
-  key: SigningKey,
-): Promise<string> {
-  let cache = signatureCache.get(publisher);
-  if (!cache) {
-    cache = new Map();
-    signatureCache.set(publisher, cache);
+function cachedSignature(generation: SerializedDocument, key: SigningKey): Promise<string> {
+  let pending = signatureOf.get(generation);
+  if (!pending) {
+    pending = signDetached(generation.body, key);
+    signatureOf.set(generation, pending);
   }
-  const hit = cache.get(etag);
-  if (hit !== undefined) return hit;
-  const jws = await signDetached(body, key);
-  while (cache.size >= SIGNATURE_CACHE_MAX) {
-    cache.delete(cache.keys().next().value as string);
+  return pending;
+}
+
+/**
+ * The draft's pairing rule for a signing publisher ("regenerate and republish
+ * the signature whenever the document is regenerated"): the served document
+ * must be stable between the document request and the signature request,
+ * which the in-memory cache provides. With `cacheTtlMs: 0` every request
+ * regenerates (and a wall-clock `updated` changes every second), so the pair
+ * could never verify — refused at wiring time, not discovered by a verifier.
+ */
+export function assertSignable(publisher: Publisher, opts: HandlerOptions): void {
+  if (opts.signingKey && publisher.cacheTtlMs <= 0) {
+    throw new Error(
+      "signing requires a stable document: set the Publisher's cacheTtlMs above 0 " +
+        "so the document and its signature are served from one generation",
+    );
   }
-  cache.set(etag, jws);
-  return jws;
 }
 
 /** Entity-tag of the signature resource, correlated with the document's. */
@@ -275,12 +284,13 @@ export async function handleSignatureRequest(
   }
 
   try {
-    const { body, etag } = await publisher.getSerialized({});
+    const generation = await publisher.getSerialized({});
+    const { etag } = generation;
     const jwsEtag = signatureEtag(etag);
     if (ifNoneMatch && ifNoneMatchMatches(ifNoneMatch, jwsEtag)) {
       return { status: 304, headers: { ...baseHeaders, ETag: jwsEtag }, body: "" };
     }
-    const jws = await cachedSignature(publisher, etag, body, opts.signingKey);
+    const jws = await cachedSignature(generation, opts.signingKey);
     return {
       status: 200,
       headers: {

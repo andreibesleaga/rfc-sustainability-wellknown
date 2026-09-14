@@ -15,7 +15,8 @@ is the normal case for early ecosystem adoption, not a hypothetical. Built
 basic-first and M2M-oriented: every API is one line to call from a script (a cron
 job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad input.
 
-> **Version note:** consumer **0.6.0** (this tree)
+> **Version note:** consumer **0.6.6** (this tree; 0.6.5 adds `--verify`,
+> `--verify-attestation` and the battery's detached-signature check)
 > implements the **-06** draft revision on the wire — the dedicated
 > `application/sustainability-data+json` media type (sent in `Accept`, reported
 > back as `result.mediaType`), the unconditional **HTTPS MUST** (an `http://`
@@ -47,11 +48,10 @@ job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad in
 > the full document URL pasted as-is. **0.6.0 adds the -06 client behaviour
 > listed above while staying fully compatible with a -05 publisher**: a
 > response served as `application/json` is accepted (the draft's SHOULD) and
-> the battery reports it as `WARN`, not `FAIL`. No signature verification is
-> implemented: the detached JWS -06 defines at
-> `/.well-known/sustainability-data.jws` is OPTIONAL, and a client that cannot
-> establish the signer's identity out of band gains nothing it can rely on
-> from checking one. The earlier published **0.1.0** implements the -02
+> the battery reports it as `WARN`, not `FAIL`. Verification of the OPTIONAL
+> detached JWS at `/.well-known/sustainability-data.jws` is implemented since
+> 0.6.5 (`--verify`, `verifySignature`, and the battery's detached-signature
+> check) and is never automatic. The earlier published **0.1.0** implements the -02
 > (`"1.1"`) model.
 
 ## Install & build
@@ -106,9 +106,9 @@ the transformation helpers, disclosure-link handling, and the conformance checke
 | `jws` | `verifyDetachedJws()`, `verifyJws()`, `algForKey()`, `SIGNATURE_PATH`, `JOSE_MEDIA_TYPE`, `VC_JWT_MEDIA_TYPE` — JWS verification on top of [`jose`](https://github.com/panva/jose) with the draft's verifier policy (RFC 8725): the algorithm is determined by the key and the caller's policy, `none`/MACs and unknown `crit` are rejected, a header `jwk` must be a public key and is ignored when the caller pins `trustedKeys`; every failure is a stable `reason`, never a throw |
 | `attestation` | `verifyAttestation(uri, options)` (explicit; never automatic), `verifyCredentialJwt()`, `checkCredentialShape()`, `VC_V2_CONTEXT` — a W3C Verifiable Credential 2.0 secured as `vc+jwt`: HTTPS only, signature + VC shape + validity window, `assurance: "issuer-key-pinned" \| "self-asserted-key"` |
 | `text` | `isolate()` — Unicode bidi isolation (FSI…PDI) for document-derived text in human-readable output |
-| `fetch` | `fetchSustainability(origin, options)` — the one-call fetch-and-validate function; `verifySignature: true` adds a `signature` outcome (`absent`/`verified`/`unverified`/`not-applicable`) via `fetchSignature()`/`verifyDocumentSignature()`, verified over the exact octets served and refusing a cross-origin redirect of the signature resource; its `legacyCompat` option (default true) derives a missing `target` from the legacy `target-path` value (origin host only when neither exists), disregards (strips + records in `disregarded`) wrong-JSON-typed optional members, a reported `sci-score` without `functional-unit`, and unrecognized `target-type` values, and returns the distinct `no-report` status for a 200 empty array, per the draft's compatibility/tolerance rules; sends the -06 `Accept` header, reports the response's media type as `mediaType`, and refuses a non-HTTPS retrieval (`status: "insecure-transport"`) unless `allowInsecure: true` |
+| `fetch` | `fetchSustainability(origin, options)` — the one-call fetch-and-validate function; `verifySignature: true` adds a `signature` outcome (`absent`/`verified`/`unverified`/`not-applicable`) via `fetchSignature()`/`verifyDocumentSignature()`, verified over the exact octets served and refusing a cross-origin redirect of the signature resource; its `legacyCompat` option (default true) derives a missing `target` from the legacy `target-path` value (origin host only when neither exists), disregards (strips + records in `disregarded`) wrong-JSON-typed optional members, a reported `sci-score` without `functional-unit`, and unrecognized values of the enumerated members (`capabilities`, `energy-unit`, `carbon-unit`, `carbon-accounting`, `target-type`; a unit member takes the numerics it parameterizes with it), and returns the distinct `no-report` status for a 200 empty array, per the draft's compatibility/tolerance rules; sends the -06 `Accept` header, reports the response's media type as `mediaType` and the final URL as `url` (redirects are followed by hand: every hop must be HTTPS, and the signature resource must stay on the document's final origin, checked before the hop is requested), and refuses a non-HTTPS retrieval (`status: "insecure-transport"`) unless `allowInsecure: true` |
 | `client` | `SustainabilityClient` — a class for repeated polling, with ETag-based conditional-request caching (threads `legacyCompat` through) |
-| `sentinel` | `isNotReported()`, `withoutSentinels()`, `NUMERIC_KEYS`, `TARGET_TYPES`, `isRecognizedTargetType()`, `isWrongJsonType()`, `legacyReportingSubject()`, `OPTIONAL_MEMBER_JSON_TYPES` — the legacy-compatibility/tolerance module: a negative value in a non-negative member reads as "not reported" (subsumes the historical 1.x sentinel — negative scopes are real data and are never stripped), a wrong-JSON-typed value (including `null`) in a defined optional member reads as "not reported", an unrecognized enumerated `target-type` value reads as "disregard the member" (draft §Value Constraints and Omitted Metrics), and `legacyReportingSubject()` resolves a 1.x document's subject from `target-path` (origin host as the fallback) |
+| `sentinel` | `isNotReported()`, `withoutSentinels()`, `NUMERIC_KEYS`, `TARGET_TYPES`, `isRecognizedTargetType()`, `isWrongJsonType()`, `legacyReportingSubject()`, `OPTIONAL_MEMBER_JSON_TYPES` — the legacy-compatibility/tolerance module: a negative value in a non-negative member reads as "not reported" (subsumes the historical 1.x sentinel — negative scopes are real data and are never stripped), a wrong-JSON-typed value (including `null`) in a defined optional member reads as "not reported", an unrecognized value in an enumerated member (`ENUMERATED_MEMBERS`: `capabilities`, the two unit members, `carbon-accounting`, `target-type`) reads as "disregard the member" (draft §Value Constraints and Omitted Metrics), and `legacyReportingSubject()` resolves a 1.x document's subject from `target-path` (origin host as the fallback) |
 | `units` | `convertEnergy()`, `convertCarbon()` — unit conversion, matching `publisher/src/normalize.ts`'s tables exactly (parity-tested) |
 | `transform` | `toCsvRows()`, `toNdjson()`, `flatten()`, `aggregate()` — format transformations for a validated document |
 | `disclosure` | `resolveDisclosureLinks()` (passive), `fetchDisclosure()` (explicit opt-in, and refuses any non-`https` URI before making a request) — disclosure/attestation link helpers |
@@ -280,10 +280,11 @@ that is what -06 itself asks for:
   and `validateDocument().warnings`): the member is kept and the document stays
   valid. The rule bites where it matters — `fetchDisclosure()` refuses to
   dereference such a URI at all.
-* **No signature verification.** -06's detached JWS at
+* **Signature verification is never automatic.** -06's detached JWS at
   `/.well-known/sustainability-data.jws` is OPTIONAL, and verifying one proves
   integrity and key continuity, not identity, unless the key is already known
-  out of band. Nothing in this package reads it.
+  out of band. Since 0.6.5 this package verifies it only on request (`--verify`,
+  `verifySignature`, and the battery's detached-signature check).
 
 The one place -06 is enforced without compromise is transport: an `http://`
 origin is refused (`--allow-http` / `allowInsecure: true` to override), because

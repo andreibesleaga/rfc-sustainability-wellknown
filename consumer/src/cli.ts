@@ -1,4 +1,5 @@
 /** M2M CLI: fetch (and optionally conformance-check) a /.well-known/sustainability-data origin. */
+import { readBodyCapped, secureGet } from "./transport";
 import { readFileSync } from "node:fs";
 import { fetchSustainability } from "./fetch";
 import { toCsvRows, toNdjson } from "./transform";
@@ -71,9 +72,10 @@ export function describeAttestation(a: AttestationResult): string {
 async function loadIssuerKeys(source: string): Promise<PublicJwk[]> {
   let text: string;
   if (/^https:\/\//.test(source)) {
-    const res = await fetch(source, { signal: AbortSignal.timeout(30_000) });
-    if (!res.ok) throw new Error(`issuer key source ${source} responded ${res.status}`);
-    text = await res.text();
+    const got = await secureGet(new URL(source), { timeoutMs: 30_000, headers: { Accept: "application/jwk+json, application/jwk-set+json, application/json;q=0.5" } });
+    if (!got.ok) throw new Error(`issuer key source ${source}: ${got.refusal.reason}${got.refusal.detail ? ` (${got.refusal.detail})` : ""}`);
+    if (got.res.status !== 200) throw new Error(`issuer key source ${source} responded ${got.res.status}`);
+    ({ text } = await readBodyCapped(got.res, 65_536));
   } else {
     text = readFileSync(source, "utf8");
   }
@@ -212,6 +214,13 @@ export async function runCli(argv: string[]): Promise<number> {
       else if (format === "ndjson") console.log(toNdjson(result.document));
       else console.log(JSON.stringify(result.document, null, 2));
       if (result.etag) console.error(`ETag: ${result.etag}`);
+      if (result.legacy) {
+        console.error(
+          "note: the document lacks the mandatory target member (a pre-06 form); target was derived by the " +
+            "legacy-compatibility pre-pass and the document is not -06 conformant (use --strict to reject it)",
+        );
+      }
+      if (result.disregarded) console.error(`disregarded (draft tolerance rules): ${result.disregarded.join(", ")}`);
       if (result.signature) console.error(describeSignature(result.signature));
       if (verifyAttestationOpt !== undefined) {
         await runAttestationCheck(result.document, verifyAttestationOpt, allowInsecure);

@@ -1,5 +1,5 @@
 /**
- * Per-client request rate limiting (draft Operational Considerations: servers
+ * Per-client request rate limiting (draft Security Considerations §Denial of Service: servers
  * SHOULD rate-limit requests to the well-known URI). The limiter itself is
  * `rate-limiter-flexible`'s in-memory backend; this module only fixes the
  * gateway's policy — one fixed window per client, `Retry-After` on refusal —
@@ -53,7 +53,10 @@ export function clientKey(req: IncomingMessage, trustProxy: number): string {
       .split(",")
       .map((s) => s.trim())
       .filter((s) => s !== "");
-    const fromProxy = list[list.length - trustProxy];
+    // Fewer entries than trusted proxies is a misconfiguration; the first
+    // entry then still keys per client rather than collapsing everyone onto
+    // the proxy's own address.
+    const fromProxy = list[Math.max(0, list.length - trustProxy)];
     if (fromProxy) return fromProxy;
   }
   return req.socket?.remoteAddress ?? "unknown";

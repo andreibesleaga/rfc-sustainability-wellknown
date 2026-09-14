@@ -51,7 +51,7 @@ distinction is the whole design.
 
 The gateway does not reimplement the format. It depends on the published
 [`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)
-package (0.6.0) for normalization, the JTD validation gate, ETag generation,
+package (0.6.6) for normalization, the JTD validation gate, ETag generation,
 caching and the per-document HTTP semantics; the gateway adds multi-subject
 routing, `Last-Modified`, the index, and the honesty machinery.
 
@@ -94,7 +94,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 cd gateway
 npm install
 npm run build
-npm test                       # 232 tests
+npm test                       # 268 tests
 node dist/index.js             # binds 0.0.0.0:8080
 ```
 
@@ -119,8 +119,9 @@ draft-conformant exceptions. The gateway's **own** report is an Extended
 publisher (`period` and `granularity` honoured, `target` ignored; see
 [The gateway's own report](#the-gateways-own-report-extended-signed-attested)),
 and the wire-format example subjects whose documents themselves declare
-`capabilities: "extended"` honor `?granularity=` and return their full sorted
-trend array (see [Wiring an adapter](#wiring-an-adapter)).
+`capabilities: "extended"` honor `?period=` and `?granularity=`, returning their
+sorted trend array only for a granularity finer than the period (see
+[Wiring an adapter](#wiring-an-adapter)).
 
 | Route | Behaviour |
 |---|---|
@@ -336,8 +337,9 @@ fail-fast-at-boot treatment as every other data problem.
 Curated files answer "what do organizations publish today?". Adapters answer
 "how would an organization generate this itself?". **Every adapter shipped by
 the published publisher package runs end to end in this gateway** — one
-demonstration subject each, under reserved `.example` names, listed in the
-index's "Adapter demonstrations" section:
+demonstration subject per upstream-backed adapter, under reserved `.example`
+names, listed in the index's "Adapter demonstrations" section, while the two
+static adapters are exercised by every curated data file:
 
 | Subject | Adapter | Mode |
 |---|---|---|
@@ -362,8 +364,10 @@ The gateway also serves the repository's canonical **wire-format examples**
 (`gateway/examples/`, byte-identical to `example-responses/`, enforced by
 test): all fourteen cases, including the trend arrays, which follow the
 draft's rule — the Basic response collapses to the most recent entry, and the
-full sorted array is served only for `?granularity=` requests on documents
-that themselves declare `capabilities: "extended"`.
+sorted array is served only for a granularity finer than the requested period
+(`?period=2025&granularity=monthly`) on documents that themselves declare
+`capabilities: "extended"`; `?granularity=monthly` alone applies to the default
+(monthly) period and answers one object.
 
 At boot, every served document is additionally validated with the published
 **consumer** library (`src/verify.ts`); a failure aborts startup, and the
@@ -469,7 +473,7 @@ for f in ../gateway/data/*.json; do
 done
 ```
 
-Every registry document passes both validators (also enforced continuously by `.github/workflows/gateway.yml`, which boots the server and runs the conformance battery on every push).
+Every registry document passes both validators (also enforced continuously by `.github/workflows/gateway.yml`, which boots the server and runs the conformance battery on every push touching `gateway/` or the schemas).
 
 **3. Against a running server**, including the documents produced by adapters
 rather than files:
@@ -533,6 +537,13 @@ unchanged. It is also part of `npm test`.
 
 Expected result: **every check PASS, for the root and for every subject served.**
 
+The front page repeats the essentials as hyperlinks: the table at the end of its
+"Service level" section lists every working `GET` on the deployment (the self
+report at each service level, the signature and attestation resources, one
+document of each relayed kind, the `404` cases) with the outcome a click should
+show. It is built from the same index as `/index.json`, and a test clicks every
+row.
+
 ## Deploying
 
 The full runbook, with both the CLI and the dashboard path, custom domains and
@@ -590,7 +601,7 @@ injects.
 | `PORT` | `8080` | Injected by the platform. |
 | `HOST` | `0.0.0.0` | Bind address. |
 | `DATA_DIR` | `<app>/data` | Where subject documents are read from. |
-| `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`. |
+| `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`. A self-report period still in progress is capped at 3600, the model's own hourly resolution. |
 | `BASE_URL` | *(empty)* | Public base URL for absolute links in the index. Also enables the co2js demonstration's live Greencheck lookup of this host. |
 | `EXAMPLES_DIR` | `<app>/examples` | Where the canonical wire-format example documents are read from. |
 | `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` document response media type, service-wide. `sustainability-data+json` (default) serves the -06 dedicated `application/sustainability-data+json` type; `json` serves the legacy `application/json` type (-05-compatible, not -06-conformant). Per-subject overrides live in [`data/_media-type.json`](#pinning-a-subject-to-the-legacy-media-type). |

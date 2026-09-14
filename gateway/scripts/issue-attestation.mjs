@@ -106,7 +106,15 @@ function parseArgs(argv) {
   const out = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    const take = () => argv[++i];
+    const take = () => {
+      if (i + 1 >= argv.length) throw new Error(`"${a}" needs a value`);
+      return argv[++i];
+    };
+    const takeNumber = () => {
+      const n = Number(take());
+      if (!Number.isFinite(n)) throw new Error(`"${a}" needs a number`);
+      return n;
+    };
     if (a === "--key") out.keyFile = take();
     else if (a === "--out") out.out = take();
     else if (a === "--issuer") out.issuer = take();
@@ -115,10 +123,10 @@ function parseArgs(argv) {
     else if (a === "--gateway") out.gateway = take();
     else if (a === "--target") out.target = take();
     else if (a === "--methodology-uri") out.methodologyUri = take();
-    else if (a === "--watts") out.watts = Number(take());
-    else if (a === "--grid-intensity") out.gridIntensity = Number(take());
+    else if (a === "--watts") out.watts = takeNumber();
+    else if (a === "--grid-intensity") out.gridIntensity = takeNumber();
     else if (a === "--live-since") out.liveSince = take();
-    else if (a === "--valid-years") out.validYears = Number(take());
+    else if (a === "--valid-years") out.validYears = takeNumber();
     else if (a === "--now") out.now = take();
     else throw new Error(`unknown argument "${a}"`);
   }

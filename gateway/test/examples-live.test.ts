@@ -71,9 +71,9 @@ describe("wire-format example serving", () => {
     expect(doc["reporting-period"]).toBe("2025");
   });
 
-  it("returns the full sorted array for ?granularity= on declared-extended examples", async () => {
+  it("returns the sorted array for a period sliced finer on declared-extended examples", async () => {
     const r = await fetch(
-      url("/yearly.example/.well-known/sustainability-data?granularity=monthly"),
+      url("/yearly.example/.well-known/sustainability-data?period=2025&granularity=monthly"),
     );
     expect(r.status).toBe(200);
     const arr = await r.json();
@@ -85,11 +85,25 @@ describe("wire-format example serving", () => {
 
     const short = await (
       await fetch(
-        url("/yearly-monthly-target.example/.well-known/sustainability-data?granularity=monthly"),
+        url("/yearly-monthly-target.example/.well-known/sustainability-data?period=2026&granularity=monthly"),
       )
     ).json();
     expect(Array.isArray(short)).toBe(true);
     expect(short).toHaveLength(2);
+    expect(srv.gw.examples.get("yearly.example")).toMatchObject({ period: "2025", granularity: "monthly" });
+  });
+
+  it("granularity alone applies to the default period, which monthly is not finer than: one object", async () => {
+    const r = await fetch(url("/yearly.example/.well-known/sustainability-data?granularity=monthly"));
+    const doc = await r.json();
+    expect(Array.isArray(doc)).toBe(false);
+    expect(doc["reporting-period"]).toBe("2025-12");
+    // A whole year without a granularity: the months aggregated into one object.
+    const year = await (await fetch(url("/yearly.example/.well-known/sustainability-data?period=2025"))).json();
+    expect(year["reporting-period"]).toBe("2025");
+    expect(validateDocument(year).valid).toBe(true);
+    // A period the trend does not cover: no data.
+    expect((await fetch(url("/yearly.example/.well-known/sustainability-data?period=2024"))).status).toBe(404);
   });
 
   it("ignores granularity on a Basic-declaring trend and on unknown values", async () => {
@@ -110,7 +124,7 @@ describe("wire-format example serving", () => {
   it("keeps ETags distinct between the Basic and array variants", async () => {
     const basic = await fetch(url("/yearly.example/.well-known/sustainability-data"));
     const arr = await fetch(
-      url("/yearly.example/.well-known/sustainability-data?granularity=monthly"),
+      url("/yearly.example/.well-known/sustainability-data?period=2025&granularity=monthly"),
     );
     expect(basic.headers.get("etag")).toBeTruthy();
     expect(arr.headers.get("etag")).toBeTruthy();

@@ -74,7 +74,8 @@ Datatracker: <https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wel
 `draft-besleaga-green-sustainability-wellknown-00` … `-05` (`.md`/`.xml`, plus `.txt` for -04/-05)
 are the earlier revisions of this work under its **previous name**. The document was renamed
 to drop the `green` token (which could imply a scope tied to the IETF GREEN Working Group);
-the current draft **Replaces** that series. These files are retained for history only.
+the current draft **Replaces** that series. These files are no longer in this directory; see the
+Datatracker and this repository's git history.
 
 An earlier per-request HTTP-header approach to carbon transparency was explored first —
 filed as `draft-besleaga-green-sustainability-header-00` (now expired) — and set aside in

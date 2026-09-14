@@ -137,14 +137,12 @@ describe("interop: consumer <-> real publisher package", () => {
   );
 
   it.runIf(hasPublisherDist)(
-    "(b) computedAdapter (a single-source adapter) still collapses to ONE object even with granularity=monthly",
+    "(b) computedAdapter (a single-source adapter): a year sliced monthly is an array of the one month it reports; alone it is one object",
     async () => {
-      // Read from publisher/src/publisher.ts's Publisher.build(): the document
-      // is only emitted as an array when `wasArray || secured.length > 1`.
-      // computedAdapter.fetch() always returns a single RawMetrics (never an
-      // array), so wasArray is false and there is exactly one normalized
-      // report -> the array branch is never taken, granularity or not. This
-      // matches the draft's "array only when a trend actually exists" rule.
+      // The publisher's selection rule (publisher/src/period.ts): an array only
+      // when a granularity finer than the period was requested and entries at
+      // that precision exist — here the single May entry, so a one-entry
+      // array. Without the finer granularity the answer is one object.
       const publisher = new Publisher(
         computedAdapter({
           provider: "Interop Test Corp",
@@ -158,10 +156,14 @@ describe("interop: consumer <-> real publisher package", () => {
       );
       const origin = await startPublisherServer(publisher);
 
-      const result = await fetchSustainability(origin, { ...ALLOW_INSECURE, period: "2026", granularity: "monthly" });
-      expect(result.status).toBe("ok");
-      if (result.status !== "ok") return;
-      expect(Array.isArray(result.document)).toBe(false);
+      const sliced = await fetchSustainability(origin, { ...ALLOW_INSECURE, period: "2026", granularity: "monthly" });
+      expect(sliced.status).toBe("ok");
+      if (sliced.status !== "ok") return;
+      expect(Array.isArray(sliced.document)).toBe(true);
+      expect((sliced.document as SustainabilityMetrics[]).map((e) => e["reporting-period"])).toEqual(["2026-05"]);
+
+      const alone = await fetchSustainability(origin, { ...ALLOW_INSECURE, granularity: "monthly" });
+      expect(alone.status === "ok" && Array.isArray(alone.document)).toBe(false);
     },
   );
 

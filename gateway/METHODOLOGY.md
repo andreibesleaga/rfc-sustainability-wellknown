@@ -173,8 +173,8 @@ badges them `synthetic`.
 
 ## 4. The adapter demonstrations
 
-Eight further `.example` subjects — the index's "Adapter demonstrations"
-section — run every adapter shipped by the published publisher package end to
+Seven further `.example` subjects — with `kepler-demo.example` above, the
+index's "Adapter demonstrations" section — run every adapter shipped by the published publisher package end to
 end. Two of them point their `methodology-uri` at this document:
 
 - **`grid-intensity-demo.example`** (`computed` adapter) reuses the energy

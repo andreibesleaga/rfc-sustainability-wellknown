@@ -173,7 +173,7 @@ flowchart TB
             FETCH["Fetch + Validate Library<br/>[Container: TypeScript]<br/>fetchSustainability: timeout & byte caps ·<br/>legacy-compat pre-pass · JTD + cross-entry rules"]
             SCLI["SustainabilityClient<br/>[Container: TypeScript]<br/>ETag-cached polling"]
             TR["Transforms<br/>[Container: TypeScript]<br/>CSV · NDJSON · flatten · aggregate"]
-            FCLI["sustainability-fetch CLI<br/>[Container: Node bin]<br/>--strict = 6-check conformance battery<br/>against any origin"]
+            FCLI["sustainability-fetch CLI<br/>[Container: Node bin]<br/>--strict = 8-check conformance battery<br/>against any origin"]
         end
 
         SCHEMAS["Formal Schemas + Validators<br/>[Container: CDDL (RFC 8610) + JTD (RFC 8927)]<br/>schemas-validators/: dual Python/Ruby validators;<br/>schema copies embedded in both packages,<br/>byte-equality checked in CI"]
@@ -627,15 +627,17 @@ in early adoption), and transform. Three tiers:
    30 s via `AbortSignal.timeout`), a 10 MB body cap enforced *while streaming*
    (a lying `Content-Length` cannot force buffering), JSON parse guard, then the
    validation gate. Results are a typed status union — `ok · not-modified ·
-   not-found · invalid · http-error · timeout · too-large` — so callers never
+   not-found · no-report · invalid · http-error · timeout · too-large ·
+   insecure-transport` — so callers never
    see exceptions for ordinary protocol outcomes.
 2. **`SustainabilityClient`** — repeated polling with a bounded per-
    (origin + params) ETag cache; a `304` transparently replays the cached
    document; `getTrend()` asserts the array shape.
 3. **CLI `sustainability-fetch`** — JSON/CSV/NDJSON output, plus `--strict`,
-   which runs the **7-check conformance battery** (`conformance.ts`) against
+   which runs the **8-check conformance battery** (`conformance.ts`) against
    *any* implementation: Basic single object · media type (`application/sustainability-data+json`;
    legacy `application/json` ⇒ WARN, not FAIL) · `X-Content-Type-Options: nosniff` present ·
+   detached signature (OPTIONAL) absent or verifiable over the served bytes ·
    ETag present · fresh ETag ⇒ 304 · POST ⇒ 405 + `Allow` · granularity request
    yields a valid (sorted-array-when-honored) response. The battery deliberately
    disables the legacy-compat pre-pass so it sees the document exactly as served.
@@ -705,10 +707,10 @@ flowchart TB
         UNITS["units.ts<br/>convertEnergy / convertCarbon"]
         TRANS["transform.ts<br/>toCsvRows · toNdjson · flatten (one row/metric,<br/>default units kWh/gCO2e) · aggregate (sum/average,<br/>unit-normalized)"]
         CLIENT2["client.ts — SustainabilityClient<br/>ETag cache per origin+params (bounded 256);<br/>304 ⇒ replay cached document; getTrend()"]
-        CONF["conformance.ts — runConformanceChecks()<br/>7 checks: basic single object · media type (application/sustainability-data+json;<br/>legacy application/json ⇒ WARN) · nosniff header present ·<br/>ETag present · fresh ETag ⇒ 304 · POST ⇒ 405+Allow ·<br/>granularity ⇒ valid (sorted array when honored);<br/>legacyCompat OFF (sees the document as served)"]
+        CONF["conformance.ts — runConformanceChecks()<br/>8 checks: basic single object · media type (application/sustainability-data+json;<br/>legacy application/json ⇒ WARN) · nosniff header present ·<br/>detached signature (OPTIONAL) absent or verifiable · ETag present · fresh ETag ⇒ 304 · POST ⇒ 405+Allow ·<br/>granularity ⇒ valid (sorted array when honored);<br/>legacyCompat OFF (sees the document as served)"]
         DISC["disclosure.ts<br/>resolveDisclosureLinks (passive — never auto-fetches);<br/>fetchDisclosure only on explicit opt-in"]
         CLI3["cli.ts / bin/sustainability-fetch<br/>--format=json|csv|ndjson · --strict = conformance battery ·<br/>exit codes per status"]
-        TYPES["types.ts — wire-format types,<br/>FetchResult status union: ok · not-modified · not-found ·<br/>invalid · http-error · timeout · too-large"]
+        TYPES["types.ts — wire-format types,<br/>FetchResult status union: ok · not-modified · not-found ·<br/>no-report · invalid · http-error · timeout · too-large · insecure-transport"]
     end
 
     APP(("Caller / aggregator code"))

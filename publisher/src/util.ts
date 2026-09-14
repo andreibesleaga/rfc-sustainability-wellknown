@@ -9,7 +9,7 @@ import {
   TargetType,
 } from "./types";
 
-/** Minimal JSON fetch over the global `fetch` (Node 18+/22). */
+/** Minimal JSON fetch over the global `fetch` (Node 22). */
 export async function fetchJson(
   url: string,
   init?: RequestInit & { timeoutMs?: number },

@@ -705,6 +705,8 @@ unchanged, and no rename has been made to the draft, the packages, or the live e
 remains the complete record of why `sustainability-data` was chosen and is not withdrawn; this
 section is what round 2 asks *on top of* it.
 
+**[Superseded 2026-09-10]** `-06` was posted to the Datatracker 2026-09-10 and is now the posted revision; the paragraph above is retained as the record of the position at the time.
+
 ### 14.1 What the registry actually shows about generic versus proper names
 
 **Verification note, and two corrections.** The precedent list assembled in working notes was
@@ -865,6 +867,8 @@ actually shipped with.
 **Scope note.** This section describes what the **next revision** will contain. It is not a
 claim about the posted `-04` or the prepared `-05`, whose security posture is the one summarized
 in §1 and §8.
+
+**[Superseded 2026-09-10]** `-06` was posted to the Datatracker 2026-09-10; it is the "next revision" this section describes, and the sentence above is retained as the record of the position at the time.
 
 ### 15.1 The design freedom that "no installed base" grants
 

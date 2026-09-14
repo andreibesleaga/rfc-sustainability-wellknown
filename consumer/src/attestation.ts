@@ -18,6 +18,7 @@
  * the credential's own header (`assurance: "self-asserted-key"`), which shows
  * the mechanism but does not by itself establish who the issuer is.
  */
+import { BodyTooLargeError, discardBody, isAbortOrTimeout, readBodyCapped, secureGet } from "./transport";
 import { PublicJwk, SigningAlg, VC_JWT_MEDIA_TYPE, verifyJws, VerifyPolicy } from "./jws";
 
 export const VC_V2_CONTEXT = "https://www.w3.org/ns/credentials/v2";
@@ -149,11 +150,6 @@ export async function verifyCredentialJwt(
  * implementation throws.
  */
 export async function verifyAttestation(uri: string, options: AttestationOptions = {}): Promise<AttestationResult> {
-  const doFetch = options.fetchImpl ?? globalThis.fetch;
-  if (!doFetch) throw new Error("verifyAttestation: no fetch implementation available; pass options.fetchImpl");
-  const timeoutMs = options.timeoutMs ?? 30_000;
-  const maxBytes = options.maxBytes ?? 65_536;
-
   let url: URL;
   try {
     url = new URL(uri);
@@ -164,38 +160,32 @@ export async function verifyAttestation(uri: string, options: AttestationOptions
     return { valid: false, reason: "not-https-uri", detail: `refusing to dereference "${uri}": scheme is not https` };
   }
 
-  let res: Response;
-  try {
-    res = await doFetch(url.toString(), {
-      method: "GET",
-      headers: { Accept: `${VC_JWT_MEDIA_TYPE}, application/jwt;q=0.9, */*;q=0.1` },
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-  } catch (err) {
-    if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
-      return { valid: false, reason: "timeout" };
-    }
-    return { valid: false, reason: "network-error", detail: err instanceof Error ? err.message : String(err) };
-  }
-  if (!options.allowInsecure && typeof res.url === "string" && res.url !== "" && !res.url.startsWith("https:")) {
-    await res.body?.cancel().catch(() => undefined);
-    return { valid: false, reason: "insecure-transport", detail: `final URL ${res.url} is not HTTPS` };
-  }
+  // Same transport rules as the document: HTTPS on every hop, checked before
+  // each hop is requested; the body read under a streaming byte cap.
+  const got = await secureGet(url, {
+    fetchImpl: options.fetchImpl,
+    timeoutMs: options.timeoutMs ?? 30_000,
+    allowInsecure: options.allowInsecure,
+    headers: { Accept: `${VC_JWT_MEDIA_TYPE}, application/jwt;q=0.9, */*;q=0.1` },
+  });
+  if (!got.ok) return { valid: false, reason: got.refusal.reason, detail: got.refusal.detail };
+  const { res } = got;
   if (res.status !== 200) {
-    await res.body?.cancel().catch(() => undefined);
+    await discardBody(res);
     return { valid: false, reason: `http-${res.status}` };
   }
-  const declared = Number(res.headers.get("content-length") ?? "0");
-  if (Number.isFinite(declared) && declared > maxBytes) {
-    await res.body?.cancel().catch(() => undefined);
-    return { valid: false, reason: "too-large", detail: `Content-Length ${declared} exceeds ${maxBytes}` };
+  let text: string;
+  try {
+    ({ text } = await readBodyCapped(res, options.maxBytes ?? 65_536));
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) return { valid: false, reason: "too-large", detail: err.message };
+    if (isAbortOrTimeout(err)) return { valid: false, reason: "timeout" };
+    throw err;
   }
-  const buf = Buffer.from(await res.arrayBuffer());
-  if (buf.byteLength > maxBytes) return { valid: false, reason: "too-large", detail: `${buf.byteLength} bytes exceeds ${maxBytes}` };
   const mediaType = res.headers.get("content-type");
   const mediaTypeOk = (mediaType ?? "").split(";")[0].trim().toLowerCase() === VC_JWT_MEDIA_TYPE;
 
-  const r = await verifyCredentialJwt(buf.toString("utf8").trim(), options);
+  const r = await verifyCredentialJwt(text.trim(), options);
   if (!r.valid) return { ...r, mediaType };
   return { ...r, mediaType, mediaTypeOk, url: url.toString() };
 }

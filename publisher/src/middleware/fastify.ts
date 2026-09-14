@@ -11,6 +11,7 @@ import {
   carbonTxtResult,
   handleRequest,
   handleSignatureRequest,
+  assertSignable,
   HandlerOptions,
   parseQuery,
   WELL_KNOWN_PATH,
@@ -76,6 +77,7 @@ export async function fastifySustainability(
   options: FastifyPluginOptions,
 ): Promise<void> {
   const { publisher, carbonTxt, ...handlerOpts } = options;
+  assertSignable(publisher, handlerOpts);
   const cors: Record<string, string> =
     handlerOpts.cors !== false
       ? { "Access-Control-Allow-Origin": handlerOpts.cors ?? "*" }

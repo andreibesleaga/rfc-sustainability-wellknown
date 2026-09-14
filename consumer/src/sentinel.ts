@@ -13,6 +13,7 @@
  * -03 they MAY legitimately be negative (net accounting / removals, draft
  * §Value Constraints and Omitted Metrics) and must never be stripped.
  */
+import { RESPONSE_JTD_SCHEMA } from "./schema";
 import { SustainabilityMetrics } from "./types";
 
 /**
@@ -86,6 +87,24 @@ export function isRecognizedTargetType(value: unknown): value is (typeof TARGET_
 }
 
 /**
+ * The enumerated string members the draft's tolerance rule names
+ * (§Value Constraints and Omitted Metrics) and, for the two unit members,
+ * the numeric members they parameterize — which read as "not reported" once
+ * their unit is disregarded. The value sets come from the schema itself.
+ */
+export const ENUMERATED_MEMBERS: ReadonlyArray<{ member: string; values: readonly string[]; parameterizes: readonly string[] }> = [
+  { member: "capabilities", values: RESPONSE_JTD_SCHEMA.properties.capabilities.enum, parameterizes: [] },
+  { member: "energy-unit", values: RESPONSE_JTD_SCHEMA.optionalProperties["energy-unit"].enum, parameterizes: ["energy-consumption"] },
+  {
+    member: "carbon-unit",
+    values: RESPONSE_JTD_SCHEMA.optionalProperties["carbon-unit"].enum,
+    parameterizes: ["carbon-footprint", "scope-1", "scope-2", "scope-3"],
+  },
+  { member: "carbon-accounting", values: RESPONSE_JTD_SCHEMA.optionalProperties["carbon-accounting"].enum, parameterizes: [] },
+  { member: "target-type", values: TARGET_TYPES, parameterizes: [] },
+];
+
+/**
  * Expected JSON type of every OPTIONAL member the draft defines. Draft
  * §Value Constraints and Omitted Metrics (-04): "A value of the wrong JSON
  * type (including `null`) is treated as not reported" — fetch.ts's
@@ -129,7 +148,7 @@ export function isWrongJsonType(key: string, value: unknown): boolean {
 
 /**
  * The reporting subject for a legacy (1.x) entry that lacks the mandatory
- * `target` member (draft §Versioning and Extensibility, -04): when the entry
+ * `target` member (a -05-and-earlier form; -06 removed the rule): when the entry
  * carries the historical `target-path` member, that member's VALUE is the
  * reporting subject; only when neither member exists is the document an
  * origin-wide report attributed to the final response origin's host.

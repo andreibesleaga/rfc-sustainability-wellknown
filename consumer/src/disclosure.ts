@@ -5,6 +5,7 @@
  * document is an SSRF-shaped footgun. `fetchDisclosure` exists only for a
  * caller that explicitly opts in.
  */
+import { discardBody, readBodyCapped, secureGet } from "./transport";
 import { SustainabilityMetrics } from "./types";
 
 export interface DisclosureLinks {
@@ -47,7 +48,16 @@ export async function fetchDisclosure(uri: string, fetchImpl: typeof fetch = glo
         `draft restricts the URI members to "https" — clients MUST NOT dereference a URI member carrying another scheme`,
     );
   }
-  const res = await fetchImpl(uri);
-  if (!res.ok) throw new Error(`fetchDisclosure: ${uri} responded ${res.status}`);
-  return res.text();
+  // Same transport rules as the document: HTTPS on every hop, checked before
+  // each hop is requested, a bounded wait and a bounded body.
+  const got = await secureGet(parsed, { fetchImpl, timeoutMs: 30_000, headers: { Accept: "*/*" } });
+  if (!got.ok) throw new Error(`fetchDisclosure: ${uri}: ${got.refusal.reason}${got.refusal.detail ? ` (${got.refusal.detail})` : ""}`);
+  if (got.res.status !== 200) {
+    await discardBody(got.res);
+    throw new Error(`fetchDisclosure: ${uri} responded ${got.res.status}`);
+  }
+  return (await readBodyCapped(got.res, MAX_DISCLOSURE_BYTES)).text;
 }
+
+/** A disclosure page is read for a person; one megabyte bounds a hostile one. */
+const MAX_DISCLOSURE_BYTES = 1_048_576;

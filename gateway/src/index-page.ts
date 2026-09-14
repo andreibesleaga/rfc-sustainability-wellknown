@@ -10,7 +10,8 @@ import type { NoDataEntry } from "./no-data";
 import type { Subject } from "./registry";
 import type { CrossValidation } from "./verify";
 
-export const WELL_KNOWN_PATH = "/.well-known/sustainability-data";
+import { SIGNATURE_PATH, WELL_KNOWN_PATH } from "sustainability-wellknown-publisher";
+export { SIGNATURE_PATH, WELL_KNOWN_PATH };
 
 /** One paragraph, shown on the index page and carried in `index.json`. */
 export const ABOUT =
@@ -76,6 +77,8 @@ export interface ExampleEntry {
   case: string;
   shape: "object" | "array";
   entries: number;
+  /** For the declared-extended array cases: the period that, sliced at `granularity`, is the whole trend. */
+  period?: string;
   /** Honored granularity parameter, for the declared-extended array cases. */
   granularity?: string;
   file: string;
@@ -194,7 +197,6 @@ export interface IndexExtras {
   signing?: { alg: string; kid: string };
 }
 
-export const SIGNATURE_PATH = "/.well-known/sustainability-data.jws";
 
 /** Carried in index.json next to the attestation URI. Also the front page's disclosure. */
 export const ATTESTATION_NOTE =
@@ -239,8 +241,75 @@ function exampleEntry(x: WireExample): ExampleEntry {
     target: d.target,
     "reporting-period": d["reporting-period"],
   };
-  if (x.granularity) e.granularity = x.granularity;
+  if (x.granularity) {
+    e.period = x.period;
+    e.granularity = x.granularity;
+  }
   return e;
+}
+
+/** One clickable request on this deployment, with what a click is expected to show. */
+export interface LiveRequest {
+  /** Relative path (same origin) or absolute URL (external). */
+  href: string;
+  /** What the request demonstrates. */
+  what: string;
+  /** The expected outcome, in words. */
+  expect: string;
+}
+
+/**
+ * Every working GET this deployment answers, derived from the index so the
+ * list is right on any deployment: the self report at each service level,
+ * the integrity resources, one document of each relayed kind, and the
+ * draft's error cases. The front page renders them as hyperlinks so a reader
+ * can verify each behaviour with a click.
+ */
+export function liveRequests(doc: IndexDocument): LiveRequest[] {
+  const self = doc.self;
+  const year = self["live-since"].slice(0, 4);
+  const [monthly, monthlyTrend, daily] = self["extended-examples"];
+  const subject = doc.subjects[0];
+  const demo = doc["adapter-demonstrations"].entries[0];
+  const trend = doc["wire-format-examples"].entries.find((x) => x.granularity);
+  const out: LiveRequest[] = [
+    { href: self.path, what: "the gateway's own report, parameterless", expect: "200, the most recently completed month" },
+    { href: monthly, what: "Extended: one month since go-live", expect: "200, that month's figures" },
+    { href: monthlyTrend, what: "Extended: a year sliced monthly", expect: "200, a sorted array, one entry per month" },
+    { href: daily, what: "Extended: a month sliced daily", expect: "200, a sorted array, one entry per day" },
+    { href: `${self.path}?period=${Number(year) - 1}`, what: "Extended: a period before go-live", expect: "404, the draft's no-data rule" },
+    { href: `${self.path}?period=${year}&granularity=weekly`, what: "Extended: an unknown granularity value", expect: "200, the parameter is ignored" },
+    { href: `${self.path}?target=other`, what: "Extended: the target parameter", expect: "200, ignored — one process has no path prefixes" },
+  ];
+  if (self.signature) {
+    out.push({ href: self.signature.path, what: "the detached signature of the parameterless self document", expect: "200, application/jose" });
+    if (self.signature["public-key-url"]) {
+      out.push({ href: self.signature["public-key-url"], what: "the signing public key, hosted out of band", expect: "200, application/jwk+json" });
+    }
+  }
+  if (self.attestation) {
+    out.push({ href: self.attestation.uri, what: "the third-party attestation the self document links to", expect: "200, application/vc+jwt" });
+  }
+  if (subject) {
+    out.push(
+      { href: subject.path, what: `a curated subject document (${subject.domain})`, expect: "200, application/sustainability-data+json" },
+      { href: `${subject.path}?period=${year}`, what: "a Basic subject with a query parameter", expect: "200, the parameter is ignored" },
+      { href: `/${subject.domain}${SIGNATURE_PATH}`, what: "a signature at a relayed subject's path", expect: "404, this gateway does not sign third-party figures" },
+    );
+  }
+  if (demo) out.push({ href: demo.path, what: `an adapter demonstration (${demo.domain})`, expect: "200, mapped from its upstream" });
+  if (trend) {
+    out.push(
+      { href: `${trend.path}?period=${trend.period}&granularity=${trend.granularity}`, what: `a wire-format example declaring Extended (${trend.domain}): a period sliced finer`, expect: `200, its sorted trend array (${trend.entries} entries)` },
+      { href: `${trend.path}?granularity=${trend.granularity}`, what: `the same example, granularity alone`, expect: "200, one object — not finer than the default period" },
+    );
+  }
+  out.push(
+    { href: `/nobody.example${WELL_KNOWN_PATH}`, what: "an unknown subject", expect: "404" },
+    { href: "/index.json", what: "the machine-readable index", expect: "200, application/json" },
+    { href: "/healthz", what: "the health check", expect: "200" },
+  );
+  return out;
 }
 
 export function buildIndex(
@@ -346,7 +415,7 @@ function demoRow(e: DemoEntry): string {
 function exampleRow(e: ExampleEntry): string {
   const shape =
     e.shape === "array"
-      ? `array (${e.entries})${e.granularity ? ` <span class="dim">?granularity=${escapeHtml(e.granularity)}</span>` : ""}`
+      ? `array (${e.entries})${e.granularity ? ` <span class="dim">?period=${escapeHtml(e.period ?? "")}&amp;granularity=${escapeHtml(e.granularity)}</span>` : ""}`
       : "object";
   return `<tr>
   <td><a href="${escapeHtml(e.path)}"><code>${escapeHtml(e.domain)}</code></a> <span class="badge example">example</span></td>
@@ -373,6 +442,16 @@ function gapRow(e: NoDataEntry): string {
   <td>${bdi(e.entity)}<br><span class="dim">${escapeHtml(STATUS_LABEL[e.status] ?? e.status)}${e.see ? ` — see <code>${escapeHtml(e.see)}</code>` : ""}</span></td>
   <td>${bdi(e.finding)}</td>
   <td>${evidence}<br><span class="dim">checked ${escapeHtml(e.checked)}</span></td>
+</tr>`;
+}
+
+function liveRow(r: LiveRequest): string {
+  const external = /^https?:/.test(r.href);
+  const rel = external ? ' rel="noopener noreferrer"' : "";
+  return `<tr>
+  <td><a href="${escapeHtml(r.href)}"${rel}><code>${escapeHtml(r.href)}</code></a></td>
+  <td>${escapeHtml(r.what)}</td>
+  <td>${escapeHtml(r.expect)}</td>
 </tr>`;
 }
 
@@ -626,9 +705,9 @@ documents at boot.</p>
 <p>The relayed subject documents implement the <strong>Basic</strong> service: query
 parameters are ignored and the Basic response is returned — never an error. Two deliberate
 exceptions: the gateway's own report is an Extended publisher (above), and the wire-format
-examples that themselves declare <code>capabilities: "extended"</code> honor the
-<code>granularity</code> parameter and return their full sorted trend array, exactly as the
-draft's Extended service defines.
+examples that themselves declare <code>capabilities: "extended"</code> honor
+<code>period</code> and <code>granularity</code>, returning their sorted trend array only for a
+granularity finer than the period, exactly as the draft's Extended service defines.
 Successful responses use the dedicated <code>application/sustainability-data+json</code>
 media type — the type draft -06's Mandatory Minimum Supported Service requires for a
 Basic response — sent with <code>X-Content-Type-Options: nosniff</code>, plus
@@ -644,6 +723,20 @@ Error responses (<code>404</code>/<code>405</code>/<code>503</code>) always use
 <code>application/json</code>, and also carry <code>X-Content-Type-Options: nosniff</code>.
 A method other than <code>GET</code> or <code>HEAD</code> yields <code>405</code> with
 <code>Allow: GET, HEAD</code>. An unknown subject yields <code>404</code>.</p>
+
+<p>Every behaviour above can be checked with a click. Each link below is a working
+<code>GET</code> on this deployment, or on the operator's site for a hosted key or credential
+file; the right-hand column is what the response is expected to be. Headers,
+conditional requests and the <code>405</code> case need a client that shows them — the
+commands in the next section do.</p>
+<div class="scroll">
+<table>
+<thead><tr><th>Request</th><th>Demonstrates</th><th>Expected</th></tr></thead>
+<tbody>
+${liveRequests(doc).map(liveRow).join("\n")}
+</tbody>
+</table>
+</div>
 
 <h2>Verify these documents yourself</h2>
 <p>Every document served here can be fetched and validated with the specification's
@@ -668,9 +761,9 @@ npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="ho
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/yearly.example --strict
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/&lt;any-domain-above&gt; --strict</code></pre>
 
-<p>The Extended trend arrays, by giving the full document URL with its
-<code>granularity</code> parameter (the consumer validates array documents too):</p>
-<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch "<span class="host">${BASE_TOKEN}</span>/yearly.example${WELL_KNOWN_PATH}?granularity=monthly"</code></pre>
+<p>The Extended trend arrays, by giving the full document URL with a <code>period</code> and
+a finer <code>granularity</code> (the consumer validates array documents too):</p>
+<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch "<span class="host">${BASE_TOKEN}</span>/yearly.example${WELL_KNOWN_PATH}?period=2025&amp;granularity=monthly"</code></pre>
 
 <p>To just fetch and read a document (or pipe it into your own tooling):</p>
 <pre class="cmd"><code>curl -s <span class="host">${BASE_TOKEN}</span>/wikimedia.org${WELL_KNOWN_PATH} | python3 -m json.tool</code></pre>

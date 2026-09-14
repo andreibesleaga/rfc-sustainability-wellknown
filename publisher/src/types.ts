@@ -134,7 +134,7 @@ export interface RawMetrics {
 export interface ServiceQuery {
   target?: string;
   period?: string;
-  granularity?: "daily" | "monthly" | "yearly" | string;
+  granularity?: "daily" | "monthly";
 }
 
 /** A pluggable metric source. */
@@ -148,8 +148,6 @@ export interface SourceAdapter {
 }
 
 export interface NormalizeOptions {
-  /** Schema version string emitted in payloads. Default "2.0". */
-  version?: string;
   /**
    * Fallback reporting subject emitted as the mandatory `target` member when
    * the adapter does not set one. For an origin-wide report the origin's host

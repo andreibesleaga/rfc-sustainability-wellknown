@@ -150,7 +150,7 @@ describe("co2js adapter", () => {
   });
 
   it("rejects negative bytes and unknown zones", async () => {
-    expect(() => co2jsAdapter({ provider: "P", methodologyUri: "u", bytes: -1 })).toThrow();
+    expect(() => co2jsAdapter({ provider: "P", methodologyUri: "https://u.example/m", bytes: -1 })).toThrow();
     await expect(
       docOf(
         co2jsAdapter({

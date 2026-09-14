@@ -39,6 +39,12 @@ describe("clientKey", () => {
     expect(clientKey(req(""), 1)).toBe("10.0.0.9");
   });
 
+  it("with fewer entries than trusted proxies, the first entry still keys per client", () => {
+    expect(clientKey(req("203.0.113.5"), 2)).toBe("203.0.113.5");
+    expect(clientKey(req("198.51.100.7, 203.0.113.5"), 2)).toBe("198.51.100.7");
+    expect(clientKey(req(undefined), 2)).toBe("10.0.0.9");
+  });
+
   it("exposed directly, the socket address is used and the header is ignored", () => {
     expect(clientKey(req("203.0.113.5"), 0)).toBe("10.0.0.9");
     expect(clientKey({ headers: {}, socket: {} } as never, 0)).toBe("unknown");

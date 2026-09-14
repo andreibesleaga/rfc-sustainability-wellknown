@@ -37,7 +37,8 @@ To validate every example document against both formal schemas:
 cd schemas-validators && bash validate-all.sh
 ```
 
-`.github/workflows/full-verify.yml` runs all of the above on every push and pull request. It
+`.github/workflows/full-verify.yml` runs all of the above on every push and pull request except
+the gateway, which `gateway.yml` covers on changes under `gateway/`. It
 is the check to satisfy before opening a PR.
 
 ## The schema identity rule

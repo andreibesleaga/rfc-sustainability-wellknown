@@ -6,6 +6,7 @@
  */
 import { createHash } from "node:crypto";
 import { normalize } from "./normalize";
+import { selectPeriod } from "./period";
 import { SecurityOptions, secureReports } from "./security";
 import {
   NormalizeOptions,
@@ -50,17 +51,23 @@ interface CacheEntry {
 
 export class Publisher {
   private readonly cache = new Map<string, CacheEntry>();
+  /** Builds in flight, so concurrent misses share one generation. */
+  private readonly pending = new Map<string, Promise<SerializedDocument>>();
 
   constructor(
     private readonly adapter: SourceAdapter,
     private readonly options: PublisherOptions = {},
   ) {}
 
+  /** The in-memory cache TTL in effect (ms); 0 means every request rebuilds. */
+  get cacheTtlMs(): number {
+    return this.options.cacheTtlMs ?? 86_400_000;
+  }
+
   /** Build, validate and return the document for a query (uncached). */
   async build(query: ServiceQuery = {}): Promise<SustainabilityDocument> {
     const raw = await this.adapter.fetch(query);
-    const wasArray = Array.isArray(raw);
-    const rawList = wasArray ? raw : [raw];
+    const rawList = Array.isArray(raw) ? raw : [raw];
 
     const metrics: SustainabilityMetrics[] = rawList.map((r) =>
       normalize(r, this.options.normalize),
@@ -72,31 +79,44 @@ export class Publisher {
       throw new NotFoundError();
     }
 
-    // Draft: the Basic (no-parameter) request and a `period` request without a
-    // finer `granularity` MUST return a single JSON object — an array is only
-    // returned when a granularity finer than the period was requested. With no
-    // granularity in the query, collapse a trend to its most recent entry
-    // (secureReports sorts ascending, so that is the last element).
-    const document: SustainabilityDocument = query.granularity
-      ? wasArray || secured.length > 1
-        ? secured
-        : secured[0]
-      : secured[secured.length - 1];
+    // The Extended selection rule (period.ts): one object for the Basic
+    // request or a period, an array only for a granularity finer than the
+    // period, no data otherwise. secureReports sorted the entries ascending.
+    const document = selectPeriod(secured, query, this.adapter.capabilities);
+    if (document === undefined) throw new NotFoundError();
 
     assertValid(document);
     return document;
   }
 
-  /** Build and serialize, using the in-memory cache when warm. */
+  /**
+   * Build and serialize, using the in-memory cache when warm. Concurrent
+   * requests that miss together share one build, so one generation — one
+   * object, one ETag, one signature — is what every caller sees.
+   */
   async getSerialized(query: ServiceQuery = {}): Promise<SerializedDocument> {
-    const ttl = this.options.cacheTtlMs ?? 86_400_000;
+    const ttl = this.cacheTtlMs;
     const key = this.cacheKey(query);
 
     if (ttl > 0) {
       const hit = this.cache.get(key);
       if (hit && hit.expires > Date.now()) return hit.value;
+      const inFlight = this.pending.get(key);
+      if (inFlight) return inFlight;
     }
 
+    const build = this.buildSerialized(query, key, ttl);
+    if (ttl > 0) {
+      this.pending.set(key, build);
+      build.then(
+        () => this.pending.delete(key),
+        () => this.pending.delete(key),
+      );
+    }
+    return build;
+  }
+
+  private async buildSerialized(query: ServiceQuery, key: string, ttl: number): Promise<SerializedDocument> {
     const document = await this.build(query);
     const body = JSON.stringify(document, null, 2);
     const etag = `"${createHash("sha1").update(body).digest("hex")}"`;

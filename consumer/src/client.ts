@@ -22,6 +22,7 @@ export interface SustainabilityClientOptions {
 
 interface CacheEntry {
   etag: string;
+  url: string;
   document: SustainabilityDocument;
   /** The media type the cached representation was served under. */
   mediaType: MediaTypeClassification;
@@ -61,6 +62,7 @@ export class SustainabilityClient {
       return {
         status: "ok",
         document: cached.document,
+        url: cached.url,
         etag: cached.etag,
         // A 304 carries no Content-Type: the media type reported is the one
         // the cached representation was served under.
@@ -77,6 +79,7 @@ export class SustainabilityClient {
       }
       this.cache.set(key, {
         etag: result.etag,
+        url: result.url,
         document: result.document,
         mediaType: result.mediaType,
         warnings: result.warnings,

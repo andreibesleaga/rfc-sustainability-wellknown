@@ -8,7 +8,7 @@ package — pick whichever fits your deployment, or mix them across environments
 |---|---|---|
 | **Standalone server** | You just want `/.well-known/sustainability-data` running; no existing Node app | [§1](#1-standalone-server-cli) |
 | **Embedded middleware** | You already have an Express/Fastify app and want to add the endpoint to it | [§2](#2-embedded-middleware-in-an-existing-app) |
-| **Library / programmatic** | You're on a different framework (Koa, Next.js, a serverless function, a plain `http` server, a cron job, a test) | [§3](#3-library-programmatic-usage-any-framework) |
+| **Library / programmatic** | You're on a different framework (Koa, Next.js, a serverless function, a plain `http` server, a cron job, a test) | [§3](#3-library--programmatic-usage-any-framework) |
 
 Then: [§4 Writing a custom adapter](#4-writing-a-custom-adapter-extensibility),
 [§5 Deployment recipes](#5-deployment-recipes), [§6 Installing from npm](#6-installing-from-npm),
@@ -121,12 +121,22 @@ point, per the draft's §Optional Extended Query Parameters):
 - an unrecognized value of the enumerated `granularity` parameter (e.g.
   `granularity=weekly`) is **ignored** — the request proceeds as if the
   parameter were absent (so no array can be returned for it);
-- a malformed `period` (anything other than `YYYY`, `YYYY-MM`, `YYYY-MM-DD`) is
-  **ignored** and the rest of the request processed — the draft's
-  "400-or-ignore" choice is exercised as *ignore*, which also collapses
-  attacker-varied malformed values onto the default cache entry;
+- a malformed `period` (anything other than a calendar `YYYY`, `YYYY-MM`,
+  `YYYY-MM-DD` — `2026-02-30` is malformed too) is **ignored** and the rest of
+  the request processed — the draft's "400-or-ignore" choice is exercised as
+  *ignore*, which also collapses attacker-varied malformed values onto the
+  default cache entry;
 - `granularity` **without** `period` is valid and applies to the default period
-  of the Basic service (a trend-serving adapter then yields an array).
+  of the Basic service — the most recently completed period, which `monthly`
+  is not finer than for a monthly reporter, so the answer is one object;
+- the response shape then follows the draft's rule (`selectPeriod`,
+  `src/period.ts`): an **array only when the granularity is finer than the
+  period** and the trend holds entries at that precision (`?period=2026&granularity=monthly`
+  over monthly entries); otherwise **one object** — the entry for the period,
+  or the aggregate of the finer entries inside it (energy and carbon summed in
+  one unit); a period with no entries is **404**. An adapter declaring
+  `capabilities: "basic"` ignores both parameters and always answers the
+  Basic response.
 
 ```ts
 import { Publisher, handleRequest, parseQuery, computedAdapter } from "sustainability-wellknown-publisher";
@@ -239,15 +249,17 @@ pattern too if you want your custom adapter to be test-friendly.
 
 **Returning an array** (`RawMetrics[]`) from `fetch()` signals a trend; the
 gateway sorts it, applies the safeguards (366-cap, most-recent-first truncation),
-and — per the draft's response-shape rule — still collapses to a single object
-unless the request's `granularity` parameter was set. You don't need to implement
-that rule yourself; `Publisher.build()` already does.
+and applies the draft's response-shape rule described in §3b: one object unless a
+granularity finer than the period was requested. You don't need to implement
+that rule yourself; `Publisher.build()` already does. An adapter that honours
+`period` itself (like the reference gateway's own report) simply returns the
+entries for the period asked; the rule then agrees with it.
 
 ## 5. Deployment recipes
 
 **Docker** (standalone server):
 ```dockerfile
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
@@ -267,7 +279,10 @@ your embedded app) on a local port and reverse-proxy to it — see
 at module scope (cold-start init), and call `handleRequest` per invocation (§3b).
 Prefer a longer `cacheTtlMs` (the in-memory cache survives warm invocations on
 most platforms) or set `cacheTtlMs: 0` and rely on your platform's own edge/CDN
-caching using the `Cache-Control`/`ETag` headers the gateway already returns.
+caching using the `Cache-Control`/`ETag` headers the gateway already returns —
+except when signing: a signing publisher needs `cacheTtlMs` above 0, so the
+document and its signature are served from one generation (the server and
+middlewares refuse the combination at start-up).
 
 **Static-file deployment (no Node runtime at all)**: run `--once` on a schedule
 (cron/CI) to regenerate a static JSON file, and serve it with the plain
@@ -306,9 +321,11 @@ The three option bags accepted by `new Publisher(adapter, options)`:
   mandatory reporting subject fallback, use the origin host for origin-wide
   reports; `targetType` — optional `target-type` hint classifying the subject,
   one of `origin`/`path`/`organization`/`service`/`product`/`device`/`tenant`/
-  `data-source` (draft -04; any other value throws); `version` — informational
-  label, default `"2.0"`; `energyUnit`/`carbonUnit` to force specific output
-  units).
+  `data-source` (draft -04; any other value throws); `energyUnit`/`carbonUnit`
+  to force specific output units). The `version` label is always `"2.0"` (the
+  draft's single value) and the three URI members (`methodologyUri`,
+  `disclosureUri`, `verifiableAttestationUri`) must be absolute `https` URIs —
+  anything else throws at normalization, never reaching the wire.
 - **`SecurityOptions`** (`src/security.ts`): `maxObjects` (default 366),
   `enforceDailyFloor` (default `true`), `applyNoise` (default `false`; when
   `true`, deterministic per-period ~1% noise per the draft's Hardware

@@ -116,6 +116,25 @@ describe("Express middleware", () => {
     }
   });
 
+  it("serves the registered media type without a charset parameter, and HEAD carries GET's header fields", async () => {
+    const app = express();
+    app.use(expressSustainability(demoPublisher()));
+    const server = httpCreateServer(app);
+    const { base, close } = await listen(server);
+    try {
+      const get = await fetch(`${base}/.well-known/sustainability-data`);
+      const head = await fetch(`${base}/.well-known/sustainability-data`, { method: "HEAD" });
+      expect(get.headers.get("content-type")).toBe("application/sustainability-data+json");
+      for (const h of ["content-type", "content-length", "etag", "cache-control", "x-content-type-options", "access-control-allow-origin"]) {
+        expect(head.headers.get(h), h).toBe(get.headers.get(h));
+      }
+      expect(await head.text()).toBe("");
+      await get.text();
+    } finally {
+      await close();
+    }
+  });
+
   // Draft -06 §Mandatory Minimum Supported Service: non-GET/HEAD requests to
   // the well-known path SHOULD get 405 + Allow: GET, HEAD. That error body is
   // not a Sustainability Metadata Document, so it stays application/json

@@ -10,7 +10,7 @@ import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import express from "express";
 import * as jose from "jose";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { computedAdapter } from "../src/adapters";
 import { runKeygen, runSign, loadSigningKey } from "../src/cli";
 import { handleRequest, handleSignatureRequest, signatureEtag } from "../src/handler";
@@ -223,34 +223,66 @@ describe("handleSignatureRequest", () => {
     expect(weak.status).toBe(304);
   });
 
-  it("reuses one signature per document generation and re-signs when the document changes", async () => {
-    let period = "2026-01";
-    const adapter: SourceAdapter = {
-      name: "mutable",
-      capabilities: "basic",
-      async fetch(): Promise<RawMetrics> {
-        const inner = computedAdapter({
-          provider: "Example Corp",
-          methodologyUri: "https://example.com/m",
-          reportingPeriod: period,
-          energy: { value: 10, unit: "kWh" },
-          gridIntensity: 100,
-        });
-        return (await inner.fetch({})) as RawMetrics;
-      },
-    };
-    const publisher = new Publisher(adapter, { cacheTtlMs: 0, normalize: { target: "example.com" } });
-    const es = await generateSigningKey("ES256"); // randomized signatures: cache reuse is observable
-    const a = await handleSignatureRequest(publisher, { signingKey: es });
-    const b = await handleSignatureRequest(publisher, { signingKey: es });
-    expect(a.status).toBe(200);
+  it("signs once per document generation and re-signs when the document changes", async () => {
+    vi.useFakeTimers({ now: new Date("2026-03-01T00:00:00Z") });
+    try {
+      let period = "2026-01";
+      const adapter: SourceAdapter = {
+        name: "mutable",
+        capabilities: "basic",
+        async fetch(): Promise<RawMetrics> {
+          const inner = computedAdapter({
+            provider: "Example Corp",
+            methodologyUri: "https://example.com/m",
+            reportingPeriod: period,
+            energy: { value: 10, unit: "kWh" },
+            gridIntensity: 100,
+          });
+          return (await inner.fetch({})) as RawMetrics;
+        },
+      };
+      const publisher = new Publisher(adapter, { cacheTtlMs: 1000, normalize: { target: "example.com" } });
+      const es = await generateSigningKey("ES256"); // randomized signatures: cache reuse is observable
+      const a = await handleSignatureRequest(publisher, { signingKey: es });
+      const b = await handleSignatureRequest(publisher, { signingKey: es });
+      expect(a.status).toBe(200);
+      expect(a.body).toBe(b.body);
+      // The signature and the document come from the same cached generation.
+      const docA = await handleRequest(publisher, {}, { signingKey: es });
+      expect(verifyWithNode(a.body, docA.body).valid).toBe(true);
+
+      period = "2026-02";
+      vi.setSystemTime(new Date("2026-03-01T00:00:02Z")); // the generation expired
+      const c = await handleSignatureRequest(publisher, { signingKey: es });
+      expect(c.headers.ETag).not.toBe(a.headers.ETag);
+      const docC = await handleRequest(publisher, {}, { signingKey: es });
+      expect(verifyWithNode(c.body, docC.body).valid).toBe(true);
+      expect(verifyWithNode(a.body, docC.body).valid).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("concurrent first requests share one signing, so a strong ETag names one body", async () => {
+    const publisher = demoPublisher();
+    const es = await generateSigningKey("ES256");
+    const [a, b, c] = await Promise.all([1, 2, 3].map(() => handleSignatureRequest(publisher, { signingKey: es })));
+    expect(a.headers.ETag).toBe(b.headers.ETag);
     expect(a.body).toBe(b.body);
-    period = "2026-02";
-    const c = await handleSignatureRequest(publisher, { signingKey: es });
-    expect(c.headers.ETag).not.toBe(a.headers.ETag);
-    const doc = await handleRequest(publisher, {}, { signingKey: es });
-    expect(verifyWithNode(c.body, doc.body).valid).toBe(true);
-    expect(verifyWithNode(a.body, doc.body).valid).toBe(false);
+    expect(b.body).toBe(c.body);
+  });
+
+  it("refuses to sign a publisher that rebuilds on every request (cacheTtlMs 0)", async () => {
+    const publisher = new Publisher(
+      computedAdapter({ provider: "P", methodologyUri: "https://example.com/m", reportingPeriod: "2026-01", energy: { value: 1, unit: "kWh" }, gridIntensity: 1 }),
+      { cacheTtlMs: 0, normalize: { target: "example.com" } },
+    );
+    const key = await generateSigningKey();
+    expect(() => createSustainabilityServer(publisher, { signingKey: key })).toThrow(/cacheTtlMs/);
+    expect(() => expressSustainability(publisher, { signingKey: key })).toThrow(/cacheTtlMs/);
+    await expect(fastifySustainability({ route: () => undefined } as never, { publisher, signingKey: key })).rejects.toThrow(/cacheTtlMs/);
+    // Without a key the same publisher is fine: nothing to pair.
+    expect(() => createSustainabilityServer(publisher)).not.toThrow();
   });
 
   it("maps no-data and upstream failure like the document handler (404 / 503)", async () => {

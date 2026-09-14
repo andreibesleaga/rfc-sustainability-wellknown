@@ -53,6 +53,8 @@ export interface WireExample {
    * the document itself declares `capabilities: "extended"`.
    */
   granularity?: "monthly" | "daily";
+  /** The period that, sliced at `granularity`, is the whole trend (the entries' common year or month). */
+  period?: string;
   /** The served subject (Basic response = `subject.document`). */
   subject: Subject;
   /** One-line explanation of what the case demonstrates. */
@@ -189,6 +191,13 @@ function withDefaultUnits(doc: SustainabilityMetrics): SustainabilityMetrics {
   return out;
 }
 
+/** The period one precision coarser than the entries, which every entry must share. */
+function commonPeriod(docs: SustainabilityMetrics[]): string {
+  const coarser = docs.map((d) => d["reporting-period"].slice(0, d["reporting-period"].length - 3));
+  if (new Set(coarser).size !== 1) throw new Error("examples: a trend file must lie within one period");
+  return coarser[0];
+}
+
 /** The granularity the entries' own period precision calls for. */
 function granularityOf(docs: SustainabilityMetrics[]): "monthly" | "daily" {
   const p = docs[0]["reporting-period"];
@@ -228,7 +237,7 @@ async function loadArrayCase(def: CaseDef, docs: SustainabilityMetrics[]): Promi
   const publisher = new Publisher(
     staticAdapter({ data: docs.map(fromWire), capabilities }),
     {
-      normalize: { version: docs[0].version, target: docs[0].target },
+      normalize: { target: docs[0].target },
       cacheTtlMs: 365 * 24 * 60 * 60 * 1000,
       // Basic + the granularity variants; the handler ignores unknown values,
       // so the key space stays bounded.
@@ -247,11 +256,15 @@ async function loadArrayCase(def: CaseDef, docs: SustainabilityMetrics[]): Promi
     );
   }
 
-  // Extended response (only honored when the document declares it).
+  // Extended response (only honored when the document declares it): the
+  // entries' common period, sliced at their own precision, is the whole
+  // sorted trend — the draft's one case for an array.
   let granularity: WireExample["granularity"];
+  let period: string | undefined;
   if (capabilities === "extended") {
     granularity = granularityOf(docs);
-    const arr = await publisher.getSerialized({ granularity });
+    period = commonPeriod(docs);
+    const arr = await publisher.getSerialized({ period, granularity });
     const servedArr = JSON.parse(arr.body) as SustainabilityMetrics[];
     const expected = byPeriod(docs).map(withDefaultUnits);
     if (!Array.isArray(servedArr) || canonical(byPeriod(servedArr)) !== canonical(expected)) {
@@ -265,7 +278,7 @@ async function loadArrayCase(def: CaseDef, docs: SustainabilityMetrics[]): Promi
     caseName: def.caseName,
     shape: "array",
     entries: docs.length,
-    ...(granularity ? { granularity } : {}),
+    ...(granularity ? { granularity, period } : {}),
     subject: {
       domain: def.domain,
       source: `example:${def.file}`,

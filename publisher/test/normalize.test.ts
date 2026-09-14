@@ -79,7 +79,7 @@ describe("normalize", () => {
       normalize({
         provider: "p",
         measurementMethod: "m",
-        methodologyUri: "u",
+        methodologyUri: "https://u.example/m",
         reportingPeriod: "March 2026",
         target: "example.com",
         energy: { value: 1, unit: "kWh" },
@@ -144,7 +144,7 @@ describe("normalize", () => {
       normalize({
         provider: "p",
         measurementMethod: "m",
-        methodologyUri: "u",
+        methodologyUri: "https://u.example/m",
         reportingPeriod: "2026",
         energy: { value: 1, unit: "kWh" },
       }),
@@ -155,7 +155,7 @@ describe("normalize", () => {
     const base = {
       provider: "p",
       measurementMethod: "m",
-      methodologyUri: "u",
+      methodologyUri: "https://u.example/m",
       reportingPeriod: "2026",
     };
     expect(normalize(base, { target: "example.com" }).target).toBe("example.com");
@@ -233,7 +233,7 @@ describe("normalize", () => {
     const base = {
       provider: "p",
       measurementMethod: "m",
-      methodologyUri: "u",
+      methodologyUri: "https://u.example/m",
       reportingPeriod: "2026-02",
       target: "example.com",
     };
@@ -258,7 +258,7 @@ describe("normalize", () => {
     const m = normalize({
       provider: "p",
       measurementMethod: "m",
-      methodologyUri: "u",
+      methodologyUri: "https://u.example/m",
       reportingPeriod: "2026-02",
       target: "example.com",
       carbon: { value: 100, unit: "gCO2e" },
@@ -278,7 +278,7 @@ describe("normalize", () => {
       normalize({
         provider: "p",
         measurementMethod: "m",
-        methodologyUri: "u",
+        methodologyUri: "https://u.example/m",
         reportingPeriod: "2026-02",
         target: "example.com",
         energy: { value: 10, unit: "kwh" as any },
@@ -293,7 +293,7 @@ describe("normalize", () => {
       normalize({
         provider: "p",
         measurementMethod: "m",
-        methodologyUri: "u",
+        methodologyUri: "https://u.example/m",
         reportingPeriod: "2026-02",
         target: "example.com",
         energy: { value: 10, unit: "kWh" },
@@ -308,7 +308,7 @@ describe("normalize", () => {
       normalize({
         provider: "p",
         measurementMethod: "m",
-        methodologyUri: "u",
+        methodologyUri: "https://u.example/m",
         reportingPeriod,
         target: "example.com",
         energy: { value: 1, unit: "kWh" },
@@ -331,7 +331,7 @@ describe("normalize", () => {
       normalize({
         provider: "p",
         measurementMethod: "m",
-        methodologyUri: "u",
+        methodologyUri: "https://u.example/m",
         reportingPeriod: "2026-02",
         target: "example.com",
         energy: { value: 1, unit: "kWh" },

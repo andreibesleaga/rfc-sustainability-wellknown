@@ -109,7 +109,8 @@ error statuses too lets cross-origin aggregators read those as well (`cors`
 option to override/disable). They also share the draft's query-parameter
 tolerance: an unrecognized `granularity` value (e.g. `weekly`) and a malformed
 `period` are ignored rather than erroring, and `granularity` without `period`
-applies to the default reporting period — see `USAGE.md` §3b.
+applies to the default reporting period; an array is returned only for a
+granularity finer than the period — see `USAGE.md` §3b.
 
 ## Media type and -05 compatibility
 
@@ -151,7 +152,10 @@ OPTIONAL detached JWS: a compact serialization with an empty payload part
 (RFC 7515 Appendix F), served at `/.well-known/sustainability-data.jws` as
 `application/jose`, over the **exact bytes** of the parameterless document —
 there is no canonicalization, so the handler signs the very string it serves and
-caches one signature per document generation (keyed by the document's ETag).
+keeps one signature per document generation (on the cached document itself, so
+the document request and the signature request are served from one generation;
+a signing publisher therefore needs `cacheTtlMs` above 0, and the server refuses
+`0` at start-up).
 Algorithms are the two the draft recommends, EdDSA (Ed25519) and ES256; all JOSE
 work is done by [`jose`](https://github.com/panva/jose).
 

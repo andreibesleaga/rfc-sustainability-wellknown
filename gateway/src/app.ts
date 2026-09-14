@@ -19,7 +19,7 @@ import {
 } from "sustainability-wellknown-publisher";
 import { verifyDetachedJws } from "sustainability-wellknown-consumer";
 import { demoSpecs } from "./adapters/demo-specs";
-import { lastCompletedMonth, selfReportAdapter } from "./adapters/self-report";
+import { lastCompletedMonth, periodBounds, selfReportAdapter } from "./adapters/self-report";
 import { LIMITS, type GatewayConfig, type MediaTypeSetting } from "./config";
 import { loadWireExamples, type WireExample } from "./examples";
 import { CORS_ORIGIN, corsHeaders, jsonError, methodNotAllowed, withBody, type Result } from "./http";
@@ -50,6 +50,8 @@ export const KEPLER_DEMO_DOMAIN = "kepler-demo.example";
 export interface Gateway {
   server: Server;
   config: GatewayConfig;
+  /** The self report's clock (injectable), which decides whether a period is still in progress. */
+  selfNow: () => Date;
   /** Every subject the gateway serves, keyed by its route domain. */
   subjects: Map<string, Subject>;
   /** Wire-format example metadata (subjects also appear in `subjects`). */
@@ -177,7 +179,7 @@ async function serveDocument(
 export async function route(
   gw: Pick<
     Gateway,
-    "config" | "subjects" | "self" | "noData" | "mediaTypeOverrides" | "index" | "indexHtml"
+    "config" | "selfNow" | "subjects" | "self" | "noData" | "mediaTypeOverrides" | "index" | "indexHtml"
   > &
     Partial<Pick<Gateway, "refreshSelf" | "examples" | "signingKey">>,
   method: string,
@@ -239,11 +241,14 @@ export async function route(
     // pass through the publisher's own parameter-tolerance rules (a malformed
     // period and an unknown granularity are dropped, per the draft); `target`
     // is ignored, so it never reaches the publisher.
-    const parsed = parseQuery(Object.fromEntries(url.searchParams.entries()));
-    const query: Record<string, string> = {};
-    if (parsed.period !== undefined) query.period = parsed.period;
-    if (parsed.granularity !== undefined) query.granularity = parsed.granularity;
-    return serveDocument(self, gw.config, ifNoneMatch, ifModifiedSince, gw.config.mediaType, query);
+    const query = extendedQuery(url);
+    const r = await serveDocument(self, gw.config, ifNoneMatch, ifModifiedSince, gw.config.mediaType, query);
+    // A period still in progress changes hourly (the model counts live
+    // hours), so its variant is not cached for the full day.
+    if (r.status === 200 && query.period && periodBounds(query.period).end > gw.selfNow().getTime()) {
+      r.headers["Cache-Control"] = `public, max-age=${Math.min(gw.config.maxAge, IN_PROGRESS_MAX_AGE)}`;
+    }
+    return r;
   }
 
   if (path === SIGNATURE_PATH) {
@@ -305,14 +310,10 @@ export async function route(
         "no sustainability metadata is published here for that reporting subject",
       );
     }
-    // Extended pass-through, only for the wire-format examples that declare
-    // it, and only for the granularity their entries actually carry — every
-    // other value (unknown, or a precision this data set does not have) is
-    // ignored per the draft, returning the Basic response. `handleRequest`
-    // honors whatever granularity it is handed, so the filtering MUST happen
-    // here, before the publisher.
-    const ex = gw.examples?.get(domain);
-    const requested = ex?.granularity ? url.searchParams.get("granularity") : null;
+    // Extended parameters pass through only for the wire-format examples that
+    // declare `capabilities: "extended"`; the publisher's own selection rule
+    // then decides (an array only for a granularity finer than the period).
+    // Every other subject is Basic: its parameters are ignored, never an error.
     const mediaType = gw.mediaTypeOverrides.get(domain) ?? gw.config.mediaType;
     return serveDocument(
       subject,
@@ -320,12 +321,24 @@ export async function route(
       ifNoneMatch,
       ifModifiedSince,
       mediaType,
-      requested !== null && requested === ex?.granularity ? { granularity: requested } : {},
+      gw.examples?.get(domain)?.granularity ? extendedQuery(url) : {},
     );
   }
 
   return jsonError(404, "not found");
 }
+
+/** The two Extended parameters of a request, after the publisher's tolerance rules; `target` never passes. */
+function extendedQuery(url: URL): Record<string, string> {
+  const parsed = parseQuery(Object.fromEntries(url.searchParams.entries()));
+  const query: Record<string, string> = {};
+  if (parsed.period !== undefined) query.period = parsed.period;
+  if (parsed.granularity !== undefined) query.granularity = parsed.granularity;
+  return query;
+}
+
+/** Cache lifetime of a self-report period still in progress: one hour, the model's own resolution. */
+const IN_PROGRESS_MAX_AGE = 3600;
 
 /** Load data, wire the adapters, and build (but do not start) the HTTP server. */
 export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway> {
@@ -524,6 +537,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     indexHtml,
     refreshSelf,
     signingKey,
+    selfNow: selfClock,
     rateLimiter: createRateLimiter(config.rateLimit),
   };
 
@@ -551,7 +565,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       });
     };
 
-    // Draft Operational Considerations: rate-limit the well-known URI. Applied
+    // Draft Security Considerations §Denial of Service: rate-limit the well-known URI. Applied
     // before routing so every path but the health check counts; the platform
     // health checker must never be throttled.
     const limited = async (): Promise<Result | undefined> => {

@@ -215,17 +215,49 @@ describe("handler query semantics (draft parameter tolerance)", () => {
     await srv2.close();
   });
 
-  it("granularity without period applies to the default period (array over the served trend)", async () => {
+  it("granularity without period applies to the default period: monthly is not finer than a month, so one object", async () => {
     const srv2 = await trendServer();
     const r = await fetch(`${srv2.url}?granularity=monthly`);
     expect(r.status).toBe(200);
     const body = await r.json();
-    expect(Array.isArray(body)).toBe(true);
-    expect(body.map((e: SustainabilityMetrics) => e["reporting-period"])).toEqual([
-      "2026-01",
-      "2026-02",
-      "2026-03",
-    ]);
+    expect(Array.isArray(body)).toBe(false);
+    expect(body["reporting-period"]).toBe("2026-03");
+    await srv2.close();
+  });
+
+  it("a year sliced monthly is the sorted array of its months; a year alone is their aggregate", async () => {
+    const srv2 = await trendServer();
+    const arr = await (await fetch(`${srv2.url}?period=2026&granularity=monthly`)).json();
+    expect(arr.map((e: SustainabilityMetrics) => e["reporting-period"])).toEqual(["2026-01", "2026-02", "2026-03"]);
+    const year = await (await fetch(`${srv2.url}?period=2026`)).json();
+    expect(Array.isArray(year)).toBe(false);
+    expect(year).toMatchObject({ "reporting-period": "2026", "energy-consumption": 30, "energy-unit": "kWh", "carbon-footprint": 300 });
+    const month = await (await fetch(`${srv2.url}?period=2026-02`)).json();
+    expect(month["reporting-period"]).toBe("2026-02");
+    await srv2.close();
+  });
+
+  it("a granularity the data cannot honour, a non-existent day, and a period with no data", async () => {
+    const srv2 = await trendServer();
+    // Daily on monthly data: the parameter is ignored (no array, the period's object).
+    const daily = await (await fetch(`${srv2.url}?period=2026&granularity=daily`)).json();
+    expect(daily["reporting-period"]).toBe("2026");
+    // "2026-02-31" is well-shaped but not a calendar day: ignored, Basic response.
+    const badDay = await (await fetch(`${srv2.url}?period=2026-02-31`)).json();
+    expect(badDay["reporting-period"]).toBe("2026-03");
+    // No entries in 2025: the no-data rule.
+    expect((await fetch(`${srv2.url}?period=2025`)).status).toBe(404);
+    await srv2.close();
+  });
+
+  it("a Basic-declaring trend ignores every parameter and answers the most recent entry", async () => {
+    const publisher = new Publisher(staticAdapter({ data: ["2026-01", "2026-02", "2026-03"].map(rawTrend) }), { cacheTtlMs: 0 });
+    const srv2 = await makeServer(publisher);
+    for (const q of ["?granularity=monthly", "?period=2026&granularity=monthly", "?period=2025"]) {
+      const r = await fetch(`${srv2.url}${q}`);
+      expect(r.status, q).toBe(200);
+      expect((await r.json())["reporting-period"], q).toBe("2026-03");
+    }
     await srv2.close();
   });
 });

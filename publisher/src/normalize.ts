@@ -8,6 +8,7 @@
  *  - Filling mandatory fields and defaults.
  *  - Validating the `reporting-period` shape.
  */
+import { isCalendarPeriod } from "./period";
 import {
   CarbonUnit,
   EnergyUnit,
@@ -98,14 +99,25 @@ export function computeSci(
   return (energyKwh * gco2PerKwh + embodiedG) / units;
 }
 
+/** Re-exported for compatibility; the definition lives with the period rules. */
+export { PERIOD_RE } from "./period";
+
 /**
- * Draft period shape: `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`. Month is bounded to
- * 01-12 and day to 01-31 so shapes like "2026-13-40" are rejected (note:
- * day-in-month validity is not checked — "2026-02-30" passes)
- * (a plain `\d{2}` would accept them). Exported as the single source of truth;
- * adapters import this rather than duplicating the pattern.
+ * Draft §Payload Format: the three URI members "MUST be absolute URIs using
+ * the 'https' scheme". A publisher is fail-loud: a wrong URI is a
+ * configuration error, never a published non-conformance.
  */
-export const PERIOD_RE = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
+export function assertHttpsUri(member: string, value: string): void {
+  let url: URL | undefined;
+  try {
+    url = new URL(value);
+  } catch {
+    url = undefined;
+  }
+  if (!url || url.protocol !== "https:") {
+    throw new Error(`normalize: ${member} must be an absolute https URI (got "${value}")`);
+  }
+}
 
 /** Round to a sensible precision to avoid float noise in payloads. */
 function round(n: number, dp = 4): number {
@@ -122,12 +134,17 @@ function nowIso(): string {
  * Throws if mandatory inputs are missing or the period is malformed.
  */
 export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): SustainabilityMetrics {
-  const version = opts.version ?? "2.0";
+  // Draft §Mandatory Response Fields: "2.0" is the single version label a
+  // conforming publisher MUST use; it is not configurable.
+  const version = "2.0";
 
   if (!raw.provider) throw new Error("normalize: provider is required");
   if (!raw.measurementMethod) throw new Error("normalize: measurementMethod is required");
   if (!raw.methodologyUri) throw new Error("normalize: methodologyUri is required");
-  if (!raw.reportingPeriod || !PERIOD_RE.test(raw.reportingPeriod)) {
+  assertHttpsUri("methodologyUri", raw.methodologyUri);
+  if (raw.verifiableAttestationUri !== undefined) assertHttpsUri("verifiableAttestationUri", raw.verifiableAttestationUri);
+  if (raw.disclosureUri !== undefined) assertHttpsUri("disclosureUri", raw.disclosureUri);
+  if (!raw.reportingPeriod || !isCalendarPeriod(raw.reportingPeriod)) {
     throw new Error(
       `normalize: reportingPeriod must be YYYY, YYYY-MM, or YYYY-MM-DD (got "${raw.reportingPeriod}")`,
     );

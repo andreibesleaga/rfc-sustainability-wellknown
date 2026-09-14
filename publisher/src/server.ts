@@ -10,6 +10,7 @@ import {
   carbonTxtResult,
   handleRequest,
   handleSignatureRequest,
+  assertSignable,
   HandlerOptions,
   parseQuery,
   WELL_KNOWN_PATH,
@@ -28,6 +29,7 @@ export function createSustainabilityServer(
   publisher: Publisher,
   opts: ServerOptions = {},
 ): Server {
+  assertSignable(publisher, opts);
   const paths = new Set([WELL_KNOWN_PATH, ...(opts.extraPaths ?? [])]);
   const carbonPaths = new Set(opts.carbonTxt ? CARBON_TXT_PATHS : []);
   // The signature resource exists only for a signing publisher (draft: 404

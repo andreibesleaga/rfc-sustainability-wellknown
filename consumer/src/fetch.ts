@@ -26,8 +26,9 @@
  * alternative the draft permits to rejecting such a document.
  */
 import { FetchParams, FetchResult, SignatureResult, SustainabilityDocument } from "./types";
-import { isRecognizedTargetType, isWrongJsonType, legacyReportingSubject } from "./sentinel";
+import { ENUMERATED_MEMBERS, isWrongJsonType, legacyReportingSubject } from "./sentinel";
 import { validateDocument } from "./validate";
+import { BodyTooLargeError, discardBody, isAbortOrTimeout, readBodyCapped, secureGet } from "./transport";
 import { ACCEPT_HEADER, classifyMediaType } from "./media-type";
 import { JOSE_MEDIA_TYPE, PublicJwk, SIGNATURE_PATH, verifyDetachedJws, VerifyPolicy } from "./jws";
 
@@ -70,7 +71,7 @@ export const DEFAULT_MAX_BYTES = 10_000_000;
 
 export interface FetchOptions extends FetchParams {
   ifNoneMatch?: string;
-  /** Injectable for older runtimes or tests; defaults to the global fetch (Node 18+). */
+  /** Injectable for tests or a custom transport; defaults to the global fetch (Node 22). */
   fetchImpl?: typeof fetch;
   /** Abort the request if the response has not completed within this many ms (default {@link DEFAULT_TIMEOUT_MS}). */
   timeoutMs?: number;
@@ -141,53 +142,6 @@ export interface FetchOptions extends FetchParams {
   signaturePolicy?: VerifyPolicy;
 }
 
-/** Internal marker: the response body exceeded the configured byte cap. */
-class BodyTooLargeError extends Error {
-  constructor(readonly bytes: number, readonly maxBytes: number) {
-    super(`response body exceeds maxBytes (${maxBytes}): read at least ${bytes} bytes`);
-    this.name = "BodyTooLargeError";
-  }
-}
-
-/** True for an AbortSignal.timeout() firing (or any other abort) surfacing as an error. */
-function isAbortOrTimeout(err: unknown): boolean {
-  return err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
-}
-
-/**
- * Read a response body into a string with a running byte cap, aborting as soon
- * as the cap is exceeded so an oversized (or Content-Length-lying) body is never
- * fully buffered. Streams when the runtime exposes res.body; falls back to a
- * length-checked text read otherwise.
- */
-async function readBodyCapped(res: Response, maxBytes: number): Promise<{ bytes: Uint8Array; text: string }> {
-  const body = res.body;
-  if (!body || typeof body.getReader !== "function") {
-    const text = await res.text();
-    if (Buffer.byteLength(text) > maxBytes) throw new BodyTooLargeError(Buffer.byteLength(text), maxBytes);
-    return { bytes: Buffer.from(text, "utf8"), text };
-  }
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (value) {
-      total += value.byteLength;
-      if (total > maxBytes) {
-        await reader.cancel().catch(() => undefined);
-        throw new BodyTooLargeError(total, maxBytes);
-      }
-      chunks.push(value);
-    }
-  }
-  // The exact octets are kept alongside the decoded text: a detached
-  // signature is verified over the bytes as served, never over a re-encoding.
-  const bytes = Buffer.concat(chunks);
-  return { bytes, text: bytes.toString("utf8") };
-}
-
 export interface FetchSignatureOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
@@ -215,67 +169,33 @@ export type FetchSignatureResult =
  * that is not a 200 is an `error` the caller reports as "unverified".
  */
 export async function fetchSignature(origin: string, options: FetchSignatureOptions = {}): Promise<FetchSignatureResult> {
-  const doFetch = options.fetchImpl ?? globalThis.fetch;
-  if (!doFetch) throw new Error("fetchSignature: no fetch implementation available; pass options.fetchImpl");
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const maxBytes = options.maxBytes ?? 8192;
-
   const url = resolveWellKnownUrl(origin);
   url.pathname = url.pathname.replace(/\/\.well-known\/sustainability-data$/, SIGNATURE_PATH);
   url.search = "";
-  if (!options.allowInsecure && url.protocol !== "https:") {
-    return { status: "error", reason: "insecure-transport", detail: `signature URL ${url} is not HTTPS` };
-  }
 
-  let res: Response;
-  try {
-    res = await doFetch(url.toString(), {
-      method: "GET",
-      headers: { Accept: JOSE_MEDIA_TYPE },
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-  } catch (err) {
-    if (isAbortOrTimeout(err)) return { status: "error", reason: "timeout" };
-    return { status: "error", reason: "network-error", detail: err instanceof Error ? err.message : String(err) };
-  }
-
-  if (typeof res.url === "string" && res.url !== "") {
-    let finalUrl: URL | undefined;
-    try {
-      finalUrl = new URL(res.url);
-    } catch {
-      finalUrl = undefined;
-    }
-    if (finalUrl) {
-      if (!options.allowInsecure && finalUrl.protocol !== "https:") {
-        await res.body?.cancel().catch(() => undefined);
-        return { status: "error", reason: "insecure-transport", detail: `final signature URL ${finalUrl} is not HTTPS` };
-      }
-      // Draft: "a client MUST NOT follow a redirect of the signature resource
-      // to any other origin" — the signature must come from the origin the
-      // document was attributed to.
-      const expected = options.documentOrigin ?? url.origin;
-      if (finalUrl.origin !== expected) {
-        await res.body?.cancel().catch(() => undefined);
-        return {
-          status: "error",
-          reason: "cross-origin-redirect",
-          detail: `signature resource redirected to ${finalUrl.origin}, not the document's origin ${expected}`,
-        };
-      }
-    }
-  }
+  // Draft: "a client MUST NOT follow a redirect of the signature resource to
+  // any other origin" — every hop must stay on the origin the document was
+  // attributed to (and be HTTPS, as for the document itself).
+  const got = await secureGet(url, {
+    fetchImpl: options.fetchImpl,
+    timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    allowInsecure: options.allowInsecure,
+    headers: { Accept: JOSE_MEDIA_TYPE },
+    sameOrigin: options.documentOrigin ?? url.origin,
+  });
+  if (!got.ok) return { status: "error", reason: got.refusal.reason, detail: got.refusal.detail };
+  const { res } = got;
 
   if (res.status === 404) {
-    await res.body?.cancel().catch(() => undefined);
+    await discardBody(res);
     return { status: "absent" };
   }
   if (res.status !== 200) {
-    await res.body?.cancel().catch(() => undefined);
+    await discardBody(res);
     return { status: "error", reason: `http-${res.status}` };
   }
   try {
-    const { text } = await readBodyCapped(res, maxBytes);
+    const { text } = await readBodyCapped(res, options.maxBytes ?? 8192);
     return { status: "present", jws: text.trim(), contentType: res.headers.get("content-type"), url: url.toString() };
   } catch (err) {
     if (err instanceof BodyTooLargeError) return { status: "error", reason: "too-large", detail: err.message };
@@ -321,11 +241,6 @@ export async function verifyDocumentSignature(
 }
 
 export async function fetchSustainability(origin: string, options: FetchOptions = {}): Promise<FetchResult> {
-  const doFetch = options.fetchImpl ?? globalThis.fetch;
-  if (!doFetch) {
-    throw new Error("fetchSustainability: no fetch implementation available; pass options.fetchImpl");
-  }
-
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
 
@@ -334,73 +249,30 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
   if (options.period) url.searchParams.set("period", options.period);
   if (options.granularity) url.searchParams.set("granularity", options.granularity);
 
-  // Draft -06 MUST: refuse a non-HTTPS retrieval before making the request.
-  if (!options.allowInsecure && url.protocol !== "https:") {
-    return {
-      status: "insecure-transport",
-      url: url.toString(),
-      detail:
-        `refusing to retrieve ${url.toString()} over "${url.protocol.replace(/:$/, "")}": the draft requires HTTPS ` +
-        `and clients MUST NOT accept a document retrieved over unauthenticated HTTP ` +
-        `(pass allowInsecure: true to override, for local development only)`,
-    };
-  }
-
   // Accept both media types on every document fetch: the -06 registered type
   // outright, the pre-06 generic type at a lower q-value (draft -06: clients
   // MUST accept the former and SHOULD also accept the latter).
   const headers: Record<string, string> = { Accept: ACCEPT_HEADER };
   if (options.ifNoneMatch) headers["If-None-Match"] = options.ifNoneMatch;
 
-  let res: Response;
-  try {
-    res = await doFetch(url.toString(), { method: "GET", headers, signal: AbortSignal.timeout(timeoutMs) });
-  } catch (err) {
-    if (isAbortOrTimeout(err)) return { status: "timeout", timeoutMs };
-    throw err;
+  // Draft -06 MUST: HTTPS before the request and on every redirect hop. A
+  // redirect to another origin is allowed for the document (the metrics are
+  // then attributed to the FINAL origin, below).
+  const got = await secureGet(url, { fetchImpl: options.fetchImpl, timeoutMs, allowInsecure: options.allowInsecure, headers });
+  if (!got.ok) {
+    const { reason, url: at, detail } = got.refusal;
+    if (reason === "timeout") return { status: "timeout", timeoutMs };
+    // Network failures and redirect loops surface as errors, as `fetch` itself reports them.
+    if (reason === "network-error" || reason === "too-many-redirects") throw new Error(detail ?? `${reason} retrieving ${at}`);
+    return { status: "insecure-transport", url: at, detail: detail ?? reason };
   }
-
-  // Same MUST, applied to a followed redirect: "clients that follow a redirect
-  // ... MUST require HTTPS for every hop". Only the FINAL url is observable
-  // from the Fetch API, and only where the runtime populates res.url (a
-  // hand-built Response in a test/mock leaves it empty) — check it when it is.
-  if (!options.allowInsecure && typeof res.url === "string" && res.url !== "") {
-    let finalUrl: URL | undefined;
-    try {
-      finalUrl = new URL(res.url);
-    } catch {
-      finalUrl = undefined;
-    }
-    if (finalUrl && finalUrl.protocol !== "https:") {
-      // Release the connection rather than buffering a body we will not use.
-      await res.body?.cancel().catch(() => undefined);
-      return {
-        status: "insecure-transport",
-        url: finalUrl.toString(),
-        detail:
-          `refusing a response whose final URL ${finalUrl.toString()} is not HTTPS` +
-          `${res.redirected ? " (reached through a redirect)" : ""}: the draft requires HTTPS on every hop ` +
-          `(pass allowInsecure: true to override, for local development only)`,
-      };
-    }
-  }
+  const { res, url: finalUrl } = got;
 
   const mediaType = classifyMediaType(res.headers.get("content-type"));
 
   if (res.status === 304) return { status: "not-modified" };
   if (res.status === 404) return { status: "not-found" };
   if (res.status < 200 || res.status >= 300) return { status: "http-error", httpStatus: res.status };
-
-  // Cheap short-circuit: reject an advertised oversized body before reading it.
-  const contentLength = res.headers.get("content-length");
-  if (contentLength !== null) {
-    const declared = Number(contentLength);
-    if (Number.isFinite(declared) && declared > maxBytes) {
-      // Never read the advertised body; release the connection instead of buffering it.
-      await res.body?.cancel().catch(() => undefined);
-      return { status: "too-large", detail: `Content-Length ${declared} exceeds maxBytes ${maxBytes}` };
-    }
-  }
 
   let text: string;
   let bytes: Uint8Array;
@@ -438,8 +310,8 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
   if (options.legacyCompat !== false) {
     // Draft §Mandatory Minimum: clients that follow a redirect MUST attribute
     // the returned metrics to the origin of the FINAL response — so the
-    // injected origin-wide subject comes from res.url, not the request URL.
-    const host = res.url ? new URL(res.url).host : url.host;
+    // injected origin-wide subject comes from the final URL, not the request URL.
+    const host = finalUrl.host;
     const lacksTarget = (o: unknown): o is Record<string, unknown> =>
       typeof o === "object" && o !== null && !Array.isArray(o) && !("target" in o);
     if (Array.isArray(parsed)) {
@@ -483,11 +355,25 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
         delete rec["sci-score"];
         disregarded.push(`${path}sci-score`);
       }
-      // (3) Enumerated-member tolerance: an unrecognized `target-type` value
-      // is disregarded — `target` is interpreted as if the member were absent.
-      if ("target-type" in rec && !isRecognizedTargetType(rec["target-type"])) {
-        delete rec["target-type"];
-        disregarded.push(`${path}target-type`);
+      // (3) Enumerated-member tolerance: "An unrecognized value in an
+      // enumerated string member ... causes that member to be disregarded.
+      // For a unit member, the numeric member(s) it parameterizes are then
+      // treated as not reported; for capabilities, the client relies on
+      // observed server behavior; for target-type, the client interprets
+      // target as if the member were absent." `capabilities` is mandatory,
+      // so the conservative value stands in for it rather than a hole.
+      for (const { member, values, parameterizes } of ENUMERATED_MEMBERS) {
+        const value = rec[member];
+        if (typeof value !== "string" || values.includes(value)) continue;
+        if (member === "capabilities") rec[member] = "basic";
+        else delete rec[member];
+        disregarded.push(`${path}${member}`);
+        for (const dependent of parameterizes) {
+          if (dependent in rec) {
+            delete rec[dependent];
+            disregarded.push(`${path}${dependent}`);
+          }
+        }
       }
     };
     if (Array.isArray(parsed)) {
@@ -508,12 +394,15 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
     if (options.target || options.period || options.granularity) {
       signature = { status: "not-applicable", reason: "parameters-present" };
     } else {
-      const documentOrigin = res.url ? new URL(res.url).origin : url.origin;
-      signature = await verifyDocumentSignature(origin, bytes, {
-        fetchImpl: doFetch,
+      // Draft: the signature resource lives on "the origin of the final
+      // response", next to the document actually served.
+      const servedDocument = new URL(finalUrl);
+      servedDocument.search = "";
+      signature = await verifyDocumentSignature(servedDocument.toString(), bytes, {
+        fetchImpl: options.fetchImpl,
         timeoutMs,
         allowInsecure: options.allowInsecure,
-        documentOrigin,
+        documentOrigin: finalUrl.origin,
         policy: options.signaturePolicy,
       });
     }
@@ -523,6 +412,7 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
   return {
     status: "ok",
     document: parsed as SustainabilityDocument,
+    url: finalUrl.toString(),
     etag,
     mediaType,
     ...(result.warnings.length > 0 ? { warnings: result.warnings } : {}),

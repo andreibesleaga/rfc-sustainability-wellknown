@@ -101,6 +101,12 @@ async function verifyCompact(compact: string, policy: VerifyPolicy): Promise<Ver
   const algorithms = (policy.allowedAlgs ?? SUPPORTED_ALGS).filter((a) => SUPPORTED_ALGS.includes(a));
   const kid = typeof header.kid === "string" ? header.kid : undefined;
 
+  // The draft's MUST NOT: `none` and MAC algorithms are rejected outright,
+  // whatever keys are pinned, and the reason says so.
+  if (!isSupportedAlg(header.alg) || !algorithms.includes(header.alg)) {
+    return { valid: false, reason: "alg-rejected", header, kid };
+  }
+
   if (policy.trustedKeys && policy.trustedKeys.length > 0) {
     // Pinned keys: `kid` match first, then the rest; the header `jwk` is ignored.
     const byKid = kid !== undefined ? policy.trustedKeys.filter((k) => k.kid === kid) : [];

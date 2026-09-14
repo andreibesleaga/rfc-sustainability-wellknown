@@ -18,7 +18,7 @@ is [GUIDE.md](GUIDE.md).
 cd gateway
 npm install
 npm run build
-npm test          # 232 tests; everything must be green before you deploy
+npm test          # 268 tests; everything must be green before you deploy
 node dist/index.js &
 curl -sSI http://127.0.0.1:8080/cloudflare.com/.well-known/sustainability-data
 kill %1
@@ -107,13 +107,14 @@ default; set them under **Variables** (dashboard) or with
 | `PORT` | `8080` | Injected by Railway. Do not set it manually. |
 | `HOST` | `0.0.0.0` | Bind address. Leave it. |
 | `DATA_DIR` | `<app>/data` | Where subject documents are read from. |
+| `EXAMPLES_DIR` | `<app>/examples` | Where the canonical wire-format example documents are read from. |
 | `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`, the draft's RECOMMENDED value. |
 | `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` document response media type. `sustainability-data+json` (default) serves the -06 dedicated `application/sustainability-data+json` type with `X-Content-Type-Options: nosniff`; `json` serves the legacy `application/json` type instead (-05-compatible, not -06-conformant, also with `nosniff`). One subject can be pinned to the legacy type regardless of this default via `data/_media-type.json` — see `GUIDE.md`. |
 | `BASE_URL` | *(empty)* | Public base URL, for absolute links in the index. Setting it also turns the co2js demonstration's Greencheck lookup live (keyless). |
 | `GWF_API_KEY` | *(unset)* | Optional free Green Web Foundation key → carbontxt demonstration runs live. |
 | `CLIMATIQ_API_KEY` | *(unset)* | Optional; leave unset for a public gateway (Climatiq terms) — replay is the default. |
 | `SELF_TARGET` | `sustainability-data-gateway` | `target` of the gateway's own report. |
-| `SELF_PROVIDER` | operator contact string | `provider` of the gateway's own report. Use a role address. |
+| `SELF_PROVIDER` | `Andrei Besleaga, operator of this reference gateway` | `provider` of the gateway's own report. Use a role address. |
 | `SELF_METHODOLOGY_URI` | this repo's `gateway/METHODOLOGY.md` on GitHub | **Must resolve publicly.** Point it at wherever you actually publish `METHODOLOGY.md`. |
 | `SELF_DISCLOSURE_URI` | this repo's `gateway/` on GitHub | Disclosure index for the gateway. |
 | `SELF_PERIOD` | last completed calendar month | Pin the gateway's own reporting period (`YYYY` or `YYYY-MM`). |
@@ -124,6 +125,7 @@ default; set them under **Variables** (dashboard) or with
 | `SELF_SIGNING_KEY_URL` | *(unset)* | Public URL of the signing key's public half (index display). |
 | `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report. |
 | `RATE_LIMIT_PER_MINUTE` | `600` | Per-client limit; `0` disables. `TRUST_PROXY` stays `1` on Railway. |
+| `TRUST_PROXY` | `1` | Trusted proxies in front of the process (the client is the last `X-Forwarded-For` entry); `0` when exposed directly. |
 
 ### Signing and attestation
 
@@ -158,6 +160,16 @@ railway variables --set "SUSTAINABILITY_SIGNING_KEY=$(cat ~/.config/sustainabili
 Rotation: run step 1 again, host the new public key, replace the variable,
 redeploy. Old signatures stop verifying against the new key — expected. The
 credential stays valid until its `validUntil`.
+
+Expect a stale window after enabling or rotating signing. Railway's edge caches
+each document for the full `max-age` (24 hours by default), separately per
+`Accept-Encoding` variant, and offers no purge: for up to a day a client may
+still receive the previous deployment's document while the `.jws` resource is
+already the new one, and the consumer then reports the signature as
+*unverified* (never *false*) for that copy — the draft's intended outcome for a
+signature that does not match. Nothing to fix; a request with a query string
+(`?period=…`) or an unusual `Accept-Encoding` reaches the process and shows the
+current state.
 
 > **Railway CLI note (seen 2026-09-14 while setting these variables).** The CLI
 > now warns: *"Config as Code (railway.json / railway.toml) is deprecated. Prefer
@@ -266,6 +278,9 @@ npx -y -p sustainability-wellknown-consumer sustainability-fetch "$BASE" --verif
 
 # 14. Rate limiting: a burst from one client ends in 429 + Retry-After
 for i in $(seq 1 650); do curl -sS -o /dev/null -w '%{http_code}\n' -I "$BASE/healthz-not/"; done | sort | uniq -c
+
+# 15. In a browser: open $BASE and click every link in the table at the end of
+#     "Service level". Each row names the status and media type a click should show.
 ```
 
 ---

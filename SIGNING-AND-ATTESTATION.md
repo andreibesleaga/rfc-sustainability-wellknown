@@ -30,7 +30,9 @@ SUSTAINABILITY_SIGNING_KEY="$(cat /etc/sustainability/private.jwk)" sustainabili
 ```
 
 The `.jws` route appears, signs the very string the document handler serves, and
-re-signs whenever the document changes.
+re-signs whenever the document changes. The document must be stable between the
+two requests: keep the publisher's `cacheTtlMs` above 0 (the default is a day) —
+with `0`, every request would regenerate, and the start-up refuses to sign.
 
 **A static host** (a file on disk, no Node at runtime): sign the file you serve and
 serve the output next to it, unchanged.

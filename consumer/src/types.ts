@@ -105,6 +105,13 @@ export type FetchResult =
   | {
       status: "ok";
       document: SustainabilityDocument;
+      /**
+       * The URL of the final response — after any redirect — which the draft
+       * makes the origin the document is attributed to (§Mandatory Minimum
+       * Supported Service: "attribute the returned document to the origin of
+       * the final response").
+       */
+      url: string;
       etag?: string;
       /**
        * How the response's `Content-Type` read (draft -06 §Mandatory Minimum
@@ -127,8 +134,9 @@ export type FetchResult =
       warnings?: string[];
       /**
        * Set when the document lacked the mandatory `target` member and the
-       * legacy-compatibility pre-pass derived it (draft §Versioning and
-       * Extensibility, -04): from the historical `target-path` member's value
+       * legacy-compatibility pre-pass derived it (a -05-and-earlier form; such
+       * a document is NOT -06 conformant, and -06 says a consumer MUST NOT
+       * treat it as one): from the historical `target-path` member's value
        * when that member is present (it names the reporting subject), and
        * from the final-response origin's host (origin-wide report) only when
        * neither member exists.
@@ -139,8 +147,10 @@ export type FetchResult =
        * tolerance pre-pass before validation, per the draft's §Value
        * Constraints and Omitted Metrics rules: a wrong-JSON-typed value
        * (including null) in a defined optional member, a reported `sci-score`
-       * without `functional-unit`, and an unrecognized value in the
-       * enumerated `target-type` member all read as "not reported" /
+       * without `functional-unit`, and an unrecognized value in an
+       * enumerated member (`capabilities`, `energy-unit`, `carbon-unit`,
+       * `carbon-accounting`, `target-type` — a unit member takes the numeric
+       * members it parameterizes with it) all read as "not reported" /
        * "disregard the member" rather than rejecting the document. Only set
        * when at least one member was disregarded; absent on a clean document.
        */

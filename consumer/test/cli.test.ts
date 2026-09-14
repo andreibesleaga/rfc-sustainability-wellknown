@@ -315,8 +315,9 @@ describe("--verify and --verify-attestation", () => {
   });
 
   it.skipIf(!hasPublisher)("--strict --verify-attestation exits 1 when the credential cannot be retrieved", async () => {
-    // A local origin whose credential path answers 404 (no live network; the
-    // --allow-http flag also lifts the https rule for the credential URI).
+    // A local origin whose credential URI (an https URI, as the publisher
+    // requires) points at a plain-HTTP port: the TLS handshake fails, so the
+    // credential cannot be retrieved. No live network is involved.
     const missing = createServer((_req, res) => {
       res.writeHead(404);
       res.end();
@@ -325,12 +326,12 @@ describe("--verify and --verify-attestation", () => {
       missing.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(missing.address() as AddressInfo).port}`)),
     );
     try {
-      const origin = await signedPublisher(`${missingBase}/a.vc.jwt`);
+      const origin = await signedPublisher(`${missingBase.replace("http:", "https:")}/a.vc.jwt`);
       captureStdout();
       const err = captureStderr();
       const code = await runCli([origin, "--strict", "--verify-attestation", "--allow-http"]);
       expect(code).toBe(1);
-      expect(err.find((l) => l.startsWith("attestation:"))).toBe("attestation: invalid (http-404)");
+      expect(err.find((l) => l.startsWith("attestation:"))).toMatch(/^attestation: invalid \(network-error/);
     } finally {
       await new Promise<void>((r) => missing.close(() => r()));
     }

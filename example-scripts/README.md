@@ -19,7 +19,7 @@ This **README.md** provides your development team with the technical specificati
 ### Basic Service (Default)
 * **Request**: `GET /.well-known/sustainability-data` with no query strings.
 * **Scope**: Returns the aggregate impact of the entire origin.
-* **Period**: Returns the most recently completed reporting period the server publishes (a full calendar month is RECOMMENDED).
+* **Period**: Returns the most recently completed reporting period the server publishes (a period matching the publisher's own reporting cycle is RECOMMENDED: a full calendar year for the periodic, regulatory-style disclosure that is the common case, or a full calendar month for publishers that report more frequently).
 
 ### Extended Service (Optional)
 * Supports query parameters: `target` (resource path prefix; a scoped response carries the matched prefix in the mandatory `target` response member — the member identifies the reporting subject of every response, origin-wide or scoped), `period` (calendar-date precision forms `YYYY`, `YYYY-MM`, `YYYY-MM-DD` — only the last is an RFC 3339 `full-date`; UTC), and `granularity` (`monthly`, `daily`).

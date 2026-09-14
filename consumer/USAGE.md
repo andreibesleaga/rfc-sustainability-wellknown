@@ -42,6 +42,7 @@ type FetchResult =
       warnings?: string[];                      // advisory findings; the document is valid
       legacy?: boolean;
       disregarded?: string[];
+      signature?: SignatureResult;               // present only when verifySignature was requested
     }
   | { status: "not-modified" }
   | { status: "not-found" }
@@ -112,21 +113,25 @@ negative value in a non-negative member reads as "not reported" — is applied o
 demand via `withoutSentinels()`/`isNotReported()`, never silently by the fetch
 path.)
 
-**`target-type` tolerance** (also under `legacyCompat`, default `true`): -04
-adds the optional enumerated `target-type` member (`origin`, `path`,
-`organization`, `service`, `product`, `device`, `tenant`, `data-source`), a
-hint classifying the reporting subject named by `target`. Per the draft's
-enumerated-member tolerance rule (§Value Constraints and Omitted Metrics), a
-client that encounters an *unrecognized* value there SHOULD disregard the
-member — interpreting `target` as if `target-type` were absent — rather than
-reject the document. Because the JTD schema deliberately keeps the enum closed,
-`fetchSustainability` applies this in its pre-pass: the offending member is
-stripped **before** validation and the result carries
-`disregarded: ["target-type"]` (or `"[i].target-type"` paths for array
-entries), so the tolerance is visible, never silent. In strict mode
-(`legacyCompat: false`) the document is validated exactly as served and an
-unrecognized value fails validation. A *recognized* value flows through
-untouched. In an array, `target-type` is **all-or-none** (final -04): present
+**Enumerated-member tolerance** (also under `legacyCompat`, default `true`):
+the draft's §Value Constraints and Omitted Metrics says an *unrecognized* value
+in an enumerated string member — `capabilities`, `energy-unit`, `carbon-unit`,
+`carbon-accounting` or `target-type` (`origin`, `path`, `organization`,
+`service`, `product`, `device`, `tenant`, `data-source`) — causes that member
+to be disregarded; for a unit member the numeric member(s) it parameterizes
+(`energy-consumption` for `energy-unit`; `carbon-footprint`, `scope-1`,
+`scope-2`, `scope-3` for `carbon-unit`) are then not reported; for
+`target-type`, `target` is interpreted as if the member were absent. Because
+the JTD schema deliberately keeps the enums closed, `fetchSustainability`
+applies this in its pre-pass: the offending member (and the members it
+parameterizes) is stripped **before** validation and every path is recorded in
+`disregarded` (e.g. `["energy-unit", "energy-consumption"]`, or `"[i].…"` paths
+for array entries), so the tolerance is visible, never silent. `capabilities`
+is mandatory, so instead of a hole the conservative `"basic"` stands in (the
+draft: "the client relies on observed server behavior") and `"capabilities"`
+is recorded. In strict mode (`legacyCompat: false`) the document is validated
+exactly as served and an unrecognized value fails validation. A *recognized*
+value flows through untouched. In an array, `target-type` is **all-or-none** (final -04): present
 in every entry with the same value or absent from every entry — mixed presence
 fails validation in both modes.
 
@@ -179,8 +184,8 @@ what the origin returned, never a shape the caller has to guess at up front.
 
 ### 1b. Node `http`-based polling script (no `fetch()` dependency assumption)
 
-For an older runtime, or a script that wants to inject its own transport (a
-proxy, a test double), pass `fetchImpl`. Node 18+ ships a global `fetch`, so this
+For a script that wants to inject its own transport (a
+proxy, a test double), pass `fetchImpl`. Node 22 (the supported runtime) ships a global `fetch`, so this
 is mostly useful for tests and non-standard environments — here it's shown
 polling on an interval from a plain script:
 
@@ -409,10 +414,12 @@ you.
 ## 5. Conformance-checking any origin
 
 `runConformanceChecks(origin, fetchImpl?, options?)` (also exposed as the CLI's
-`--strict` flag) runs a small battery of seven checks against a target origin:
+`--strict` flag) runs a small battery of eight checks against a target origin:
 a Basic request returns a single object, the 200 response uses the
 `application/sustainability-data+json` media type (a -06 MUST), the response
-sends `X-Content-Type-Options: nosniff` (a -06 SHOULD), the response carries an
+sends `X-Content-Type-Options: nosniff` (a -06 SHOULD), the OPTIONAL detached
+signature resource is absent, or present and verifiable over the served bytes
+(MUST), the response carries an
 ETag, a conditional GET with that ETag returns `304`, a non-GET/HEAD method
 returns `405` with an `Allow` header, and an Extended `granularity` request
 returns a valid (sorted, schema-conformant) array.
@@ -491,6 +498,7 @@ still exits `0`:
 PASS  [MUST] Basic request returns a schema-valid single object
 WARN  [MUST] Basic 200 response uses the application/sustainability-data+json media type — pre-06 media type (application/json): v05-compatible, not v06-conformant
 PASS  [SHOULD] Response sends X-Content-Type-Options: nosniff
+PASS  [MUST] Detached signature resource (OPTIONAL): absent, or present and verifiable over the served bytes — not published (optional)
 PASS  [SHOULD] Response carries an ETag
 PASS  [SHOULD] Conditional GET with a fresh ETag returns 304
 PASS  [SHOULD] A method other than GET/HEAD gets 405 with Allow
@@ -513,11 +521,12 @@ members, reading `[]` as "no report"), they are not required of a conformant
 client, and they are scheduled for removal near RFC publication — do not build
 on them; `legacyCompat: false` turns them off today.
 
-**No signature verification is implemented.** -06 defines an OPTIONAL detached
+**Signature verification is never automatic.** -06 defines an OPTIONAL detached
 JWS at `/.well-known/sustainability-data.jws`; a valid signature proves
 integrity and key continuity, not identity, unless the key is already known out
-of band — and a valid signature over false data is still false data. Nothing in
-this package fetches or checks one.
+of band — and a valid signature over false data is still false data. Since 0.6.5
+this package verifies one only on request (`--verify`, `verifySignature`, and the
+battery's detached-signature check).
 
 ## 6. Using it as a library
 

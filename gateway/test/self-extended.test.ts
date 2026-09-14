@@ -165,3 +165,28 @@ describe("go-live clamp with the real default (2026-07-30)", () => {
     expect(srv.gw.index.self["live-since"]).toBe("2025-01-01T00:00:00Z"); // the helper's own clamp
   });
 });
+
+describe("period tolerance and cache lifetime of the self report", () => {
+  let srv: TestServer;
+  beforeAll(async () => {
+    srv = await startGateway({ now: NOW, unpinPeriod: true });
+  });
+  afterAll(async () => srv.close());
+
+  it("a well-shaped but non-existent day is ignored: the Basic response", async () => {
+    const r = await fetch(`${srv.base}${SELF}?period=2026-02-31`);
+    expect(r.status).toBe(200);
+    expect((await r.json())["reporting-period"]).toBe("2026-08");
+    expect(() => periodBounds("2026-02-31")).toThrow(/calendar/);
+  });
+
+  it("a period in progress is cacheable for an hour, a completed one for the day", async () => {
+    const inProgress = await fetch(`${srv.base}${SELF}?period=2026-09`);
+    expect(inProgress.headers.get("cache-control")).toBe("public, max-age=3600");
+    const complete = await fetch(`${srv.base}${SELF}?period=2026-08`);
+    expect(complete.headers.get("cache-control")).toBe("public, max-age=86400");
+    const basic = await fetch(`${srv.base}${SELF}`);
+    expect(basic.headers.get("cache-control")).toBe("public, max-age=86400");
+    await Promise.all([inProgress.text(), complete.text(), basic.text()]);
+  });
+});

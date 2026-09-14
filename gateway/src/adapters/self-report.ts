@@ -23,13 +23,7 @@
  * is the most recently completed month, exactly as before — it is the
  * representation the detached signature covers.
  */
-import {
-  computedAdapter,
-  NotFoundError,
-  type RawMetrics,
-  type ServiceQuery,
-  type SourceAdapter,
-} from "sustainability-wellknown-publisher";
+import { NotFoundError, computedAdapter, isCalendarPeriod, lastFullMonth, type RawMetrics, type ServiceQuery, type SourceAdapter } from "sustainability-wellknown-publisher";
 
 export interface SelfReportConfig {
   target: string;
@@ -51,7 +45,8 @@ export interface SelfReportConfig {
 }
 
 const HOUR_MS = 3_600_000;
-const PERIOD_RE = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/;
+/** Capture groups over the publisher's own period shape. */
+const PERIOD_PARTS = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/;
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -59,8 +54,8 @@ function pad(n: number): string {
 
 /** UTC bounds `[start, end)` in ms of a `YYYY`, `YYYY-MM` or `YYYY-MM-DD` period. */
 export function periodBounds(period: string): { start: number; end: number } {
-  const m = PERIOD_RE.exec(period);
-  if (!m) throw new Error(`self-report: period must be "YYYY", "YYYY-MM" or "YYYY-MM-DD" (got "${period}")`);
+  const m = isCalendarPeriod(period) ? PERIOD_PARTS.exec(period) : null;
+  if (!m) throw new Error(`self-report: period must be a calendar "YYYY", "YYYY-MM" or "YYYY-MM-DD" (got "${period}")`);
   const year = Number(m[1]);
   if (m[2] === undefined) return { start: Date.UTC(year, 0, 1), end: Date.UTC(year + 1, 0, 1) };
   const month = Number(m[2]);
@@ -86,18 +81,15 @@ export function periodClose(period: string): string {
   return new Date(periodBounds(period).end).toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
-/** Most recently completed full calendar month, "YYYY-MM". */
-export function lastCompletedMonth(now: Date): string {
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`;
-}
+/** Most recently completed full calendar month, "YYYY-MM" — the publisher's own rule. */
+export const lastCompletedMonth = (now: Date): string => lastFullMonth(now);
 
 /**
  * The slices of `period` at `granularity` (draft: an array only when the
  * granularity is finer than the period; otherwise the single period).
  */
 export function slices(period: string, granularity: string | undefined): string[] {
-  const m = PERIOD_RE.exec(period);
+  const m = PERIOD_PARTS.exec(period);
   if (!m) throw new Error(`self-report: bad period "${period}"`);
   const year = Number(m[1]);
   const isYear = m[2] === undefined;

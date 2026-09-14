@@ -99,8 +99,8 @@ export async function importSigningKey(jwk: string | Record<string, unknown>): P
   let privateKey: jose.CryptoKey;
   try {
     const imported = await jose.importJWK({ ...obj, alg }, alg, { extractable: true });
-    if (!(imported instanceof Object) || imported instanceof Uint8Array) throw new Error();
-    privateKey = imported as jose.CryptoKey;
+    if (imported instanceof Uint8Array) throw new Error(); // a symmetric key: never for these algorithms
+    privateKey = imported;
   } catch {
     throw new Error("signing key: the JWK could not be imported (malformed key material)");
   }

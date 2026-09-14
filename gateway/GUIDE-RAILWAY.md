@@ -227,3 +227,18 @@ npm run conformance -- "$BASE"
 - **Cost**: one always-on replica of a small Node process. `sleepApplication` is
   set to `false` in `railway.json` so a cited URL is never cold — flip it to
   `true` if you would rather trade first-byte latency for cost.
+
+## Published image (ghcr.io)
+
+The same `Dockerfile` Railway builds is also built, smoke-tested (`/healthz` and the
+well-known document's media type) and pushed by the repository workflow
+`.github/workflows/publish-github-packages.yml` to
+`ghcr.io/andreibesleaga/sustainability-wellknown-gateway` (tags: the git tag, `latest`
+from `main`, and the short commit sha). Railway keeps building from source; the image is
+for reviewers who want to run the gateway without cloning:
+
+```bash
+docker run --rm -p 8080:8080 ghcr.io/andreibesleaga/sustainability-wellknown-gateway:latest
+curl -si http://localhost:8080/.well-known/sustainability-data | head -5
+```
+

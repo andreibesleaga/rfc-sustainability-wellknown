@@ -16,6 +16,12 @@ name: publish-github-packages
 # Triggers: every version tag and manual dispatch (backfills whatever version
 # the checked-out ref carries). Re-runs are safe: a version already on GitHub
 # Packages is skipped, never overwritten.
+#
+# The second job builds gateway/Dockerfile (the exact image Railway deploys, see
+# gateway/GUIDE-RAILWAY.md) and pushes it to ghcr.io as
+# ghcr.io/andreibesleaga/sustainability-wellknown-gateway, so the reference
+# gateway is a pullable, inspectable artifact and is listed in the sidebar too.
+# Tags: the raw git tag, `latest` from the default branch, and the short sha.
 
 on:
   push:
@@ -66,3 +72,50 @@ jobs:
           TAG=latest; case "$VERSION" in *-*) TAG=next ;; esac
           npm publish --provenance=false --tag "$TAG"
           echo "Published \`$NAME@$VERSION\` (dist-tag \`$TAG\`) → https://github.com/${GITHUB_REPOSITORY}/pkgs/npm/sustainability-wellknown-${{ matrix.package }}" >> "$GITHUB_STEP_SUMMARY"
+
+  gateway-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/sustainability-wellknown-gateway
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+      - name: Build (smoke-test before pushing)
+        uses: docker/build-push-action@v6
+        with:
+          context: gateway
+          load: true
+          tags: sustainability-wellknown-gateway:ci
+      - name: Smoke-test /healthz and the well-known document
+        run: |
+          docker run -d --rm --name gw -p 8080:8080 sustainability-wellknown-gateway:ci
+          for i in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:8080/healthz >/dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/healthz; echo
+          curl -fsSI http://127.0.0.1:8080/.well-known/sustainability-data | tr -d '\r' | grep -iE '^(HTTP|content-type)'
+          docker stop gw
+      - name: Push
+        uses: docker/build-push-action@v6
+        with:
+          context: gateway
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

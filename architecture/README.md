@@ -825,16 +825,18 @@ flowchart TB
 
 ## 8. CI / verification architecture
 
-Six GitHub Actions workflows (`.github/workflows/`) verify each subsystem and
-the whole:
+Eight GitHub Actions workflows (`.github/workflows/`) verify each subsystem and
+the whole (seven verification workflows plus one publishing workflow):
 
 | Workflow | Scope |
 |---|---|
 | `draft.yml` | Builds the latest draft with kramdown-rfc + xml2rfc, sanity checks, uploads the I-D artifact |
 | `validate-examples.yml` | Runs both CDDL and JTD validators over every `example-responses/` file |
 | `publisher.yml` | Typecheck, build, test, `npm publish --dry-run` for the publisher (path-triggered, incl. schema paths) |
+| `gateway.yml` | Builds and tests the reference gateway (`gateway/`), then runs the conformance battery against a live instance (path-triggered, incl. schema paths) |
 | `consumer.yml` | Builds the **publisher first** (the consumer's `interop.test.ts` runs a live in-process producer→consumer round trip), then builds and tests the consumer |
 | `example-scripts.yml` | Python/JS/PHP safeguard test suites |
+| `publish-github-packages.yml` | Mirrors the publisher and consumer npm packages to GitHub Packages as `@andreibesleaga/…` on `v*` tags or manual dispatch (npmjs.com stays canonical; already-published versions are skipped) |
 | `full-verify.yml` | The umbrella: draft build + idnits (0 errors), dual-validator schema pass, both packages (typecheck/build/test/dry-run publish), example-script suites, **live nginx and Apache runs** of the `server-configurations/` snippets (curl-asserting 200 and `405 + Allow: GET, HEAD`), and a summary gate over all areas |
 
 Verification is thus layered exactly like the architecture: schema conformance

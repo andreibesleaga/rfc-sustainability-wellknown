@@ -1,0 +1,68 @@
+name: publish-github-packages
+
+# Mirrors the two npm packages (publisher/ and consumer/) to GitHub Packages so
+# they are listed in the repository's "Packages" sidebar (only GitHub-hosted
+# registries appear there; npmjs.com packages never do). npmjs.com remains the
+# CANONICAL registry — this is an additional copy under the owner scope GitHub
+# Packages requires: `@andreibesleaga/sustainability-wellknown-publisher` and
+# `@andreibesleaga/sustainability-wellknown-consumer`.
+#
+# The rename happens in the runner's checkout only; the committed package.json
+# files are never modified. Authentication is the job's GITHUB_TOKEN with
+# `packages: write` — no secret. The version published is the one in each
+# package.json (the repository's tags carry a draft/schema suffix, so the tag
+# name is deliberately not parsed).
+#
+# Triggers: every version tag and manual dispatch (backfills whatever version
+# the checked-out ref carries). Re-runs are safe: a version already on GitHub
+# Packages is skipped, never overwritten.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  publish-github-packages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [publisher, consumer]
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@andreibesleaga"
+      - run: npm ci
+      - run: npm run build
+      - name: Rename to the owner scope (runner checkout only)
+        run: |
+          npm pkg delete publishConfig.provenance publishConfig.access
+          npm pkg set name="@andreibesleaga/sustainability-wellknown-${{ matrix.package }}" publishConfig.registry="https://npm.pkg.github.com"
+          node -p "require('./package.json').name + '@' + require('./package.json').version"
+      - name: Publish (skipped when this version is already on GitHub Packages)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VERSION" version --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "$NAME@$VERSION is already on GitHub Packages — nothing to do."
+            echo "Skipped: \`$NAME@$VERSION\` already published." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          TAG=latest; case "$VERSION" in *-*) TAG=next ;; esac
+          npm publish --provenance=false --tag "$TAG"
+          echo "Published \`$NAME@$VERSION\` (dist-tag \`$TAG\`) → https://github.com/${GITHUB_REPOSITORY}/pkgs/npm/sustainability-wellknown-${{ matrix.package }}" >> "$GITHUB_STEP_SUMMARY"

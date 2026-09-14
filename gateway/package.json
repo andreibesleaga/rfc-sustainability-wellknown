@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "rate-limiter-flexible": "^11.2.0",
-    "sustainability-wellknown-consumer": "^0.6.0",
-    "sustainability-wellknown-publisher": "^0.6.0"
+    "sustainability-wellknown-consumer": "^0.6.5",
+    "sustainability-wellknown-publisher": "^0.6.5"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

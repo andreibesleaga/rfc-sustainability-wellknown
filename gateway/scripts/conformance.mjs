@@ -53,23 +53,12 @@ const report = async (label, fetchImpl) => {
   const r = await runConformanceChecks(base, fetchImpl, options);
   console.log(`\n${label}`);
   for (const c of r.checks) {
-    // `level` arrives with consumer >= 0.5.0; older releases report every check
-    // flatly, so an unlabelled check is treated as a MUST (the prior behaviour).
-    const level = c.level ?? "MUST";
-    // `outcome` arrives with consumer >= 0.6.0 (adds the third "warn" state,
-    // e.g. a subject still on the pre-06 media type — reported, never a
-    // failure). Older releases carry no `outcome`; derive an equivalent from
-    // `pass`/`level` so the script still works against them, matching the
-    // existing defensive pattern for `level` above.
-    const outcome = c.outcome ?? (c.pass ? "pass" : level === "MUST" ? "fail" : "warn");
-    const label = outcome === "pass" ? "PASS" : outcome === "warn" ? "WARN" : level === "MUST" ? "FAIL" : "WARN";
-    console.log(`  ${label}  [${level}] ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
-    if (outcome === "warn") {
-      warnings++;
-    } else if (outcome === "fail") {
-      if (level === "MUST") failures++;
-      else warnings++;
-    }
+    // `outcome` is pass | warn | fail; a failed MUST is a conformance failure,
+    // everything else short of pass is an unmet recommendation.
+    const label = c.outcome === "pass" ? "PASS" : c.outcome === "fail" && c.level === "MUST" ? "FAIL" : "WARN";
+    console.log(`  ${label}  [${c.level}] ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
+    if (label === "FAIL") failures++;
+    else if (label === "WARN") warnings++;
   }
 };
 

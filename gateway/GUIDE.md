@@ -62,7 +62,8 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 
 1. **Never attribute an invented figure to a real organization.** Every number
    in a document about a real subject must be readable in that subject's own
-   published report. If you cannot verify it, you do not publish it.
+   published report, or be the stated arithmetic sum of such readable figures on
+   the declared basis, recorded as such in data/README.md. If you cannot verify it, you do not publish it.
 2. **Say so in band.** Every third-party document's `provider` member states
    that it is an illustrative mapping prepared by the gateway operator and is
    *not published, reviewed, authorized, or endorsed by the reporting subject* —
@@ -698,9 +699,9 @@ or `--verify --verify-attestation` (one fetch, both outcomes on stderr).
 status codes and header sets, and a framework that adds `X-Powered-By`, rewrites
 `ETag`, or synthesises its own `HEAD` handling gets in the way of demonstrating
 that. The core server has no runtime dependencies beyond the publisher package.
-Teams that already run Express can mount the identical route resolver instead —
-`src/express.ts` exports `gatewayMiddleware(gw)`, with a worked snippet in the
-file header. Nothing in the deployed image imports it.
+Teams that already run Express or Fastify can use the publisher package's own
+middlewares for a single-subject deployment; this gateway's multi-subject
+routing is exported as `route()` for embedding.
 
 **Failure posture.** Startup is fail-loud: a malformed, non-conformant,
 oversized, duplicated, or altered document stops the boot, and Railway surfaces

@@ -22,7 +22,7 @@ import { demoSpecs } from "./adapters/demo-specs";
 import { lastCompletedMonth, selfReportAdapter } from "./adapters/self-report";
 import { LIMITS, type GatewayConfig, type MediaTypeSetting } from "./config";
 import { loadWireExamples, type WireExample } from "./examples";
-import { CORS_ORIGIN, corsHeaders, jsonError, methodNotAllowed, withBody, type Result } from "./http";
+import { CORS_ORIGIN, corsHeaders, jsonError, methodNotAllowed, notModified, withBody, type Result } from "./http";
 import {
   WELL_KNOWN_PATH,
   buildIndex,
@@ -30,28 +30,23 @@ import {
   type IndexDocument,
 } from "./index-page";
 import { LiveRegistry, type LiveSpec } from "./live";
-import { loadMediaTypeOverrides } from "./media-type";
-import { loadNoData, type NoDataEntry } from "./no-data";
+import { loadMediaTypeOverrides, MEDIA_TYPE_FILE } from "./media-type";
+import { loadNoData, NO_DATA_FILE, type NoDataEntry } from "./no-data";
 import { clientKey, createRateLimiter, type RateLimiter } from "./rate-limit";
 import { loadRegistry, subjectFromAdapter, type Subject } from "./registry";
 import { crossValidate, type CrossValidation } from "./verify";
 
 /** `/{domain}/.well-known/sustainability-data` — the primary route. */
-const SUBJECT_ROUTE = /^\/([^/]{1,253})\/\.well-known\/sustainability-data$/;
+const SUBJECT_ROUTE = new RegExp(`^/([^/]{1,${LIMITS.maxDomainLength}})/\\.well-known/sustainability-data$`);
 /** A per-subject signature path: never served — the gateway signs only its own report. */
-const SUBJECT_SIGNATURE_ROUTE = /^\/([^/]{1,253})\/\.well-known\/sustainability-data\.jws$/;
+const SUBJECT_SIGNATURE_ROUTE = new RegExp(`^/([^/]{1,${LIMITS.maxDomainLength}})/\\.well-known/sustainability-data\\.jws$`);
 /** The self report's variant cache: in-progress periods change hourly. */
 const SELF_CACHE_TTL_MS = 60 * 60 * 1000;
 const SELF_CACHE_ENTRIES = 64;
 
-/** Domain served by the adapter-generated demonstration document. */
-export const KEPLER_DEMO_DOMAIN = "kepler-demo.example";
-
 export interface Gateway {
   server: Server;
   config: GatewayConfig;
-  /** The self report's clock (injectable), which decides whether a period is still in progress. */
-  selfNow: () => Date;
   /** Every subject the gateway serves, keyed by its route domain. */
   subjects: Map<string, Subject>;
   /** Wire-format example metadata (subjects also appear in `subjects`). */
@@ -83,6 +78,8 @@ export interface Gateway {
   mediaTypeOverrides: Map<string, MediaTypeSetting>;
   index: IndexDocument;
   indexHtml: string;
+  /** The machine-readable index, serialized once per build. */
+  indexJson: string;
   /** The key signing the gateway's own report; unset ⇒ `.jws` is 404 (draft: "does not sign"). */
   signingKey?: SigningKey;
   /** Per-client request limiter; unset when disabled. */
@@ -163,7 +160,7 @@ async function serveDocument(
       const since = Date.parse(ifModifiedSince);
       const lastModified = Date.parse(headers["Last-Modified"]);
       if (!Number.isNaN(since) && !Number.isNaN(lastModified) && lastModified <= since) {
-        return { status: 304, headers, body: "" };
+        return notModified(headers);
       }
     }
     // The `provider` member is human-readable text; the draft's
@@ -179,15 +176,14 @@ async function serveDocument(
 export async function route(
   gw: Pick<
     Gateway,
-    "config" | "selfNow" | "subjects" | "self" | "noData" | "mediaTypeOverrides" | "index" | "indexHtml"
+    "config" | "subjects" | "self" | "noData" | "mediaTypeOverrides" | "index" | "indexHtml" | "indexJson"
   > &
     Partial<Pick<Gateway, "refreshSelf" | "examples" | "signingKey">>,
   method: string,
   rawUrl: string,
   headers: { "if-none-match"?: string; "if-modified-since"?: string } = {},
 ): Promise<Result> {
-  const url = new URL(rawUrl, "http://gateway.invalid");
-  const path = url.pathname;
+  const { path, search } = splitTarget(rawUrl);
   const ifNoneMatch = headers["if-none-match"];
   const ifModifiedSince = headers["if-modified-since"];
 
@@ -208,7 +204,9 @@ export async function route(
         ...corsHeaders(),
         "Content-Type": "text/html; charset=utf-8",
         "Content-Language": "en",
-        "Cache-Control": `public, max-age=${gw.config.maxAge}`,
+        "Cache-Control": selfCacheControl(gw.config),
+        "Referrer-Policy": "no-referrer",
+        "X-Frame-Options": "DENY",
       },
       gw.indexHtml,
     );
@@ -221,9 +219,9 @@ export async function route(
         ...corsHeaders(),
         "Content-Type": "application/json",
         "Content-Language": "en",
-        "Cache-Control": `public, max-age=${gw.config.maxAge}`,
+        "Cache-Control": selfCacheControl(gw.config),
       },
-      JSON.stringify(gw.index, null, 2) + "\n",
+      gw.indexJson,
     );
   }
 
@@ -241,10 +239,7 @@ export async function route(
     // pass through the publisher's own parameter-tolerance rules (a malformed
     // period and an unknown granularity are dropped, per the draft); `target`
     // is ignored, so it never reaches the publisher.
-    const query = extendedQuery(url);
-    const r = await serveDocument(self, gw.config, ifNoneMatch, ifModifiedSince, gw.config.mediaType, query);
-    if (r.status === 200) r.headers["Cache-Control"] = selfCacheControl(gw.config);
-    return r;
+    return serveDocument(self, { ...gw.config, maxAge: selfMaxAge(gw.config) }, ifNoneMatch, ifModifiedSince, gw.config.mediaType, extendedQuery(search));
   }
 
   if (path === SIGNATURE_PATH) {
@@ -272,15 +267,14 @@ export async function route(
     // Case-insensitive host matching (DNS is case-insensitive); the path is not
     // percent-decoded, so an encoded separator simply fails to match.
     const domain = m[1].toLowerCase();
-    const subject =
-      domain.length <= LIMITS.maxDomainLength ? gw.subjects.get(domain) : undefined;
+    const subject = gw.subjects.get(domain);
     if (!subject) {
       // Draft "no-data rule": nothing published for this subject -> 404. For a
       // subject the operator deliberately looked for and could not publish, the
       // status is the same 404 but the body carries the finding and its
       // evidence, so the absence is legible rather than indistinguishable from
       // a typo.
-      const gap = domain.length <= LIMITS.maxDomainLength ? gw.noData.get(domain) : undefined;
+      const gap = gw.noData.get(domain);
       if (gap) {
         return withBody(
           404,
@@ -317,16 +311,24 @@ export async function route(
       ifNoneMatch,
       ifModifiedSince,
       mediaType,
-      gw.examples?.get(domain)?.granularity ? extendedQuery(url) : {},
+      gw.examples?.get(domain)?.granularity ? extendedQuery(search) : {},
     );
   }
 
   return jsonError(404, "not found");
 }
 
+/** Path and query string of a request target, split once for routing, rate limiting and parameters. */
+export function splitTarget(rawUrl: string): { path: string; search: URLSearchParams } {
+  const q = rawUrl.indexOf("?");
+  return q === -1
+    ? { path: rawUrl, search: new URLSearchParams() }
+    : { path: rawUrl.slice(0, q), search: new URLSearchParams(rawUrl.slice(q + 1)) };
+}
+
 /** The two Extended parameters of a request, after the publisher's tolerance rules; `target` never passes. */
-function extendedQuery(url: URL): Record<string, string> {
-  const parsed = parseQuery(Object.fromEntries(url.searchParams.entries()));
+function extendedQuery(search: URLSearchParams): Record<string, string> {
+  const parsed = parseQuery(Object.fromEntries(search.entries()));
   const query: Record<string, string> = {};
   if (parsed.period !== undefined) query.period = parsed.period;
   if (parsed.granularity !== undefined) query.granularity = parsed.granularity;
@@ -468,7 +470,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   for (const domain of noData.keys()) {
     if (subjects.has(domain)) {
       throw new Error(
-        `gateway: ${domain} is listed in ${"_no-data.json"} but also has a data file — ` +
+        `gateway: ${domain} is listed in ${NO_DATA_FILE} but also has a data file — ` +
           `a subject either publishes something or it does not`,
       );
     }
@@ -477,7 +479,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   for (const domain of mediaTypeOverrides.keys()) {
     if (!subjects.has(domain)) {
       throw new Error(
-        `gateway: ${domain} is listed in _media-type.json but is not a served subject`,
+        `gateway: ${domain} is listed in ${MEDIA_TYPE_FILE} but is not a served subject`,
       );
     }
   }
@@ -491,6 +493,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     });
   let index = makeIndex();
   let indexHtml = renderIndexHtml(index, config.baseUrl);
+  let indexJson = JSON.stringify(index, null, 2) + "\n";
 
   // The self report names a reporting period; with no pinned SELF_PERIOD that
   // default is the last completed month, which goes stale in a long-lived
@@ -511,20 +514,24 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
 
   // Daily refresh of the live demonstration subjects: successful live builds
   // replace the served documents; failures keep the last good ones. The index
-  // (HTML and JSON) is rebuilt only when something actually changed.
+  // (HTML and JSON) is rebuilt when a document changed or an upstream failed,
+  // so its `upstream-error` and `refreshed` fields stay truthful.
   const refreshLive = async (): Promise<void> => {
     const changed = await live.refreshAll();
-    if (changed.length === 0) return;
+    const failed = [...live.managed.values()].filter((m) => m.upstreamError).map((m) => m.spec.domain);
+    if (changed.length === 0 && failed.length === 0) return;
     for (const m of live.managed.values()) {
       subjects.set(m.spec.domain, m.subject);
     }
     gw.index = index = makeIndex();
     gw.indexHtml = indexHtml = renderIndexHtml(index, config.baseUrl);
+    gw.indexJson = indexJson = JSON.stringify(index, null, 2) + "\n";
     log({
       ts: clock().toISOString(),
       level: "info",
       event: "live-refresh",
       changed,
+      ...(failed.length > 0 ? { failed } : {}),
     });
   };
 
@@ -541,9 +548,9 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     mediaTypeOverrides,
     index,
     indexHtml,
+    indexJson,
     refreshSelf,
     signingKey,
-    selfNow: selfClock,
     rateLimiter: createRateLimiter(config.rateLimit),
   };
 
@@ -551,7 +558,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     const started = process.hrtime.bigint();
     const method = req.method ?? "GET";
     const rawUrl = req.url ?? "/";
-    const pathname = rawUrl.split("?")[0];
+    const { path: pathname } = splitTarget(rawUrl);
 
     const finish = (result: Result) => {
       res.writeHead(result.status, result.headers);

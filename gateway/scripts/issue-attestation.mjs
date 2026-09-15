@@ -31,7 +31,7 @@ import { verifyCredentialJwt } from "sustainability-wellknown-consumer";
 export const DEFAULTS = {
   keyFile: join(homedir(), ".config", "sustainability-attester", "private.jwk"),
   issuer: "https://andreibesleaga.com",
-  attesterKeyUrl: "https://andreibesleaga.com/.well-known/sustainability-attester.jwk",
+  attesterKeyUrl: "https://andreibesleaga.com/keys/sustainability-attester.jwk",
   credentialId: "https://andreibesleaga.com/attestations/sustainability-data-gateway-2026.vc.jwt",
   gateway: "https://sustainability.up.railway.app",
   target: "sustainability-data-gateway",

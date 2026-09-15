@@ -43,7 +43,7 @@ is the check to satisfy before opening a PR.
 
 ## The schema identity rule
 
-The data model exists in four places, and they must stay byte-identical:
+The data model exists in four places, and they must stay identical (the embedded TypeScript copies are equal to the JSON schema as JSON values; the CDDL and JSON files are byte-identical):
 
 1. the CDDL and JTD blocks in `internet-drafts/draft-besleaga-sustainability-wellknown-06.md`
 2. `schemas-validators/response-schema.cddl` and `response-schema.json`

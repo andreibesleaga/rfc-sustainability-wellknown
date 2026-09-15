@@ -47,7 +47,7 @@ describe("with a key and an attestation URI", () => {
       signingKeyJwk: JSON.stringify(await exportPrivateJwk(key)),
       attestationUri: ATTESTATION,
     });
-    srv.gw.config.self.signingKeyUrl = "https://attester.example/.well-known/gateway-signing-key.jwk";
+    srv.gw.config.self.signingKeyUrl = "https://attester.example/keys/gateway-signing-key.jwk";
   });
   afterAll(async () => srv.close());
 

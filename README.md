@@ -2,6 +2,8 @@
 ## IETF Internet-Draft (I-D)
 ### The 'sustainability-data' Well-Known URI
 
+[![full-verify](https://github.com/andreibesleaga/rfc-sustainability-wellknown/actions/workflows/full-verify.yml/badge.svg)](https://github.com/andreibesleaga/rfc-sustainability-wellknown/actions/workflows/full-verify.yml) [![npm publisher](https://img.shields.io/npm/v/sustainability-wellknown-publisher?label=publisher)](https://www.npmjs.com/package/sustainability-wellknown-publisher) [![npm consumer](https://img.shields.io/npm/v/sustainability-wellknown-consumer?label=consumer)](https://www.npmjs.com/package/sustainability-wellknown-consumer)
+
 Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/)
 
 **Author:** Andrei Nicolae Besleaga
@@ -10,9 +12,9 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name).
 
-This repository contains initial drafts and supporting documents, examples, sources, tooling, etc. Previous drafts are release tagged, in internet-drafts folder, and system architecture with diagrams in: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md).
+This repository contains initial drafts and supporting documents, examples, sources, tooling, etc. Previous drafts are on the Datatracker and in this repository's git history; the internet-drafts folder keeps `-05` and `-06`; system architecture with diagrams in: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md).
 
-Reference testing gateway: https://sustainability.up.railway.app/ — one live/replay demonstration subject per upstream-backed publisher adapter (live upstreams refreshed daily where licenses permit) and every canonical wire-format example served end to end, all cross-validated at boot by the published consumer library.
+Reference testing gateway: https://sustainability.up.railway.app/ — one demonstration subject per publisher adapter (some fetch their upstream daily, the rest replay a recorded response), plus every example document from this repository; the gateway validates all of them with the published consumer library when it starts.
 
 It also serves documents *about* real organizations. Those are **illustrative mappings prepared by the author** from each organization's own published reports: they are **not published, reviewed, authorized or endorsed by their reporting subjects**, who have not been contacted about them. Every such document says so in its `provider` member, and [gateway/README.md](gateway/README.md) and [gateway/data/README.md](gateway/data/README.md) record the source and retrieval date for each figure. They exist to exercise the format against real-world reporting shapes, not to speak for anyone.
 
@@ -36,7 +38,9 @@ A well-known URI is scoped to an HTTP(S) *origin* (RFC 8615) — any device or s
 <sub>Source: [`architecture/diagrams/overview.mmd`](architecture/diagrams/overview.mmd) — every member name in the diagram is checked against [`schemas-validators/response-schema.json`](schemas-validators/response-schema.json).</sub>
 
 
-Separately, the `provider` field names "the entity operating the origin," `measurement-method` is a token with RECOMMENDED machine-matchable values (or otherwise a short human-readable description), and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) already publish *organization-level* figures through this same endpoint — so it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — quantities this schema's optional fields already carry (with unit conversion), for an entity that is not a website at all.
+Separately, the `provider` field names "the entity operating the origin," `measurement-method` is a token with RECOMMENDED machine-matchable values (or otherwise a short human-readable description), and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) are written to publish *organization-level* figures through this same endpoint; they run in the gateway against recorded responses, none has been exercised against a live tenant, and the Microsoft adapter targets a preview API retired 2025-05-30. So it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — quantities this schema's optional fields already carry (with unit conversion), for an entity that is not a website at all.
+
+Product and organization names are used only to identify the data sources these adapters read; they are trademarks of their owners and imply no affiliation or endorsement.
 
 #### Why? (what it solves, how, and why now)
 
@@ -51,12 +55,12 @@ Sustainability data about digital services exists today — inside enterprise ca
 
 **How it solves it:**
 * One **fixed, well-known URL per origin** (`/.well-known/sustainability-data`, per RFC 8615) — publishable by any HTTP origin, from a corporate portal to an IoT device, with no central authority and no per-site registration.
-* One **minimal, formally specified JSON document** (CDDL + JTD schemas; 8 mandatory + 16 optional members) with a declared reporting subject (`target`), wire-level unit defaults, and strict-publisher/tolerant-client rules — so every consumer reads every publisher without bespoke integration.
+* One **minimal, formally specified JSON document** (CDDL (RFC 8610) and JSON Type Definition (RFC 8927) schemas; 8 mandatory + 16 optional members) with a declared reporting subject (`target`), wire-level unit defaults, and rules under which publishers emit only valid documents and clients ignore what they do not recognize — so every consumer reads every publisher without bespoke integration.
 * A **mandatory methodology link** plus optional signed-attestation and disclosure links — claims arrive with their basis attached, checkable and comparable across providers.
 * **Zero new protocol machinery** — plain HTTP GET, standard caching, CORS for browsers, forward-compatible extensibility — so the cost of adoption is one JSON file at a fixed URL.
 
 **Why now:**
-* **Regulation now requires the data to exist.** The EU CSRD/ESRS E1 obliges tens of thousands of companies to produce audited energy and emissions figures; MiCA already mandates energy-consumption disclosure for crypto-asset providers (with renewable share and per-transaction intensity above 500,000 kWh/year); the ESPR Digital Product Passport extends disclosure to products. The numbers are being produced anyway — what's missing is a discoverable, machine-readable place to publish them.
+* **Regulation now requires the data to exist.** The EU CSRD/ESRS E1 (the EU sustainability reporting standard on climate) obliges tens of thousands of companies to produce audited energy and emissions figures; MiCA already mandates energy-consumption disclosure for crypto-asset providers (with renewable share and per-transaction intensity above 500,000 kWh/year); the EU Ecodesign regulation's Digital Product Passport extends disclosure to products. The numbers are being produced anyway — what's missing is a discoverable, machine-readable place to publish them.
 * **The measurement gap is documented by the IAB itself.** RFC 9547 (the e-impact workshop report) records both the need for better data on the Internet's environmental impact and the absence of standardized ways to obtain it.
 * **Carbon-aware computing needs machine-readable inputs.** Schedulers, load balancers, CDNs, and procurement tooling can only weigh environmental impact as a real constraint (alongside cost and latency) if the data is fetchable and schema-validated — not locked in PDFs.
 * **The web has proven this exact pattern.** `robots.txt`, `security.txt` (RFC 9116), and carbon.txt show that a well-known, self-published file is the lowest-friction path to ecosystem-wide adoption — no central authority, no registration per site, no new protocol.
@@ -66,14 +70,14 @@ Sustainability data about digital services exists today — inside enterprise ca
 
 The regulatory disclosure wave (CSRD reporting cycles, MiCA, the Digital Product Passport) is rolling out now, and every organization it touches is deciding — this year, not eventually — how to expose its numbers. Without a neutral standard location, each platform, regulator, and vendor mints its own endpoint and format; once those ad-hoc choices ship and ecosystems build on them, converging later costs orders of magnitude more than agreeing first. The well-known registry exists precisely to pre-empt that fragmentation, and today it contains no sustainability entry at all: the anchor is missing at the exact moment the most publishers in history are looking for one. One provisional registry row now is cheap; unwinding a fragmented ecosystem later is not.
 
-**Why this — nothing else does this, and this is the first and most complete proposal that could help** (every claim below was verified against the live IANA registry, the IETF Datatracker, and the adjacent projects' own materials):
+**Why this — nothing else does this, and this is the first and most complete proposal that could help** (every claim below was verified against the live IANA registry, the IETF Datatracker, and the adjacent projects' own materials, as of 2026-07-26):
 
-* **Nothing in the IETF/IRTF space defines this.** No active or expired Internet-Draft or RFC specifies an application-layer sustainability disclosure format or well-known URI: the GREEN WG *excludes* carbon accounting and reporting by charter (its scope is network-device YANG management), and the adjacent expired drafts (sustainability-insights, green-metrics) were network-telemetry proposals with no disclosure endpoint. This draft is the only proposal of its kind on the Datatracker.
-* **The nearest neighbor is complementary, not competing.** carbon.txt (Green Web Foundation) is a discovery *index* — a TOML file of links to disclosure documents that, in its own maintainer's words, "contains no quantitative metrics." This proposal publishes the metrics themselves; the two specs cross-reference each other by design.
-* **First in the registry.** The IANA Well-Known URIs registry has never contained a sustainability, carbon, green, energy, or ESG entry, and no other sustainability-related request was found in the registry's public review queue — this registration request (issue #95, June 2026) creates the category's anchor rather than joining a crowd.
+* **Nothing in the IETF/IRTF space defines this.** No active or expired Internet-Draft or RFC specifies an application-layer sustainability disclosure format or well-known URI: the GREEN WG *excludes* carbon accounting and reporting by charter (its scope is network-device YANG management), and the adjacent expired drafts (sustainability-insights, green-metrics) were network-telemetry proposals with no disclosure endpoint. This draft is the only proposal of its kind on the Datatracker (as of 2026-07-26).
+* **The nearest neighbor is complementary, not competing.** carbon.txt (Green Web Foundation) is a discovery *index* — a TOML file of links to disclosure documents, which is a disclosure index and carries no quantitative metrics. This proposal publishes the metrics themselves; the two specs cross-reference each other by design.
+* **First in the registry.** The IANA Well-Known URIs registry has never contained a sustainability, carbon, green, energy, or ESG entry, and the only adjacent request in the queue, carbon.txt (issue #103, July 2026), is a disclosure index rather than a metrics document (see ADOPTION.md §13); this registration request (issue #95, June 2026) is the first for a metrics document.
 * **Everything else is proprietary, regulated-filing-shaped, or advisory.** Enterprise carbon platforms (Salesforce, Microsoft, Watershed) expose per-vendor, authenticated APIs with incompatible shapes; regulatory formats (ESRS/XBRL filings, the DPP) are entity-level compliance documents, not web-discoverable machine endpoints; the W3C's Web Sustainability Guidelines are guidance, not a data format. None of them gives an arbitrary consumer a fetchable, validated document at a known URL.
-* **Most complete by construction.** No other effort combines, in one specification: fixed-location discovery *and* the quantitative metrics themselves; a declared reporting subject that spans organizations, sites, paths, devices, cloud tenants, and products; a mandatory methodology link plus optional signed attestations; dual formal schemas (CDDL + JTD); full security *and* privacy treatment (DoS caps, path-disclosure defense, fingerprinting noise, consumer hardening); explicit legacy compatibility and collision-proof extensibility; and two interoperating open-source implementations proving both sides of the wire. It arrives not as an idea but as a finished, running system.
-* **Future-compatible with everything — by design, not by promise.** The must-ignore rule plus open schemas mean any future metric (water use, hardware lifecycle, embodied carbon, whatever the next regulation demands) can be added by anyone, immediately, without touching the RFC or IANA: vendors extend today via collision-proof reverse-domain member names (`com.example.pue`), future revisions extend via the reserved undotted namespace, and the change-controlled `version` label records provenance without ever gating processing. The same tolerance rules that absorb the future also absorb the past — historical 1.x documents remain readable by current clients. Publishing the RFC freezes the text, not the ecosystem: nothing that matters is locked in, and no deployed client is ever stranded.
+* **Most complete by construction.** No other effort combines, in one specification: fixed-location discovery *and* the quantitative metrics themselves; a declared reporting subject that spans organizations, sites, paths, devices, cloud tenants, and products; a mandatory methodology link plus optional signed attestations; dual formal schemas (CDDL + JTD); full security *and* privacy treatment (DoS caps, path-disclosure defense, fingerprinting noise, consumer hardening); explicit legacy compatibility and collision-proof extensibility; and two interoperating open-source implementations proving both sides of the wire. It arrives with a running reference implementation.
+* **Designed to stay compatible with later revisions and other formats.** The must-ignore rule plus open schemas mean any future metric (water use, hardware lifecycle, embodied carbon, whatever the next regulation demands) can be added by anyone, immediately, without touching the RFC or IANA: vendors extend today via collision-proof reverse-domain member names (`com.example.pue`), future revisions extend via the reserved undotted namespace, and the `version` label, fixed at `"2.0"`, records provenance without ever gating processing. The same tolerance rules that absorb the future also absorb the past — historical 1.x documents remain readable by current clients. Publishing the RFC freezes the text, not the ecosystem: nothing that matters is locked in, and no deployed client is ever stranded.
 
 #### Goals
 * Provide a single, discoverable location, per origin, for environmental metrics about a declared reporting subject (`target` — by default the origin itself).
@@ -107,7 +111,7 @@ These are properties of the specification itself, not add-ons: any conformant do
 
 #### Why the name `sustainability-data`
 
-The well-known URI suffix was renamed from `sustainability` to `sustainability-data` in draft -04, following Independent-Stream review feedback on RFC 8615 §3, which asks registered names to be precise and discourages "squatting" on generic terms. The compound name registers the **specific application** — a machine-readable data document of sustainability metrics and disclosure links for a declared reporting subject — rather than claiming the generic concept, matching the registry's accepted descriptive-compound pattern (`security.txt`, `api-catalog`, `sbom`, `traffic-advice`). `-data` was chosen over `-metrics` because the specification legally permits a metrics-free document (the minimum-reporting rule: methodology-uri as disclosure floor) and always carries non-metric content (methodology, disclosure index, attestation, `target-type`, extensions) — so "data" is the *accurate* description, and it scales to future environmental members. Names rejected: `sustainability-report(ing)` (collides with the CSRD/ESRS regulated term), `esg-metrics` (overclaims — no Social/Governance members), `carbon-*` (underclaims scope; blurs against the complementary carbon.txt), and framework-branded names (a neutral community convention should be org-independent). The IANA registry contains no sustainability/carbon/green/ESG entry and no third-party use of the path exists, so the registration creates the category's missing neutral anchor at the cost of one provisional row in an existing registry — removable if unused, promotable once in broad use, per RFC 8615 §3.1. The complete argued case with verified sources is in [ADOPTION.md §12](ADOPTION.md#12-the-name-why-sustainability-data--the-complete-registration-name-case).
+The well-known URI suffix was renamed from `sustainability` to `sustainability-data` in draft -04, following Independent-Stream review feedback on RFC 8615 §3, which asks registered names to be precise and discourages "squatting" on generic terms. The compound name registers the **specific application** — a machine-readable data document of sustainability metrics and disclosure links for a declared reporting subject — rather than claiming the generic concept, matching the registry's accepted descriptive-compound pattern (`security.txt`, `api-catalog`, `sbom`, `traffic-advice`). `-data` was chosen over `-metrics` because the specification permits a metrics-free document (the minimum-reporting rule: methodology-uri as disclosure floor) and always carries non-metric content (methodology, disclosure index, attestation, `target-type`, extensions) — so "data" is the *accurate* description, and it scales to future environmental members. Names rejected: `sustainability-report(ing)` (collides with the CSRD/ESRS regulated term), `esg-metrics` (overclaims — no Social/Governance members), `carbon-*` (underclaims scope; blurs against the complementary carbon.txt), and framework-branded names (a neutral community convention should be org-independent). The IANA registry contains no sustainability/carbon/green/ESG entry and no third-party use of the path exists, so the registration creates the category's missing neutral anchor at the cost of one provisional row in an existing registry — removable if unused, promotable once in broad use, per RFC 8615 §3.1. The complete argued case with verified sources is in [ADOPTION.md §12](ADOPTION.md#12-the-name-why-sustainability-data--the-complete-registration-name-case).
 
 --- 
 
@@ -116,17 +120,23 @@ The normative specification is the Internet‑Draft; this repo provides non‑no
 
 ```
 rfc-sustainability-wellknown/
-├── internet-drafts/               # RFC draft source files and supporting documents
-├── example-responses/       # Valid JSON response examples (all validators pass)
-├── schemas-validators/      # Formal schemas (CDDL, JTD) and validation tooling
-├── example-scripts/         # Server-side security middleware + reference request handler (Python, JS, PHP), with tests
-├── server-configurations/   # Web server configuration snippets (nginx, Apache)
-├── publisher/               # Reference publisher (TypeScript): adapters → conformant /.well-known/sustainability-data
-├── consumer/                # Reference client (TypeScript): fetch, validate, transform a /.well-known/sustainability-data document
-├── gateway/                 # Reference multi-subject gateway (the live deployment: Extended self report, signed, attested)
-├── sfc-compliance/              # SFC framework alignment (relationship to the SFC framework)
+├── internet-drafts/            # Draft sources (-05, -06), build script, changelog, VC companion note
+├── example-responses/          # Valid JSON response examples (all validators pass)
+├── schemas-validators/         # Formal schemas (CDDL, JTD) and validation tooling
+├── example-scripts/            # Server-side security middleware + reference request handler (Python, JS, PHP), with tests
+├── server-configurations/      # Web server configuration snippets (nginx, Apache)
+├── publisher/                  # Reference publisher (TypeScript): adapters → conformant /.well-known/sustainability-data
+├── consumer/                   # Reference client (TypeScript): fetch, validate, verify a /.well-known/sustainability-data document
+├── gateway/                    # Reference multi-subject gateway (the live deployment: Extended self report, signed, attested)
+├── architecture/               # System overview diagram and architecture notes
+├── sfc-compliance/             # SFC framework alignment (relationship to the SFC framework)
+├── .github/                    # CI workflows (build, test, conformance battery, package publishing) and Dependabot policy
 ├── SIGNING-AND-ATTESTATION.md  # How to deploy the OPTIONAL detached signature and a Verifiable Credential (publisher, attester, consumer)
-└── ADOPTION.md              # The case for RFC/IANA adoption (business, technical, regulatory benefits)
+├── ADOPTION.md                 # The case for RFC/IANA adoption (business, technical, regulatory benefits)
+├── CONTRIBUTING.md             # How to build, test and change the draft or the packages
+├── SECURITY.md                 # Vulnerability reporting and supported versions
+├── CITATION.cff                # How to cite the specification
+└── llms.txt                    # Machine-readable summary of the repository for AI assistants
 
 ```
 
@@ -136,9 +146,9 @@ rfc-sustainability-wellknown/
 
 Draft in multiple formats plus supplementary documents.
 
-| File | Description |
+| Revision (files kept: `-06`, `-05`; earlier ones on the Datatracker) | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-06.md` | **Latest posted revision** (posted 2026-09-10, under ISE review) — responds to the ISE's second round (security designed in from the start) and to the first commissioned review: registers and requires the `application/sustainability-data+json` media type, makes HTTPS a MUST, adds an OPTIONAL detached-JWS signature mechanism and a threat-model table, adds "Roles and Processing Model" and "Partial Knowledge and Incremental Adoption", and fixes the `version` label as a single value. No change to the wire format |
+| `draft-besleaga-sustainability-wellknown-06.md` | **Latest posted revision** (posted 2026-09-10, under ISE review) — responds to the ISE's second round (security designed in from the start) and to the first commissioned review: requests registration of, and requires, the `application/sustainability-data+json` media type, makes HTTPS a MUST, adds an OPTIONAL detached-JWS signature mechanism and a threat-model table, adds "Roles and Processing Model" and "Partial Knowledge and Incremental Adoption", and fixes the `version` label as a single value. No change to the wire format |
 | `draft-besleaga-sustainability-wellknown-06.xml` / `.txt` | xml2rfc v3 XML (authoritative submission form) and rendered text of `-06` |
 | `draft-besleaga-sustainability-wellknown-05.md` | Prior posted revision (posted 2026-07-28) — responds to the ISE's initial review of `-04`: removes the carbon.txt-path reference from `disclosure-uri` (now format- and location-agnostic), adds an Internationalization Considerations section, states the calendar-period rationale in-document, and recognizes the calendar year as the common Basic-service reporting cycle. No change to the wire format |
 | `draft-besleaga-sustainability-wellknown-05.xml` / `.txt` | xml2rfc v3 XML and rendered text of `-05` |
@@ -162,7 +172,7 @@ The draft defines the full data model, mandatory/optional fields, CDDL and JTD f
 
 ## example-responses/
 
-14 JSON response files covering all service levels and field combinations defined in the draft. All pass both CDDL and JTD validation.
+14 JSON response files covering every service level and every member defined in the draft. All pass both CDDL and JTD validation.
 
 | File | Description |
 |---|---|
@@ -178,7 +188,7 @@ The draft defines the full data model, mandatory/optional fields, CDDL and JTD f
 | `example-response-device.json` | Basic service — IoT/edge node with hardware-metered energy (`target-type: "device"`), demonstrating a `com.example.*` extension member |
 | `example-response-tenant.json` | Basic service — cloud tenant allocation (`target-type: "tenant"`, `measurement-method: "cloud-billing"`), full Scope 1/2/3 |
 | `example-response-data-source.json` | Basic service — metrics-feed/data-source report (`target-type: "data-source"`) |
-| `example-response-minimal.json` | Minimum-conformance example — exactly the 8 mandatory members; `methodology-uri` carries the substantive disclosure |
+| `example-response-minimal.json` | Minimum-conformance example — exactly the 8 mandatory members; `methodology-uri` leads, without authentication or payment, to the method and the figures |
 | `example-response-organization-trend.json` | Basic service — 4-year annual trend array (2022-2025, `target-type: "organization"`), demonstrating array ordering/non-overlap/uniformity rules |
 
 ---
@@ -224,8 +234,8 @@ Server-side security middleware implementing the operational safeguards from the
 
 | Safeguard | Detail |
 |---|---|
-| **DoS protection** | Cap response arrays at 366 objects maximum |
-| **Traffic analysis prevention** | Reject entries with `reporting-period` finer than 24 hours (string length > 10) |
+| **DoS protection** | Cap response arrays (a MUST; 366 entries RECOMMENDED); when truncating, keep the most recent periods |
+| **Traffic analysis prevention** | Drop entries whose `reporting-period` is not a calendar day, month or year (the draft says publishers SHOULD NOT report finer than 24 hours; a longer string is malformed) |
 | **Anti-fingerprinting** (optional) | ~1% multiplicative (sign-preserving) noise on `energy-consumption`, `carbon-footprint`, `scope-1/2/3`, applied once at generation time, deterministic per reporting period, consistent across related fields — non-negative members stay non-negative, and negative scope values keep their sign |
 
 ---
@@ -252,15 +262,15 @@ Both configurations implement:
 
 ## Key data model fields
 
-The data model is **8 mandatory and 16 optional members**. It has been stable since `-03`;
-`-04` added the optional `target-type` hint, and `-06` changed no member at all. The
+The data model is **8 mandatory and 16 optional members**. It has been stable since `-04`
+(which added the optional `target-type` hint), and `-06` changed no member at all. The
 authoritative definitions, with every requirement level, are in the draft itself — this
 README does not restate them, so the two cannot drift apart:
 
 * **Member definitions** — draft `-06`, "Payload Format (JSON Data Model)".
 * **Formal schemas** — [`schemas-validators/response-schema.cddl`](schemas-validators/response-schema.cddl)
   and [`response-schema.json`](schemas-validators/response-schema.json) (JSON Type Definition).
-  These are byte-identical to the draft's own blocks and to both packages' embedded copies;
+  These are identical to the draft's own blocks and to both packages' embedded copies (the embedded TypeScript copies are equal to the JSON schema as JSON values; the CDDL and JSON files are byte-identical);
   CI checks that equality on every push.
 * **Worked documents** — [`example-responses/`](example-responses/), one per service level,
   all validated against both schemas in CI.
@@ -285,12 +295,12 @@ else:
 The wire document itself is **byte-identical** across `-04`, `-05`, and `-06`: no
 member has been added, removed, renamed, or retyped, and the CDDL and JTD schemas in
 `schemas-validators/` are unchanged. `-06` changes only what sits around the document:
-it registers the `application/sustainability-data+json` media type in the standards
+it requests registration of the `application/sustainability-data+json` media type in the standards
 tree and requires it for successful responses, makes HTTPS a MUST for both publication
 and retrieval (including every redirect hop), and adds an OPTIONAL detached-JWS
 signature mechanism (see the draft's "Document Integrity and Signing" section).
 
-Reference-implementation behavior for `0.6.0`: `consumer/` sends
+Reference-implementation behavior since `0.6.0`: `consumer/` sends
 `Accept: application/sustainability-data+json, application/json;q=0.9`, accepts both
 media types, exposes a `mediaType` field on the result, and its conformance battery
 reports a publisher still serving the legacy `application/json` as **WARN**, not
@@ -298,7 +308,7 @@ reports a publisher still serving the legacy `application/json` as **WARN**, not
 registered media type by default and offers a `mediaType: "json"` legacy option
 (v05-compatible, not v06-conformant).
 
-Reference-implementation behavior for `0.6.5`: the OPTIONAL parts of `-06` are now
+Reference-implementation behavior since `0.6.5`: the OPTIONAL parts of `-06` are now
 exercised end to end, all opt-in. `publisher/` can sign its document (detached JWS at
 `/.well-known/sustainability-data.jws`, EdDSA or ES256, over the exact bytes served;
 `keygen`/`sign` CLI subcommands; `signAttached()` for a `vc+jwt` credential) and
@@ -338,11 +348,7 @@ Both packages are additionally mirrored on GitHub Packages, under the owner scop
 
 [consumer/](consumer/) is a reference **client** for `/.well-known/sustainability-data`, complementing `publisher/`'s reference producer: fetch, defensively validate (JTD schema plus the draft's cross-entry array rules, since a non-conformant upstream server is the normal case for early ecosystem adoption), and transform (CSV, NDJSON, a flattened one-row-per-metric shape, trend aggregation) a document from any origin. It ships a zero-dependency one-call function (`fetchSustainability`) and a richer `SustainabilityClient` class for repeated, ETag-cached polling, plus a `sustainability-fetch` CLI whose `--strict` mode doubles as a standalone conformance checker usable against **any** implementation, not just this repo's own `publisher/`. Its `interop.test.ts` — a live, in-process round trip against a real `Publisher` instance — is concrete, running proof of the draft's client-side MUSTs (accept both response shapes; ignore unknown fields) and of the packages' own tolerance for historical `1.x` documents (a rule `-06` no longer specifies). See [consumer/README.md](consumer/README.md) and [consumer/USAGE.md](consumer/USAGE.md).
 
-Both packages are verified working together, installed from the live npm registry: a
-real HTTP producer→consumer round trip (fetch, CSV/NDJSON/flatten transforms, ETag
-conditional caching, and a full conformance-check pass) was run against the published
-`0.1.0` artifacts, not just the source tree; the in-repo interop tests exercise the
-same lifecycle against the current (schema-`2.0`-model) sources.
+Both packages, installed from npm at 0.6.6, are exercised together by the reference gateway's test suite and its live deployment.
 
 ## Verify a live deployment
 
@@ -396,8 +402,6 @@ If you reference this project or implement the specification in your academic or
 
 Copyright (c) 2026 IETF Trust and the persons identified as the document authors (for Drafts).
 
-Revised [BSD License](./LICENSE) (for any other software parts and supporting files in this repository).
+[BSD 3-Clause License](./LICENSE) (for any other software parts and supporting files in this repository).
 
-Copyright 2026 Andrei Nicolae Besleaga
-
-All rights reserved.
+Copyright 2026 Andrei Nicolae Besleaga. Licensed under the BSD 3-Clause License.

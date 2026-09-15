@@ -314,9 +314,11 @@ describe("If-Modified-Since (RFC 9110 §13.1.3)", () => {
 
     const same = await fetch(url(DOC), { headers: { "If-Modified-Since": lastModified } });
     expect(same.status).toBe(304);
-    // The 304 still carries the validators.
+    // The 304 still carries the validators, and nothing describing an absent body.
     expect(same.headers.get("etag")).toBeTruthy();
     expect(same.headers.get("last-modified")).toBe(lastModified);
+    expect(same.headers.get("content-type")).toBeNull();
+    expect(same.headers.get("content-length")).toBeNull();
     await same.text();
 
     const later = await fetch(url(DOC), {

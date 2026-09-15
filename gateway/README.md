@@ -90,4 +90,4 @@ curl -sS http://127.0.0.1:8080/index.json | jq '.subjects[].domain'
 [GUIDE.md § The honesty rules](GUIDE.md#the-honesty-rules). They are enforced by
 the test suite.
 
-Private to this repository; not published to npm.
+Private to this repository; not published to npm (a container image is published to ghcr.io, see GUIDE-RAILWAY.md).

@@ -51,8 +51,10 @@ deliberately broader than a web server paying its own electricity bill: a
 website, an API, an IoT/embedded device, a Web3 RPC gateway, or an organization
 surfacing CSRD/ESRS-E1/MiCA-grade figures from its enterprise carbon-accounting
 platform. The reference publisher's enterprise adapters (Salesforce Net Zero
-Cloud, Microsoft Sustainability Manager, Watershed) publish exactly such
-organization-level figures through the same endpoint.
+Cloud, Microsoft Sustainability Manager, Watershed) are written to publish exactly such
+organization-level figures through the same endpoint; they run in the gateway against
+recorded responses, none has been exercised against a live tenant, and the Microsoft
+adapter targets a preview API retired 2025-05-30.
 
 **Who consumes** — the draft is designed to be usable, unchanged, in four
 consumption contexts at once:
@@ -176,7 +178,7 @@ flowchart TB
             FCLI["sustainability-fetch CLI<br/>[Container: Node bin]<br/>--strict = 8-check conformance battery<br/>against any origin"]
         end
 
-        SCHEMAS["Formal Schemas + Validators<br/>[Container: CDDL (RFC 8610) + JTD (RFC 8927)]<br/>schemas-validators/: dual Python/Ruby validators;<br/>schema copies embedded in both packages,<br/>byte-equality checked in CI"]
+        SCHEMAS["Formal Schemas + Validators<br/>[Container: CDDL (RFC 8610) + JTD (RFC 8927)]<br/>schemas-validators/: dual Python/Ruby validators;<br/>schema copies embedded in both packages,<br/>identity checked in CI (equal as JSON values; CDDL and JSON files byte-identical)"]
         WEBC["Web Server Deployments<br/>[Container: nginx / Apache config]<br/>server-configurations/: static file or<br/>reverse proxy with the draft's headers"]
         EXS["Example Scripts<br/>[Container: Python / JS / PHP]<br/>example-scripts/: zero-dependency safeguards +<br/>reference request handler"]
     end
@@ -369,14 +371,14 @@ classDiagram
 
     note for OptionalMetrics "Minimum-reporting rule — SHOULD: at least one numeric
     metric or a disclosure/attestation URI; else the mandatory
-    methodology-uri MUST lead to the substantive disclosure."
+    methodology-uri MUST lead, without authentication or payment, to the method and the figures."
 ```
 
 Two more prose rules complete the model:
 
 * **Minimum-reporting rule** — a document SHOULD carry at least one numeric
   metric or a `disclosure-uri`/`verifiable-attestation-uri`; failing both, the
-  mandatory `methodology-uri` MUST lead to the substantive disclosure.
+  mandatory `methodology-uri` MUST lead, without authentication or payment, to the method and the figures.
 * **Trust posture** — the endpoint *asserts*, it does not *verify*. Clients MUST
   NOT treat the document as proof; `verifiable-attestation-uri` (W3C Verifiable
   Credentials) and `disclosure-uri` (e.g. carbon.txt) are the composable path to
@@ -833,7 +835,6 @@ the whole (seven verification workflows plus one publishing workflow):
 | Workflow | Scope |
 |---|---|
 | `draft.yml` | Builds the latest draft with kramdown-rfc + xml2rfc, sanity checks, uploads the I-D artifact |
-| `validate-examples.yml` | Runs both CDDL and JTD validators over every `example-responses/` file |
 | `publisher.yml` | Typecheck, build, test, `npm publish --dry-run` for the publisher (path-triggered, incl. schema paths) |
 | `gateway.yml` | Builds and tests the reference gateway (`gateway/`), then runs the conformance battery against a live instance (path-triggered, incl. schema paths) |
 | `consumer.yml` | Builds the **publisher first** (the consumer's `interop.test.ts` runs a live in-process producer→consumer round trip), then builds and tests the consumer |
@@ -845,7 +846,7 @@ Verification is thus layered exactly like the architecture: schema conformance
 at the document level (dual validators), MUST-level behavior at the HTTP level
 (conformance battery + live web-server checks), and cross-package interop at the
 system level (the consumer validating what the publisher actually serves) — the
-same JTD schema enforced, byte-identically, at every layer.
+same JTD schema enforced, identically, at every layer.
 
 ---
 

@@ -15,7 +15,8 @@ from that row to a public document, it does not belong in this directory.
 
 1. **No invented figures attributed to a real organization. Ever.** Every number
    in a document about a real subject must be readable in that subject's own
-   published report.
+   published report, or be the stated arithmetic sum of such readable figures on
+   the declared basis, recorded as such in this file.
 2. **`methodology-uri` points at that actual source document** — not at a
    summary, not at a press release, not at anything the gateway operator wrote.
 3. **Every document about a third party states in band, in its `provider`

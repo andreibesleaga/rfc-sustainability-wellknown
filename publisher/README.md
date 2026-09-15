@@ -198,6 +198,8 @@ Every adapter implements `SourceAdapter { name, capabilities, fetch(query) }` an
 loosely-typed `RawMetrics`; the normalizer does the rest. Credential-bearing adapters all
 support a **replay mode** (`fixture` / `fixturePages`) so they run in CI and offline.
 
+Product and organization names are used only to identify the data sources these adapters read; they are trademarks of their owners and imply no affiliation or endorsement.
+
 | Adapter | Factory | Source | Live-mode inputs | Offline |
 |---|---|---|---|---|
 | Static (inline) | `staticAdapter` | fixed values | — | n/a |
@@ -208,7 +210,7 @@ support a **replay mode** (`fixture` / `fixturePages`) so they run in CI and off
 | CO2.js (Green Web Foundation) | `co2jsAdapter` | bytes → carbon (SWD model) + bundled grid data | `bytes`, `gridZone`/`gridIntensity`, `green`/`greencheckDomain` | bundled/`greencheckFixture` |
 | carbon.txt API (Green Web Foundation) | `carbonTxtApiAdapter` | hosted validator API `/validate/{domain,url,file}` | `domain`/`url`/`text`, `apiKey`/`GWF_API_KEY`, `compute` or measured metrics | `fixture` |
 | Salesforce Net Zero Cloud | `salesforceNzcAdapter` | SOQL on `AnnualEmssnInventory` | `instanceUrl`, `accessToken` | `fixture` |
-| Microsoft Sustainability Manager | `msSustainabilityAdapter` | OData (`$skiptoken` paged) | `baseUrl`, `accessToken`, `endpoint` | `fixturePages` |
+| Microsoft Sustainability Manager | `msSustainabilityAdapter` | OData (`$skiptoken` paged) (targets the Microsoft Sustainability Manager preview API retired 2025-05-30; replay fixtures only) | `baseUrl`, `accessToken`, `endpoint` | `fixturePages` |
 | Watershed | `watershedAdapter` | footprint REST pull | `apiUrl`, `apiKey` | `fixture` |
 
 ### Field mapping (source → draft)
@@ -295,7 +297,7 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
 
 ## Conformance
 
-`test/conformance.test.ts` asserts the embedded JTD schema is byte-identical to
+`test/conformance.test.ts` asserts the embedded JTD schema is identical (equal as a JSON value; the CDDL and JSON files are byte-identical) to
 `../schemas-validators/response-schema.json` and validates every
 `../example-responses/*.json`. Generated documents are additionally checked against the
 repo's **independent** Python (JTD) and Ruby (CDDL) validators in CI — see

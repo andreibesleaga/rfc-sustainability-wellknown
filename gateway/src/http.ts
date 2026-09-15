@@ -51,6 +51,19 @@ export function jsonError(
   );
 }
 
+/**
+ * A 304 carries only what a cache needs to freshen its stored response — the
+ * validators, the cache lifetime and CORS — never the representation headers
+ * of a body that is not being sent (RFC 9110 §15.4.5).
+ */
+export function notModified(headers: Record<string, string>): Result {
+  const kept: Record<string, string> = {};
+  for (const name of ["Cache-Control", "Access-Control-Allow-Origin", "ETag", "Last-Modified"]) {
+    if (headers[name] !== undefined) kept[name] = headers[name];
+  }
+  return { status: 304, headers: kept, body: "" };
+}
+
 /** 405 for anything that is not GET or HEAD on a route the gateway does serve. */
 export function methodNotAllowed(): Result {
   return jsonError(405, "method not allowed; this resource supports GET and HEAD", {

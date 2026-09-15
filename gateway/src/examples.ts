@@ -193,6 +193,9 @@ function withDefaultUnits(doc: SustainabilityMetrics): SustainabilityMetrics {
 
 /** The period one precision coarser than the entries, which every entry must share. */
 function commonPeriod(docs: SustainabilityMetrics[]): string {
+  if (docs.some((d) => d["reporting-period"].length === 4)) {
+    throw new Error("examples: a yearly trend has no finer granularity to demonstrate; use monthly or daily entries");
+  }
   const coarser = docs.map((d) => d["reporting-period"].slice(0, d["reporting-period"].length - 3));
   if (new Set(coarser).size !== 1) throw new Error("examples: a trend file must lie within one period");
   return coarser[0];

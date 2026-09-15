@@ -1,8 +1,9 @@
 cff-version: 1.2.0
-message: "If you use or reference this specification, please cite it as below."
+message: "If you use or reference this specification, please cite the Internet-Draft as below. The repository's software is licensed under BSD-3-Clause; the draft text is under the IETF Trust Legal Provisions."
 authors:
   - family-names: "Besleaga"
     given-names: "Andrei Nicolae"
+    orcid: "https://orcid.org/0009-0001-3464-5283"
 title: "The 'sustainability-data' Well-Known URI"
 version: "draft-06"
 date-released: "2026-09-10"

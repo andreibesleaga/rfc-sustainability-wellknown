@@ -64,11 +64,11 @@ describe("loadSubjectFile", () => {
     );
   });
 
-  it("rejects an array over the 366-object cap before anything else", async () => {
+  it("rejects an array source file, however long, with one reason", async () => {
     const dir = scratch();
     const big = Array.from({ length: LIMITS.maxArrayEntries + 1 }, () => VALID);
     await expect(loadSubjectFile(write(dir, "big.example.json", big))).rejects.toThrow(
-      /366-object cap/,
+      /is an array/,
     );
   });
 

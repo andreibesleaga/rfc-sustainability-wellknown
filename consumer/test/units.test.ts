@@ -128,9 +128,7 @@ describe("parity with publisher/src/normalize.ts conversion tables", () => {
     },
   );
 
-  if (!hasPublisherDist) {
-    it("publisher/dist/normalize.js is not built - skipping compiled-output parity, hardcoded factors above stand in", () => {
-      expect(hasPublisherDist).toBe(false);
-    });
-  }
+  it("publisher/dist is built (the compiled-output parity above needs it)", () => {
+    expect(hasPublisherDist).toBe(true);
+  });
 });

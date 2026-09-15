@@ -184,6 +184,16 @@ class RequestHandlerE2ETests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIsInstance(json.loads(body), dict)
 
+    def test_granularity_not_finer_than_the_period_is_a_single_object(self):
+        # Monthly is not finer than a month: one object (draft MUST NOT return an array).
+        status, _, body = self._get("?period=2026-02&granularity=monthly")
+        self.assertEqual(status, 200)
+        self.assertIsInstance(json.loads(body), dict)
+        # An unrecognized granularity is ignored: the default (monthly) period, one object.
+        status, _, body = self._get("?granularity=weekly")
+        self.assertEqual(status, 200)
+        self.assertIsInstance(json.loads(body), dict)
+
 
 if __name__ == "__main__":
     unittest.main()

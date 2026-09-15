@@ -4,6 +4,7 @@
  *
  * Railway (like every other PaaS) injects `PORT`; nothing else is required.
  */
+import type { HandlerOptions } from "sustainability-wellknown-publisher";
 import { resolve } from "node:path";
 
 /** Read an env var, falling back to a default. Empty string counts as unset. */
@@ -21,6 +22,22 @@ function envCount(name: string, fallback: number): number {
   return n;
 }
 
+/** An absolute http(s) URL, or the fallback when unset. */
+function envUrl(name: string, fallback: string): string {
+  const v = (process.env[name] || fallback).replace(/\/+$/, "");
+  if (v === "") return v;
+  let url: URL | undefined;
+  try {
+    url = new URL(v);
+  } catch {
+    url = undefined;
+  }
+  if (!url || (url.protocol !== "https:" && url.protocol !== "http:")) {
+    throw new Error(`config: ${name} must be an absolute http(s) URL (got ${JSON.stringify(v)})`);
+  }
+  return v;
+}
+
 function envNum(name: string, fallback: number): number {
   const v = process.env[name];
   if (v === undefined || v === "") return fallback;
@@ -31,13 +48,8 @@ function envNum(name: string, fallback: number): number {
   return n;
 }
 
-/**
- * The two media types `handleRequest` (from `sustainability-wellknown-publisher`
- * 0.6.0) can serve a 200 document response as. Mirrors its `HandlerOptions.mediaType`
- * union exactly, kept local so `config.ts` does not need a compile-time dependency
- * on the publisher package just for this literal type.
- */
-export type MediaTypeSetting = "sustainability-data+json" | "json";
+/** The two media types `handleRequest` can serve a 200 document response as: the publisher's own union. */
+export type MediaTypeSetting = NonNullable<HandlerOptions["mediaType"]>;
 
 export const MEDIA_TYPE_VALUES: readonly MediaTypeSetting[] = [
   "sustainability-data+json",
@@ -147,7 +159,7 @@ export interface GatewayConfig {
  * the test suite, and are documented in GUIDE.md.
  */
 export const LIMITS = {
-  /** Largest source document accepted from `data/`, and largest body served. */
+  /** Largest source document accepted from `data/` and from an adapter's parameterless build (Extended variants are bounded by the entry cap instead). */
   maxDocumentBytes: 256 * 1024,
   /**
    * Draft RECOMMENDED cap on array entries. Relayed subjects are served at
@@ -170,7 +182,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
     dataDir: resolve(env("DATA_DIR", resolve(__dirname, "..", "data"))),
     examplesDir: resolve(env("EXAMPLES_DIR", resolve(__dirname, "..", "examples"))),
     maxAge: envNum("MAX_AGE", 86_400),
-    baseUrl: env("BASE_URL", "").replace(/\/+$/, ""),
+    baseUrl: envUrl("BASE_URL", ""),
     mediaType: envMediaType("SUSTAINABILITY_MEDIA_TYPE", "sustainability-data+json"),
     rateLimit: {
       perMinute: envNum("RATE_LIMIT_PER_MINUTE", 600),
@@ -196,7 +208,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
       gridIntensity: envNum("SELF_GRID_INTENSITY", 373),
       liveSince: envInstant("SELF_LIVE_SINCE", "2026-07-30T00:00:00Z"),
       verifiableAttestationUri: process.env.SELF_ATTESTATION_URI || undefined,
-      signingKeyUrl: process.env.SELF_SIGNING_KEY_URL || undefined,
+      signingKeyUrl: process.env.SELF_SIGNING_KEY_URL ? envUrl("SELF_SIGNING_KEY_URL", "") : undefined,
     },
   };
   return {

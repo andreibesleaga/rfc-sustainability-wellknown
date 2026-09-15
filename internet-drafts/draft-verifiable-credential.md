@@ -62,7 +62,7 @@ is `application/vc+jwt`.
   "alg": "EdDSA",
   "typ": "vc+jwt",
   "cty": "vc",
-  "kid": "https://andreibesleaga.com/.well-known/sustainability-attester.jwk#<RFC 7638 thumbprint>",
+  "kid": "https://andreibesleaga.com/keys/sustainability-attester.jwk#<RFC 7638 thumbprint>",
   "jwk": { "kty": "OKP", "crv": "Ed25519", "x": "…", "kid": "<thumbprint>", "alg": "EdDSA", "use": "sig" }
 }
 ```

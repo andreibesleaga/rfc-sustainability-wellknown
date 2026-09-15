@@ -20,7 +20,7 @@ jobs:
     # Python, JavaScript, and PHP; run each language's own test suite.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - uses: actions/setup-node@v7
@@ -43,7 +43,7 @@ jobs:
     # against the repo's independent JTD and CDDL validators.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - uses: ruby/setup-ruby@v1
@@ -63,7 +63,7 @@ jobs:
     # for why each needed the specific pattern it uses).
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install nginx and apache2
         run: sudo apt-get update -qq && sudo apt-get install -y nginx apache2
 

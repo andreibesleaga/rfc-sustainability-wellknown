@@ -1,8 +1,7 @@
 name: full-verify
 
 # The single, unconditional "is the whole repo green" check — unlike the other
-# workflows (draft.yml, publisher.yml, consumer.yml, validate-examples.yml,
-# example-scripts.yml), which are path-filtered to their own area, this one
+# workflows (draft.yml, publisher.yml, consumer.yml, example-scripts.yml), which are path-filtered to their own area, this one
 # always runs on every push/PR to main and re-verifies every area in one place.
 # Intended as the required status check for branch protection.
 
@@ -16,7 +15,7 @@ jobs:
   draft:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.2" }
       - uses: actions/setup-python@v5
@@ -42,7 +41,7 @@ jobs:
   schemas:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - uses: ruby/setup-ruby@v1
@@ -65,7 +64,7 @@ jobs:
       run:
         working-directory: publisher
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v7
         with: { node-version: "22", cache: npm, cache-dependency-path: publisher/package-lock.json }
       - run: npm ci
@@ -77,7 +76,7 @@ jobs:
   consumer:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v7
         with: { node-version: "22" }
       - name: Build publisher (consumer's interop test needs its dist/)
@@ -97,7 +96,7 @@ jobs:
   example-scripts-and-server-configs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - uses: actions/setup-node@v7

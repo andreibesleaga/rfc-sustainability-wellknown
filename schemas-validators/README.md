@@ -127,7 +127,7 @@ validators check. In particular:
   conformant client.
 - **Minimum-reporting rule** — a document SHOULD carry at least one reported
   numeric metric or a disclosure/attestation URI; with none, the mandatory
-  `methodology-uri` MUST lead to the substantive disclosure. Not expressible in
+  `methodology-uri` MUST lead, without authentication or payment, to the method and the figures. Not expressible in
   either schema language.
 
 These rules are checked at the **application layer**: this repo's `publisher/`

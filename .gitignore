@@ -8,3 +8,6 @@ coverage/
 .env
 .env.*
 .DS_Store
+*.tgz
+.vscode/
+.idea/

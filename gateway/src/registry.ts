@@ -120,15 +120,8 @@ export async function loadSubjectFile(file: string): Promise<Subject> {
 
   if (Array.isArray(parsed)) {
     // Draft Mandatory Minimum Supported Service, "Format": the response to a
-    // parameterless (Basic) request MUST be a single JSON object, and a server
-    // MUST NOT return an array unless a finer `granularity` was requested. The
-    // gateway is Basic-only, so a trend document has no way to be served.
-    if (parsed.length > LIMITS.maxArrayEntries) {
-      throw new Error(
-        `registry: ${basename(file)} holds ${parsed.length} entries, over the ` +
-          `${LIMITS.maxArrayEntries}-object cap (draft Security Considerations: Array Size Limits)`,
-      );
-    }
+    // parameterless (Basic) request MUST be a single JSON object. Relayed
+    // subjects are Basic-only, so a trend file has no way to be served.
     throw new Error(
       `registry: ${basename(file)} is an array. This gateway serves the Basic service, whose ` +
         `response MUST be a single JSON object; publish one object per subject file.`,

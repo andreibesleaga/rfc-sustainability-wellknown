@@ -1,4 +1,4 @@
-This **README.md** provides your development team with the technical specifications and operational safeguards for implementing the "sustainability-data" Well-Known URI as defined in **draft-besleaga-sustainability-wellknown**.
+This directory contains the technical specifications and operational safeguards for implementing the "sustainability-data" Well-Known URI as defined in **draft-besleaga-sustainability-wellknown**.
 
 ---
 
@@ -95,5 +95,5 @@ curl -s "http://localhost:8080/.well-known/sustainability-data?period=2026&granu
 curl -i -X POST http://localhost:8080/.well-known/sustainability-data   # 405 + Allow: GET, HEAD
 ```
 
-Verified (2026-07-10, -03 wire format): every response from `request-handler.py` passes both
+Verified against the -06 wire format (unchanged since -04): every response from `request-handler.py` passes both
 independent validators (`schemas-validators/validator-json.py` and `validator-cddl.py`).

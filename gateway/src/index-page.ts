@@ -15,9 +15,8 @@ export { SIGNATURE_PATH, WELL_KNOWN_PATH };
 
 /** One paragraph, shown on the index page and carried in `index.json`. */
 export const ABOUT =
-  "A reference deployment of the /.well-known/sustainability-data URI defined in " +
-  "draft-besleaga-sustainability-wellknown. It serves one conformant JSON document per " +
-  "reporting subject at /{domain}/.well-known/sustainability-data, so the format can be " +
+  "This gateway serves one conformant JSON document per reporting subject at " +
+  "/{domain}/.well-known/sustainability-data, so the format can be " +
   "tested against real, sourced disclosures before organizations publish their own. In " +
   "real use the document lives on the subject's own origin; a gateway only demonstrates " +
   "and tests the format.";
@@ -30,9 +29,10 @@ export const THIRD_PARTY_NOTICE =
   "The documents about third parties are ILLUSTRATIVE MAPPINGS, prepared by the gateway " +
   "operator from those organizations' own published reports. They are NOT published, " +
   "reviewed, authorized or endorsed by their reporting subjects, and this gateway is not an " +
-  "authoritative source for them. Every figure comes from the public source document " +
-  "named in the document's methodology-uri member; nothing is estimated, interpolated or " +
-  "invented. Subjects with a reserved .example name are synthetic and describe nothing real.";
+  "authoritative source for them. Every figure is read from, or is the stated sum of figures " +
+  "read from, the public source document named in the document's methodology-uri member; " +
+  "nothing is estimated or apportioned on a subject's behalf. Subjects with a reserved " +
+  ".example name are synthetic and describe nothing real.";
 
 export interface IndexEntry {
   domain: string;
@@ -390,7 +390,7 @@ function row(e: IndexEntry): string {
   <td>${bdi(e.target)}${e["target-type"] ? ` <span class="dim">(${escapeHtml(e["target-type"])})</span>` : ""}</td>
   <td><code>${escapeHtml(e["reporting-period"])}</code></td>
   <td><code>${escapeHtml(e["measurement-method"])}</code></td>
-  <td><a href="${escapeHtml(e["methodology-uri"])}" rel="noopener noreferrer nofollow">source document</a></td>
+  <td><a href="${escapeHtml(e["methodology-uri"])}" rel="noopener noreferrer nofollow" aria-label="${escapeHtml(e.domain)}: source document">source document</a></td>
 </tr>`;
 }
 
@@ -488,15 +488,29 @@ ${gaps.subjects.map(gapRow).join("\n")}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sustainability Data Reference Gateway</title>
 <style>
-:root { color-scheme: light dark; --fg:#111; --dim:#555; --bg:#fff; --line:#d8d8d8; --accent:#0b5; --warn:#8a4b00; --warnbg:#fff6e6; }
+:root { color-scheme: light; --fg:#111; --dim:#555; --bg:#fff; --line:#d8d8d8; --accent:#087f4b; --warn:#8a4b00; --warnbg:#fff6e6; --tint:8%; }
 @media (prefers-color-scheme: dark) {
-  :root { --fg:#e8e8e8; --dim:#a5a5a5; --bg:#131313; --line:#333; --accent:#3c9; --warn:#ffd08a; --warnbg:#2a1f0d; }
+  :root:not([data-theme="light"]) { color-scheme: dark; --fg:#e8e8e8; --dim:#b0b0b0; --bg:#131313; --line:#3a3a3a; --accent:#4fd39b; --warn:#ffd08a; --warnbg:#2a1f0d; --tint:14%; }
 }
+:root[data-theme="dark"] { color-scheme: dark; --fg:#e8e8e8; --dim:#b0b0b0; --bg:#131313; --line:#3a3a3a; --accent:#4fd39b; --warn:#ffd08a; --warnbg:#2a1f0d; --tint:14%; }
 * { box-sizing: border-box; }
 body { margin:0 auto; padding:2rem 1.25rem 4rem; max-width:60rem; background:var(--bg); color:var(--fg);
   font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
 h1 { font-size:1.6rem; margin:0 0 .25rem; }
-h2 { font-size:1.15rem; margin:2.5rem 0 .5rem; }
+h2 { font-size:1.15rem; margin:2.5rem 0 .75rem; padding:.45rem .7rem; border-radius:4px;
+  border-left:4px solid var(--h2-hue, var(--line)); background:color-mix(in srgb, var(--bg) calc(100% - var(--tint)), var(--h2-hue, var(--fg)) var(--tint)); }
+/* One hue per section, cycling through eight; the tint stays light enough for the text in both themes. */
+h2:nth-of-type(8n+1) { --h2-hue:#0b7a4b; } h2:nth-of-type(8n+2) { --h2-hue:#1f6fb2; }
+h2:nth-of-type(8n+3) { --h2-hue:#8a4b00; } h2:nth-of-type(8n+4) { --h2-hue:#6b3fa0; }
+h2:nth-of-type(8n+5) { --h2-hue:#b3261e; } h2:nth-of-type(8n+6) { --h2-hue:#0e7c86; }
+h2:nth-of-type(8n+7) { --h2-hue:#7a6a00; } h2:nth-of-type(8n+8) { --h2-hue:#555; }
+.top { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; }
+.theme { font-size:.85rem; color:var(--dim); }
+.theme select { font:inherit; color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:3px; padding:.15rem .3rem; }
+.skip { position:absolute; left:-999px; top:0; background:var(--bg); color:var(--fg); padding:.5rem; border:1px solid var(--line); }
+.skip:focus { left:1rem; z-index:1; }
+:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.refs li { margin:.3rem 0; }
 p { margin:.75rem 0; }
 code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.9em; }
 a { color:inherit; text-underline-offset:2px; }
@@ -521,7 +535,7 @@ a { color:inherit; text-underline-offset:2px; }
 table { border-collapse:collapse; width:100%; margin-top:.5rem; min-width:44rem; }
 th,td { text-align:left; padding:.5rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; }
 th { font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var(--dim); font-weight:600; }
-.badge { font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; padding:.1rem .4rem;
+.badge { font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; padding:.1rem .4rem;
   border-radius:3px; border:1px solid var(--line); color:var(--dim); white-space:nowrap; }
 .badge.synthetic { border-color:var(--warn); color:var(--warn); }
 .badge.sourced { border-color:var(--accent); color:var(--accent); }
@@ -537,9 +551,18 @@ footer { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); co
 </style>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="top">
+<div>
 <h1>Sustainability Data Reference Gateway</h1>
 <p class="sub">A reference deployment of <code>/.well-known/sustainability-data</code>
 (<a href="${escapeHtml(doc.specification)}" rel="noopener noreferrer">draft-besleaga-sustainability-wellknown</a>).</p>
+</div>
+<label class="theme">Theme <select id="theme">
+<option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
+</select></label>
+</div>
+<main id="main">
 
 <p>${escapeHtml(doc.about)}</p>
 
@@ -696,7 +719,8 @@ npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="ho
 <p>${escapeHtml(doc["consumer-cross-validation"].note)}
 This deployment: <code>${escapeHtml(doc["consumer-cross-validation"].validator)}</code>
 validated <strong>${doc["consumer-cross-validation"]["documents-validated"]}</strong>
-documents at start-up.</p>
+documents at start-up (every subject listed above, the gateway's own report, and the
+Extended variants it checks).</p>
 
 <h2>Service level</h2>
 <p>The third-party documents offer the <strong>Basic</strong> service: query parameters are
@@ -711,8 +735,9 @@ defines.</p>
 <code>X-Content-Type-Options: nosniff</code>. Error responses (<code>404</code>,
 <code>405</code>, <code>503</code>) use <code>application/json</code>, also with
 <code>nosniff</code>.</li>
-<li><strong>Caching.</strong> <code>Cache-Control: public, max-age=86400</code>, a strong
-<code>ETag</code> and <code>Last-Modified</code>; <code>If-None-Match</code> answers
+<li><strong>Caching.</strong> <code>Cache-Control: public, max-age=86400</code> for the relayed
+subjects and <code>max-age=3600</code> for the gateway's own report, its signature and this page;
+a strong <code>ETag</code> and <code>Last-Modified</code>; <code>If-None-Match</code> answers
 <code>304</code>. Responses carry <code>Access-Control-Allow-Origin: *</code>.</li>
 <li><strong>Methods.</strong> <code>GET</code> and <code>HEAD</code> only; any other method
 answers <code>405</code> with <code>Allow: GET, HEAD</code>. An unknown subject answers
@@ -720,8 +745,8 @@ answers <code>405</code> with <code>Allow: GET, HEAD</code>. An unknown subject 
 <li><strong>Legacy media type.</strong> The service-wide default can be switched to the
 pre-06 <code>application/json</code> type (not -06-conformant) with the
 <code>SUSTAINABILITY_MEDIA_TYPE</code> variable, and one subject can be pinned to it
-regardless of the default: a compatibility demonstration of a -05-style subject next to
--06 ones (<a href="${REPO_DOCS}/gateway/GUIDE.md" rel="noopener noreferrer">operator guide</a>).</li>
+regardless of the default, to show a -05-style subject next to -06 ones; this deployment
+pins none (<a href="${REPO_DOCS}/gateway/GUIDE.md" rel="noopener noreferrer">operator guide</a>).</li>
 </ul>
 
 <p>Check any of this with a click. Each link is a working <code>GET</code> on this deployment
@@ -741,7 +766,7 @@ ${liveRequests(doc).map(liveRow).join("\n")}
 <p>Every document here can be fetched and validated with the specification's reference
 consumer
 (<a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer"><code>sustainability-wellknown-consumer</code></a>,
-0.6.5 or later). <code>--strict</code> runs the conformance battery — schema, media type,
+0.6.6 or later). <code>--strict</code> runs the conformance battery — schema, media type,
 caching, conditional requests, methods, the optional signature — and labels each check with
 the strength of the requirement: a failed <code>MUST</code> is a conformance failure; an unmet
 <code>SHOULD</code>, or the legacy media type, is reported but does not fail the battery
@@ -777,6 +802,21 @@ Full detail: the
 <a href="${REPO_DOCS}/SIGNING-AND-ATTESTATION.md" rel="noopener noreferrer">signing and attestation</a>,
 and the <a href="${escapeHtml(doc.specification)}" rel="noopener noreferrer">Internet-Draft</a>.</p>
 
+<h2>References</h2>
+<ul class="refs">
+<li><a href="${escapeHtml(doc.specification)}" rel="noopener noreferrer">draft-besleaga-sustainability-wellknown</a> — the Internet-Draft this gateway implements (IETF Datatracker).</li>
+<li><a href="https://andreibesleaga.substack.com/p/the-digital-sustainability-data-protocol" rel="noopener noreferrer">The Digital Sustainability Data Protocol</a> — the author's article introducing the idea and its motivation (an earlier name for this convention).</li>
+<li><a href="${REPO}" rel="noopener noreferrer">Specification repository</a> — draft sources, schemas, reference publisher and consumer, this gateway, and its documentation.</li>
+<li><a href="https://www.npmjs.com/package/sustainability-wellknown-publisher" rel="noopener noreferrer">sustainability-wellknown-publisher</a> and <a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer">sustainability-wellknown-consumer</a> — the reference implementations on npm.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8615" rel="noopener noreferrer">RFC 8615</a> — Well-Known URIs, the registry the path belongs to (<a href="https://www.iana.org/assignments/well-known-uris/" rel="noopener noreferrer">IANA registry</a>).</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110" rel="noopener noreferrer">RFC 9110</a> — HTTP Semantics (methods, conditional requests, caching headers used here).</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8927" rel="noopener noreferrer">RFC 8927</a> (JSON Type Definition) and <a href="https://www.rfc-editor.org/rfc/rfc8610" rel="noopener noreferrer">RFC 8610</a> (CDDL) — the two schema languages the document is defined in.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc7515" rel="noopener noreferrer">RFC 7515</a> — JSON Web Signature; Appendix F defines the detached form used for the signature resource.</li>
+<li><a href="https://www.w3.org/TR/vc-data-model-2.0/" rel="noopener noreferrer">W3C Verifiable Credentials Data Model 2.0</a> and <a href="https://www.w3.org/TR/vc-jose-cose/" rel="noopener noreferrer">Securing Verifiable Credentials using JOSE and COSE</a> — the shape of the attestation.</li>
+<li><a href="https://ghgprotocol.org/" rel="noopener noreferrer">GHG Protocol</a> — the scope and accounting definitions the carbon members follow; <a href="https://sci.greensoftware.foundation/" rel="noopener noreferrer">Software Carbon Intensity</a> — the <code>sci-score</code> member.</li>
+</ul>
+</main>
+
 <footer>
 <p>A specification-demonstration service. Health check:
 <a href="/healthz"><code>/healthz</code></a>.</p>
@@ -789,11 +829,18 @@ purposes only and is provided &quot;as is&quot;, without warranty of any kind. F
 traceable to the cited public source documents but may lag the subjects&#39; own publications;
 the cited sources remain the authoritative record. Nothing here is investment, ESG-rating or
 compliance advice.</p>
-<p><strong>Privacy:</strong> No cookies, analytics or tracking. The hosting provider may
-process IP addresses in standard server logs for operation and security.</p>
-<p>Source code and data are published under the Revised BSD License at
+<p><strong>Privacy:</strong> No cookies, analytics or tracking. The theme choice above is kept
+only in your browser's local storage. The hosting provider (Railway) may process IP addresses
+in standard server logs for operation and security.</p>
+<p>The repository's code and its own documents are published under the BSD 3-Clause License at
 <a href="https://github.com/andreibesleaga/rfc-sustainability-wellknown" rel="noopener noreferrer">github.com/andreibesleaga/rfc-sustainability-wellknown</a>.</p>
-</footer>${hostScript}
+</footer>
+<script>
+var themeSelect = document.getElementById("theme");
+function applyTheme(v) { v === "light" || v === "dark" ? document.documentElement.setAttribute("data-theme", v) : document.documentElement.removeAttribute("data-theme"); themeSelect.value = v === "light" || v === "dark" ? v : "system"; }
+try { applyTheme(localStorage.getItem("theme")); } catch (e) { applyTheme(); }
+themeSelect.onchange = function () { try { localStorage.setItem("theme", themeSelect.value); } catch (e) {} applyTheme(themeSelect.value); };
+</script>${hostScript}
 </body>
 </html>
 `;

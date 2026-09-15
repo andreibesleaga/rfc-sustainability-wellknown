@@ -68,10 +68,15 @@ def _select(target, period, granularity):
     """
     candidates = REPORTS
     if period:
-        candidates = [r for r in candidates if r["reporting-period"].startswith(period)]
+        candidates = [r for r in candidates
+                      if r["reporting-period"] == period or r["reporting-period"].startswith(period + "-")]
     if not candidates:
         return None
-    if granularity:
+    # An array only when the requested granularity is finer than the period
+    # (a bare granularity applies to the default period: the most recent entry's).
+    effective_period = period or candidates[-1]["reporting-period"]
+    finer = {"monthly": 7, "daily": 10}.get(granularity or "", 0) > len(effective_period)
+    if finer:
         return secure_sustainability_report(candidates)
     return candidates[-1]  # most recent (REPORTS is already chronological)
 

@@ -137,23 +137,23 @@ except `SUSTAINABILITY_SIGNING_KEY` itself.
 # 1. the gateway's signing key: private half to a local file, public half printed
 npx -y -p sustainability-wellknown-publisher sustainability-publisher keygen \
   --out ~/.config/sustainability-gateway/private.jwk > gateway-signing-key.jwk
-#    host gateway-signing-key.jwk at  https://<your-site>/.well-known/sustainability-gateway-signing-key.jwk  (application/jwk+json)
+#    host gateway-signing-key.jwk at  https://<your-site>/keys/sustainability-gateway-signing-key.jwk  (application/jwk+json)
 
 # 2. the attester's key (a second identity)
 npx -y -p sustainability-wellknown-publisher sustainability-publisher keygen \
   --out ~/.config/sustainability-attester/private.jwk > attester.jwk
-#    host attester.jwk at  https://<your-site>/.well-known/sustainability-attester.jwk
+#    host attester.jwk at  https://<your-site>/keys/sustainability-attester.jwk
 
 # 3. the credential attesting the reporting model (VC 2.0 as vc+jwt, valid five years)
 node scripts/issue-attestation.mjs --issuer https://<your-site> \
-  --attester-key-url https://<your-site>/.well-known/sustainability-attester.jwk \
+  --attester-key-url https://<your-site>/keys/sustainability-attester.jwk \
   --id https://<your-site>/attestations/sustainability-data-gateway-2026.vc.jwt \
   --gateway https://<your-gateway> --out sustainability-data-gateway-2026.vc.jwt
 #    host it at the --id URL  (application/vc+jwt)
 
 # 4. tell the gateway
 railway variables --set "SUSTAINABILITY_SIGNING_KEY=$(cat ~/.config/sustainability-gateway/private.jwk)" \
-  --set SELF_SIGNING_KEY_URL=https://<your-site>/.well-known/sustainability-gateway-signing-key.jwk \
+  --set SELF_SIGNING_KEY_URL=https://<your-site>/keys/sustainability-gateway-signing-key.jwk \
   --set SELF_ATTESTATION_URI=https://<your-site>/attestations/sustainability-data-gateway-2026.vc.jwt
 ```
 

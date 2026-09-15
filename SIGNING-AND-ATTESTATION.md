@@ -16,6 +16,7 @@ Keys: one Ed25519 key per role, generated with `sustainability-publisher keygen`
 The **private** half lives only where it is used (a secret store or a `0600` file);
 the **public** half is hosted as a JWK so verifiers can pin it. Never commit a
 private key. Rotation is a new key, a new hosted public key, a redeploy.
+Host keys at ordinary paths, never under /.well-known/: RFC 8615 reserves that prefix for registered names.
 
 ## 1. Publisher: sign your own document
 
@@ -23,7 +24,7 @@ private key. Rotation is a new key, a new hosted public key, a redeploy.
 
 ```bash
 sustainability-publisher keygen --out /etc/sustainability/private.jwk > signing-key.jwk   # public half printed
-# host signing-key.jwk somewhere under your origin, e.g. /.well-known/sustainability-signing-key.jwk (application/jwk+json)
+# host signing-key.jwk at an ordinary path under your origin, e.g. <your-site>/keys/signing-key.jwk (application/jwk+json)
 SUSTAINABILITY_SIGNING_KEY="$(cat /etc/sustainability/private.jwk)" sustainability-publisher --config config.json
 # or in config:  "server": { "signingKeyFile": "/etc/sustainability/private.jwk" }
 # in code:       createSustainabilityServer(publisher, { signingKey: await importSigningKey(jwkJson) })  (same option on the middlewares)
@@ -53,9 +54,9 @@ credential the gateway uses; any JOSE library producing `vc+jwt` works the same 
 
 ```bash
 sustainability-publisher keygen --out ~/.config/sustainability-attester/private.jwk > attester.jwk
-# host attester.jwk at https://<attester-site>/.well-known/sustainability-attester.jwk  (application/jwk+json)
+# host attester.jwk at https://<attester-site>/keys/sustainability-attester.jwk  (application/jwk+json)
 node gateway/scripts/issue-attestation.mjs --key ~/.config/sustainability-attester/private.jwk \
-  --issuer https://<attester-site> --attester-key-url https://<attester-site>/.well-known/sustainability-attester.jwk \
+  --issuer https://<attester-site> --attester-key-url https://<attester-site>/keys/sustainability-attester.jwk \
   --id https://<attester-site>/attestations/<name>.vc.jwt --gateway https://<publisher-origin> \
   --out <name>.vc.jwt
 # host <name>.vc.jwt at the --id URL  (application/vc+jwt)
@@ -76,7 +77,7 @@ document is presented — the reference gateway does, on its index page.
 
 ```bash
 sustainability-fetch https://<origin> --verify                                   # signature: verified | absent | unverified (<reason>)
-sustainability-fetch https://<origin> --verify-attestation=https://<attester-site>/.well-known/sustainability-attester.jwk
+sustainability-fetch https://<origin> --verify-attestation=https://<attester-site>/keys/sustainability-attester.jwk
 sustainability-fetch https://<origin> --strict --verify-attestation             # battery (incl. the signature check) + credential
 ```
 

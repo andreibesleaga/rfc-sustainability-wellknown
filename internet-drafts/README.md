@@ -13,8 +13,8 @@ Individual submission on the IETF **Independent Submission Stream** (Information
   (`draft-besleaga-sustainability-wellknown-06.{md,xml,txt}`) and it is under the ISE's
   review. It carries the security package the ISE asked for ("security is not
   optional"): HTTPS raised from SHOULD to MUST, a dedicated
-  `application/sustainability-data+json` media type registered with the full RFC 6838
-  Section 5.6 template and the Section 4.6 security analysis and required as the response
+  `application/sustainability-data+json` media type (registration requested with the full RFC 6838
+  Section 5.6 template and the Section 4.6 security analysis) required as the response
   type, `X-Content-Type-Options: nosniff`, an OPTIONAL but fully specified detached-JWS
   signature at a companion well-known resource, and a restructured threat-model section.
   It adds **no member** — the CDDL and JTD schemas remain byte-identical to `-05`. It was

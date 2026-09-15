@@ -206,7 +206,7 @@ Product and organization names are used only to identify the data sources these 
 | Static (file) | `staticFileAdapter` | a JSON file (`raw` or `wire`) | `file` | n/a |
 | Computed | `computedAdapter` | energy × grid intensity | `energy`, `gridIntensity` | n/a |
 | Kepler / Prometheus | `keplerPrometheusAdapter` | `kepler_*_joules_total` | `prometheusUrl`, `gridIntensity` | `fixture` |
-| Climatiq | `climatiqAdapter` | `/data/v1/estimate` | `apiKey`/`CLIMATIQ_API_KEY`, `activityId` | `fixture` |
+| Climatiq | `climatiqAdapter` | `/data/v1/estimate` | `apiKey`/`CLIMATIQ_API_KEY`, `activityId`, `dataVersion` (e.g. `"^34"`, required by the API) | `fixture` |
 | CO2.js (Green Web Foundation) | `co2jsAdapter` | bytes → carbon (SWD model) + bundled grid data | `bytes`, `gridZone`/`gridIntensity`, `green`/`greencheckDomain` | bundled/`greencheckFixture` |
 | carbon.txt API (Green Web Foundation) | `carbonTxtApiAdapter` | hosted validator API `/validate/{domain,url,file}` | `domain`/`url`/`text`, `apiKey`/`GWF_API_KEY`, `compute` or measured metrics | `fixture` |
 | Salesforce Net Zero Cloud | `salesforceNzcAdapter` | SOQL on `AnnualEmssnInventory` | `instanceUrl`, `accessToken` | `fixture` |

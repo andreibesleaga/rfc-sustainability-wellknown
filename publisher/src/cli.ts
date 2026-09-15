@@ -101,10 +101,17 @@ function parseArgs(argv: string[]): CliArgs {
   const out: CliArgs = { once: false, emitCarbonTxt: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--config" || a === "-c") out.config = argv[++i];
+    const value = () => {
+      if (i + 1 >= argv.length) throw new Error(`${a} needs a value`);
+      return argv[++i];
+    };
+    if (a === "--config" || a === "-c") out.config = value();
     else if (a === "--once") out.once = true;
     else if (a === "--emit-carbon-txt") out.emitCarbonTxt = true;
-    else if (a === "--port" || a === "-p") out.port = Number(argv[++i]);
+    else if (a === "--port" || a === "-p") {
+      out.port = Number(value());
+      if (!Number.isInteger(out.port) || out.port < 0 || out.port > 65535) throw new Error(`${a} needs a port number`);
+    } else throw new Error(`unknown argument "${a}"`);
   }
   return out;
 }

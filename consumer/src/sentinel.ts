@@ -14,7 +14,7 @@
  * §Value Constraints and Omitted Metrics) and must never be stripped.
  */
 import { RESPONSE_JTD_SCHEMA } from "./schema";
-import { SustainabilityMetrics } from "./types";
+import { SustainabilityMetrics, TARGET_TYPES } from "./types";
 
 /**
  * The members the draft defines as non-negative ("gross quantities", plus the
@@ -62,16 +62,7 @@ export function withoutSentinels(doc: SustainabilityMetrics): Partial<Sustainabi
  * kept in sync with the JTD schema, which `test/schema.test.ts` byte-checks
  * against the canonical repo schema.
  */
-export const TARGET_TYPES = [
-  "origin",
-  "path",
-  "organization",
-  "service",
-  "product",
-  "device",
-  "tenant",
-  "data-source",
-] as const;
+export { TARGET_TYPES };
 
 /**
  * True when a `target-type` value is one this revision defines. Any other

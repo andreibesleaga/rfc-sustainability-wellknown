@@ -112,7 +112,7 @@ default; set them under **Variables** (dashboard) or with
 | `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` document response media type. `sustainability-data+json` (default) serves the -06 dedicated `application/sustainability-data+json` type with `X-Content-Type-Options: nosniff`; `json` serves the legacy `application/json` type instead (-05-compatible, not -06-conformant, also with `nosniff`). One subject can be pinned to the legacy type regardless of this default via `data/_media-type.json` — see `GUIDE.md`. |
 | `BASE_URL` | *(empty)* | Public base URL, for absolute links in the index. Setting it also turns the co2js demonstration's Greencheck lookup live (keyless). |
 | `GWF_API_KEY` | *(unset)* | Optional free Green Web Foundation key → carbontxt demonstration runs live. |
-| `CLIMATIQ_API_KEY` | *(unset)* | Optional; leave unset for a public gateway (Climatiq terms) — replay is the default. |
+| `CLIMATIQ_API_KEY` | *(unset)* | Optional; set only under your own Climatiq license (their terms restrict redistribution) — replay is the default. The demo passes Climatiq's required `data_version` selector (`^34`, set in `demo-specs.ts`). |
 | `SELF_TARGET` | `sustainability-data-gateway` | `target` of the gateway's own report. |
 | `SELF_PROVIDER` | `Andrei Besleaga, operator of this reference gateway` | `provider` of the gateway's own report. Use a role address. |
 | `SELF_METHODOLOGY_URI` | this repo's `gateway/METHODOLOGY.md` on GitHub | **Must resolve publicly.** Point it at wherever you actually publish `METHODOLOGY.md`. |

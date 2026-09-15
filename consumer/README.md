@@ -15,7 +15,7 @@ is the normal case for early ecosystem adoption, not a hypothetical. Built
 basic-first and M2M-oriented: every API is one line to call from a script (a cron
 job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad input.
 
-> **Version note:** consumer **0.6.6** (this tree; 0.6.5 adds `--verify`,
+> **Version note:** consumer **0.6.7** (this tree; 0.6.5 adds `--verify`,
 > `--verify-attestation` and the battery's detached-signature check)
 > implements the **-06** draft revision on the wire — the dedicated
 > `application/sustainability-data+json` media type (sent in `Accept`, reported

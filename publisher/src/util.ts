@@ -9,24 +9,33 @@ import {
   TargetType,
 } from "./types";
 
-/** Minimal JSON fetch over the global `fetch` (Node 22). */
+/** Largest upstream JSON body an adapter will read (an emissions API answer is a few kilobytes). */
+export const MAX_UPSTREAM_BYTES = 4 * 1024 * 1024;
+
+/** Minimal JSON fetch over the global `fetch` (Node 22): bounded in time and size. */
 export async function fetchJson(
   url: string,
-  init?: RequestInit & { timeoutMs?: number },
+  init?: RequestInit & { timeoutMs?: number; maxBytes?: number },
 ): Promise<any> {
   const controller = new AbortController();
   const timeoutMs = init?.timeoutMs ?? 15_000;
+  const maxBytes = init?.maxBytes ?? MAX_UPSTREAM_BYTES;
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { ...init, signal: controller.signal });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`HTTP ${res.status} ${res.statusText} for ${url} ${text.slice(0, 200)}`);
-    }
-    return await res.json();
+    const text = await res.text();
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} for ${url} ${text.slice(0, 200)}`);
+    if (Buffer.byteLength(text) > maxBytes) throw new Error(`upstream body from ${url} exceeds ${maxBytes} bytes`);
+    return JSON.parse(text);
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Round to a sensible precision to avoid float noise in payloads. */
+export function round(n: number, dp = 4): number {
+  const f = 10 ** dp;
+  return Math.round(n * f) / f;
 }
 
 /** Read and parse a JSON file. */

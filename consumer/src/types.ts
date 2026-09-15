@@ -39,16 +39,9 @@ export type EnergyUnit = "Wh" | "kWh" | "MWh" | "GWh";
 export type CarbonUnit = "gCO2e" | "kgCO2e" | "mtCO2e";
 export type Capabilities = "basic" | "extended";
 export type CarbonAccounting = "location-based" | "market-based";
-/** The -04 draft's classification hint for the reporting subject named by `target`. */
-export type TargetType =
-  | "origin"
-  | "path"
-  | "organization"
-  | "service"
-  | "product"
-  | "device"
-  | "tenant"
-  | "data-source";
+/** The draft's enumerated classification hints for the reporting subject named by `target`. */
+export const TARGET_TYPES = ["origin", "path", "organization", "service", "product", "device", "tenant", "data-source"] as const;
+export type TargetType = (typeof TARGET_TYPES)[number];
 
 export interface SustainabilityMetrics {
   version: string;

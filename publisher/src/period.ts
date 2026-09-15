@@ -17,6 +17,7 @@
  *    returns the Basic response: the most recently completed period.
  */
 import { Capabilities, ServiceQuery, SustainabilityDocument, SustainabilityMetrics } from "./types";
+import { round } from "./util";
 
 /**
  * Draft period shape: `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`. Month is bounded to
@@ -64,11 +65,6 @@ const NOT_AGGREGABLE = [
   "sci-score",
   "functional-unit",
 ];
-
-function round(n: number, dp = 4): number {
-  const f = 10 ** dp;
-  return Math.round(n * f) / f;
-}
 
 /**
  * One object for `period` from finer entries inside it (draft: "aggregate

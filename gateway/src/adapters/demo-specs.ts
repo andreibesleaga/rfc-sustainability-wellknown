@@ -262,6 +262,9 @@ function climatiqDemoAdapter(config: GatewayConfig, deps: LiveDeps, apiKey?: str
       methodologyUri: "https://www.climatiq.io/docs/api-reference/estimate",
       reportingPeriod: period,
       activityId: "electricity-supply_grid-source_residual_mix",
+      // Climatiq requires a data-version selector for live estimates (the
+      // current major, 2026-09); replay fixtures ignore it.
+      dataVersion: "^34",
       energy: { value: Number(kwh.toFixed(4)), unit: "kWh" },
       measurementMethod: "third-party-modeled",
       ...(apiKey !== undefined ? { apiKey } : { fixture: CLIMATIQ_FIXTURE }),

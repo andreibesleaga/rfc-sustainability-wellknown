@@ -171,7 +171,11 @@ export async function handleRequest(
   const baseHeaders: Record<string, string> = {
     "Cache-Control": `public, max-age=${maxAge}`,
   };
-  if (opts.cors !== false) baseHeaders["Access-Control-Allow-Origin"] = opts.cors ?? "*";
+  if (opts.cors !== false) {
+    baseHeaders["Access-Control-Allow-Origin"] = opts.cors ?? "*";
+    // The validators are not CORS-safelisted; expose them so a browser client can revalidate.
+    baseHeaders["Access-Control-Expose-Headers"] = "ETag, Last-Modified";
+  }
 
   try {
     const { body, etag } = await publisher.getSerialized(query);

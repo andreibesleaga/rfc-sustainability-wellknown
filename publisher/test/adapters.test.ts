@@ -82,6 +82,23 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
     expect((doc as any)["energy-consumption"]).toBeCloseTo(280_000, 0);
   });
 
+  it("climatiq live mode requires dataVersion and sends it as data_version", async () => {
+    const base = { provider: "Example", methodologyUri: "https://x/climatiq", activityId: "a", energy: { value: 1, unit: "kWh" as const } };
+    await expect(climatiqAdapter({ ...base, apiKey: "k" }).fetch({})).rejects.toThrow(/dataVersion/);
+    const realFetch = globalThis.fetch;
+    let sent: unknown;
+    globalThis.fetch = (async (_url: unknown, init: RequestInit) => {
+      sent = JSON.parse(String(init.body));
+      return new Response(JSON.stringify({ co2e: 1, co2e_unit: "kg" }), { status: 200 });
+    }) as typeof fetch;
+    try {
+      await climatiqAdapter({ ...base, apiKey: "k", dataVersion: "^34", reportingPeriod: "2026-03" }).fetch({});
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+    expect((sent as { emission_factor: { data_version: string } }).emission_factor.data_version).toBe("^34");
+  });
+
   it("climatiq", async () => {
     const doc = await docOf(
       climatiqAdapter({

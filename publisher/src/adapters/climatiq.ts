@@ -25,6 +25,12 @@ export interface ClimatiqConfig {
   apiUrl?: string; // default https://api.climatiq.io
   /** Climatiq activity id, e.g. "electricity-supply_grid-source_residual_mix". */
   activityId: string;
+  /**
+   * Climatiq data version selector, e.g. "^34" (the current major at the time
+   * of writing). Required by the API for live estimates; see
+   * https://www.climatiq.io/docs/guides/data-versioning.
+   */
+  dataVersion?: string;
   region?: string;
   /** Energy to estimate against. */
   energy: { value: number; unit: EnergyUnit };
@@ -52,6 +58,7 @@ export function climatiqAdapter(config: ClimatiqConfig): SourceAdapter {
       } else {
         const apiKey = config.apiKey ?? process.env.CLIMATIQ_API_KEY;
         if (!apiKey) throw new Error("climatiqAdapter: apiKey/CLIMATIQ_API_KEY or fixture required");
+        if (!config.dataVersion) throw new Error('climatiqAdapter: dataVersion (e.g. "^34") is required for live estimates');
         const base = (config.apiUrl ?? "https://api.climatiq.io").replace(/\/$/, "");
         resp = (await fetchJson(`${base}/data/v1/estimate`, {
           method: "POST",
@@ -62,6 +69,7 @@ export function climatiqAdapter(config: ClimatiqConfig): SourceAdapter {
           body: JSON.stringify({
             emission_factor: {
               activity_id: config.activityId,
+              data_version: config.dataVersion,
               ...(config.region ? { region: config.region } : {}),
             },
             parameters: {

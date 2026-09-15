@@ -9,6 +9,7 @@
  *  - Validating the `reporting-period` shape.
  */
 import { isCalendarPeriod } from "./period";
+import { round } from "./util";
 import {
   CarbonUnit,
   EnergyUnit,
@@ -119,11 +120,6 @@ export function assertHttpsUri(member: string, value: string): void {
   }
 }
 
-/** Round to a sensible precision to avoid float noise in payloads. */
-function round(n: number, dp = 4): number {
-  const f = 10 ** dp;
-  return Math.round(n * f) / f;
-}
 
 function nowIso(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");

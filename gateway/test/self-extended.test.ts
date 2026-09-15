@@ -180,13 +180,16 @@ describe("period tolerance and cache lifetime of the self report", () => {
     expect(() => periodBounds("2026-02-31")).toThrow(/calendar/);
   });
 
-  it("a period in progress is cacheable for an hour, a completed one for the day", async () => {
+  it("every self-report response is cacheable for an hour, so a cached document and signature can never disagree for longer", async () => {
     const inProgress = await fetch(`${srv.base}${SELF}?period=2026-09`);
     expect(inProgress.headers.get("cache-control")).toBe("public, max-age=3600");
     const complete = await fetch(`${srv.base}${SELF}?period=2026-08`);
-    expect(complete.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(complete.headers.get("cache-control")).toBe("public, max-age=3600");
     const basic = await fetch(`${srv.base}${SELF}`);
-    expect(basic.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(basic.headers.get("cache-control")).toBe("public, max-age=3600");
+    const subject = await fetch(`${srv.base}/cloudflare.com${SELF}`);
+    expect(subject.headers.get("cache-control")).toBe("public, max-age=86400");
+    await subject.text();
     await Promise.all([inProgress.text(), complete.text(), basic.text()]);
   });
 });

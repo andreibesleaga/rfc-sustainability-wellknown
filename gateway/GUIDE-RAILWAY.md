@@ -161,15 +161,17 @@ Rotation: run step 1 again, host the new public key, replace the variable,
 redeploy. Old signatures stop verifying against the new key — expected. The
 credential stays valid until its `validUntil`.
 
-Expect a stale window after enabling or rotating signing. Railway's edge caches
-each document for the full `max-age` (24 hours by default), separately per
-`Accept-Encoding` variant, and offers no purge: for up to a day a client may
-still receive the previous deployment's document while the `.jws` resource is
-already the new one, and the consumer then reports the signature as
-*unverified* (never *false*) for that copy — the draft's intended outcome for a
-signature that does not match. Nothing to fix; a request with a query string
-(`?period=…`) or an unusual `Accept-Encoding` reaches the process and shows the
-current state.
+Expect a stale window after enabling or rotating signing, and after each
+monthly rollover of the self report. Railway's edge caches each response for
+its full `max-age`, separately per `Accept-Encoding` variant, and offers no
+purge: a client may still receive the previous document while the `.jws`
+resource is already the new one, and the consumer then reports the signature
+as *unverified* (never *false*) for that copy — the draft's intended outcome
+for a signature that does not match. The self report and its `.jws` are
+therefore served with `max-age=3600`, so the window is at most an hour (the
+first, pre-signing deployment was cached for a day). A request with a query
+string (`?period=…`) or an unusual `Accept-Encoding` reaches the process and
+shows the current state.
 
 > **Railway CLI note (seen 2026-09-14 while setting these variables).** The CLI
 > now warns: *"Config as Code (railway.json / railway.toml) is deprecated. Prefer

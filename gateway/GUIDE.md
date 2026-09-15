@@ -601,7 +601,7 @@ injects.
 | `PORT` | `8080` | Injected by the platform. |
 | `HOST` | `0.0.0.0` | Bind address. |
 | `DATA_DIR` | `<app>/data` | Where subject documents are read from. |
-| `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`. A self-report period still in progress is capped at 3600, the model's own hourly resolution. |
+| `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…` for the relayed subjects. The gateway's own report and its `.jws` are capped at 3600: a shared cache holds the document and the signature as separate entries, and one hour bounds how long a cached pair can disagree after the document changes. |
 | `BASE_URL` | *(empty)* | Public base URL for absolute links in the index. Also enables the co2js demonstration's live Greencheck lookup of this host. |
 | `EXAMPLES_DIR` | `<app>/examples` | Where the canonical wire-format example documents are read from. |
 | `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` document response media type, service-wide. `sustainability-data+json` (default) serves the -06 dedicated `application/sustainability-data+json` type; `json` serves the legacy `application/json` type (-05-compatible, not -06-conformant). Per-subject overrides live in [`data/_media-type.json`](#pinning-a-subject-to-the-legacy-media-type). |

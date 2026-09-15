@@ -58,7 +58,7 @@ describe("with a key and an attestation URI", () => {
     expect(sig.status).toBe(200);
     expect(sig.headers.get("content-type")).toBe("application/jose");
     expect(sig.headers.get("x-content-type-options")).toBe("nosniff");
-    expect(sig.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(sig.headers.get("cache-control")).toBe("public, max-age=3600"); // the self report's own lifetime
     expect(sig.headers.get("access-control-allow-origin")).toBe("*");
     expect(sig.headers.get("last-modified")).toBe(doc.headers.get("last-modified"));
     expect(sig.headers.get("etag")).toBe(doc.headers.get("etag")!.replace(/"$/, '+jws"'));

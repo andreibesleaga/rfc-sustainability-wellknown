@@ -19,7 +19,7 @@ import {
 } from "sustainability-wellknown-publisher";
 import { verifyDetachedJws } from "sustainability-wellknown-consumer";
 import { demoSpecs } from "./adapters/demo-specs";
-import { lastCompletedMonth, periodBounds, selfReportAdapter } from "./adapters/self-report";
+import { lastCompletedMonth, selfReportAdapter } from "./adapters/self-report";
 import { LIMITS, type GatewayConfig, type MediaTypeSetting } from "./config";
 import { loadWireExamples, type WireExample } from "./examples";
 import { CORS_ORIGIN, corsHeaders, jsonError, methodNotAllowed, withBody, type Result } from "./http";
@@ -243,11 +243,7 @@ export async function route(
     // is ignored, so it never reaches the publisher.
     const query = extendedQuery(url);
     const r = await serveDocument(self, gw.config, ifNoneMatch, ifModifiedSince, gw.config.mediaType, query);
-    // A period still in progress changes hourly (the model counts live
-    // hours), so its variant is not cached for the full day.
-    if (r.status === 200 && query.period && periodBounds(query.period).end > gw.selfNow().getTime()) {
-      r.headers["Cache-Control"] = `public, max-age=${Math.min(gw.config.maxAge, IN_PROGRESS_MAX_AGE)}`;
-    }
+    if (r.status === 200) r.headers["Cache-Control"] = selfCacheControl(gw.config);
     return r;
   }
 
@@ -258,7 +254,7 @@ export async function route(
     const self = gw.refreshSelf ? await gw.refreshSelf() : gw.self;
     const r = await handleSignatureRequest(
       self.publisher,
-      { maxAge: gw.config.maxAge, cors: CORS_ORIGIN, signingKey: gw.signingKey },
+      { maxAge: selfMaxAge(gw.config), cors: CORS_ORIGIN, signingKey: gw.signingKey },
       ifNoneMatch,
     );
     const headers = { ...r.headers, "Last-Modified": self.lastModified };
@@ -337,8 +333,18 @@ function extendedQuery(url: URL): Record<string, string> {
   return query;
 }
 
-/** Cache lifetime of a self-report period still in progress: one hour, the model's own resolution. */
-const IN_PROGRESS_MAX_AGE = 3600;
+/**
+ * Cache lifetime of the self report and its signature: one hour, the model's
+ * own resolution. The document changes every hour for a period in progress
+ * and every month for the parameterless request, and a shared cache holds the
+ * document and the `.jws` as separate entries taken at different moments —
+ * with a day's lifetime a verifier could see a mismatched pair for up to a
+ * day after every change. One hour bounds that window; the relayed subjects
+ * keep the configured day.
+ */
+const SELF_MAX_AGE = 3600;
+const selfMaxAge = (config: GatewayConfig): number => Math.min(config.maxAge, SELF_MAX_AGE);
+const selfCacheControl = (config: GatewayConfig): string => `public, max-age=${selfMaxAge(config)}`;
 
 /** Load data, wire the adapters, and build (but do not start) the HTTP server. */
 export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway> {

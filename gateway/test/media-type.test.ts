@@ -196,7 +196,7 @@ describe("per-subject override served end to end", () => {
 });
 
 describe("a _media-type.json entry for a domain that is not a served subject", () => {
-  it("aborts startup, the same way a stray _no-data.json entry would", async () => {
+  it("aborts startup, the same fail-fast treatment as every other data problem", async () => {
     const dir = mkdtempSync(join(tmpdir(), "swk-mt-gw-"));
     cpSync(DATA_DIR, dir, { recursive: true });
     writeFileSync(join(dir, "_media-type.json"), JSON.stringify({ "nobody-serves-this.example": "json" }));

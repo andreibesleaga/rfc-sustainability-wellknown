@@ -6,7 +6,6 @@ import type { GatewayConfig } from "./config";
 import type { WireExample } from "./examples";
 import { escapeHtml } from "./http";
 import type { ManagedSubject } from "./live";
-import type { NoDataEntry } from "./no-data";
 import type { Subject } from "./registry";
 import type { CrossValidation } from "./verify";
 
@@ -133,12 +132,6 @@ export interface IndexDocument {
     count: number;
     entries: ExampleEntry[];
   };
-  /** Subjects looked for and found to publish nothing machine-readable. */
-  "no-machine-readable-data": {
-    note: string;
-    count: number;
-    subjects: NoDataEntry[];
-  };
 }
 
 export const DEMO_NOTE =
@@ -160,14 +153,6 @@ export const CROSS_VALIDATION_NOTE =
   "At start-up, every document served here is produced by the published publisher library " +
   "and validated by the published consumer library — the same code a third party would " +
   "run. A validation failure stops the gateway from starting.";
-
-/** Why the no-data list exists at all. Carried in index.json verbatim. */
-export const NO_DATA_NOTE =
-  "These subjects were looked for and could not honestly be published: no primary source " +
-  "carries the figures this format needs. They are listed rather than omitted, because a " +
-  "registry showing only the organizations that do publish would overstate how much of the " +
-  "web is measurable. Requesting one of their documents returns 404, the specification's " +
-  "no-data rule.";
 
 /** Blob root of the repository's documentation, for the page's "more detail" links. */
 const REPO_DOCS = "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main";
@@ -337,7 +322,6 @@ export function buildIndex(
   subjects: Iterable<Subject>,
   self: Subject,
   config: GatewayConfig,
-  noData: Iterable<NoDataEntry> = [],
   extras?: IndexExtras,
 ): IndexDocument {
   const demoDomains = new Set((extras?.demos ?? []).map((m) => m.spec.domain));
@@ -346,7 +330,6 @@ export function buildIndex(
     .filter((s) => !demoDomains.has(s.domain) && !exampleDomains.has(s.domain))
     .map((s) => entry(s, s.source.startsWith("adapter:") ? "adapter" : "file"))
     .sort((a, b) => a.domain.localeCompare(b.domain));
-  const gaps = [...noData].sort((a, b) => a.domain.localeCompare(b.domain));
   const demos = (extras?.demos ?? [])
     .map(demoEntry)
     .sort((a, b) => a.domain.localeCompare(b.domain));
@@ -396,11 +379,6 @@ export function buildIndex(
       count: examples.length,
       entries: examples,
     },
-    "no-machine-readable-data": {
-      note: NO_DATA_NOTE,
-      count: gaps.length,
-      subjects: gaps,
-    },
   };
 }
 
@@ -446,26 +424,6 @@ function exampleRow(e: ExampleEntry): string {
 </tr>`;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  "publishes-no-quantitative-data": "publishes no figures",
-  "consolidated-into-parent": "consolidated into parent",
-};
-
-function gapRow(e: NoDataEntry): string {
-  const evidence = e.evidence
-    .map(
-      (u, i) =>
-        `<a href="${escapeHtml(u)}" rel="noopener noreferrer nofollow">source ${i + 1}</a>`,
-    )
-    .join(", ");
-  return `<tr>
-  <td><code>${escapeHtml(e.domain)}</code></td>
-  <td>${bdi(e.entity)}<br><span class="dim">${escapeHtml(STATUS_LABEL[e.status] ?? e.status)}${e.see ? ` — see <code>${escapeHtml(e.see)}</code>` : ""}</span></td>
-  <td>${bdi(e.finding)}</td>
-  <td>${evidence}<br><span class="dim">checked ${escapeHtml(e.checked)}</span></td>
-</tr>`;
-}
-
 function liveRow(r: LiveRequest): string {
   const external = /^https?:/.test(r.href);
   const rel = external ? ' rel="noopener noreferrer"' : "";
@@ -488,22 +446,6 @@ export function renderIndexHtml(doc: IndexDocument, baseUrl = ""): string {
 for (const el of document.querySelectorAll(".host")) el.textContent = location.origin;
 </script>`;
   const rows = doc.subjects.map(row).join("\n");
-  const gaps = doc["no-machine-readable-data"];
-  const gapSection =
-    gaps.count === 0
-      ? ""
-      : `
-<h2>Publishes no machine-readable data (${gaps.count})</h2>
-<p>${escapeHtml(gaps.note)}</p>
-<div class="scroll">
-<table>
-<thead><tr><th>Domain</th><th>Entity</th><th>Finding</th><th>Evidence</th></tr></thead>
-<tbody>
-${gaps.subjects.map(gapRow).join("\n")}
-</tbody>
-</table>
-</div>
-`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -652,7 +594,7 @@ ${rows}
 </tbody>
 </table>
 </div>
-${gapSection}
+
 <h2>Adapter demonstrations (${doc["adapter-demonstrations"].count})</h2>
 <p>${escapeHtml(doc["adapter-demonstrations"].note)}</p>
 <div class="scroll">

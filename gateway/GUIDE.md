@@ -16,13 +16,12 @@ Everything you need to run, extend, verify and deploy the multi-domain
 3. [Running it locally](#running-it-locally)
 4. [Routes and HTTP contract](#routes-and-http-contract)
 5. [Adding a subject](#adding-a-subject)
-6. [Recording a subject that publishes nothing](#recording-a-subject-that-publishes-nothing)
-7. [Wiring an adapter](#wiring-an-adapter)
-8. [Validating the data files](#validating-the-data-files)
-9. [Verifying a deployment](#verifying-a-deployment)
-10. [Deploying](#deploying)
-11. [Configuration reference](#configuration-reference)
-12. [Design notes](#design-notes)
+6. [Wiring an adapter](#wiring-an-adapter)
+7. [Validating the data files](#validating-the-data-files)
+8. [Verifying a deployment](#verifying-a-deployment)
+9. [Deploying](#deploying)
+10. [Configuration reference](#configuration-reference)
+11. [Design notes](#design-notes)
 
 ---
 
@@ -82,11 +81,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 6. **Record provenance at the same time as the data.** Source URL, retrieval
    date, and every caveat go into [data/README.md](data/README.md) in the same
    change. A test asserts every data file has an entry.
-7. **List the gaps.** A subject you looked for and could not publish goes into
-   [`data/_no-data.json`](data/_no-data.json) with the evidence of absence. A
-   registry that showed only the organizations that publish would overstate how
-   much of the web is measurable.
-8. **The index says all of this**, on the HTML page and in `index.json`, so a
+7. **The index says all of this**, on the HTML page and in `index.json`, so a
    reader who never opens a document still sees it.
 
 ## Running it locally
@@ -95,7 +90,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 cd gateway
 npm install
 npm run build
-npm test                       # 356 tests
+npm test                       # 348 tests
 node dist/index.js             # binds 0.0.0.0:8080
 ```
 
@@ -130,7 +125,7 @@ sorted trend array only for a granularity finer than the period (see
 | `GET\|HEAD /.well-known/sustainability-data` | The gateway's own report, `target-type: "service"`, `capabilities: "extended"`: `?period=YYYY[-MM[-DD]]` and `?granularity=monthly\|daily` honoured (array only when the granularity is finer than the period), `404` for a period wholly before go-live. When `SUSTAINABILITY_SIGNING_KEY` is set, every object it returns carries a `signed` member — there is no separate signature resource. |
 | a defined query parameter given twice, or a `period` that names no real calendar date, on a route that honours the parameters | `400` + a JSON body naming the fault, `Cache-Control: no-store` (draft §Extended Query Parameters, steps 1 and 2). |
 | `?target=…` on a route that honours the parameters | `404`: this gateway publishes an empty path-prefix set, so no value matches (step 4). The value is never echoed back. |
-| `GET\|HEAD /` | HTML index: every subject, the honesty notice, the gaps. |
+| `GET\|HEAD /` | HTML index: every subject and the honesty notice. |
 | `GET\|HEAD /index.json` | The same index, machine-readable. |
 | `GET\|HEAD /healthz` | `{"status":"ok","subjects":N}`, `Cache-Control: no-store`. |
 | any other method on any of the above | `405` + `Allow: GET, HEAD`. |
@@ -192,20 +187,13 @@ Notes on each of those, and on the rules behind them:
   subjects, only the exact granularity their entries carry is honored; every
   other value is ignored the same way, so the key space stays bounded there
   too.)
-- **An unknown subject is `404`** — the no-data rule. For a subject listed in
-  `_no-data.json` it is still `404`, but the body carries the finding, the
-  evidence URLs, and a pointer to a parent that does report:
+- **An unknown subject is `404`** — the no-data rule — with the same JSON body
+  as any other unknown path:
 
   ```json
   {
     "status": 404,
-    "error": "no sustainability metadata is published here for that reporting subject",
-    "reason": "consolidated-into-parent",
-    "entity": "GitHub, Inc.",
-    "finding": "GitHub publishes no standalone GHG inventory. …",
-    "evidence": ["https://github.blog/…", "https://aka.ms/SustainabilityFactsheet2026"],
-    "see": "/microsoft.com/.well-known/sustainability-data",
-    "checked": "2026-07-29"
+    "error": "no sustainability metadata is published here for that reporting subject"
   }
   ```
 
@@ -312,38 +300,12 @@ The data layer is drop-in: **no code change is needed.**
    curl -sS http://127.0.0.1:8080/<domain>/.well-known/sustainability-data | jq .
    ```
 
-## Recording a subject that publishes nothing
-
-Some organizations publish no usable figures at all. Those belong in
-[`data/_no-data.json`](data/_no-data.json) — the leading underscore keeps the
-file out of the subject registry — with the evidence of absence:
-
-```json
-{
-  "domain": "example.com",
-  "entity": "Example Holdings, Inc.",
-  "status": "publishes-no-quantitative-data",
-  "finding": "What you searched and what you found. Be specific: which filings, which pages, what they do and do not contain.",
-  "evidence": ["https://…", "https://…"],
-  "checked": "2026-07-29"
-}
-```
-
-`status` is either `publishes-no-quantitative-data` or
-`consolidated-into-parent`; the latter takes an optional `see` naming a subject
-in this registry that does cover it. The loader rejects an entry with no
-evidence URLs, no `checked` date, or a `finding` shorter than a sentence.
-
-These appear in the index under "publishes no machine-readable data", and their
-document route returns the informative `404` shown above.
-
 ### Pinning a subject to the legacy media type
 
 The service-wide default response media type (`SUSTAINABILITY_MEDIA_TYPE`, see
 [Configuration reference](#configuration-reference)) can be overridden for one
 subject at a time via `data/_media-type.json` — the
-leading underscore keeps it out of the subject registry, the same convention
-as `_no-data.json`:
+leading underscore keeps it out of the subject registry:
 
 ```json
 { "legacy-demo.example": "json" }
@@ -539,9 +501,8 @@ curl -sSI -X HEAD "$BASE/cloudflare.com/.well-known/sustainability-data"
 # 405 + Allow
 curl -sSI -X POST "$BASE/cloudflare.com/.well-known/sustainability-data"
 
-# unknown subject -> 404; a listed gap -> 404 with the finding
+# unknown subject -> 404
 curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/nobody.example/.well-known/sustainability-data"
-curl -sS "$BASE/github.com/.well-known/sustainability-data" | jq .
 
 # query parameters IGNORED, not an error
 curl -sS -o /dev/null -w '%{http_code}\n' \

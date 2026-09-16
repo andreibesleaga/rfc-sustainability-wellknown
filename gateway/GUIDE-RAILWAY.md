@@ -18,7 +18,7 @@ is [GUIDE.md](GUIDE.md).
 cd gateway
 npm install
 npm run build
-npm test          # 356 tests; everything must be green before you deploy
+npm test          # 348 tests; everything must be green before you deploy
 node dist/index.js &
 curl -sSI http://127.0.0.1:8080/cloudflare.com/.well-known/sustainability-data
 kill %1

@@ -14,12 +14,10 @@
  * { "legacy-demo.example": "json" }
  * ```
  *
- * Discovery, parsing and error handling follow `_no-data.json`
- * (`no-data.ts`): the file is optional — absent means no overrides — and
- * anything malformed throws at boot, before a single request is served; a
- * domain named here that is not actually a served subject is an operator
- * error caught the same way (see the cross-check in `app.ts`, alongside the
- * analogous `_no-data.json` one).
+ * The file is optional — absent means no overrides — and anything malformed
+ * throws at boot, before a single request is served; a domain named here that
+ * is not actually a served subject is an operator error caught the same way
+ * (see the cross-check in `app.ts`).
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";

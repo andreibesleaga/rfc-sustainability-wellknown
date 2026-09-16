@@ -21,7 +21,7 @@ export function corsHeaders(): Record<string, string> {
 /**
  * A JSON body with an explicit byte length, so HEAD carries Content-Length
  * too. Also the one seam every gateway-originated response (index, healthz,
- * every `jsonError`, the no-data 404) passes through, so
+ * every `jsonError`) passes through, so
  * `X-Content-Type-Options: nosniff` is set here once rather than at each call
  * site. A document response built from the publisher's own headers (which
  * already carries `nosniff`, per `sustainability-wellknown-publisher` 0.6.0)

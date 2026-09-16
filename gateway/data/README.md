@@ -27,9 +27,7 @@ from that row to a public document, it does not belong in this directory.
    left out. The specification has no in-band "not reported" marker precisely so
    that omission carries that meaning; filling a gap with a plausible number is
    the one failure mode this registry exists to avoid.
-5. **If nothing can be verified, publish nothing** — and record the subject in
-   [`_no-data.json`](_no-data.json) with the evidence of absence, so the gap is
-   visible instead of silent.
+5. **If nothing can be verified, publish nothing.**
 6. **Record the source URL and the retrieval date here**, in this file, at the
    same time as adding the data file.
 
@@ -58,8 +56,7 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 | `sfc-operator.example.json` | *synthetic* operator inside that network | 2025 | market-based | — invented — | names `cloud-demo.example` through `upstream` and `sfc-network.example` through an extension; reserved `.example` name |
 
 Plus `kepler-demo.example`, which has no file: it is generated in code by a
-publisher adapter (see below). And [`_no-data.json`](_no-data.json), which
-records the subjects that publish nothing.
+publisher adapter (see below).
 
 All primary sources were read on **2026-07-28 / 2026-07-29**. Each entry below
 cites the source document and the figures read from it; the working verification
@@ -262,7 +259,7 @@ the nearest thousand, so the scopes sum to 21,121,315 against a published
 `renewable-energy: 100` is the Fact Sheet's direct-renewable-electricity figure.
 
 **GitHub, Inc.** is consolidated inside this operational-control boundary and
-publishes no inventory of its own — see [`_no-data.json`](_no-data.json).
+publishes no inventory of its own, so no separate declaration is served for it.
 
 ### `ovhcloud.com.json` — OVH Groupe SA (OVHcloud), **fiscal year FY2025**
 
@@ -493,34 +490,6 @@ operator would use — Kepler exports joule counters, Prometheus stores them, th
 adapter sums and converts them — with the network call replaced by a fixture.
 The recorded counters are invented (two nodes at roughly 125 W average across
 2025). See [GUIDE.md](../GUIDE.md#wiring-an-adapter).
-
----
-
-## Subjects that publish nothing: `_no-data.json`
-
-[`_no-data.json`](_no-data.json) records subjects the operator looked for and
-could **not** honestly publish, with the finding and the primary sources
-consulted. The underscore keeps the file out of the subject registry; its
-entries appear in the index under "publishes no machine-readable data", and a
-request for one of those documents returns **404** — the specification's no-data
-rule — with the finding in the body.
-
-Currently listed:
-
-- **`digitalocean.com`** — DigitalOcean Holdings, Inc. publishes no quantitative
-  environmental data at all. The FY2025 Form 10-K contains zero occurrences of
-  *climate*, *greenhouse*, *carbon*, *emission*, *scope* or *sustainab*; the
-  investor ESG page is qualitative only; a 2022 blog post says the company was
-  "currently working to determine our carbon baseline" and no baseline has
-  appeared since. (The often-quoted "PUE averaging 1.15" is a community-forum
-  answer by a user, not a company statement, and is not used.)
-- **`github.com`** — GitHub, Inc. publishes no standalone inventory and is
-  consolidated inside Microsoft's operational-control boundary. Apportioning
-  Microsoft's totals to GitHub would be an invention; the entry points at
-  `microsoft.com` instead.
-
-Both are more useful listed than omitted: they are the measured extent of the
-gap this specification exists to close.
 
 ---
 

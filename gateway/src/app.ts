@@ -32,7 +32,6 @@ import {
 } from "./index-page";
 import { LiveRegistry, type LiveSpec } from "./live";
 import { loadMediaTypeOverrides, MEDIA_TYPE_FILE } from "./media-type";
-import { loadNoData, NO_DATA_FILE, type NoDataEntry } from "./no-data";
 import { clientKey, createRateLimiter, type RateLimiter } from "./rate-limit";
 import { loadRegistry, subjectFromAdapter, type Subject } from "./registry";
 import { crossValidate, type CrossValidation } from "./verify";
@@ -68,8 +67,6 @@ export interface Gateway {
    * regenerated instead of freezing at whatever month the process booted in.
    */
   refreshSelf?: () => Promise<Subject>;
-  /** Subjects known to publish nothing machine-readable, keyed by domain. */
-  noData: Map<string, NoDataEntry>;
   /**
    * Per-subject media-type override from `data/_media-type.json`, keyed by
    * domain. A domain absent here inherits `config.mediaType`.
@@ -179,7 +176,7 @@ async function serveDocument(
 export async function route(
   gw: Pick<
     Gateway,
-    "config" | "subjects" | "self" | "noData" | "mediaTypeOverrides" | "index" | "indexHtml" | "indexJson"
+    "config" | "subjects" | "self" | "mediaTypeOverrides" | "index" | "indexHtml" | "indexJson"
   > &
     Partial<Pick<Gateway, "refreshSelf" | "examples" | "signingKey">>,
   method: string,
@@ -254,32 +251,7 @@ export async function route(
     const domain = m[1].toLowerCase();
     const subject = gw.subjects.get(domain);
     if (!subject) {
-      // Draft "no-data rule": nothing published for this subject -> 404. For a
-      // subject the operator deliberately looked for and could not publish, the
-      // status is the same 404 but the body carries the finding and its
-      // evidence, so the absence is legible rather than indistinguishable from
-      // a typo.
-      const gap = gw.noData.get(domain);
-      if (gap) {
-        return withBody(
-          404,
-          { ...corsHeaders(), "Content-Type": "application/json", "Content-Language": "en" },
-          JSON.stringify(
-            {
-              status: 404,
-              error: "no sustainability metadata is published here for that reporting subject",
-              reason: gap.status,
-              entity: gap.entity,
-              finding: gap.finding,
-              evidence: gap.evidence,
-              ...(gap.see ? { see: `/${gap.see}${WELL_KNOWN_PATH}` } : {}),
-              checked: gap.checked,
-            },
-            null,
-            2,
-          ) + "\n",
-        );
-      }
+      // Draft "no-data rule": nothing published for this subject -> 404.
       return jsonError(
         404,
         "no sustainability metadata is published here for that reporting subject",
@@ -371,7 +343,6 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   // downstream demonstration subject's `upstream`), so an upstream chain walk
   // resolves against this deployment and not against some other one.
   const subjects = await loadRegistry(config.dataDir, config.baseUrl || PUBLIC_BASE_URL);
-  const noData = loadNoData(config.dataDir);
   const mediaTypeOverrides = loadMediaTypeOverrides(config.dataDir);
   const clock = opts.clock ?? (() => new Date());
   /**
@@ -497,15 +468,6 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     });
   }
 
-  for (const domain of noData.keys()) {
-    if (subjects.has(domain)) {
-      throw new Error(
-        `gateway: ${domain} is listed in ${NO_DATA_FILE} but also has a data file — ` +
-          `a subject either publishes something or it does not`,
-      );
-    }
-  }
-
   for (const domain of mediaTypeOverrides.keys()) {
     if (!subjects.has(domain)) {
       throw new Error(
@@ -515,7 +477,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   }
 
   const makeIndex = (): IndexDocument =>
-    buildIndex(subjects.values(), self, config, noData.values(), {
+    buildIndex(subjects.values(), self, config, {
       demos: [...live.managed.values()],
       examples: [...examples.values()],
       crossValidation,
@@ -574,7 +536,6 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     crossValidation,
     refreshLive,
     self,
-    noData,
     mediaTypeOverrides,
     index,
     indexHtml,

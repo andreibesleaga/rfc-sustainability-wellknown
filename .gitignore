@@ -16,3 +16,6 @@ coverage/
 *private*.jwk
 *.private.json
 *.pem
+
+# sfc-compliance has no lockfile by design (its CI job runs npm install against the registry)
+sfc-compliance/package-lock.json

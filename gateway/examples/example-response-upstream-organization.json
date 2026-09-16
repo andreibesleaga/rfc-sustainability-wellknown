@@ -1,0 +1,25 @@
+{
+  "updated": "2026-05-01T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Nordwind Logistics GmbH (sustainability@nordwind.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://nordwind.example/sustainability/methodology",
+  "reporting-period": "2025",
+  "target": "Nordwind Logistics GmbH",
+  "target-type": "organization",
+  "energy-consumption": 1.8,
+  "energy-unit": "GWh",
+  "carbon-footprint": 430,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 40,
+  "scope-2": 210,
+  "scope-3": 180,
+  "disclosure-uri": "https://nordwind.example/sustainability/disclosures",
+  "upstream": [
+    {
+      "declaration": "https://cloudnova.example/.well-known/sustainability-data?target=nordwind",
+      "role": "cloud"
+    }
+  ]
+}

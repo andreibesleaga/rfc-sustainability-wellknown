@@ -20,8 +20,11 @@ def secure_sustainability_report(reports):
     # 2. Trend arrays MUST be sorted ascending by reporting-period.
     reports = sorted(reports, key=lambda e: e.get("reporting-period", ""))
 
-    # 3. DoS Protection: cap at 366 objects (one leap year of daily data),
-    #    keeping the MOST RECENT periods.
+    # 3. Deployment safeguard (NOT a specification requirement as of -07):
+    #    cap at 366 objects (one leap year of daily data), keeping the MOST
+    #    RECENT periods. The draft no longer states a server-side array cap
+    #    as a MUST; a consumer bounds what it accepts regardless. This is a
+    #    defensive limit an implementer may choose to keep.
     MAX_OBJECTS = 366
     if len(reports) > MAX_OBJECTS:
         reports = reports[-MAX_OBJECTS:]

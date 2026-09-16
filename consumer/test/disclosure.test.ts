@@ -1,7 +1,7 @@
 /**
  * Tests for the disclosure-link helpers, and in particular for what
- * fetchDisclosure() REFUSES to dereference (draft -06 §Payload Format: the
- * three URI members MUST be absolute "https" URIs, and clients MUST NOT
+ * fetchDisclosure() REFUSES to dereference (draft -07 §Optional Members: the
+ * URI-valued members MUST be absolute "https" URIs, and a consumer MUST NOT
  * automatically dereference a member carrying any other scheme).
  */
 import { describe, expect, it, vi } from "vitest";

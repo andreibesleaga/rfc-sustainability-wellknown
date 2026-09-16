@@ -8,7 +8,6 @@ import { SustainabilityMetrics } from "../src/types";
 const RTL = "مثال"; // an Arabic provider name (no spaces, so it is also a valid host label below)
 
 const base: SustainabilityMetrics = {
-  version: "2.0",
   updated: "2026-03-01T00:00:00Z",
   capabilities: "basic",
   provider: RTL,

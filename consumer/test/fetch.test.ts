@@ -3,22 +3,25 @@
  * extra dependencies) plays the role of a third-party /.well-known/sustainability-data
  * origin, on a real ephemeral port.
  *
- * NOTE (-06): the fixture servers below serve `application/json` ON PURPOSE —
- * that is the pre-06 media type every deployed -05 publisher still uses, and
- * these tests are what proves the client keeps accepting it (draft -06:
- * clients MUST accept `application/sustainability-data+json` and SHOULD also
- * accept `application/json`). They run over plain HTTP on 127.0.0.1, so they
- * pass the shared ALLOW_INSECURE opt-out from ./helpers; the -06 media-typing
- * and HTTPS behaviour has its own describe block at the end of this file.
+ * NOTE: the fixture servers below serve `application/json` ON PURPOSE — that
+ * is the media type "under which declarations published before the
+ * registration of the dedicated type exist", and these tests are what proves
+ * the client keeps processing them (draft -07 §Mandatory Minimum Supported
+ * Service: a consumer MUST process `application/sustainability-data+json` and
+ * MAY so process `application/json`). They run over plain HTTP on 127.0.0.1,
+ * so they pass the shared ALLOW_INSECURE opt-out from ./helpers; the
+ * media-typing and HTTPS behaviour has its own describe block at the end of
+ * this file.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { fetchSustainability, WELL_KNOWN_PATH } from "../src/fetch";
+import { DEFAULT_MAX_OBJECTS, fetchSustainability, WELL_KNOWN_PATH } from "../src/fetch";
 import { ACCEPT_HEADER, LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "../src/media-type";
-import { ALLOW_INSECURE } from "./helpers";
+import { ALLOW_INSECURE, PUBLIC_LOOKUP } from "./helpers";
+import { SustainabilityClient } from "../src/client";
 
 const EXAMPLES_DIR = path.resolve(__dirname, "../../example-responses");
 const exampleFiles = fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith(".json"));
@@ -94,7 +97,6 @@ describe("fetchSustainability() against a plain http server", () => {
       res.writeHead(200, { "Content-Type": "application/json", ETag: TEST_ETAG });
       res.end(
         JSON.stringify({
-          version: "2.0",
           updated: "2026-01-01T00:00:00Z",
           capabilities: "basic",
           provider: "Test Co",
@@ -174,9 +176,9 @@ describe("fetchSustainability() against a plain http server", () => {
     expect(result.status).toBe("too-large");
   });
 
-  it('returns {status:"invalid"} for a schema-invalid document (missing a mandatory field)', async () => {
+  it('returns {status:"invalid"} for a schema-invalid document (missing a mandatory member)', async () => {
     const doc = JSON.parse(fs.readFileSync(path.join(EXAMPLES_DIR, "example-response.json"), "utf8"));
-    delete doc.version; // "version" is mandatory per RESPONSE_JTD_SCHEMA
+    delete doc.provider; // one of the seven mandatory members
 
     const origin = await start((_req, res) => {
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -191,10 +193,9 @@ describe("fetchSustainability() against a plain http server", () => {
   });
 });
 
-describe("legacy-compatibility pre-pass (draft §Versioning and Extensibility)", () => {
+describe("legacy-compatibility pre-pass (draft §Value Constraints and Omitted Metrics)", () => {
   /** A historical -02 ("1.1") document: no `target`, negative sentinel, old CO2e key names. */
   const LEGACY_DOC = {
-    version: "1.1",
     updated: "2026-01-01T00:00:00Z",
     capabilities: "basic",
     provider: "Legacy Co",
@@ -330,7 +331,6 @@ describe("legacy-compatibility pre-pass (draft §Versioning and Extensibility)",
 
 describe("-04: well-known URI rename + target-type tolerance pre-pass", () => {
   const BASE_DOC = {
-    version: "2.0",
     updated: "2026-01-01T00:00:00Z",
     capabilities: "basic",
     provider: "Type Test Co",
@@ -443,7 +443,6 @@ describe("-04: well-known URI rename + target-type tolerance pre-pass", () => {
 
 describe("final -04 tolerance additions (draft §Value Constraints and Omitted Metrics)", () => {
   const BASE_DOC = {
-    version: "2.0",
     updated: "2026-01-01T00:00:00Z",
     capabilities: "basic",
     provider: "Tolerance Test Co",
@@ -603,7 +602,6 @@ describe("final -04: empty array conveys no report", () => {
 describe("final pre-tag fix: redirect attribution (draft MUST)", () => {
   it("legacy target injection uses the FINAL response origin's host after a redirect", async () => {
     const legacyDoc = {
-      version: "1.1",
       updated: "2026-01-01T00:00:00Z",
       capabilities: "basic",
       provider: "L",
@@ -641,9 +639,8 @@ describe("final pre-tag fix: redirect attribution (draft MUST)", () => {
   });
 });
 
-describe("-06: media typing, the Accept header, and the HTTPS requirement", () => {
+describe("-07: media typing, the Accept header, and the HTTPS requirement", () => {
   const DOC = {
-    version: "2.0",
     updated: "2026-01-01T00:00:00Z",
     capabilities: "basic",
     provider: "Media Type Co",
@@ -671,7 +668,7 @@ describe("-06: media typing, the Accept header, and the HTTPS requirement", () =
     return { origin, seen };
   }
 
-  it("sends Accept: the -06 media type, with the pre-06 one at a lower q-value", async () => {
+  it("sends Accept: the registered media type, with the generic one at a lower q-value", async () => {
     const { origin, seen } = await startTyped(MEDIA_TYPE);
 
     const result = await fetchSustainability(origin, ALLOW_INSECURE);
@@ -694,7 +691,7 @@ describe("-06: media typing, the Accept header, and the HTTPS requirement", () =
     expect(result.mediaType).toBe("sustainability-data+json");
   });
 
-  it('classifies the pre-06 generic media type as "json" and still accepts the document (-05 compatibility)', async () => {
+  it('classifies the generic media type as "json" and still processes the declaration (the draft\'s MAY)', async () => {
     const { origin } = await startTyped(LEGACY_MEDIA_TYPE);
 
     const result = await fetchSustainability(origin, ALLOW_INSECURE);
@@ -705,27 +702,24 @@ describe("-06: media typing, the Accept header, and the HTTPS requirement", () =
     expect(result.document).toEqual(DOC);
   });
 
-  it('classifies anything else as "other" and PARSES it anyway (the draft\'s MAY), flagging the type', async () => {
+  it("refuses any other media type unread (-07: such a response is not a declaration)", async () => {
     const { origin } = await startTyped("text/html; charset=utf-8");
 
     const result = await fetchSustainability(origin, ALLOW_INSECURE);
 
-    // Never refused on media type alone: what the document IS is decided from
-    // its content, and the content here is a valid document.
-    expect(result.status).toBe("ok");
-    if (result.status !== "ok") return;
-    expect(result.mediaType).toBe("other");
-    expect(result.document).toEqual(DOC);
+    expect(result.status).toBe("wrong-media-type");
+    if (result.status !== "wrong-media-type") return;
+    expect(result.mediaType).toBe("text/html; charset=utf-8");
   });
 
-  it('classifies a missing Content-Type as "other"', async () => {
+  it("refuses a response with no Content-Type at all (a type cannot be concluded from its absence)", async () => {
     const { origin } = await startTyped(null);
 
     const result = await fetchSustainability(origin, ALLOW_INSECURE);
 
-    expect(result.status).toBe("ok");
-    if (result.status !== "ok") return;
-    expect(result.mediaType).toBe("other");
+    expect(result.status).toBe("wrong-media-type");
+    if (result.status !== "wrong-media-type") return;
+    expect(result.mediaType).toBeNull();
   });
 
   it("refuses a plain-HTTP origin by default — with no loopback exemption — and never makes the request", async () => {
@@ -769,7 +763,7 @@ describe("-06: media typing, the Accept header, and the HTTPS requirement", () =
       return res;
     }) as unknown as typeof fetch;
 
-    const result = await fetchSustainability("https://example.org", { fetchImpl });
+    const result = await fetchSustainability("https://example.org", { fetchImpl, ...PUBLIC_LOOKUP });
 
     expect(result.status).toBe("insecure-transport");
     if (result.status !== "insecure-transport") return;
@@ -788,15 +782,14 @@ describe("-06: media typing, the Accept header, and the HTTPS requirement", () =
       return res;
     }) as unknown as typeof fetch;
 
-    const result = await fetchSustainability("https://example.org", { fetchImpl });
+    const result = await fetchSustainability("https://example.org", { fetchImpl, ...PUBLIC_LOOKUP });
 
     expect(result.status).toBe("ok");
   });
 });
 
-describe("-06: non-https URI members are a warning, never a rejection", () => {
+describe("-07: non-https URI members are a warning, never a rejection", () => {
   const DOC_WITH_HTTP_URIS = {
-    version: "2.0",
     updated: "2026-01-01T00:00:00Z",
     capabilities: "basic",
     provider: "Warn Co",
@@ -840,5 +833,386 @@ describe("-06: non-https URI members are a warning, never a rejection", () => {
     expect(result.status).toBe("ok");
     if (result.status !== "ok") return;
     expect(result.warnings).toBeUndefined();
+  });
+});
+
+describe("-07 additions: closed base object, at-least-one rule, client-side object bound", () => {
+  const DOC = {
+    updated: "2026-01-01T00:00:00Z",
+    capabilities: "basic",
+    provider: "Seven Co",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://seven.example/methodology",
+    "reporting-period": "2026-01",
+    target: "seven.example",
+    "energy-consumption": 12,
+    "energy-unit": "kWh",
+  };
+
+  const serveJson = (body: unknown) =>
+    start((_req, res) => {
+      res.writeHead(200, { "Content-Type": MEDIA_TYPE });
+      res.end(typeof body === "string" ? body : JSON.stringify(body));
+    });
+
+  it("surfaces an unrecognized top-level member as a warning and keeps it in the declaration", async () => {
+    const origin = await serveJson({ ...DOC, version: "2.0", "com.example.pue": 1.4 });
+    const result = await fetchSustainability(origin, ALLOW_INSECURE);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.warnings?.filter((w) => w.startsWith("unknown-member"))).toHaveLength(2);
+    const doc = result.document as Record<string, unknown>;
+    expect(doc.version).toBe("2.0");
+    expect(doc["com.example.pue"]).toBe(1.4);
+    // Ignoring a member is not disregarding one: nothing was stripped.
+    expect(result.disregarded).toBeUndefined();
+  });
+
+  it("rejects an object carrying no metric and no evidence link (at-least-one MUST)", async () => {
+    const { "energy-consumption": _e, "energy-unit": _u, ...bare } = DOC;
+    const origin = await serveJson(bare);
+    const result = await fetchSustainability(origin, ALLOW_INSECURE);
+    expect(result.status).toBe("invalid");
+    if (result.status !== "invalid") return;
+    expect(result.errors.some((e) => /at least one/i.test(e))).toBe(true);
+  });
+
+  it("stays valid when tolerance disregards the only metric: the at-least-one rule is judged on the members as served", async () => {
+    // Draft -07 §Value Constraints and Omitted Metrics: the rule "is judged on
+    // the members the object carries as served", and "a consumer that
+    // disregards a defective value under the rules below does not thereby make
+    // the object non-conformant, it simply has less to read". A single carbon
+    // figure with an unrecognized carbon-unit is exactly that case: the
+    // figure is unusable, the declaration is not invalid.
+    const { "energy-consumption": _e, "energy-unit": _u, ...rest } = DOC;
+    const origin = await serveJson({ ...rest, "carbon-footprint": 4140, "carbon-unit": "tCO2e" });
+    const result = await fetchSustainability(origin, ALLOW_INSECURE);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    const doc = result.document as Record<string, unknown>;
+    expect(doc).not.toHaveProperty("carbon-unit");
+    expect(doc).not.toHaveProperty("carbon-footprint");
+    // The figure is reported as not usable through the existing channel.
+    expect(result.disregarded).toEqual(["carbon-unit", "carbon-footprint"]);
+  });
+
+  it("accepts the -07 extensions and upstream members verbatim", async () => {
+    const body = {
+      ...DOC,
+      extensions: { "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": { "water-consumption-m3": 1250 } },
+      upstream: [{ declaration: "https://cloud.example/tenants/acme.json", role: "cloud" }],
+    };
+    const origin = await serveJson(body);
+    const result = await fetchSustainability(origin, ALLOW_INSECURE);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.document).toEqual(body);
+    expect(result.warnings).toBeUndefined();
+    // Nothing inside an extensions value is dereferenced or executed: the
+    // value is data the consumer carries through untouched.
+    expect(result.upstream).toBeUndefined();
+  });
+
+  it("enforces its own object bound rather than trusting the server (too-many-objects)", async () => {
+    const trend = Array.from({ length: 12 }, (_, i) => ({
+      ...DOC,
+      "reporting-period": `2026-${String(i + 1).padStart(2, "0")}`,
+    }));
+    const origin = await serveJson(trend);
+    const capped = await fetchSustainability(origin, { ...ALLOW_INSECURE, maxObjects: 11 });
+    expect(capped).toEqual({ status: "too-many-objects", count: 12, max: 11 });
+    // Under the bound the same body is fine.
+    const ok = await fetchSustainability(origin, { ...ALLOW_INSECURE, maxObjects: 12 });
+    expect(ok.status).toBe("ok");
+    // The default bound is the consumer's, not the server's.
+    expect(DEFAULT_MAX_OBJECTS).toBe(500);
+  });
+});
+
+/**
+ * The -07 security revision: what a consumer checks about the RESPONSE rather
+ * than about the declaration — that the server answered what was asked, that
+ * a cross-origin redirect is not silently re-attributed, that media-type
+ * parameters are ignored, that a mandatory member takes no tolerance beyond
+ * `capabilities`, and that a body which is not an object or an array is said
+ * to be no declaration at all.
+ */
+describe("-07 security revision: response-level checks", () => {
+  const DOC = {
+    updated: "2026-01-01T00:00:00Z",
+    capabilities: "basic" as string | number,
+    provider: "Check Co",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://check.example/methodology",
+    "reporting-period": "2026-01",
+    target: "check.example",
+    "energy-consumption": 12,
+    "energy-unit": "kWh",
+  };
+
+  const serveJson = (body: unknown, contentType: string = MEDIA_TYPE) =>
+    start((_req, res) => {
+      res.writeHead(200, { "Content-Type": contentType });
+      res.end(typeof body === "string" ? body : JSON.stringify(body));
+    });
+
+  it("reports a server that ignored the period parameter and answered another period", async () => {
+    // Draft -07 §Extended Query Parameters: "a consumer MUST compare the
+    // `reporting-period` and `target` of every object it receives against what
+    // it requested, and MUST NOT record a response as covering a period or a
+    // subject it does not name".
+    const origin = await serveJson(DOC); // always the Basic response, whatever is asked
+    const result = await fetchSustainability(origin, { ...ALLOW_INSECURE, period: "2025-12" });
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.notAsRequested).toHaveLength(1);
+    expect(result.notAsRequested?.[0]).toContain('requested "2025-12"');
+    // The value the SERVER supplied is bidi-isolated before it is quoted.
+    expect(result.notAsRequested?.[0]).toContain("2026-01");
+    expect(result.notAsRequested?.[0]).toContain("MUST NOT be recorded as covering the period requested");
+    expect(result.warnings).toEqual(expect.arrayContaining(result.notAsRequested!));
+  });
+
+  it("reports a server that ignored the target parameter", async () => {
+    const origin = await serveJson(DOC);
+    const result = await fetchSustainability(origin, { ...ALLOW_INSECURE, target: "/api/v1" });
+    expect(result.status === "ok" && result.notAsRequested?.[0]).toContain('requested "/api/v1"');
+    expect(result.status === "ok" && result.notAsRequested?.[0]).toContain("check.example");
+  });
+
+  it("accepts a finer period within the one requested, and flags a coarser one", async () => {
+    // A `granularity` request legitimately answers 2026 with 2026-01..12:
+    // "one period is within another when every instant of the first is an
+    // instant of the second".
+    const months = [1, 2].map((m) => ({ ...DOC, "reporting-period": `2026-0${m}` }));
+    const within = await serveJson(months);
+    const ok = await fetchSustainability(within, { ...ALLOW_INSECURE, period: "2026", granularity: "monthly" });
+    expect(ok.status === "ok" && ok.notAsRequested).toBeUndefined();
+
+    const coarser = await serveJson({ ...DOC, "reporting-period": "2026" });
+    const bad = await fetchSustainability(coarser, { ...ALLOW_INSECURE, period: "2026-01" });
+    expect(bad.status === "ok" && bad.notAsRequested).toHaveLength(1);
+  });
+
+  it("every object of an array is compared with what was requested", async () => {
+    const trend = [
+      { ...DOC, "reporting-period": "2026-01" },
+      { ...DOC, "reporting-period": "2027-01" },
+    ];
+    const origin = await serveJson(trend);
+    const result = await fetchSustainability(origin, { ...ALLOW_INSECURE, period: "2026", granularity: "monthly" });
+    expect(result.status === "ok" && result.notAsRequested).toHaveLength(1);
+    expect(result.status === "ok" && result.notAsRequested?.[0]).toContain("object [1]");
+  });
+
+  it("does not attribute a declaration reached by a cross-origin redirect to the origin queried", async () => {
+    // Draft -07 §Mandatory Minimum Supported Service: the declaration is "a
+    // claim by that other origin", and MUST NOT be recorded as a declaration
+    // of the origin queried unless its `target` names that origin.
+    const respond = (doc: unknown) =>
+      (async () => {
+        const res = new Response(JSON.stringify(doc), { status: 200, headers: { "Content-Type": MEDIA_TYPE } });
+        Object.defineProperty(res, "url", { value: "https://elsewhere.example/.well-known/sustainability-data" });
+        Object.defineProperty(res, "redirected", { value: true });
+        return res;
+      }) as unknown as typeof fetch;
+
+    const foreign = await fetchSustainability("https://asked.example", { fetchImpl: respond(DOC), ...PUBLIC_LOOKUP });
+    expect(foreign.status).toBe("ok");
+    if (foreign.status !== "ok") return;
+    expect(foreign.redirectedAcrossOrigins).toEqual({
+      queried: "https://asked.example",
+      final: "https://elsewhere.example",
+      attributable: false,
+    });
+    expect(foreign.warnings?.some((w) => w.startsWith("cross-origin-redirect"))).toBe(true);
+    expect(foreign.url).toBe("https://elsewhere.example/.well-known/sustainability-data");
+
+    // ...unless the object's target names the origin that was queried.
+    const named = await fetchSustainability("https://asked.example", {
+      fetchImpl: respond({ ...DOC, target: "asked.example" }),
+      ...PUBLIC_LOOKUP,
+    });
+    expect(named.status === "ok" && named.redirectedAcrossOrigins?.attributable).toBe(true);
+  });
+
+  it("says nothing about attribution when the redirect stays on the origin queried", async () => {
+    const fetchImpl = (async () => {
+      const res = new Response(JSON.stringify(DOC), { status: 200, headers: { "Content-Type": MEDIA_TYPE } });
+      Object.defineProperty(res, "url", { value: "https://asked.example/elsewhere/.well-known/sustainability-data" });
+      Object.defineProperty(res, "redirected", { value: true });
+      return res;
+    }) as unknown as typeof fetch;
+    const r = await fetchSustainability("https://asked.example", { fetchImpl, ...PUBLIC_LOOKUP });
+    expect(r.status === "ok" && r.redirectedAcrossOrigins).toBeUndefined();
+  });
+
+  it("compares the media type ignoring its parameters", async () => {
+    // Draft -07: "A consumer compares the media type ignoring any parameters:
+    // this document defines none, and a consumer ignores any it receives."
+    for (const ct of [
+      `${MEDIA_TYPE}; charset=utf-8`,
+      `${MEDIA_TYPE};charset=UTF-8`,
+      `${MEDIA_TYPE} ; charset="utf-8"`,
+      `APPLICATION/SUSTAINABILITY-DATA+JSON; charset=utf-8`,
+    ]) {
+      const origin = await serveJson(DOC, ct);
+      const r = await fetchSustainability(origin, ALLOW_INSECURE);
+      expect(r.status, ct).toBe("ok");
+      expect(r.status === "ok" && r.mediaType, ct).toBe("sustainability-data+json");
+      server && (await new Promise<void>((done) => server!.close(() => done())));
+      server = undefined;
+    }
+    const legacy = await serveJson(DOC, `${LEGACY_MEDIA_TYPE}; charset=utf-8`);
+    const r = await fetchSustainability(legacy, ALLOW_INSECURE);
+    expect(r.status === "ok" && r.mediaType).toBe("json");
+  });
+
+  it("reads a defective `capabilities` as basic and leaves any other defective mandatory member non-conformant", async () => {
+    // Draft -07 §Value Constraints and Omitted Metrics: "a defective
+    // `capabilities` value is read as `basic`, and a defective value of any
+    // other mandatory member leaves the object non-conformant".
+    for (const wrong of [42, null, true, ["extended"], { v: "extended" }]) {
+      const origin = await serveJson({ ...DOC, capabilities: wrong });
+      const r = await fetchSustainability(origin, ALLOW_INSECURE);
+      expect(r.status, JSON.stringify(wrong)).toBe("ok");
+      if (r.status !== "ok") return;
+      expect((r.document as Record<string, unknown>).capabilities).toBe("basic");
+      expect(r.disregarded).toContain("capabilities");
+      server && (await new Promise<void>((done) => server!.close(() => done())));
+      server = undefined;
+    }
+    // An unrecognized string value reads as basic too.
+    const unknownValue = await serveJson({ ...DOC, capabilities: "premium" });
+    const u = await fetchSustainability(unknownValue, ALLOW_INSECURE);
+    expect(u.status === "ok" && (u.document as Record<string, unknown>).capabilities).toBe("basic");
+
+    // Every OTHER mandatory member is left exactly as served: non-conformant.
+    for (const member of ["updated", "provider", "measurement-method", "methodology-uri", "reporting-period", "target"]) {
+      const origin = await serveJson({ ...DOC, [member]: 42 });
+      const r = await fetchSustainability(origin, ALLOW_INSECURE);
+      expect(r.status, member).toBe("invalid");
+      expect(r.status === "invalid" && r.disregarded).toBeUndefined();
+      server && (await new Promise<void>((done) => server!.close(() => done())));
+      server = undefined;
+    }
+  });
+
+  it("disregards a wrongly typed `signed`, `upstream` or `extensions` and processes the object as though it were absent", async () => {
+    // Draft -07 §Value Constraints and Omitted Metrics: "For `signed`,
+    // `upstream` and `extensions`, a value of the wrong JSON type is
+    // disregarded and the object is processed as though the member were
+    // absent."
+    const origin = await serveJson({
+      ...DOC,
+      signed: 42,
+      upstream: "https://cloud.example/.well-known/sustainability-data",
+      extensions: [{ "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": {} }],
+    });
+    const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, verifySignature: true, followUpstream: true });
+    expect(r.status).toBe("ok");
+    if (r.status !== "ok") return;
+    expect(r.disregarded).toEqual(expect.arrayContaining(["signed", "upstream", "extensions"]));
+    const doc = r.document as Record<string, unknown>;
+    expect(doc.signed).toBeUndefined();
+    expect(doc.upstream).toBeUndefined();
+    expect(doc.extensions).toBeUndefined();
+    // Nothing is "unverified" and no chain is walked: the members were absent.
+    expect(r.signatures).toEqual([{ status: "unsigned" }]);
+    expect(r.upstream).toBeUndefined();
+  });
+
+  it("replays the not-as-requested signal through the client's 304 cache", async () => {
+    // The cached representation answered this same request, so the signal that
+    // the server ignored the parameter must not be lost on revalidation.
+    const ETAG = '"cached"';
+    let hits = 0;
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      hits++;
+      const headers = init?.headers as Record<string, string> | undefined;
+      if (headers?.["If-None-Match"] === ETAG) return new Response(null, { status: 304, headers: { ETag: ETAG } });
+      return new Response(JSON.stringify(DOC), {
+        status: 200,
+        headers: { "Content-Type": MEDIA_TYPE, ETag: ETAG },
+      });
+    }) as unknown as typeof fetch;
+
+    const client = new SustainabilityClient({ fetchImpl, ...PUBLIC_LOOKUP });
+    const first = await client.get("https://cached.example", { period: "2025-12" });
+    expect(first.status === "ok" && first.notAsRequested).toHaveLength(1);
+    const second = await client.get("https://cached.example", { period: "2025-12" });
+    expect(second.status).toBe("ok");
+    expect(second.status === "ok" && second.notAsRequested).toHaveLength(1);
+    expect(hits).toBe(2);
+  });
+
+  it("says plainly that a body whose top-level value is neither an object nor an array is not a declaration", async () => {
+    for (const body of ["42", '"a string"', "true", "null"]) {
+      const origin = await serveJson(body);
+      const r = await fetchSustainability(origin, ALLOW_INSECURE);
+      expect(r.status, body).toBe("invalid");
+      if (r.status !== "invalid") return;
+      expect(r.errors[0], body).toContain("is not a declaration");
+      expect(r.errors[0], body).toContain("one declaration object or an array of them");
+      server && (await new Promise<void>((done) => server!.close(() => done())));
+      server = undefined;
+    }
+  });
+});
+
+/**
+ * A `1e999` is a legal JSON number literal, and every JavaScript runtime parses
+ * it to `Infinity`. The media type registration names the hazard ("the
+ * implementation-dependent handling ... of numbers outside the range exactly
+ * representable in IEEE 754 double precision"), and draft -07 §Value
+ * Constraints and Omitted Metrics is clear that "a member that is present
+ * always carries an actual value". The fetch path therefore disregards such a
+ * member, records it, and never hands the caller a document that re-serializes
+ * with a `null` figure in it.
+ */
+describe("a numeric member that is not a finite number (1e999 off the wire)", () => {
+  const withBody = (body: string) =>
+    start((req, res) => {
+      if (req.url?.startsWith(WELL_KNOWN_PATH)) {
+        res.writeHead(200, { "Content-Type": MEDIA_TYPE });
+        res.end(body);
+      } else {
+        res.writeHead(404).end();
+      }
+    });
+
+  const doc = (extra: string) =>
+    '{"updated":"2026-01-01T00:00:00Z","capabilities":"basic","provider":"p",' +
+    '"measurement-method":"m","methodology-uri":"https://x.example/m",' +
+    '"reporting-period":"2026-01","target":"example.com"' +
+    extra +
+    "}";
+
+  it("disregards the member, reports it, and keeps the rest of the object", async () => {
+    const origin = await withBody(doc(',"carbon-footprint":1e999,"energy-consumption":12,"energy-unit":"kWh"'));
+    const r = await fetchSustainability(origin, ALLOW_INSECURE);
+    expect(r.status).toBe("ok");
+    if (r.status !== "ok") return;
+    expect(r.disregarded).toContain("carbon-footprint");
+    expect(r.document).not.toHaveProperty("carbon-footprint");
+    expect((r.document as Record<string, unknown>)["energy-consumption"]).toBe(12);
+    // Nothing the caller receives serializes back to a JSON `null` figure.
+    expect(JSON.stringify(r.document)).not.toContain("null");
+  });
+
+  it("an object whose ONLY figure is infinite reports nothing and is not a declaration", async () => {
+    const origin = await withBody(doc(',"carbon-footprint":1e999'));
+    const r = await fetchSustainability(origin, ALLOW_INSECURE);
+    expect(r.status).toBe("invalid");
+    if (r.status !== "invalid") return;
+    expect(r.errors.some((e) => /at least one/i.test(e))).toBe(true);
+  });
+
+  it("strict mode (legacyCompat: false) reports it as served, as a validation error", async () => {
+    const origin = await withBody(doc(',"carbon-footprint":1e999,"energy-consumption":12'));
+    const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, legacyCompat: false });
+    expect(r.status).toBe("invalid");
+    if (r.status !== "invalid") return;
+    expect(r.errors.join(" ")).toContain("carbon-footprint is Infinity");
   });
 });

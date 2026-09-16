@@ -1,0 +1,36 @@
+{
+  "updated": "2026-02-01T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "SYNTHETIC EXAMPLE — not a real organization and not a real inventory. Published by the gateway operator, Andrei Besleaga, as a reserved-name (RFC 2606 .example) test vector for a DOWNSTREAM organization that names the tenant-scoped declaration of the cloud provider its figures partly derive from, and that publishes data this specification does not define under the two extension names of the draft's own worked example, one in each of the two forms an extension name takes. Every number below is invented and describes nothing real. The upstream member points at the declaration this gateway serves for cloud-demo.example, so a consumer's chain walk genuinely resolves.",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/METHODOLOGY.md",
+  "reporting-period": "2025",
+  "target": "Tenant Demo Ltd",
+  "energy-consumption": 1.2,
+  "energy-unit": "GWh",
+  "carbon-footprint": 310,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 35,
+  "scope-2": 115,
+  "scope-3": 160,
+  "renewable-energy": 44,
+  "disclosure-uri": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/data/README.md",
+  "target-type": "organization",
+  "upstream": [
+    {
+      "declaration": "{base}/cloud-demo.example/.well-known/sustainability-data",
+      "role": "cloud"
+    }
+  ],
+  "extensions": {
+    "https://acme.example/esg/extensions/water-and-waste": {
+      "water-consumption-m3": 1250,
+      "waste-generated-kg": 340,
+      "waste-recycled-percent": 62
+    },
+    "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": {
+      "packaging-recycled-percent": 71
+    }
+  }
+}

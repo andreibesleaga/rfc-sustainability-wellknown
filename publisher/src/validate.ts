@@ -7,7 +7,8 @@
 import Ajv, { ValidateFunction } from "ajv/dist/jtd";
 import { PERIOD_RE } from "./normalize";
 import { RESPONSE_JTD_SCHEMA } from "./schema";
-import { SustainabilityDocument, SustainabilityMetrics } from "./types";
+import { extensionNameError, SustainabilityDocument, SustainabilityMetrics } from "./types";
+import { hasReportableContent } from "./util";
 
 const ajv = new Ajv({ allErrors: true });
 const validateObject: ValidateFunction = ajv.compile(RESPONSE_JTD_SCHEMA as unknown as object);
@@ -52,6 +53,23 @@ const NON_NEGATIVE_FIELDS = [
 const UPDATED_RE = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
 
 /**
+ * The URI-valued members of a declaration object other than
+ * `upstream[].declaration`, which is checked with the rest of that array.
+ * Draft §Optional Members: all of them "MUST be absolute URIs with the 'https'
+ * scheme". `methodology-uri` is mandatory, so it is always present.
+ */
+const URI_MEMBERS = ["methodology-uri", "verifiable-attestation-uri", "disclosure-uri"] as const;
+
+/** True for an absolute URI whose scheme is "https" (RFC 3986 absolute-URI). */
+function isAbsoluteHttpsUri(value: string): boolean {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Validate a single metrics object against the JTD schema.
  *
  * Enum membership for the enumerated string members — `capabilities`,
@@ -60,7 +78,8 @@ const UPDATED_RE = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{
  * in {@link RESPONSE_JTD_SCHEMA}), so an out-of-enum value fails here without
  * a separate prose check. The publisher never emits such a document; the
  * draft's unrecognized-value tolerance is a client-side rule applied by
- * `fromWire` when re-ingesting foreign documents.
+ * `fromWire` when re-ingesting foreign documents. Since -07 the schema's
+ * member set is CLOSED, so an unknown top-level member fails here too.
  */
 export function validateMetrics(obj: unknown): ValidationResult {
   const valid = validateObject(obj) as boolean;
@@ -98,13 +117,13 @@ export function validateMetrics(obj: unknown): ValidationResult {
       errors.push(`/renewable-energy must be between 0 and 100 inclusive (got ${renewable})`);
     }
 
-    // Draft §Optional Response Fields: "If sci-score is present,
+    // Draft §Optional Members: "If sci-score is present,
     // functional-unit MUST also be present." JTD cannot express dependencies.
     if (rec["sci-score"] !== undefined && rec["functional-unit"] === undefined) {
       errors.push("/sci-score requires functional-unit to be present");
     }
 
-    // Draft §Mandatory Response Fields: reporting-period uses the calendar
+    // Draft §Mandatory Members: reporting-period uses the calendar
     // forms YYYY, YYYY-MM, or YYYY-MM-DD. All Publisher paths normalize first
     // (which checks this), but validateDocument/assertValid are exported API —
     // guard hand-built documents here too (defense in depth).
@@ -122,6 +141,59 @@ export function validateMetrics(obj: unknown): ValidationResult {
     }
     if (rec["target"] === "") {
       errors.push("/target must not be empty (it names the reporting subject)");
+    }
+
+    // Draft §Value Constraints and Omitted Metrics: at least one numeric metric
+    // member, or disclosure-uri, or verifiable-attestation-uri.
+    if (!hasReportableContent(rec)) {
+      errors.push(
+        "/ carries no numeric metric member and neither disclosure-uri nor " +
+          "verifiable-attestation-uri (draft, Value Constraints and Omitted Metrics)",
+      );
+    }
+
+    // Draft §Extensions: the member names of `extensions` are absolute URIs —
+    // an "https" URI with a host, or `urn:uuid:` and a lowercase UUID, or any
+    // other absolute URI — and its values are objects. JTD's `values` form
+    // cannot constrain the keys.
+    const extensions = rec["extensions"];
+    if (typeof extensions === "object" && extensions !== null && !Array.isArray(extensions)) {
+      for (const [key, value] of Object.entries(extensions as Record<string, unknown>)) {
+        const why = extensionNameError(key);
+        if (why !== undefined) {
+          errors.push(`/extensions/${key} ${why}`);
+        }
+        if (typeof value !== "object" || value === null || Array.isArray(value)) {
+          errors.push(`/extensions/${key} must be a JSON object`);
+        }
+      }
+    }
+
+    // Draft §Optional Members: "The URI-valued members (`methodology-uri`,
+    // `verifiable-attestation-uri`, `disclosure-uri`, and
+    // `upstream[].declaration`) MUST be absolute URIs with the 'https' scheme."
+    // `normalize()` already refuses anything else, but `validateDocument` /
+    // `assertValid` are exported API and are the ONLY gate a hand-built
+    // document passes through — the `sustainability-sign` CLI validates a file
+    // it did not build with them, and must not sign a MUST-violating object.
+    for (const member of URI_MEMBERS) {
+      const value = rec[member];
+      if (value === undefined) continue;
+      if (typeof value !== "string" || !isAbsoluteHttpsUri(value)) {
+        errors.push(`/${member} must be an absolute https URI (got ${JSON.stringify(value)})`);
+      }
+    }
+
+    // Draft §Upstream Declarations: `declaration` is an absolute "https" URI.
+    const upstream = rec["upstream"];
+    if (Array.isArray(upstream)) {
+      if (upstream.length === 0) errors.push("/upstream must carry at least one entry");
+      upstream.forEach((entry, i) => {
+        const uri = (entry as Record<string, unknown> | null)?.["declaration"];
+        if (typeof uri !== "string" || !isAbsoluteHttpsUri(uri)) {
+          errors.push(`/upstream/${i}/declaration must be an absolute https URI`);
+        }
+      });
     }
   }
   return { valid: errors.length === 0, errors };

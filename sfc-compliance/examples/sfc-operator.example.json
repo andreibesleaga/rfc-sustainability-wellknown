@@ -1,0 +1,34 @@
+{
+  "updated": "2026-02-08T14:30:00Z",
+  "capabilities": "basic",
+  "provider": "SYNTHETIC EXAMPLE, not a real operator and not a real measurement. Published by the profile author, Andrei Besleaga, as a reserved-name (RFC 2606 .example) reference declaration for the operator level of the SFC profile. Every figure below is invented and describes nothing real.",
+  "measurement-method": "hardware-metered",
+  "methodology-uri": "https://operator7.example/methodology",
+  "reporting-period": "2025",
+  "target": "validator.operator7.example",
+  "target-type": "origin",
+  "energy-consumption": 4820,
+  "energy-unit": "kWh",
+  "carbon-footprint": 0.19,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-2": 0.19,
+  "carbon-intensity-gCO2e-per-kWh": 39.4,
+  "renewable-energy": 90,
+  "disclosure-uri": "https://operator7.example/disclosures",
+  "upstream": [
+    { "declaration": "https://cloud.example/tenants/operator7.json", "role": "cloud" },
+    { "declaration": "https://greenpower.example/.well-known/sustainability-data", "role": "electricity" }
+  ],
+  "extensions": {
+    "https://andreibesleaga.com/sfc/extensions/hardware-lifecycle": {
+      "general-purpose-hardware": true,
+      "single-use-asic-required": false,
+      "expected-service-life-years": 6
+    },
+    "https://andreibesleaga.com/sfc/extensions/network-topology": {
+      "member-of-network": "ledger.example",
+      "network-declaration": "https://ledger.example/.well-known/sustainability-data"
+    }
+  }
+}

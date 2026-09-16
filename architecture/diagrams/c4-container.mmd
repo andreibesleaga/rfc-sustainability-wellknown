@@ -18,7 +18,7 @@ flowchart TB
             FETCH["Fetch + Validate Library<br/>[Container: TypeScript]<br/>fetchSustainability: timeout & byte caps ·<br/>legacy-compat pre-pass · JTD + cross-entry rules"]
             SCLI["SustainabilityClient<br/>[Container: TypeScript]<br/>ETag-cached polling"]
             TR["Transforms<br/>[Container: TypeScript]<br/>CSV · NDJSON · flatten · aggregate"]
-            FCLI["sustainability-fetch CLI<br/>[Container: Node bin]<br/>--strict = 6-check conformance battery<br/>against any origin"]
+            FCLI["sustainability-fetch CLI<br/>[Container: Node bin]<br/>--strict = 8-check conformance battery<br/>against any origin"]
         end
 
         SCHEMAS["Formal Schemas + Validators<br/>[Container: CDDL (RFC 8610) + JTD (RFC 8927)]<br/>schemas-validators/: dual Python/Ruby validators;<br/>schema copies embedded in both packages,<br/>byte-equality checked in CI"]

@@ -2,6 +2,7 @@
 import { fetchSustainability, FetchOptions } from "./fetch";
 import { FetchParams, FetchResult, SustainabilityDocument, SustainabilityMetrics } from "./types";
 import { MediaTypeClassification } from "./media-type";
+import { AddressLookup } from "./transport";
 
 export interface SustainabilityClientOptions {
   fetchImpl?: typeof fetch;
@@ -18,6 +19,10 @@ export interface SustainabilityClientOptions {
    * see fetchSustainability. Local development and CI only.
    */
   allowInsecure?: boolean;
+  /** Resolver for the address check applied to every fetch; see fetchSustainability. */
+  lookup?: AddressLookup;
+  /** Opt out of the address check on every fetch (default: the value of `allowInsecure`). */
+  allowPrivateAddresses?: boolean;
 }
 
 interface CacheEntry {
@@ -29,6 +34,9 @@ interface CacheEntry {
   warnings?: string[];
   legacy?: boolean;
   disregarded?: string[];
+  /** Carried through a 304 replay: the cached representation answered the same request. */
+  notAsRequested?: string[];
+  redirectedAcrossOrigins?: { queried: string; final: string; attributable: boolean };
 }
 
 export class SustainabilityClient {
@@ -56,6 +64,8 @@ export class SustainabilityClient {
       maxBytes: this.options.maxBytes,
       legacyCompat: this.options.legacyCompat,
       allowInsecure: this.options.allowInsecure,
+      allowPrivateAddresses: this.options.allowPrivateAddresses,
+      lookup: this.options.lookup,
     } satisfies FetchOptions);
 
     if (result.status === "not-modified" && cached) {
@@ -68,6 +78,12 @@ export class SustainabilityClient {
         // the cached representation was served under.
         mediaType: cached.mediaType,
         ...(cached.warnings ? { warnings: cached.warnings } : {}),
+        // A 304 replays the representation that answered this same request, so
+        // the "did the server answer what was asked" signal is replayed with
+        // it: a cached entry must not lose it (draft -07 §Extended Query
+        // Parameters).
+        ...(cached.notAsRequested ? { notAsRequested: cached.notAsRequested } : {}),
+        ...(cached.redirectedAcrossOrigins ? { redirectedAcrossOrigins: cached.redirectedAcrossOrigins } : {}),
         ...(cached.legacy ? { legacy: true } : {}),
         ...(cached.disregarded ? { disregarded: cached.disregarded } : {}),
       };
@@ -83,6 +99,8 @@ export class SustainabilityClient {
         document: result.document,
         mediaType: result.mediaType,
         warnings: result.warnings,
+        notAsRequested: result.notAsRequested,
+        redirectedAcrossOrigins: result.redirectedAcrossOrigins,
         legacy: result.legacy,
         disregarded: result.disregarded,
       });

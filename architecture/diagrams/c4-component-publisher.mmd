@@ -22,7 +22,7 @@ flowchart TB
             A7["enterprise/: salesforce-nzc,<br/>ms-sustainability, watershed"]
         end
         NORM["normalize.ts<br/>units (J→kWh, Wh↔GWh, g↔mt), carbon = energy × intensity,<br/>defaults, PERIOD_RE, mandatory target, range checks"]
-        SEC["security.ts — secureReports()<br/>daily floor · sort ascending · cap 366 (keep newest) ·<br/>optional deterministic ~1% noise"]
+        SEC["security.ts — secureReports()<br/>daily floor · sort ascending · cap 366 (keep newest;<br/>a deployment safeguard, not a -07 requirement) ·<br/>optional deterministic ~1% noise"]
         VAL["validate.ts — JTD gate (ajv/jtd)<br/>+ prose rules: non-negative, 0–100, sci↔functional-unit,<br/>finite numbers, cross-entry array rules"]
         SCH["schema.ts<br/>embedded RESPONSE_JTD_SCHEMA<br/>(byte-equal to schemas-validators/, CI-checked)"]
         PUBL["publisher.ts — Publisher<br/>orchestrates build(); single-vs-array shape rule;<br/>bounded in-memory cache (TTL 24h, 256 keys) + SHA-1 ETag"]

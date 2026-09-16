@@ -1,0 +1,42 @@
+{
+  "updated": "2026-02-10T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "SYNTHETIC FIXTURE, invented figures, reserved .example name (RFC 2606).",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://ledger.example/sustainability/methodology-2025",
+  "reporting-period": "2025",
+  "target": "ledger.example",
+  "target-type": "service",
+  "energy-consumption": 800,
+  "energy-unit": "MWh",
+  "carbon-footprint": 95.5,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 0,
+  "scope-2": 33.1,
+  "scope-3": 62.4,
+  "carbon-intensity-gCO2e-per-kWh": 41.4,
+  "renewable-energy": 82,
+  "verifiable-attestation-uri": "https://assurance.example/vc/ledger-example-2025",
+  "disclosure-uri": "http://ledger.example/sustainability/disclosures",
+  "extensions": {
+    "https://andreibesleaga.com/sfc/extensions/hardware-lifecycle": {
+      "general-purpose-hardware": true,
+      "single-use-asic-required": false,
+      "expected-service-life-years": 5
+    },
+    "https://andreibesleaga.com/sfc/extensions/carbon-neutrality": {
+      "net-zero-status": "achieved",
+      "renewable-procurement": "power-purchase-agreements",
+      "offsets-retired-tCO2e": 95.5,
+      "offset-registry-uri": "https://registry.example/retirements/ledger-example-2025",
+      "offsets-attested-by": "Third Party Assurance Ltd."
+    },
+    "https://andreibesleaga.com/sfc/extensions/network-topology": {
+      "consensus-mechanism": "proof-of-stake",
+      "validated-node-count": 137,
+      "node-count-validation-method": "signed block attribution over the 2025 calendar year",
+      "per-transaction-energy-Wh": 0.06
+    }
+  }
+}

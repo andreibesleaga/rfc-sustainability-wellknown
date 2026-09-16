@@ -1,0 +1,45 @@
+name: sfc-compliance
+
+on:
+  push:
+    paths:
+      - "sfc-compliance/**"
+      - ".github/workflows/sfc-compliance.yml"
+  pull_request:
+    paths:
+      - "sfc-compliance/**"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sfc-compliance
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      # `sfc-compliance` has NO lockfile by design: it depends on exactly one
+      # package, the PUBLISHED consumer, and is meant to demonstrate that the
+      # profile can be checked with nothing but what is on the registry. So
+      # `npm install`, never `npm ci`.
+      #
+      # THIS JOB IS RED UNTIL `sustainability-wellknown-consumer@0.7.0` IS
+      # PUBLISHED TO npm. Until then the install resolves nothing that satisfies
+      # `^0.7.0` and the job fails on the first step. That is deliberate: it is
+      # the same signal gateway.yml gives, and it goes green the moment the
+      # owner publishes the release. Locally the same suite runs against the
+      # tarball in ../consumer (see sfc-compliance/README.md).
+      - name: Install the published consumer
+        run: npm install
+
+      - name: Test
+        run: npm test
+
+      - name: Check the network-level reference declaration
+        run: node sfc-check.mjs examples/sfc-network.example.json
+
+      - name: Check the operator-level reference declaration
+        run: node sfc-check.mjs examples/sfc-operator.example.json

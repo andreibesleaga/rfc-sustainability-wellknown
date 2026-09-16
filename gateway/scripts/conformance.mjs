@@ -12,13 +12,13 @@
  * subjects under a path prefix, so each subject run injects a `fetch` that
  * rewrites that one path. Every other check is unmodified.
  *
- * `--allow-http` (anywhere in argv) permits a non-HTTPS origin — consumer
- * 0.6.0 refuses `http:` by default (`{ status: "insecure-transport" }`) — and
- * is what CI needs to reach a local `http://127.0.0.1:...` instance.
+ * `--allow-http` (anywhere in argv) permits a non-HTTPS origin — the consumer
+ * refuses `http:` by default (`{ status: "insecure-transport" }`) — and is
+ * what CI needs to reach a local `http://127.0.0.1:...` instance.
  *
  * Exit code 0 if every MUST-level check passes for every subject, 1 otherwise.
- * A `warn` (e.g. a subject still on the pre-06 media type) is reported but
- * never sets a non-zero exit code.
+ * A `warn` (e.g. a subject still on the generic `application/json` media type)
+ * is reported but never sets a non-zero exit code.
  */
 import { runConformanceChecks } from "sustainability-wellknown-consumer";
 
@@ -34,15 +34,13 @@ if (!origin) {
 const base = origin.replace(/\/+$/, "");
 const options = { allowInsecure: allowHttp };
 
-// The document path AND its signature companion are rewritten under the
-// subject's prefix: the battery's signature check (consumer >= 0.6.5) fetches
-// `/.well-known/sustainability-data.jws`, and a per-subject run must see the
-// subject's own (404, "not published") signature path, never the root one.
+// Only the well-known path is rewritten under the subject's prefix. Since -07
+// that is the ONE resource the specification defines: the signature is a
+// member of the declaration, so there is no companion path to re-point, and
+// the battery's signature check reads the body it already fetched.
 const prefixed = (domain) => (input, init) => {
   const u = new URL(typeof input === "string" ? input : input.toString());
-  if (u.pathname === WELL_KNOWN || u.pathname === `${WELL_KNOWN}.jws`) {
-    u.pathname = `/${domain}${u.pathname}`;
-  }
+  if (u.pathname === WELL_KNOWN) u.pathname = `/${domain}${u.pathname}`;
   return fetch(u, init);
 };
 

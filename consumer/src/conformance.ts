@@ -3,10 +3,10 @@
  * origin — usable against this repo's own implementations or any third
  * party's, not just via the CLI's --strict flag.
  */
-import { DEFAULT_TIMEOUT_MS, fetchSustainability, verifyDocumentSignature } from "./fetch";
+import { DEFAULT_TIMEOUT_MS, fetchSustainability } from "./fetch";
 import { resolveWellKnownUrl } from "./fetch";
-import { JOSE_MEDIA_TYPE } from "./jws";
 import { ACCEPT_HEADER, classifyMediaType, LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "./media-type";
+import { AddressLookup } from "./transport";
 
 /**
  * BCP 14 strength of the requirement a check tests. This matters for reporting:
@@ -23,10 +23,11 @@ export type ConformanceLevel = "MUST" | "SHOULD";
  *  - `"fail"` — it is not met (a failed MUST is non-conformance and sets the
  *    battery's exit code; a failed SHOULD is an unmet recommendation);
  *  - `"warn"` — deliberately neither: a state this battery reports but does not
- *    hold against the origin. The one case today is a publisher still serving
- *    the pre-06 `application/json` media type: valid for -05, not conformant
- *    with -06, and not something to fail an origin over while the dedicated
- *    media type is still awaiting IANA registration.
+ *    hold against the origin. The cases today are a publisher still serving
+ *    the generic `application/json` media type (which the draft has consumers
+ *    keep processing, and which is not something to fail an origin over while
+ *    the dedicated media type awaits IANA registration) and a verified
+ *    signature whose payload differs from the plain members.
  *
  * A `warn` never affects {@link ConformanceReport.allPassed} nor the CLI's
  * exit code — it renders as `WARN`, like an unmet SHOULD.
@@ -100,6 +101,22 @@ export interface ConformanceOptions {
    * whatever URL the caller named either way.
    */
   allowInsecure?: boolean;
+  /** Resolver for the address check, forwarded to fetchSustainability. */
+  lookup?: AddressLookup;
+  /** Opt out of the address check (default: the value of `allowInsecure`). */
+  allowPrivateAddresses?: boolean;
+  /**
+   * The clock the battery reads, `() => new Date()` by default.
+   *
+   * It has exactly one use: choosing the year the Extended granularity check
+   * asks about, which is the current one — the period a live publisher is most
+   * likely to hold entries for. Nothing else in the battery reads it, and no
+   * verdict depends on it (a publisher holding nothing for that year answers
+   * `404`, which the check accepts). Pass a fixed clock so a run is reproducible
+   * and a recorded request URL does not change with the date, as the publisher
+   * package's `PublisherOptions.now` does for the aggregation rule.
+   */
+  now?: () => Date;
 }
 
 export async function runConformanceChecks(
@@ -108,13 +125,14 @@ export async function runConformanceChecks(
   options: ConformanceOptions = {},
 ): Promise<ConformanceReport> {
   const checks: ConformanceCheck[] = [];
-  const { timeoutMs, maxBytes, allowInsecure } = options;
+  const { timeoutMs, maxBytes, allowInsecure, allowPrivateAddresses, lookup } = options;
+  const year = (options.now ?? (() => new Date()))().getUTCFullYear().toString();
   // legacyCompat is disabled here on purpose: a conformance checker must see
   // the document as served. With the pre-pass on, a document missing the
   // mandatory `target` member would get the origin host injected and pass the
   // schema gate — masking exactly the non-conformance this battery exists to
   // detect. (The Basic check below thus inherently requires `target`.)
-  const fetchOpts = { fetchImpl, timeoutMs, maxBytes, legacyCompat: false, allowInsecure };
+  const fetchOpts = { fetchImpl, timeoutMs, maxBytes, legacyCompat: false, allowInsecure, allowPrivateAddresses, lookup };
   /** Signal for the raw (non-fetchSustainability) probes below, so they can't hang either. */
   // Raw probes get the same default timeout as fetchSustainability — a
   // hanging origin must not stall the battery on undici's ~5-minute defaults.
@@ -130,14 +148,14 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    // -06 §Mandatory Minimum Supported Service: a 200 response MUST use the
-    // registered `application/sustainability-data+json` media type and MUST
-    // NOT use any other. A publisher still on the pre-06 `application/json`
-    // is reported as WARN rather than FAIL: such documents are what -06 tells
-    // clients to keep accepting, the dedicated type is still awaiting IANA
-    // registration, and failing every deployed -05 publisher over it would
-    // make the battery useless during exactly the transition it exists for.
-    // Anything else is a fail — including a missing Content-Type.
+    // Draft -07 §Mandatory Minimum Supported Service: a 200 response MUST
+    // carry `application/sustainability-data+json` and MUST NOT carry any
+    // other media type. A publisher still serving the generic
+    // `application/json` is reported as WARN rather than FAIL: the draft has
+    // consumers keep processing those (declarations published before the
+    // registration exist under it) and the type is still awaiting IANA
+    // registration. Anything else is a fail — including a missing
+    // Content-Type, since a response of another type is not a declaration.
     await check(`Basic 200 response uses the ${MEDIA_TYPE} media type`, "MUST", async () => {
       const res = await fetchImpl(resolveWellKnownUrl(origin).toString(), {
         method: "GET",
@@ -154,7 +172,7 @@ export async function runConformanceChecks(
         case "json":
           return {
             outcome: "warn",
-            detail: `pre-06 media type (${LEGACY_MEDIA_TYPE}): v05-compatible, not v06-conformant`,
+            detail: `generic media type (${LEGACY_MEDIA_TYPE}): processed, but a conformant 200 response carries ${MEDIA_TYPE}`,
           };
         default:
           return `Content-Type is neither ${MEDIA_TYPE} nor ${LEGACY_MEDIA_TYPE}: "${raw ?? ""}"`;
@@ -163,67 +181,37 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    // -06 §Mandatory Minimum Supported Service: "servers SHOULD send
-    // `X-Content-Type-Options: nosniff` on responses to the well-known URI,
-    // so that a client cannot be induced to interpret the document as some
-    // other, more dangerous type".
-    await check("Response sends X-Content-Type-Options: nosniff", "SHOULD", async () => {
-      const res = await fetchImpl(resolveWellKnownUrl(origin).toString(), {
-        method: "GET",
-        headers: { Accept: ACCEPT_HEADER },
-        signal: rawSignal(),
-      });
-      await res.arrayBuffer().catch(() => undefined);
-      const raw = res.headers.get("x-content-type-options");
-      return (
-        (raw ?? "").trim().toLowerCase() === "nosniff" ||
-        `X-Content-Type-Options is not "nosniff": "${raw ?? ""}"`
-      );
-    }),
-  );
-
-  checks.push(
-    // -06 §Document Signing: the detached signature resource is OPTIONAL. A
-    // 404 there "means only that the publisher does not sign" (pass). When it
-    // IS published it must be a detached JWS that verifies over the exact
-    // octets of the parameterless document, under an asymmetric algorithm
-    // (`none` and MACs MUST be rejected); a signature served under a media
-    // type other than application/jose is a SHOULD gap (warn), not a failure.
+    // Draft -07 §Signing: the `signed` member is OPTIONAL and a consumer
+    // checks it only when it is present. Absent (`unsigned`) is therefore a
+    // pass — it means only that the publisher does not sign. When it IS
+    // published it must verify under an asymmetric algorithm with the
+    // required `cty`; a member that does not verify is a MUST failure, and a
+    // payload that differs from the served members is reported, not failed
+    // (which set of members a consumer USES depends on how far the key is
+    // trusted — see SignatureResult.precedence).
     await check(
-      "Detached signature resource (OPTIONAL): absent, or present and verifiable over the served bytes",
+      "Embedded signature (OPTIONAL `signed` member): absent, or present and verifiable",
       "MUST",
       async () => {
-        const res = await fetchImpl(resolveWellKnownUrl(origin).toString(), {
-          method: "GET",
-          headers: { Accept: ACCEPT_HEADER },
-          signal: rawSignal(),
-        });
-        const bytes = new Uint8Array(await res.arrayBuffer());
-        if (res.status !== 200) return `expected 200 for the Basic request, got ${res.status}`;
-        const sig = await verifyDocumentSignature(origin, bytes, {
-          fetchImpl,
-          timeoutMs,
-          allowInsecure,
-          documentOrigin: res.url ? new URL(res.url).origin : undefined,
-        });
-        switch (sig.status) {
-          case "absent":
-            return { outcome: "pass", detail: "not published (optional)" };
-          case "verified": {
-            const who = `${sig.alg}${sig.kid ? ` kid=${sig.kid}` : ""} (key from ${sig.keySource === "trusted" ? "pinned key" : "signature header"})`;
-            if (!sig.mediaTypeOk) {
-              return {
-                outcome: "warn",
-                detail: `verified ${who}, but served as "${sig.mediaType ?? ""}" rather than ${JOSE_MEDIA_TYPE} (draft SHOULD)`,
-              };
-            }
-            return { outcome: "pass", detail: `verified ${who}` };
-          }
-          case "unverified":
-            return `signature published but not verifiable over the served bytes: ${sig.reason}${sig.detail ? ` (${sig.detail})` : ""}`;
-          default:
-            return "unexpected signature outcome";
+        const r = await fetchSustainability(origin, { ...fetchOpts, verifySignature: true });
+        if (r.status !== "ok") return `expected ok, got ${r.status}`;
+        const outcomes = r.signatures ?? [];
+        if (outcomes.length === 0) return { outcome: "pass", detail: "no declaration object to check" };
+        const failed = outcomes.find((s) => s.status === "unverified");
+        if (failed && failed.status === "unverified") {
+          return `signed member present but not verifiable: ${failed.reason}${failed.detail ? ` (${failed.detail})` : ""}`;
         }
+        const verified = outcomes.filter((s) => s.status === "verified");
+        if (verified.length === 0) return { outcome: "pass", detail: "not signed (optional)" };
+        const first = verified[0];
+        if (first.status !== "verified") return "unexpected signature outcome";
+        const who =
+          `${first.alg}${first.kid ? ` kid=${first.kid}` : ""} (key from ` +
+          `${first.keySource === "trusted" ? "pinned key; the payload's members take precedence" : "signature header; the members served by the origin remain in use"})`;
+        if (verified.some((s) => s.status === "verified" && s.modifiedAfterSigning)) {
+          return { outcome: "warn", detail: `verified ${who}, but the served members differ from the signed payload` };
+        }
+        return { outcome: "pass", detail: `verified ${who}` };
       },
     ),
   );
@@ -256,7 +244,7 @@ export async function runConformanceChecks(
 
   checks.push(
     await check("Extended granularity request returns a valid response (sorted array when honored)", "MUST", async () => {
-      const r = await fetchSustainability(origin, { ...fetchOpts, period: new Date().getUTCFullYear().toString(), granularity: "monthly" });
+      const r = await fetchSustainability(origin, { ...fetchOpts, period: year, granularity: "monthly" });
       if (r.status === "not-found") return true; // server may have no data for this year; not a conformance failure
       if (r.status !== "ok") return `expected ok or not-found, got ${r.status}`;
       // The draft's array-when-finer-granularity rule is a SHOULD: a server
@@ -272,8 +260,8 @@ export async function runConformanceChecks(
   return {
     origin,
     checks,
-    // Computed from `outcome`, not from `pass`: a MUST-level WARN (the pre-06
-    // media type) must not read as non-conformance.
+    // Computed from `outcome`, not from `pass`: a MUST-level WARN (the
+    // generic media type) must not read as non-conformance.
     allPassed: checks.every((c) => c.outcome !== "fail" || c.level !== "MUST"),
     allPassedIncludingRecommended: checks.every((c) => c.outcome === "pass"),
   };

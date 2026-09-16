@@ -96,7 +96,7 @@ export function climatiqAdapter(config: ClimatiqConfig): SourceAdapter {
       }
 
       // Note: the emission_factor id is intentionally not copied into the payload.
-      // The schemas are open (vendor extensions pass through `raw.extra`), but
+      // It could travel under `raw.extensions` (the base object is closed), but
       // factor provenance belongs behind `methodology-uri` rather than as an
       // ad-hoc extension member.
       return {

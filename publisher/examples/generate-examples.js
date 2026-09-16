@@ -183,7 +183,6 @@ async function main() {
   //    fromWire() and re-normalized (round-trip fidelity, not a passthrough).
   const staticSrc = path.join(ORIG, "static-source-document.json");
   const staticDoc = {
-    version: "2.0",
     updated: "2026-06-01T00:00:00Z",
     capabilities: "basic",
     provider: "Small Business Hosting (hello@smallbiz.example)",

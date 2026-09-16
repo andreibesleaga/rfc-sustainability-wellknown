@@ -1,31 +1,122 @@
 {
   "properties": {
-    "version": { "type": "string" },
-    "updated": { "type": "string" },
-    "capabilities": { "enum": ["basic", "extended"] },
-    "provider": { "type": "string" },
-    "measurement-method": { "type": "string" },
-    "methodology-uri": { "type": "string" },
-    "reporting-period": { "type": "string" },
-    "target": { "type": "string" }
+    "updated": {
+      "type": "string"
+    },
+    "capabilities": {
+      "enum": [
+        "basic",
+        "extended"
+      ]
+    },
+    "provider": {
+      "type": "string"
+    },
+    "measurement-method": {
+      "type": "string"
+    },
+    "methodology-uri": {
+      "type": "string"
+    },
+    "reporting-period": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    }
   },
   "optionalProperties": {
-    "energy-consumption": { "type": "float64" },
-    "energy-unit": { "enum": ["Wh", "kWh", "MWh", "GWh"] },
-    "carbon-footprint": { "type": "float64" },
-    "carbon-unit": { "enum": ["gCO2e", "kgCO2e", "mtCO2e"] },
-    "carbon-accounting": { "enum": ["location-based", "market-based"] },
-    "scope-1": { "type": "float64" },
-    "scope-2": { "type": "float64" },
-    "scope-3": { "type": "float64" },
-    "sci-score": { "type": "float64" },
-    "functional-unit": { "type": "string" },
-    "carbon-intensity-gCO2e-per-kWh": { "type": "float64" },
-    "estimated-annual-emissions-kgCO2e": { "type": "float64" },
-    "renewable-energy": { "type": "float64" },
-    "verifiable-attestation-uri": { "type": "string" },
-    "disclosure-uri": { "type": "string" },
-    "target-type": { "enum": ["origin", "path", "organization", "service", "product", "device", "tenant", "data-source"] }
-  },
-  "additionalProperties": true
+    "energy-consumption": {
+      "type": "float64"
+    },
+    "energy-unit": {
+      "enum": [
+        "Wh",
+        "kWh",
+        "MWh",
+        "GWh"
+      ]
+    },
+    "carbon-footprint": {
+      "type": "float64"
+    },
+    "carbon-unit": {
+      "enum": [
+        "gCO2e",
+        "kgCO2e",
+        "mtCO2e"
+      ]
+    },
+    "carbon-accounting": {
+      "enum": [
+        "location-based",
+        "market-based"
+      ]
+    },
+    "scope-1": {
+      "type": "float64"
+    },
+    "scope-2": {
+      "type": "float64"
+    },
+    "scope-3": {
+      "type": "float64"
+    },
+    "sci-score": {
+      "type": "float64"
+    },
+    "functional-unit": {
+      "type": "string"
+    },
+    "carbon-intensity-gCO2e-per-kWh": {
+      "type": "float64"
+    },
+    "estimated-annual-emissions-kgCO2e": {
+      "type": "float64"
+    },
+    "renewable-energy": {
+      "type": "float64"
+    },
+    "verifiable-attestation-uri": {
+      "type": "string"
+    },
+    "disclosure-uri": {
+      "type": "string"
+    },
+    "target-type": {
+      "enum": [
+        "origin",
+        "path",
+        "organization",
+        "service",
+        "product",
+        "device",
+        "tenant",
+        "data-source"
+      ]
+    },
+    "upstream": {
+      "elements": {
+        "properties": {
+          "declaration": {
+            "type": "string"
+          }
+        },
+        "optionalProperties": {
+          "role": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "extensions": {
+      "values": {
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    "signed": {
+      "type": "string"
+    }
+  }
 }

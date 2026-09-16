@@ -1,14 +1,19 @@
 /**
- * The JSON Type Definition (RFC 8927) schema for a single metrics object.
+ * The JSON Type Definition (RFC 8927) schema for one declaration object.
  *
  * This is an exact, embedded copy of `schemas-validators/response-schema.json`
  * from the repository root. It is the single source of truth used by the
  * runtime validation gate. `test/conformance.test.ts` asserts this object stays
- * byte-for-byte equal to the repo schema, so drift is caught in CI.
+ * equal to the repo schema as a JSON value, so drift is caught in CI.
+ *
+ * Draft -07: the member set is CLOSED (no `additionalProperties`, no `version`),
+ * and `upstream`, `extensions` and `signed` are OPTIONAL members. The range
+ * rules, the absolute-URI form of the `extensions` keys, the at-least-one rule and the
+ * array ordering rules are prose rules the schema cannot express; `validate.ts`
+ * enforces them alongside it.
  */
 export const RESPONSE_JTD_SCHEMA = {
   properties: {
-    version: { type: "string" },
     updated: { type: "string" },
     capabilities: { enum: ["basic", "extended"] },
     provider: { type: "string" },
@@ -33,9 +38,14 @@ export const RESPONSE_JTD_SCHEMA = {
     "renewable-energy": { type: "float64" },
     "verifiable-attestation-uri": { type: "string" },
     "disclosure-uri": { type: "string" },
-    "target-type": {
-      enum: ["origin", "path", "organization", "service", "product", "device", "tenant", "data-source"],
+    "target-type": { enum: ["origin", "path", "organization", "service", "product", "device", "tenant", "data-source"] },
+    upstream: {
+      elements: {
+        properties: { declaration: { type: "string" } },
+        optionalProperties: { role: { type: "string" } },
+      },
     },
+    extensions: { values: { properties: {}, additionalProperties: true } },
+    signed: { type: "string" },
   },
-  additionalProperties: true,
 } as const;

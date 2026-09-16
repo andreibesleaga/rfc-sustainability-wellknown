@@ -5,7 +5,6 @@ import { SustainabilityMetrics } from "../src/types";
 
 function metrics(overrides: Partial<SustainabilityMetrics> = {}): SustainabilityMetrics {
   return {
-    version: "2.0",
     updated: "2026-01-01T00:00:00Z",
     capabilities: "basic",
     provider: "example.com",
@@ -327,7 +326,6 @@ describe("final-audit fix: aggregate drops non-aggregatable per-entry metrics", 
   it("summary omits scopes/sci-score/renewable/intensity/annual from the first entry", () => {
     const entry = (period: string, over: Record<string, unknown> = {}) =>
       ({
-        version: "2.0",
         updated: "2026-01-01T00:00:00Z",
         capabilities: "extended",
         provider: "p",
@@ -352,7 +350,10 @@ describe("final-audit fix: aggregate drops non-aggregatable per-entry metrics", 
     expect(summary).not.toHaveProperty("sci-score");
     expect(summary).not.toHaveProperty("renewable-energy");
     expect(summary["carbon-footprint"]).toBe(10000); // 5+5 kg -> g
-    expect(validateDocument(summary).valid).toBe(true);
+    // …and it is NOT a declaration: everything else about it is well formed,
+    // so the only thing standing between a summary and the wire is its RANGE
+    // reporting-period — which is exactly why that must not validate.
+    expect(validateDocument(summary).valid).toBe(false);
   });
 });
 
@@ -374,7 +375,8 @@ describe("-04: target-type through the transformations", () => {
     ];
     const summary = aggregate(entries, { by: "sum" });
     expect(summary["target-type"]).toBe("origin");
-    expect(validateDocument(summary).valid).toBe(true);
+    // A summary is still not a declaration, however uniform its inputs were.
+    expect(validateDocument(summary).valid).toBe(false);
   });
 
   it("aggregate omits target-type when entries mix values or only some entries carry it", () => {
@@ -425,5 +427,49 @@ describe("final pre-tag fixes: CSV escaping + aggregate vendor exclusion", () =>
     expect(summary).not.toHaveProperty("scope-1");
     // freshest updated wins
     expect(summary.updated).toBe(entries[1].updated);
+  });
+});
+
+/**
+ * R7: `aggregate()` returns an {@link AggregateSummary}, not a declaration. Its
+ * `reporting-period` is a RANGE — `"2026-01..2026-02"` — which is none of the
+ * three forms draft -07 §Mandatory Members defines, and `reporting-period` is a
+ * mandatory member whose defective value "leaves the object non-conformant".
+ * That is the runtime guarantee behind the type: a summary cannot be published,
+ * signed, or round-tripped as a declaration, because the validator refuses it.
+ */
+describe("an aggregate summary is not a declaration", () => {
+  const trend = [
+    metrics({ "reporting-period": "2026-01", "energy-consumption": 100 }),
+    metrics({ "reporting-period": "2026-02", "energy-consumption": 200 }),
+  ];
+
+  it("carries a range reporting-period, and validateDocument refuses it", () => {
+    const summary = aggregate(trend, { by: "sum" });
+    expect(summary["reporting-period"]).toBe("2026-01..2026-02");
+    const r = validateDocument(summary);
+    expect(r.valid).toBe(false);
+    expect(r.errors.join(" ")).toContain("is not one of the three forms this revision defines");
+    // The range is the ONLY thing wrong with it: swap in a real period and the
+    // same object validates, which is what makes the refusal precise rather
+    // than incidental.
+    expect(validateDocument({ ...summary, "reporting-period": "2026" }).valid).toBe(true);
+  });
+
+  it("never carries a signed member, and is refused inside an array too", () => {
+    const summary = aggregate(trend, { by: "sum" });
+    expect(summary).not.toHaveProperty("signed");
+    expect(validateDocument([summary]).valid).toBe(false);
+  });
+
+  it("the same refusal reaches any declaration whose period is malformed", () => {
+    for (const bad of ["2026-13", "2026-02-30-01", "last month", "", "2026-1", "2026-01-01T00:00:00Z"]) {
+      const r = validateDocument(metrics({ "reporting-period": bad }));
+      expect(r.valid, bad).toBe(false);
+      expect(r.errors.join(" "), bad).toContain("reporting-period");
+    }
+    for (const good of ["2026", "2026-01", "2026-12-31"]) {
+      expect(validateDocument(metrics({ "reporting-period": good })).valid, good).toBe(true);
+    }
   });
 });

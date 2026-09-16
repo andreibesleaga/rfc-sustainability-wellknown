@@ -1,0 +1,48 @@
+{
+  "updated": "2026-02-10T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "SYNTHETIC EXAMPLE — not a real network and not a real measurement. Published by the gateway operator, Andrei Besleaga, as a reserved-name (RFC 2606 .example) test vector for a NETWORK-LEVEL subject: a many-party system reporting one annual, system-wide figure set for the whole network rather than for any one of the parties that run it, which is why target-type is \"service\" — the enum has no network value. Every number below is invented and describes nothing real. The three extension names it carries belong to the Sustainability-First Consensus (SFC) profile and are defined in sfc-compliance/PROFILE.md; the operator-level subject sfc-operator.example declares its membership of this network under the same network-topology name.",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/METHODOLOGY.md",
+  "reporting-period": "2025",
+  "target": "sfc-network.example",
+  "energy-consumption": 800,
+  "energy-unit": "MWh",
+  "carbon-footprint": 95.5,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 0,
+  "scope-2": 33.1,
+  "scope-3": 62.4,
+  "carbon-intensity-gCO2e-per-kWh": 41.4,
+  "estimated-annual-emissions-kgCO2e": 95500,
+  "renewable-energy": 82,
+  "verifiable-attestation-uri": "https://assurance.example/vc/sfc-network-example-2025",
+  "disclosure-uri": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/data/README.md",
+  "target-type": "service",
+  "extensions": {
+    "https://andreibesleaga.com/sfc/extensions/hardware-lifecycle": {
+      "general-purpose-hardware": true,
+      "single-use-asic-required": false,
+      "expected-service-life-years": 5,
+      "embodied-carbon-in-scope-3": true,
+      "reuse-and-recycling-policy-uri": "https://sfc-network.example/sustainability/hardware-policy"
+    },
+    "https://andreibesleaga.com/sfc/extensions/carbon-neutrality": {
+      "net-zero-status": "achieved",
+      "renewable-procurement": "power-purchase-agreements",
+      "residual-emissions-tCO2e": 95.5,
+      "offsets-retired-tCO2e": 95.5,
+      "offset-registry-uri": "https://registry.example/retirements/sfc-network-example-2025",
+      "offsets-attested-by": "Third-Party Assurance Ltd. — a synthetic assurer; nothing here was assured"
+    },
+    "https://andreibesleaga.com/sfc/extensions/network-topology": {
+      "consensus-mechanism": "proof-of-stake",
+      "validated-node-count": 137,
+      "node-count-validation-method": "signed block attribution over the 2025 calendar year",
+      "per-transaction-energy-Wh": 0.06,
+      "nakamoto-coefficient": 21,
+      "geographic-regions": 19
+    }
+  }
+}

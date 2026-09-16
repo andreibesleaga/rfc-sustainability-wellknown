@@ -89,11 +89,21 @@ Both validators must be run from the `schemas-validators/` directory so they can
 ## What the formal schemas do and do not enforce
 
 The JTD and CDDL schemas validate **structure**: field types, required fields,
-and open extensibility (unknown members are permitted). They deliberately do
-**not** — and technically **cannot** — express a small number of the draft's
-cross-field and value-range prose rules, because neither CDDL nor JTD can encode
-conditional dependencies between fields or numeric bounds in a way these
-validators check. In particular:
+and — as of draft `-07` — a **closed top-level member set**: `-07` removes the
+`version` member, drops the mandatory-member count from eight to seven, and
+states that a publisher MUST NOT add other top-level members, so the schemas
+no longer permit an unrecognized top-level member to pass (a consumer still
+ignores one it encounters in the wild, per the draft's prose, rather than
+rejecting the document outright — see the tolerance note below). Extensibility
+now lives entirely inside the OPTIONAL `extensions` member, an object keyed by
+absolute URI (RFC 3986, scheme in lowercase — an `https` URI under the
+definer's control, or `urn:uuid:` plus a lowercase hyphenated UUID, RFC 9562) whose per-key values are
+open (`additionalProperties` true / no `properties` constraint), which both
+schemas express structurally.
+The schemas deliberately do **not** — and technically **cannot** — express a
+small number of the draft's other cross-field and value-range prose rules,
+because neither CDDL nor JTD can encode conditional dependencies between fields
+or numeric bounds in a way these validators check. In particular:
 
 - **`sci-score` ⇒ `functional-unit`** — the draft states a MUST: "If `sci-score`
   is present, `functional-unit` MUST also be present." This is a cross-field
@@ -125,10 +135,24 @@ validators check. In particular:
   were absent. That tolerance is applied at the application layer — a validator
   failure on such a value alone does not make the document unusable to a
   conformant client.
-- **Minimum-reporting rule** — a document SHOULD carry at least one reported
-  numeric metric or a disclosure/attestation URI; with none, the mandatory
-  `methodology-uri` MUST lead, without authentication or payment, to the method and the figures. Not expressible in
+- **Minimum-reporting rule** — a declaration object MUST carry at least one
+  numeric metric member, or `disclosure-uri`, or `verifiable-attestation-uri`;
+  an object with none of the three is not conformant. (Draft `-06`'s further
+  condition — that, absent a metric, the `methodology-uri` resource itself must
+  be openly retrievable without authentication or payment — is removed in
+  `-07`.) This is an at-least-one-of-several-members rule, not expressible in
   either schema language.
+- **`sci-score`-style cross-field rules aside, the `signed`, `upstream`, and
+  `extensions` members are structurally open** — the schemas type `signed` as a
+  string, `upstream` as an array of `{ declaration, role? }`, and `extensions`
+  as a URI-keyed object of open objects, but cannot check that `signed` is a
+  well-formed JWS over the rest of the object, that `upstream[].declaration` is
+  an absolute `https` URI, or that an `extensions` key is an absolute URI in one
+  of the two forms the draft permits (the CDDL schema constrains the key format
+  with a `.regexp`, in the rule named `ext-name`, which admits only the
+  characters RFC 3986 allows in a URI; the JTD schema, which has no analogous
+  construct, does not).
+  These are checked at the application layer.
 
 These rules are checked at the **application layer**: this repo's `publisher/`
 and `consumer/` implementations validate the `sci-score` ⇒ `functional-unit`

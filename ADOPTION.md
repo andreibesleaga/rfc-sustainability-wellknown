@@ -9,8 +9,8 @@
 A tiny, low-risk, well-scoped registration creates a **single, standard, machine-readable
 place** for any origin to publish its energy and carbon footprint — closing a real gap
 between heavyweight enterprise carbon software and the open web. It costs the IETF/IANA
-almost nothing to approve (one well-known URI, **Specification Required** policy, no new
-media type, no protocol change) and unlocks disproportionate value across regulation,
+almost nothing to approve (one well-known URI under **Specification Required** policy, one
+standards-tree media type since `-06`, no protocol change) and unlocks disproportionate value across regulation,
 industry, and the environment. Two interoperating reference implementations (publisher and
 consumer) and dual independent validators already exist.
 
@@ -21,7 +21,8 @@ publish aggregated energy-consumption and carbon-footprint metrics in a minimal,
 and machine-readable, backward- and forward-compatible JSON format. In brief:
 
 - **One fixed URL per origin** (RFC 8615): a plain HTTPS GET returns a schema-validated
-  JSON document — no new protocol, media type, or central authority.
+  JSON document — no new protocol and no central authority; since `-06`, one dedicated
+  media type, `application/sustainability-data+json`.
 - **Origin vs. target:** the *origin* is **where** the document is published; the
   mandatory `target` member declares **what** the metrics are about — the origin itself
   in the common case, or equally an organization, a resource path, a cloud tenant, a
@@ -42,6 +43,23 @@ and machine-readable, backward- and forward-compatible JSON format. In brief:
   extension members, and change-controlled version labels let any future metric or vendor
   extension arrive without touching the RFC or IANA — and keep historical documents
   readable.
+- **[Superseded 2026-09-16]** `-07` (in preparation, not yet posted) removes the `version`
+  member entirely and drops it from the mandatory set: `updated`, `capabilities`,
+  `provider`, `measurement-method`, `methodology-uri`, `reporting-period`, and `target` are
+  now the seven mandatory members, so "8 mandatory + 16 optional" above is no longer the
+  count. The bullet above is retained as an accurate record of the `-04` through `-06` data
+  model.
+- **[Superseded 2026-09-16]** `-07` also replaces the collision-proof reverse-domain
+  extension members and the change-controlled `version` label described above with a
+  single OPTIONAL top-level `extensions` object keyed by absolute URI (RFC 3986) — an
+  `https` URI under the definer's control, which should identify documentation of the
+  extension, or `urn:uuid:` plus a lowercase hyphenated UUID (RFC 9562) for a definer
+  without a domain; the top-level member set is now closed (a publisher MUST NOT add other
+  top-level members), keys are compared as strings and never dereferenced, and each name's
+  definer publishes that name's member definitions out of band — its methodology document
+  should list them — with no registry and no version label to maintain. The must-ignore rule for unrecognized
+  top-level members is unchanged. The bullet above is retained as an accurate record of the
+  `-04` through `-06` extensibility design.
 
 **Why (what it solves).** Sustainability data exists — in enterprise  platforms,
 PDF reports, and regulatory filings — but there is no universally known location to
@@ -83,11 +101,13 @@ safe to ingest without negotiation).
 |---|---|
 | New protocol machinery? | **None.** It reuses HTTP GET/HEAD (RFC 9110), `application/json`, and the existing RFC 8615 well-known mechanism. |
 | **[Superseded 2026-09-10]** | `-06` (posted to the Datatracker 2026-09-10) reverses the `application/json`-reuse part of the row above: it registers `application/sustainability-data+json` in the IANA standards tree and requires it for successful responses (publishers MUST NOT use another type); clients MUST accept it and SHOULD also accept `application/json`, under which documents published before the registration are found. `-06` also makes HTTPS a MUST (previously SHOULD) and adds an OPTIONAL detached-JWS signature mechanism. The row above remains an accurate record of the `-04`/`-05` position. |
+| **[Superseded 2026-09-16]** | `-07` (in preparation, not yet posted) withdraws the detached-JWS mechanism the row above describes: there is no longer a companion `.jws` resource, no legacy support, and no fallback — the well-known URI defined by this document is the only registered resource. In its place, each declaration object carries an OPTIONAL `signed` member, a JWS Compact Serialization over the object itself (minus `signed`), checked only when present. `-07` also removes the `version` member, removes the server-side 366-object cap, and replaces top-level reverse-domain extension members with a URI-keyed `extensions` object. `-06` (2026-09-10) remains the latest **posted** revision; `-07` is in preparation and has not been posted to the Datatracker. The row above remains an accurate record of the `-06` position. |
 | New media type / IANA burden? | One entry in the existing "Well-Known URIs" registry, plus — **since `-06`** — one standards-tree media type, `application/sustainability-data+json`, registered with the full RFC 6838 template. (Earlier revisions requested no media type; see the superseded row in §1.) |
 | Registration bar | The registry's policy is **Specification Required** (RFC 8615 §3.1) — which includes designated-expert review per RFC 8126 and is designed exactly for stable specs like this; no WG/RG adoption is required. |
 | Registry status requested | **Provisional** — the honest ask for an Independent Submission per RFC 8615 §3.1, and what the designated expert assigns to comparable new entries (gpc.json, change-password, ecips); explicitly promotable to permanent once in broad use. No over-claim for the expert to push back on. |
 | Security/privacy reviewed? | Yes — dedicated Security and Privacy sections (DoS caps + bounded query key space, trust/spoofing, greenwashing, traffic-analysis floor, path-disclosure allowlist, deterministic fingerprinting noise, TLS), plus a dedicated Internationalization Considerations section (BCP 18/RFC 2277 protocol-element vs. text classification, added in the posted `-05` revision). |
 | Maintenance risk | Minimal: open, forward-compatible schemas (unknown members permitted; clients MUST ignore them) with an informational version label — future fields need **no revision of the RFC** and no new IANA registry. |
+| **[Superseded 2026-09-16]** | `-07` (in preparation, not yet posted) removes the informational `version` label described above entirely; forward compatibility now rests on the must-ignore rule for unrecognized top-level members plus the URI-keyed `extensions` object (§Extensions), not a version field. `-07` also closes the top-level member set, so "unknown members permitted" above now describes only the consumer's must-ignore rule, never a licence for a publisher to add one. The row above is retained as an accurate record of the `-04` through `-06` position. |
 | Implementation risk | A reference publisher and client, plus dual independent validators, already pass end-to-end (see §9). |
 
 The downside of approval is near-zero; the cost of *not* having a standard is ongoing
@@ -124,11 +144,26 @@ fragmentation.
   (`origin`/`path`/`organization`/`service`/`product`/`device`/`tenant`/`data-source`)
   with unrecognized values tolerated. Browser consumers are served too: successful
   responses SHOULD carry `Access-Control-Allow-Origin: *`, following WebFinger practice.
+- **[Superseded 2026-09-16]** `-07` (in preparation, not yet posted) changes two things the
+  bullet above states as current: the field model is now seven mandatory members, not
+  eight (the `version` member is removed), so "8 mandatory + 16 optional" no longer holds;
+  and the documented array cap is gone from the server side — a conforming server no longer
+  MUST/SHOULD truncate at 366 objects, and instead a consumer MUST bound the bytes and
+  objects it accepts (§Denial of Service). Everything else the bullet states (shape rules,
+  the scope-attribution echo, `target` matching, trend-array ordering, UTC periods, unit
+  defaults, tolerance rules, and `target-type`) is unchanged in `-07`. The bullet above is
+  retained as an accurate record of the `-04` through `-06` position.
 - **Foolproof extensibility without process weight.** Forward compatibility rests on the
   must-ignore rule plus open schemas (the RFC 9457 model), not on version negotiation or a
   new IANA field registry: the published RFC accommodates all future fields as-is, and the
   `version` member is an informational label clients MUST NOT branch on (per RFC 6709's
   guidance against decorative version machinery).
+- **[Superseded 2026-09-16]** `-07` removes the `version` member described above entirely
+  rather than keeping it as a MUST-NOT-branch-on informational label; there is no version
+  member and nothing to not-branch-on. The must-ignore rule and open-schemas stance are
+  unchanged; private extensions now live in a URI-keyed `extensions` object rather than a
+  reserved reverse-domain member namespace (§Extensions). The bullet above is retained as
+  an accurate record of the `-04` through `-06` position.
 - **Applies to any HTTP origin, not just conventional websites.** A well-known URI is
   scoped to an *origin* — scheme, host, and port (RFC 8615) — never to "a website"
   specifically. Every device or service that speaks HTTP(S) is a valid publisher alongside
@@ -143,8 +178,9 @@ fragmentation.
   entity operating the origin" (not necessarily the hardware); `measurement-method` is a
   token with RECOMMENDED machine-matchable values, or otherwise a short human-readable
   description; and the reference implementation's enterprise adapters (Salesforce Net Zero
-  Cloud, Microsoft Sustainability Manager, Watershed) already populate documents from
-  *organization-level* reporting platforms, not server telemetry. A single origin — a
+  Cloud, Microsoft Sustainability Manager, Watershed) are written to populate documents from
+  *organization-level* reporting platforms, not server telemetry — they run against recorded
+  responses in the test suite; none has yet been exercised against a live tenant. A single origin — a
   compliance subdomain, a corporate reporting portal — can therefore publish the numbers a
   regulator requires of the *entity* (CSRD and its analogues), with the website-hosting
   case being one instance of that, not the whole scope.
@@ -368,18 +404,39 @@ OPTIONAL detached-JWS signature mechanism, and adds the "Roles and Processing Mo
 `-06` is now the latest posted revision (under ISE review), and every answer below applies
 unchanged to it except where a **[Superseded 2026-09-10]** row says otherwise.)*
 
+*(**[Superseded 2026-09-16]** A further revision, **-07**, is in preparation as of
+2026-09-16 but has **not** been posted to the Datatracker; `-06` (2026-09-10) remains the
+latest **posted** revision, and everything above that describes `-06` as current is still
+accurate about the posted record. `-07` withdraws the companion `.jws` signature resource
+in favor of an OPTIONAL `signed` member embedded in each declaration object; removes the
+`version` member entirely (seven mandatory members remain, not eight); replaces top-level
+reverse-domain extension members with an OPTIONAL `extensions` object keyed by an absolute
+URI — an `https` URI the definer controls, or a `urn:uuid:` name — under a now-closed
+top-level member set; adds an OPTIONAL `upstream` member letting a
+declaration link to the declarations of the providers its figures derive from, walkable to
+depth 3; replaces the minimum-reporting floor with a rule that a declaration object MUST
+carry at least one numeric metric or at least one of `disclosure-uri` and
+`verifiable-attestation-uri`; gives Extended Query Parameters a formal ABNF grammar and a
+numbered processing procedure; drops the server-side 366-object cap in favor of a
+consumer-side bound; and drops the `X-Content-Type-Options: nosniff` recommendation from
+the specification text. Every answer below that no **[Superseded 2026-09-16]** row touches
+still applies unchanged to `-07`.)*
+
 | Objection | Answer (and where the draft already settles it) |
 |---|---|
 | "Methodologies differ; numbers aren't comparable." | The draft is explicitly a **discovery and semantics** layer, not a methodology mandate; `measurement-method` + `methodology-uri` disclose how each number was derived (§Goals and Non-Goals). |
 | "Self-declared data could be greenwashing." | The endpoint *asserts, it does not verify*, and says so: clients MUST NOT treat the document as proof; `verifiable-attestation-uri` and `disclosure-uri` link to independent evidence; and a minimum-reporting floor guarantees "real numbers, or a machine-followable pointer to them" — with the pointed-to methodology resource required to be publicly retrievable (§Security; §Value Constraints and Omitted Metrics ties that floor to the mandatory `methodology-uri`). |
+| **[Superseded 2026-09-16]** | `-07` (in preparation, not yet posted) replaces the minimum-reporting floor described above: a declaration object now MUST carry at least one numeric metric member or at least one of `disclosure-uri` and `verifiable-attestation-uri` (§Value Constraints and Omitted Metrics); the requirement that the methodology resource itself be free and unauthenticated when no metric is present is gone. The row above is retained as an accurate record of the `-04` through `-06` position. |
 | "What can a client actually rely on?" | A stable location, a fixed JSON shape with fixed unit vocabularies, omission-based not-reported semantics with defined tolerance for defective values, a mandatory `target` reporting-subject member (plus the optional `target-type` classification hint), a scope-attribution echo for path-scoped responses, and deterministic array rules — exactly what aggregators, crawlers, and procurement tooling lack today. |
-| "A query API on a well-known URI?" | WebFinger precedent; permitted by RFC 8615 §3; the parameters are optional with a mandatory no-parameter Basic fallback, and every parameter interaction is fully specified (single-object rule, aggregation-or-404 no-data rule, array conditions, malformed vs unrecognized values) — no underspecified corners left (§Optional Extended Query Parameters). |
+| "A query API on a well-known URI?" | WebFinger precedent; permitted by RFC 8615 §3; the parameters are optional with a mandatory no-parameter Basic fallback, and every parameter interaction is fully specified (single-object rule, aggregation-or-404 no-data rule, array conditions, malformed vs unrecognized values) — no underspecified corners left (§Extended Query Parameters). |
 | "The generic name 'sustainability' is registry squatting." | Resolved head-on in -04: the requested suffix is **`sustainability-data`**, naming the specific registered application (a machine-readable data document of sustainability metrics) rather than claiming the generic term — exactly the RFC 8615 §3 precision expectation the ISE raised (no IANA action had occurred on the earlier name, so no migration is needed; the complete naming case is §12). The metadata remains genuinely origin-level — the exact pattern well-known URIs exist for; resource scoping uses a query parameter, not path segments; and the IANA section says registration is sought for interoperable discovery, **not** to signal endorsement (§IANA Considerations). |
 | "Permanent status isn't justified for an ISE doc." | Agreed — the draft requests **provisional** outright, with the RFC 8615 promotion path noted. There is nothing to downgrade (§IANA Considerations). |
 | "An RFC freezes the schema; version fields are an extensibility anti-pattern." | The `version` member is an informational label with no negotiation or conformance semantics — clients MUST NOT reject or branch on it — and its value space is under change control (new labels only via a revising RFC). Extensibility is must-ignore + open schemas (RFC 9457 model) plus a reserved undotted member namespace with reverse-domain extension names (per RFC 6648), so the frozen RFC covers all future fields without a bis and without a new IANA registry (§Versioning and Extensibility). |
 | **[Superseded 2026-09-10]** | `-06` fixes `version` as a single defined value, `"2.0"`, which a conforming publisher MUST use; the change-control text reserving new labels to a revising RFC is gone, as are the pre-publication `"1.0"`/`"1.1"` field-set definitions and the `target-path` compatibility rule. The label stays informational — a client treats an undefined value exactly as `"2.0"` — so the extensibility answer above (must-ignore plus open schemas) is unchanged. The change-control answer was accurate through `-05` and is retained there as the historical record. |
+| **[Superseded 2026-09-16]** | `-07` (in preparation, not yet posted) removes the `version` member entirely rather than fixing it at `"2.0"`: there is no version label and no change-control text for one, and the seven remaining mandatory members carry no version identifier. Extensibility for the top-level member set is unchanged in kind (must-ignore on read) but private extensions now live in a URI-keyed `extensions` object rather than a reserved reverse-domain member namespace (§Extensions). The rows above (the original `-04`/`-05` answer and the `-06` fix-at-`"2.0"` superseding row) are retained as an accurate record of the `-04` through `-06` position. |
 | "Privacy: fingerprinting / traffic analysis / path disclosure." | 24-hour granularity floor; optional ~1% noise pinned to generation time, deterministic per period, ratio-preserving across related fields, and range-respecting (so caching/ETags and internal consistency survive); `target` honored only for a published prefix allowlist so the endpoint cannot be used to enumerate paths (§Privacy Considerations). |
 | "DoS via dynamic aggregation or cache-busting query strings." | A documented array cap is mandatory (366 RECOMMENDED) with defined most-recent-first truncation; rate-limiting and precompute guidance; the target allowlist bounds the cache key space, defeating unique-query cache-busting; and a Consumer Considerations section bounds the client side against hostile servers (§Security Considerations). |
+| **[Superseded 2026-09-16]** | `-07` (in preparation, not yet posted) removes the server-side "cap at 366 objects" MUST/RECOMMENDED requirement described above (and the most-recent-first truncation rule that went with it). What remains is a consumer-side rule only: a consumer MUST bound the bytes and objects it accepts and treat an excess as an error (§Denial of Service). Rate-limiting/precompute guidance and the target-allowlist cache-key bound are unchanged. The row above is retained as an accurate record of the `-04` through `-06` position. |
 | "Missing HTTP references." | RFC 9110 (HTTP Semantics, STD 97) and RFC 9111 (Caching) are normative references, cited at every status-code, `Allow`, `ETag`/conditional-request, and caching statement. |
 | "Does it belong in GREEN or SUSTAIN?" | Neither venue takes it: GREEN's charter *explicitly excludes* the carbon accounting and reporting of sustainability data; SUSTAIN defers standardization to the IETF, and the author chose the Independent Submission Stream after discussing the work on the sustain list (July 2026); the RG has taken no position on the draft. The ISE exists precisely for this profile, and the IANA registration needs only Specification Required regardless (see §7). |
 | "Should it register a media type?" | Not required — security.txt registered none; the draft deliberately reuses `application/json` + I-JSON and says so in the registration's Related Information. A structured-suffix type (`application/sustainability+json`) remains possible later without breaking anything, if the expert prefers it. |
@@ -404,6 +461,11 @@ unchanged to it except where a **[Superseded 2026-09-10]** row says otherwise.)*
   "Replaces" relationship recorded. Revisions build strict-clean (`xml2rfc --strict`,
   0 warnings; idnits **0 errors**); all references verified against authoritative sources,
   none unused.
+- **[Superseded 2026-09-16]** A further revision, **-07**, is in preparation as of
+  2026-09-16, incorporating the changes recorded throughout this document under that date,
+  but it has **not** been posted to the Datatracker; `-06` (2026-09-10) remains the latest
+  **posted** revision, and the bullet above is accurate about the posted record as of this
+  writing.
 - **Three full pre-submission audit rounds**: a five-stream web-verified ISE-readiness audit
   (registry landscape, reference integrity, extensibility, ecosystem positioning,
   mailing-list precedent); a three-reviewer adversarial pass (technical consistency,
@@ -414,7 +476,7 @@ unchanged to it except where a **[Superseded 2026-09-10]** row says otherwise.)*
   of duplicated normative statements to single owning locations). All findings are
   reflected in the current draft text and the CI checks below.
 - **Dual formal schemas** (JTD + CDDL) with two independent validation toolchains (the
-  Python `jtd` package; the Ruby `cddl` gem) — 14 repository examples and 6 in-draft
+  Python `jtd` package; the Ruby `cddl` gem) — 16 repository examples and 6 in-draft
   examples, each passing both validators.
 - A **reference publisher** (TypeScript, with an automated test suite) with adapters for
   static/computed, Kepler/Prometheus, Climatiq, CO2.js and the carbon.txt hosted API
@@ -422,7 +484,7 @@ unchanged to it except where a **[Superseded 2026-09-10]** row says otherwise.)*
   every adapter's output validates against both schemas, and the gateway enforces the
   draft's MUSTs that schemas cannot express (sci-score/functional-unit coupling, array
   ordering and uniformity, single-object response rules, deterministic noise).
-- A **reference client** (`consumer/`, TypeScript, a 164-test suite, all passing; also
+- A **reference client** (`consumer/`, TypeScript, a 358-test suite, all passing; also
   published to npm as
   `sustainability-wellknown-consumer`) that complements the publisher: it fetches,
   defensively validates, transforms (CSV/NDJSON/flatten/trend), and conformance-checks a
@@ -433,8 +495,8 @@ unchanged to it except where a **[Superseded 2026-09-10]** row says otherwise.)*
 
 - **A worked example of carrying an external framework's requirements.** The draft can serve
 as the disclosure layer for Sustainability-First Consensus (SFC), an evaluation framework
-**by this same author**, accepted by ACM and scheduled for publication in December 2026 (DOI
-`10.1145/3809296`, not yet resolvable). It is offered as a design exercise, not as independent
+**by this same author**, described in a forthcoming publication by the author; the citation
+will be added when it appears. It is offered as a design exercise, not as independent
 validation of this draft. SFC sets
 measurable sustainability criteria for distributed-ledger systems — an annualized energy
 cap, hardware-lifecycle responsibility, GHG Scope 2/3 carbon accountability, and
@@ -458,9 +520,10 @@ extension to the specification. Whether other frameworks find it useful is for t
   disclosure, and the draft's Relationship-to-Other-Work section draws the layer boundary
   explicitly. The realistic worst case is an advisory "related to GREEN" note, which does
   not block publication.
-- **IANA action is self-contained.** One registry entry, Specification Required, provisional
-  status, change controller = author (correct for a non-Standards-Track document per
-  RFC 8615 §3.1), template complete field-for-field.
+- **IANA action is small and well-bounded.** One well-known URI entry (Specification
+  Required, provisional status, change controller = author, correct for a non-Standards-Track
+  document per RFC 8615 §3.1) plus, since `-06`, one standards-tree media type (IESG approval
+  per RFC 6838 §3.1, change control to the IETF); both templates complete field-for-field.
 - **Nothing is irreversible.** The ISE process is revise-and-resubmit; provisional registry
   entries are cheap to adjust; and the draft's extensibility design means even publication
   freezes nothing that matters.
@@ -469,8 +532,9 @@ extension to the specification. Whether other frameworks find it useful is for t
 
 > `draft-besleaga-sustainability-wellknown` registers a single `sustainability-data`
 > well-known URI that lets any origin publish a small, schema-validated JSON document of its
-> energy and carbon metrics. It introduces no new protocol or media type, requests only a
-> provisional entry in an existing registry, carries thorough security and privacy
+> energy and carbon metrics. It introduces no new protocol, requests a provisional entry in
+> an existing registry plus the standards-tree media type
+> `application/sustainability-data+json`, carries thorough security and privacy
 > considerations (including path-disclosure and cache-busting defenses), aligns with
 > CSRD/ESRS-E1, GHG Protocol, and ISO/IEC 21031:2024, composes with — rather than competes
 > with — the Green Web Foundation's carbon.txt, stays deliberately clear of the IETF GREEN
@@ -524,6 +588,14 @@ model of the specification:
   metric-free is a *data* document, not strictly a *metrics* document. RFC 8615
   precision means accurately describing the application, and `-data` is the accurate
   description.
+- **[Superseded 2026-09-16]** `-07` (in preparation, not yet posted) changes the specific
+  mechanism cited in the bullet above: the requirement is no longer that the methodology
+  resource be free and unauthenticated when no metric is present; instead a declaration
+  object MUST carry at least one numeric metric or at least one of `disclosure-uri` and
+  `verifiable-attestation-uri`. The underlying naming point is unaffected — a conformant
+  document can still carry no numeric metrics at all, so `-data` remains the accurate
+  description — but the specific "minimum-reporting rule" and `methodology-uri` mechanism
+  described above is retained only as a record of the `-04` through `-06` position.
 - **`sustainability-metrics`.** Equally registrable and the closest runner-up; it
   loses only on the point above — a reviewer could fairly object that the name
   overpromises for the legal metrics-free document. Also, the specification is
@@ -583,9 +655,9 @@ model of the specification:
    also makes the RFC 5742 conflict review outcome predictable ("does not conflict
    with IETF work"; process detail in §10).
 7. **Running code, both sides of the wire.** Two interoperating reference
-   implementations (publisher with nine adapters; consumer/validator), dual
-   independent schema validators (JTD and CDDL), 276 automated tests (128 publisher +
-   148 consumer, all passing, verified 2026-07-27), real nginx/Apache deployment
+   implementations (publisher with ten adapters; consumer/validator), dual
+   independent schema validators (JTD and CDDL), 623 automated tests (265 publisher +
+   358 consumer, all passing, verified 2026-09-16), real nginx/Apache deployment
    configurations exercised in CI, and every example in the draft validated against
    both schemas on every commit (details in §9). Few well-known registrations arrive
    with this much implementation evidence.
@@ -601,6 +673,18 @@ model of the specification:
    naming (per RFC 6648's guidance), and the schema-tolerance rules mean new members,
    new vendors, and even future revisions can arrive without breaking a single
    deployed client — and without any new IANA machinery to maintain (§2, §8).
+
+   **[Superseded 2026-09-16]** `-07` (in preparation, not yet posted) removes the
+   change-controlled `version` label space described above entirely, and replaces the
+   reserved undotted reverse-domain extension namespace with a single OPTIONAL
+   `extensions` object keyed by an absolute URI (RFC 3986) — a publisher's or vendor's
+   definer mints one name, either an `https` URI it controls that should document the
+   extension or a `urn:uuid:` name, rather than reserving a reverse-domain member, with the
+   same effect of collision-free, no-IANA extensibility, under a now-closed top-level member
+   set. The name is an identifier compared as a string, never dereferenced, so a later
+   change of domain ownership does not change what an existing document means. The must-ignore rule and the schema-tolerance rules are unchanged. The
+   paragraph above is retained as an accurate record of the `-04` through `-06`
+   position.
 10. **Approval is low-cost and reversible; refusal has a real cost.** One provisional
     row in an existing registry and one media-type registration (added in `-06`), no new
     registry, no protocol change. If the convention fails to gain use, the entry is removable per §3.1. If
@@ -826,18 +910,17 @@ served at `/.well-known/` **without** a registration.
 | # | Candidate | Kind | Case for | Case against | Verdict |
 |---|---|---|---|---|---|
 | 1 | `sustainability-data` (keep, as defended in §12) | descriptive compound | Discoverable and self-describing; every artifact — draft, IANA request #95, schemas, packages, live endpoints — is already aligned; registry precedent supports it (§14.1) | The reviewer has now signaled twice; spending goodwill on a word at an early stage of the process is poor strategy | **Fallback** — retain only if the SUSTAIN chairs' review comes back comfortable with it |
-| 2 | `sfc-data` | proper (author's framework) | Short; literally "a model you are following" — Sustainability-First Consensus, the author's own framework | Two real defects. (a) Inside the IETF, "SFC" means **Service Function Chaining** (RFC 7665 and a former working group); IETF reviewers will misread it on sight. (b) Scope mismatch: SFC as published evaluates **DLT/consensus systems**, while the URI serves any origin — naming the general thing after the specialized framework is imprecise in the opposite direction from the current objection | **Do not lead with it** |
+| 2 | `sfc-data` | proper (author's framework) | Short; literally "a model you are following" — Sustainability-First Consensus, the author's own framework | Two real defects. (a) Inside the IETF, "SFC" means **Service Function Chaining** (RFC 7665 and a former working group); IETF reviewers will misread it on sight. (b) Scope mismatch: SFC as defined evaluates **DLT/consensus systems**, while the URI serves any origin — naming the general thing after the specialized framework is imprecise in the opposite direction from the current objection | **Do not lead with it** |
 | 3 | `sfc-sustainability-data` | proper + descriptive | Removes the Service-Function-Chaining misreading by reading as one phrase; keeps the discoverable words; anchors to a citable framework; length is not an obstacle — at 23 characters it would be shorter than registered entries such as `privacy-sandbox-attestations.json` (33) and `webhook-authorized-senders.json` (31), both verified in the registry 2026-07-29 | Inherits the DLT-scope mismatch of #2 unless "Sustainability-First" is framed as the general principle and consensus as its DLT instantiation; and see the anchor caveat below | **Lead candidate if a proper name is required** |
-| 4 | `smd` / `smd.json` — the format's own name (**S**ustainability **M**etadata **D**ocument) | the artifact's name | The draft already defines the artifact as the Sustainability Metadata Document, so this is the "name the file after the format" pattern. Verified registry instances of that pattern: `nostr.json`, `terraform.json`, `did.json`, `agent-card.json`, `keybase.txt`. *(The `stellar.toml` precedent previously cited for this pattern is unavailable — it is not registered, §14.1.)* | "SMD" is an opaque initialism with heavy outside collisions (surface-mount device); it is weak as a "project name" and forfeits all discoverability | Keep on the list; do not lead |
+| 4 | `smd` / `smd.json` — the format's own name (**S**ustainability **M**etadata **D**ocument) | the artifact's name | Through `-06` the draft defined the artifact as the Sustainability Metadata Document, so this was the "name the file after the format" pattern; `-07` renames it the *Sustainability Declaration*, which would make the candidate `sd`/`sd.json` and only sharpens the opacity objection below. Verified registry instances of that pattern: `nostr.json`, `terraform.json`, `did.json`, `agent-card.json`, `keybase.txt`. *(The `stellar.toml` precedent previously cited for this pattern is unavailable — it is not registered, §14.1.)* | "SMD" is an opaque initialism with heavy outside collisions (surface-mount device); it is weak as a "project name" and forfeits all discoverability | Keep on the list; do not lead |
 | 5 | Coin a fresh project name, then rename format, repository and registration together | proper (new) | The carbon.txt playbook: name the file, let the project grow around it; a distinctive coined name is collision-free | Zero recognition today; naming from scratch invites bikeshedding; every candidate tested collides somewhere (`gaia-*` → GAIA-X; `eco-*`/`green-*` → generic again). And the playbook is **unproven at the registry**: carbon.txt itself is still not registered (§14.1) | Viable only if the author wants to brand — an author's decision, not a technical one |
 | 6 | Borrow the name of a model being followed: `ghgp-*`, `sci-*`, `esrs-*` | proper (someone else's) | Literally "a model you are following" | **Squats on other organizations' names** — GHG Protocol/WRI, Green Software Foundation/ISO 21031, EU/EFRAG — without their change control. That is the same defect RFC 8615 §3 guards against, one layer up, and it would invite those organizations' objection during conflict review | **Ruled out** — and saying *why* strengthens the reply, since it shows the objection was understood rather than merely accommodated. Consistent with §12.2's rejection of org-branded names |
 
 **Caveat on the anchor for candidates 2 and 3, stated plainly.** The Sustainability-First
-Consensus framework is the author's own; §9 records it as accepted for publication by the ACM
-under DOI `10.1145/3809296`. The article is **accepted and scheduled for publication in
-December 2026**, so the DOI does not resolve yet (checked 2026-07-29: `doi.org` returned HTTP
-404). Until it does, the anchor is **not verifiable by a reviewer who clicks it**, and any
-correspondence citing it must describe it as accepted-for-publication by this author and supply
+Consensus framework is the author's own; §9 records it as described in a forthcoming
+publication by the author, whose citation will be added when it appears. Until that
+publication exists, the anchor is **not verifiable by a reviewer who clicks it**, and any
+correspondence citing it must describe it as forthcoming work by this author and supply
 a resolvable link once one exists. There is also a tension worth naming rather than
 glossing: §12.2 rejected framework-branded names (`sfc-*`, `gwf-*`) on neutrality grounds,
 because a convention published for anyone to implement should not carry one framework's brand.
@@ -886,9 +969,12 @@ specified now even though deploying it stays optional.
 |---|---|---|---|
 | **S1** | **Dedicated media type** | Register `application/<suffix>+json` in the standards tree and make it the **required** response type for publishers; `application/json` remains acceptable for consumers to accept but not for publishers to emit. The registration carries a real security analysis (RFC 8259 §12 plus format-specific risks: self-asserted veracity/greenwashing, operational-metrics privacy, staleness, absence of active content). | None on the wire. Resolves MIME confusion and lets a retriever know precisely what it is getting (§15.4). |
 | — | **[Superseded 2026-09-10]** | `-06` (posted to the Datatracker 2026-09-10) implements S1 exactly as planned here: `application/sustainability-data+json` is registered in the IANA standards tree and is now the required media type for successful responses; `application/json` remains acceptable for clients to accept (not for publishers to emit), under which pre-registration documents are found. Software: `publisher` 0.6.0 emits the new type by default with a `mediaType: "json"` legacy option (v05-compatible, not v06-conformant); `consumer` 0.6.0 sends `Accept: application/sustainability-data+json, application/json;q=0.9`, accepts both, and its conformance battery reports a legacy `application/json` publisher as WARN, not FAIL, until the RFC and IANA registration land. | Already paid for — see §9 and the `publisher`/`consumer` 0.6.0 packages. |
+| — | **[Superseded 2026-09-16]** | Reference implementations at **0.7.0** (publisher and consumer), tracking `-07` (in preparation, not yet posted) ahead of posting: the embedded `signed` member replaces the detached-JWS/`.jws` mechanism, the `version` member is no longer emitted or expected, extension data is read/written under `extensions` keyed by absolute URI rather than reverse-domain top-level names, and `upstream` chain-walking to depth 3 is supported. The version history from 0.1.0 through 0.6.7, including the `publisher`/`consumer` 0.6.0 milestone recorded in the row above, is retained as the accurate record of what shipped at each release. | Already paid for — reference implementations track the draft-in-preparation ahead of posting. |
 | **S2** | **TLS SHOULD → MUST** | Required for both retrieval and publication; clients MUST NOT accept the document over unauthenticated transport. | None — and it promotes the entire TLS/WebPKI apparatus into the baseline integrity-and-authenticity story. |
 | **S3** | **Document integrity beyond TLS — specified now, optional to deploy** | A **detached JWS over the exact octets served**, published at a sibling well-known resource. No canonicalization dependency (deliberately avoiding RFC 8785 JCS), works on any static host, verifiable offline; the JOSE header carries `jwk`/`x5c`. The draft will state plainly what this does give — **integrity and key continuity** — and what it does not: **authenticity**, absent a trust path to the key from outside the document. `verifiable-attestation-uri` remains the third-party channel and gets sharpened against W3C VC 2.0 (the whole VC 2.0 family reached Recommendation on 2025-05-15, verified). Alternatives considered and documented with reasons: embedded JWS member (needs JCS — heavier), HTTP Message Signatures RFC 9421 (elegant, tooling thin), OpenPGP as in RFC 9116 (poor fit for a JSON ecosystem). | **Adds no schema member**, because the signature lives at a sibling resource — so schema byte-identity with `-04`/`-05` is preserved. |
+| — | **[Superseded 2026-09-16]** | `-07` (in preparation, not yet posted) withdraws S3 as specified above: there is no longer a companion `.jws` resource, no detached signature, and no legacy fallback — the well-known URI is the only registered resource. In its place, an OPTIONAL `signed` member is embedded directly in each declaration object: a JWS Compact Serialization whose payload is that object without `signed`, with `alg` `EdDSA` or `ES256`, `cty` `sustainability-data+json`, and the key as `jwk`/`x5c`/`kid`. A consumer verifies it only when present; where the key is trusted out of band, pinned, or chained through `x5c` to a trusted anchor the verified payload's values take precedence over the plain members, and a difference is reported as "modified after signing," not a verification failure. This still gives integrity and key continuity and still stops short of authenticity, exactly as the row above describes — only the transport location and schema shape changed (the declaration object now gains the `signed` member itself, so schema byte-identity with `-04`–`-06` is no longer preserved). The row above is retained as an accurate record of the `-06` design. | Superseded; see §Signing of `-07`. |
 | **S4** | **`X-Content-Type-Options: nosniff`** | SHOULD be sent on responses. | None; belt for S1's braces. |
+| — | **[Superseded 2026-09-16]** | `-07` (in preparation, not yet posted) removes the `X-Content-Type-Options: nosniff` recommendation described above from the specification text; it is no longer required or recommended by the draft, though an implementation may still send it operationally. The row above is retained as an accurate record of the `-06` position. | — |
 | **S5** | **Structured threat model** | Security Considerations restructured to enumerate spoofing, tampering, repudiation/greenwashing, information disclosure and denial of service, each mapped to its mitigation (S1–S4, the existing caps, the target allowlist, strict mode, and the normative MUST-NOT-treat-as-proof rule). | None — it reorganizes and sharpens existing coverage so a security reviewer sees it at a glance. |
 | **S6** | **Running code** | The reference implementations already enforce consumer-side hardening (response caps, strict conformance checking, no code execution) and will implement S1–S4 on the day the revision posts. | Already largely paid for (§9). |
 
@@ -935,6 +1021,15 @@ carries less MIME-confusion and automated-ingestion risk than a JSON document de
 crawled and parsed at scale by aggregators, so the media type is a proportionate response to
 this format's risks rather than a claim of superiority over RFC 9116.
 
+**[Superseded 2026-09-16]** `-07` (in preparation, not yet posted) changes both halves of
+that comparison: S3 (the signature mechanism) is now the embedded `signed` member rather
+than a detached JWS at a sibling resource, and S4 (`nosniff`) is no longer part of the
+specification text. The measurement above — matching RFC 9116 on signing and TLS, and
+adding a dedicated media type and `nosniff` beyond it — is retained as an accurate record
+of the `-06` package; against `-07`, the draft still matches RFC 9116 on signing (now
+embedded rather than detached) and on TLS, and still adds the dedicated media type, but no
+longer adds a `nosniff` recommendation.
+
 **Against the registry's own floor.** The Well-Known URIs registry policy is *Specification
 Required* (RFC 8615 §3.1) and imposes no cryptographic requirement of any kind; the practical
 security bar for a registration is the quality of the specification's own Security
@@ -965,6 +1060,12 @@ host for an individual publisher silently produces a non-conforming deployment.
 This converts the media-type requirement from a preference into a documented failure mode, and
 it is why the package pairs S1 with S4 (`nosniff`) and with explicit deployment guidance naming
 hosts that can and cannot set a per-path response header.
+
+**[Superseded 2026-09-16]** `-07` (in preparation, not yet posted) drops the `nosniff`
+recommendation (S4) from the specification text — see the [Superseded 2026-09-16] row at
+S4 in §15.2. The Content-Type measurement above and the case for the dedicated media type
+(S1) are unaffected; deployment guidance MAY still send `nosniff` operationally, but the
+draft no longer requires or recommends it.
 
 ### 15.5 The greenwashing strand of the threat model has an observed example
 

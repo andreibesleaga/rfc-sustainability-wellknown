@@ -5,11 +5,11 @@
  * support conditional requests - proving the checker actually discriminates
  * rather than rubber-stamping anything that returns 200 with a JSON body.
  *
- * NOTE (-06): the hand-built fixtures here serve `application/json` on purpose
- * where they do — that is the pre-06 media type a -05 publisher still uses,
- * and the battery is required to report it as WARN, not FAIL. Everything runs
- * over plain HTTP on 127.0.0.1, so the battery gets the shared ALLOW_INSECURE
- * opt-out from ./helpers.
+ * NOTE: the hand-built fixtures here serve `application/json` on purpose where
+ * they do — the generic type declarations published before the registration
+ * carry, which the battery is required to report as WARN, not FAIL. Everything
+ * runs over plain HTTP on 127.0.0.1, so the battery gets the shared
+ * ALLOW_INSECURE opt-out from ./helpers.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";
@@ -130,13 +130,16 @@ function startServerWithContentType(
 
 describe("runConformanceChecks()", () => {
   const CONTENT_TYPE_CHECK = `Basic 200 response uses the ${MEDIA_TYPE} media type`;
-  const NOSNIFF_CHECK = "Response sends X-Content-Type-Options: nosniff";
+  const SIGNATURE_CHECK = "Embedded signature (OPTIONAL `signed` member): absent, or present and verifiable";
+  // -07 dropped the X-Content-Type-Options recommendation, so the battery no
+  // longer checks for it; the header is harmless where a server still sends it.
   const NOSNIFF = { "X-Content-Type-Options": "nosniff" };
 
-  it("true negative: valid JSON served as text/html FAILS the media-type check", async () => {
-    // Body is valid JSON (so parsing/schema checks still pass), but the media
-    // type is neither the -06 type nor the pre-06 one: a MUST failure, and the
-    // one media-type outcome that is a hard fail rather than a warn.
+  it("true negative: valid JSON served as text/html FAILS — such a response is not a declaration", async () => {
+    // The body is valid JSON, but the media type is neither the registered
+    // type nor the generic one. -07: "A response carrying any other media type
+    // is not a declaration", so the consumer refuses it unread and every check
+    // that needs the declaration fails with it.
     const origin = await startServerWithContentType("text/html; charset=utf-8", NOSNIFF);
 
     const report = await runConformanceChecks(origin, undefined, ALLOW_INSECURE);
@@ -150,13 +153,12 @@ describe("runConformanceChecks()", () => {
     expect(ct?.pass).toBe(false);
     expect(ct?.level).toBe("MUST");
 
-    // Discrimination: the failure is specific to the media type; the body still
-    // parses and validates, and the other wire checks still pass.
-    expect(byName.get("Basic request returns a schema-valid single object")?.pass).toBe(true);
-    expect(byName.get("Response carries an ETag")?.pass).toBe(true);
-    expect(byName.get("Conditional GET with a fresh ETag returns 304")?.pass).toBe(true);
+    const basic = byName.get("Basic request returns a schema-valid single object");
+    expect(basic?.outcome).toBe("fail");
+    expect(basic?.detail).toContain("wrong-media-type");
+
+    // Discrimination: the wire-level checks that do not need the body still pass.
     expect(byName.get("A method other than GET/HEAD gets 405 with Allow")?.pass).toBe(true);
-    expect(byName.get(NOSNIFF_CHECK)?.pass).toBe(true);
   });
 
   it("true positive: the -06 media type (plus nosniff) passes every check", async () => {
@@ -183,7 +185,7 @@ describe("runConformanceChecks()", () => {
     expect(byName.get(CONTENT_TYPE_CHECK)?.outcome).toBe("pass");
   });
 
-  it("-05 publisher: application/json is a WARN, not a FAIL, and does not affect the verdict", async () => {
+  it("generic application/json is a WARN, not a FAIL, and does not affect the verdict", async () => {
     const origin = await startServerWithContentType(LEGACY_MEDIA_TYPE, NOSNIFF);
 
     const report = await runConformanceChecks(origin, undefined, ALLOW_INSECURE);
@@ -193,7 +195,9 @@ describe("runConformanceChecks()", () => {
     expect(ct?.outcome).toBe("warn");
     // A warn is not a pass...
     expect(ct?.pass).toBe(false);
-    expect(ct?.detail).toBe("pre-06 media type (application/json): v05-compatible, not v06-conformant");
+    expect(ct?.detail).toBe(
+      "generic media type (application/json): processed, but a conformant 200 response carries application/sustainability-data+json",
+    );
     // ...but it is not non-conformance either: the MUST-level verdict, which
     // is what the CLI turns into an exit code, is unaffected.
     expect(report.allPassed).toBe(true);
@@ -203,18 +207,23 @@ describe("runConformanceChecks()", () => {
     expect(report.allPassedIncludingRecommended).toBe(false);
   });
 
-  it("nosniff: reported as a SHOULD-level failure when absent, without affecting the verdict", async () => {
-    const origin = await startServerWithContentType(MEDIA_TYPE);
+  it("-07 dropped the nosniff recommendation, so the battery no longer checks for it", async () => {
+    const origin = await startServerWithContentType(MEDIA_TYPE); // no nosniff header
 
     const report = await runConformanceChecks(origin, undefined, ALLOW_INSECURE);
 
-    const nosniff = report.checks.find((c) => c.name === NOSNIFF_CHECK);
-    expect(nosniff).toBeDefined();
-    expect(nosniff?.level).toBe("SHOULD");
-    expect(nosniff?.outcome).toBe("fail");
-    expect(nosniff?.detail).toContain("nosniff");
+    expect(report.checks.some((c) => /nosniff/i.test(c.name))).toBe(false);
     expect(report.allPassed).toBe(true);
-    expect(report.allPassedIncludingRecommended).toBe(false);
+    expect(report.allPassedIncludingRecommended).toBe(true);
+  });
+
+  it("the OPTIONAL embedded signature: an unsigned origin passes the MUST-level check", async () => {
+    const origin = await startServerWithContentType(MEDIA_TYPE, NOSNIFF);
+
+    const report = await runConformanceChecks(origin, undefined, ALLOW_INSECURE);
+
+    const sig = report.checks.find((c) => c.name === SIGNATURE_CHECK);
+    expect(sig).toMatchObject({ level: "MUST", outcome: "pass", detail: "not signed (optional)" });
   });
 
   it("every check carries an outcome, and `pass` is exactly `outcome === \"pass\"`", async () => {
@@ -279,5 +288,46 @@ describe("runConformanceChecks()", () => {
 
     const methodCheck = byName.get("A method other than GET/HEAD gets 405 with Allow");
     expect(methodCheck?.pass).toBe(true);
+  });
+});
+
+// The battery reads a clock in exactly one place — the year the Extended
+// granularity check asks about — and `ConformanceOptions.now` injects it, so a
+// run is reproducible and the request it makes does not change with the date.
+describe("ConformanceOptions.now", () => {
+  it("is the only clock the battery reads, and it decides the period requested", async () => {
+    const asked: string[] = [];
+    const ETAG = '"clock"';
+    const body = JSON.stringify(EXAMPLE_DOC);
+    const origin = await new Promise<string>((resolve) => {
+      server = createServer((req: IncomingMessage, res: ServerResponse) => {
+        asked.push(req.url ?? "");
+        const url = new URL(req.url ?? "/", "http://localhost");
+        if (url.pathname !== WELL_KNOWN_PATH) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "not found" }));
+        }
+        if (req.method !== "GET" && req.method !== "HEAD") {
+          res.writeHead(405, { Allow: "GET, HEAD" });
+          return res.end();
+        }
+        if (req.headers["if-none-match"] === ETAG) {
+          res.writeHead(304, { ETag: ETAG });
+          return res.end();
+        }
+        res.writeHead(200, { "Content-Type": MEDIA_TYPE, ETag: ETAG });
+        res.end(body);
+      });
+      server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
+    });
+
+    const report = await runConformanceChecks(origin, globalThis.fetch, {
+      ...ALLOW_INSECURE,
+      now: () => new Date("2031-06-15T00:00:00Z"),
+    });
+    expect(report.allPassed).toBe(true);
+    const periods = asked.map((u) => new URL(u, "http://x").searchParams.get("period")).filter((p) => p !== null);
+    expect(periods).toEqual(["2031"]);
+    expect(asked).toContain(`${WELL_KNOWN_PATH}?period=2031&granularity=monthly`);
   });
 });

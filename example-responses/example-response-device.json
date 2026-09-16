@@ -1,5 +1,4 @@
 {
-  "version": "2.0",
   "updated": "2026-01-12T00:00:00Z",
   "capabilities": "basic",
   "provider": "Example Edge Networks (ops@edge.example)",
@@ -16,5 +15,9 @@
   "renewable-energy": 20,
   "disclosure-uri": "https://edge.example/disclosures",
   "target-type": "device",
-  "com.example.pue": 1.15
+  "extensions": {
+    "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": {
+      "pue": 1.15
+    }
+  }
 }

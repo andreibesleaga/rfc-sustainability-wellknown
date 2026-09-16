@@ -1,5 +1,5 @@
 /**
- * Legacy-compatibility semantics (draft §Versioning and Extensibility): a
+ * Legacy-compatibility semantics (draft §Value Constraints and Omitted Metrics): a
  * negative value in a NON-NEGATIVE member reads as "not reported" (subsuming
  * the historical 1.x sentinel); negative scope-1/2/3 values are real data
  * (net accounting) and must never be stripped.
@@ -14,12 +14,14 @@ import {
   isWrongJsonType,
   legacyReportingSubject,
   OPTIONAL_MEMBER_JSON_TYPES,
+  applyToleranceRules,
+  isNonFiniteNumber,
+  NUMERIC_MEMBERS,
 } from "../src/sentinel";
 import { SustainabilityMetrics } from "../src/types";
 
 function baseDoc(overrides: Partial<SustainabilityMetrics> = {}): SustainabilityMetrics {
   return {
-    version: "2.0",
     updated: "2026-01-01T00:00:00Z",
     capabilities: "basic",
     provider: "example.com",
@@ -80,8 +82,16 @@ describe("isNotReported", () => {
     expect(isNotReported([])).toBe(false);
   });
 
-  it("is false for NaN (NaN < 0 is false)", () => {
-    expect(isNotReported(NaN)).toBe(false);
+  // A member "that is present always carries an actual value" (draft -07
+  // §Value Constraints and Omitted Metrics). JSON has no literal for NaN or
+  // Infinity, but `1e999` on the wire parses to Infinity in every JavaScript
+  // runtime — the media type's own security considerations name the hazard —
+  // and such a value re-serializes as `null`. Both read as not reported.
+  it("is true for NaN and for either infinity: no member can carry one", () => {
+    expect(isNotReported(NaN)).toBe(true);
+    expect(isNotReported(Infinity)).toBe(true);
+    expect(isNotReported(-Infinity)).toBe(true);
+    expect(isNotReported(JSON.parse('{"v":1e999}').v)).toBe(true);
   });
 });
 
@@ -148,7 +158,6 @@ describe("withoutSentinels", () => {
     expect(out["verifiable-attestation-uri"]).toBe("https://example.com/attestation");
     expect(out["disclosure-uri"]).toBe("https://example.com/disclosure");
     expect(out.provider).toBe("example.com");
-    expect(out.version).toBe("2.0");
   });
 
   it("leaves a vendor extension field with a negative number untouched (not in NUMERIC_KEYS)", () => {
@@ -211,11 +220,14 @@ describe("final -04: isWrongJsonType (wrong-JSON-type tolerance predicate)", () 
         "verifiable-attestation-uri",
         "disclosure-uri",
         "target-type",
+        "upstream",
+        "extensions",
+        "signed",
       ].sort(),
     );
     // Mandatory members are deliberately NOT covered (stripping one could
     // never make the document processable).
-    for (const mandatory of ["version", "updated", "capabilities", "provider", "measurement-method", "methodology-uri", "reporting-period", "target"]) {
+    for (const mandatory of ["updated", "capabilities", "provider", "measurement-method", "methodology-uri", "reporting-period", "target"]) {
       expect(OPTIONAL_MEMBER_JSON_TYPES).not.toHaveProperty(mandatory);
     }
   });
@@ -227,6 +239,17 @@ describe("final -04: isWrongJsonType (wrong-JSON-type tolerance predicate)", () 
     expect(isWrongJsonType("carbon-footprint", {})).toBe(true);
     expect(isWrongJsonType("energy-unit", 5)).toBe(true);
     expect(isWrongJsonType("energy-unit", null)).toBe(true);
+  });
+
+  it("flags the wrong JSON type for the -07 structural members (array/object)", () => {
+    expect(isWrongJsonType("upstream", {})).toBe(true);
+    expect(isWrongJsonType("upstream", "https://u.example/d")).toBe(true);
+    expect(isWrongJsonType("upstream", [{ declaration: "https://u.example/d" }])).toBe(false);
+    expect(isWrongJsonType("extensions", [])).toBe(true);
+    expect(isWrongJsonType("extensions", null)).toBe(true);
+    expect(isWrongJsonType("extensions", { "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": {} })).toBe(false);
+    expect(isWrongJsonType("signed", 5)).toBe(true);
+    expect(isWrongJsonType("signed", "eyJ...")).toBe(false);
   });
 
   it("accepts the right JSON type, absence, and unknown members", () => {
@@ -263,7 +286,6 @@ describe("final-audit fix: renewable-energy out-of-range-high reads as not repor
 
   it("withoutSentinels strips an out-of-range renewable-energy but keeps a valid one", () => {
     const base = {
-      version: "2.0",
       updated: "2026-01-01T00:00:00Z",
       capabilities: "basic",
       provider: "p",
@@ -274,5 +296,41 @@ describe("final-audit fix: renewable-energy out-of-range-high reads as not repor
     } as any;
     expect(withoutSentinels({ ...base, "renewable-energy": 150 })).not.toHaveProperty("renewable-energy");
     expect(withoutSentinels({ ...base, "renewable-energy": 50 })["renewable-energy"]).toBe(50);
+  });
+});
+
+// A `1e999` on the wire is legal JSON and parses to Infinity in every
+// JavaScript runtime — the hazard the media type registration names ("the
+// implementation-dependent handling ... of numbers outside the range exactly
+// representable in IEEE 754 double precision"). Draft -07 §Value Constraints
+// and Omitted Metrics: "a member that is present always carries an actual
+// value", and re-serializing an infinity yields `null` — a wrongly typed
+// member — so the tolerance pre-pass treats it as not reported, exactly as it
+// does a wrong-JSON-typed value.
+describe("non-finite numeric members (1e999 off the wire)", () => {
+  it("isNonFiniteNumber only fires on the numeric members, the scopes included", () => {
+    expect(isNonFiniteNumber("carbon-footprint", Infinity)).toBe(true);
+    expect(isNonFiniteNumber("scope-2", -Infinity)).toBe(true);
+    expect(isNonFiniteNumber("renewable-energy", NaN)).toBe(true);
+    expect(isNonFiniteNumber("carbon-footprint", 1)).toBe(false);
+    expect(isNonFiniteNumber("provider", Infinity)).toBe(false); // not a numeric member
+    expect(NUMERIC_MEMBERS).toContain("scope-1");
+    expect(NUMERIC_MEMBERS).not.toContain("energy-unit");
+  });
+
+  it("applyToleranceRules strips it and records the member path", () => {
+    const doc = JSON.parse(
+      '{"updated":"2026-01-01T00:00:00Z","capabilities":"basic","provider":"p",' +
+        '"measurement-method":"m","methodology-uri":"https://x/m","reporting-period":"2026-01",' +
+        '"target":"example.com","carbon-footprint":1e999,"scope-1":-1e999,"energy-consumption":12}',
+    );
+    const disregarded: string[] = [];
+    applyToleranceRules(doc, "", disregarded);
+    expect(doc).not.toHaveProperty("carbon-footprint");
+    expect(doc).not.toHaveProperty("scope-1");
+    expect(doc["energy-consumption"]).toBe(12); // a real figure is untouched
+    expect(disregarded.sort()).toEqual(["carbon-footprint", "scope-1"]);
+    // Nothing that survives re-serializes as `null`.
+    expect(JSON.stringify(doc)).not.toContain("null");
   });
 });

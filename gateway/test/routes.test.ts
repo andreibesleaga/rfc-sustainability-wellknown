@@ -42,11 +42,10 @@ describe("GET /{domain}/.well-known/sustainability-data", () => {
     expect(r.headers.get("content-language")).toBe("en");
   });
 
-  it("returns a single JSON object carrying all 8 mandatory members", async () => {
+  it("returns a single JSON object carrying all seven mandatory members", async () => {
     const body = await (await fetch(url(DOC))).json();
     expect(Array.isArray(body)).toBe(false);
     for (const m of [
-      "version",
       "updated",
       "capabilities",
       "provider",
@@ -166,7 +165,7 @@ describe("GET /.well-known/sustainability-data (the gateway's own report)", () =
     const r = await fetch(url(SELF));
     expect(r.status).toBe(200);
     expect(r.headers.get("content-type")).toBe(MEDIA_TYPE);
-    expect(r.headers.get("cache-control")).toBe("public, max-age=3600"); // one hour: the self report and its .jws stay a pair
+    expect(r.headers.get("cache-control")).toBe("public, max-age=3600"); // one hour: the resolution of the model behind the self report
     expect(r.headers.get("access-control-allow-origin")).toBe("*");
     expect(r.headers.get("etag")).toBeTruthy();
     expect(r.headers.get("last-modified")).toBeTruthy();
@@ -212,7 +211,7 @@ describe("index routes", () => {
     expect(html).not.toContain("/.well-known/carbon.txt");
     // The new sections are present.
     expect(html).toContain("Adapter demonstrations (8)");
-    expect(html).toContain("Wire-format examples (14)");
+    expect(html).toContain("Wire-format examples (16)");
     expect(html).toContain("Consumer cross-validation");
   });
 

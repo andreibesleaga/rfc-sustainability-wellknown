@@ -14,3 +14,19 @@
  * The tests that exercise the refusal itself deliberately do NOT use it.
  */
 export const ALLOW_INSECURE = { allowInsecure: true } as const;
+
+/**
+ * A deterministic stand-in for the address lookup (`AddressLookup`).
+ *
+ * Since the address check of draft -07 §Consumer Considerations landed, a fetch
+ * of a host name resolves it before the request. The fixtures in this suite use
+ * names nobody owns (`asked.example`, `d.example`) with a stand-in `fetchImpl`,
+ * so leaving the system resolver in place would make the suite depend on live
+ * DNS — slow, offline-hostile and non-deterministic — to answer a question the
+ * test is not about. This pins every name to one public address instead.
+ *
+ * Tests that ARE about the check inject their own (see the SSRF block in
+ * transport.test.ts), and tests against `127.0.0.1` fixtures need none: they
+ * pass ALLOW_INSECURE, which covers the loopback exemption too.
+ */
+export const PUBLIC_LOOKUP = { lookup: async () => ["93.184.216.34"] as const } as const;

@@ -3,10 +3,14 @@ import { readFileSync } from "node:fs";
 import {
   CarbonUnit,
   EnergyUnit,
+  EVIDENCE_MEMBERS,
+  Extensions,
+  METRIC_MEMBERS,
   RawMetrics,
   SustainabilityMetrics,
   TARGET_TYPES,
   TargetType,
+  UpstreamEntry,
 } from "./types";
 
 /** Largest upstream JSON body an adapter will read (an emissions API answer is a few kilobytes). */
@@ -38,6 +42,18 @@ export function round(n: number, dp = 4): number {
   return Math.round(n * f) / f;
 }
 
+/**
+ * Draft §Value Constraints and Omitted Metrics: "A declaration object MUST
+ * carry at least one numeric metric member or at least one of disclosure-uri
+ * and verifiable-attestation-uri." True when the object satisfies that rule.
+ */
+export function hasReportableContent(obj: unknown): boolean {
+  if (typeof obj !== "object" || obj === null) return false;
+  const rec = obj as Record<string, unknown>;
+  if (METRIC_MEMBERS.some((m) => typeof rec[m] === "number")) return true;
+  return EVIDENCE_MEMBERS.some((m) => typeof rec[m] === "string" && rec[m] !== "");
+}
+
 /** Read and parse a JSON file. */
 export function readJson<T = any>(path: string): T {
   return JSON.parse(readFileSync(path, "utf8")) as T;
@@ -50,7 +66,6 @@ export function readJson<T = any>(path: string): T {
  */
 /** Wire-format keys handled explicitly by {@link fromWire}. */
 const WIRE_KEYS = new Set([
-  "version",
   "updated",
   "capabilities",
   "provider",
@@ -74,9 +89,12 @@ const WIRE_KEYS = new Set([
   "verifiable-attestation-uri",
   "disclosure-uri",
   "target-type",
-  // Historical ("1.0"/"1.1") member names, re-ingested via the draft's
-  // field-driven compatibility rules rather than passed through as vendor
-  // extensions (Versioning and Extensibility).
+  "upstream",
+  "extensions",
+  // The signature covers the object it was served in; a re-emitted object is
+  // signed afresh by the publisher, never carried over.
+  "signed",
+  // Historical member names, re-ingested via field-driven compatibility rules.
   "target-path",
   "carbon-intensity-gCO2-per-kWh",
   "estimated-annual-emissions-kgCO2",
@@ -87,7 +105,7 @@ const WIRE_KEYS = new Set([
  *  - A NON-NUMBER in a present numeric member is a corrupt file — fail loud
  *    (never silently drop a typo'd metric).
  *  - A NEGATIVE value in a non-negative member is the historical "not
- *    reported" sentinel and is dropped (draft §Versioning compatibility rule).
+ *    reported" sentinel and is dropped (draft §Value Constraints and Omitted Metrics, out-of-range rule).
  *  - An OUT-OF-RANGE value (renewable-energy > 100) is likewise treated as
  *    not reported and dropped (draft §Value Constraints, client leniency).
  *  - scope-1/2/3 MAY legitimately be negative and are numeric-checked only.
@@ -114,7 +132,7 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
     capabilities: m.capabilities,
     updated: m.updated,
   };
-  const legacy = m as Record<string, unknown>;
+  const legacy = m as unknown as Record<string, unknown>;
   // Energy/carbon are optional since -03: only re-ingest members actually
   // present (a `{ value: undefined }` would poison normalize with NaN). When
   // the value is present without its unit, the draft's defaults apply. A
@@ -133,7 +151,7 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
     };
   } else if (m["carbon-unit"] !== undefined) {
     // A declared carbon-unit without a (reported) carbon-footprint still
-    // parameterizes the scope values (draft §Optional Response Fields) —
+    // parameterizes the scope values (draft §Optional Members) —
     // carry it so normalize doesn't reinterpret the scopes as gCO2e.
     raw.carbonUnitHint = m["carbon-unit"] as CarbonUnit;
   }
@@ -182,13 +200,15 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
     raw.targetType = m["target-type"] as TargetType;
   }
 
-  // Extension members / unknown members survive re-ingestion (clients MUST
-  // ignore unknown fields; the gateway preserves them through normalize).
-  for (const [k, v] of Object.entries(m)) {
-    if (!WIRE_KEYS.has(k)) {
-      (raw.extra ??= {})[k] = v;
-    }
+  // -07 members carried through verbatim; normalize re-validates both.
+  if (Array.isArray(legacy["upstream"])) raw.upstream = legacy["upstream"] as UpstreamEntry[];
+  const extensions = legacy["extensions"];
+  if (typeof extensions === "object" && extensions !== null && !Array.isArray(extensions)) {
+    raw.extensions = extensions as Extensions;
   }
+  // Every other top-level member is dropped: a consumer MUST ignore a member it
+  // does not recognize (draft, Payload Format), and the base object is closed,
+  // so re-emitting one would publish a non-conformant document.
   return raw;
 }
 

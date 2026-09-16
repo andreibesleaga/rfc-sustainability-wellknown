@@ -52,6 +52,10 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 | `automattic.com.json` | Automattic Inc. (data centres) | **2020** (CY) | *omitted* | sustainability page + methodology post | **six years stale**; data centres only |
 | `retailer.example.json` | *synthetic* | 2025 | market-based | — invented — | reserved `.example` name |
 | `saas-platform.example.json` | *synthetic* | 2025 | location-based | — invented — | reserved `.example` name |
+| `cloud-demo.example.json` | *synthetic* upstream provider | 2025 | market-based | — invented — | tenant-scoped declaration; reserved `.example` name |
+| `tenant-demo.example.json` | *synthetic* downstream organization | 2025 | market-based | — invented — | names the declaration above through `upstream`; reserved `.example` name |
+| `sfc-network.example.json` | *synthetic* network-level system | 2025 | market-based | — invented — | one annual, system-wide figure set for a many-party network; reserved `.example` name |
+| `sfc-operator.example.json` | *synthetic* operator inside that network | 2025 | market-based | — invented — | names `cloud-demo.example` through `upstream` and `sfc-network.example` through an extension; reserved `.example` name |
 
 Plus `kepler-demo.example`, which has no file: it is generated in code by a
 publisher adapter (see below). And [`_no-data.json`](_no-data.json), which
@@ -60,6 +64,35 @@ records the subjects that publish nothing.
 All primary sources were read on **2026-07-28 / 2026-07-29**. Each entry below
 cites the source document and the figures read from it; the working verification
 logs are not carried in the repository.
+
+---
+
+## Extension names served here
+
+The keys of the `extensions` member are absolute URIs (ASCII, scheme in
+lowercase, no fragment), compared as strings and never dereferenced — either an
+`https` URI under the definer's own control, which should identify
+human-readable documentation of the extension, or
+`urn:uuid:` followed by a lowercase hyphenated UUID, for a definer without a
+domain. There is no registry, and a consumer ignores a key it does not
+implement. The specification asks a publisher's methodology document to list the
+names it uses together with what their members mean; these are the gateway's,
+and the same list appears in [`METHODOLOGY.md`](../METHODOLOGY.md).
+
+| Extension name | Used by | Members |
+|---|---|---|
+| `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041` | `microsoft.com.json`, `ovhcloud.com.json` | `reporting-period-basis` (string) — the exact boundary of a fiscal reporting period whose `reporting-period` can only carry the calendar year in which it ended, as `fiscal-year-ended-<YYYY-MM-DD>`. Defined by this gateway's operator. The `urn:uuid:` form is used because the definition is the operator's, not any one domain's. |
+| `https://acme.example/esg/extensions/water-and-waste` | `tenant-demo.example.json` | `water-consumption-m3` (number, cubic metres), `waste-generated-kg` (number, kilograms), `waste-recycled-percent` (number, 0–100). Defined, in the fiction of the specification's own worked example, by that example's publisher; reproduced here verbatim so the deployment serves the example as written. It demonstrates the `https` form of the key. `acme.example` is a reserved name (RFC 2606), so this particular URI documents nothing, where a real definer's would. |
+| `urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845` | `tenant-demo.example.json` | `packaging-recycled-percent` (number, 0–100). The other half of the specification's worked example: a name minted by a party that wants one independent of any domain. Also used, with a `pue` member, by the two wire-format examples below. |
+| `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle` | `sfc-network.example.json`, `sfc-operator.example.json` | `general-purpose-hardware` (boolean — the subject's equipment is general-purpose rather than purpose-built for this workload), `single-use-asic-required` (boolean — participation requires hardware that has no other use), `expected-service-life-years` (number, years — the planned service life before replacement), `embodied-carbon-in-scope-3` (boolean — the emissions of making that hardware are inside the same object's `scope-3` figure), `reuse-and-recycling-policy-uri` (string, absolute `https` URI — the published end-of-life policy). Minted under a domain the gateway operator controls. **The normative definition is [`sfc-compliance/PROFILE.md`](../../sfc-compliance/PROFILE.md)**; this row records only what the two documents here carry. |
+| `https://andreibesleaga.com/sfc/extensions/carbon-neutrality` | `sfc-network.example.json` | `net-zero-status` (string — the subject's own claim about its annual net position), `renewable-procurement` (string — how renewable supply is procured), `residual-emissions-tCO2e` (number, metric tonnes CO2e — what remains for the period after reductions, which the retirements are meant to address), `offsets-retired-tCO2e` (number, metric tonnes CO2e retired for the reporting period), `offset-registry-uri` (string, absolute `https` URI — the retirement record), `offsets-attested-by` (string — the party that issued the statement at `verifiable-attestation-uri`, named so a reader knows whose key to look for; the profile's rule 6 is to say *attested*, never *verified*). Gross figures stay in the top-level members: a neutrality claim is carried here, with its evidence, and never by reducing `carbon-footprint`, which is defined as gross and MUST NOT be negative. **Defined in [`sfc-compliance/PROFILE.md`](../../sfc-compliance/PROFILE.md).** |
+| `https://andreibesleaga.com/sfc/extensions/network-topology` | `sfc-network.example.json`, `sfc-operator.example.json` | At network level: `consensus-mechanism` (string), `validated-node-count` (number, count — nodes counted as taking part over the reporting period), `node-count-validation-method` (string — how that count was established), `per-transaction-energy-Wh` (number, watt-hours per transaction), `nakamoto-coefficient` (number, count), `geographic-regions` (number, count). At operator level, the membership members: `member-of-network` (string — the network the subject participates in) and `network-declaration` (string, absolute `https` URI — where that network's own declaration is published), which `upstream` cannot express because a network is not a supplier. **Defined in [`sfc-compliance/PROFILE.md`](../../sfc-compliance/PROFILE.md).** |
+
+The two wire-format examples that carry `extensions`
+([`example-response-device.json`](../examples/example-response-device.json) and
+[`example-response-extended.json`](../examples/example-response-extended.json))
+use the same `urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845` name with a `pue`
+member — the specification's illustrative name for data defined outside it.
 
 ---
 
@@ -211,10 +244,14 @@ reported zero, not an omission.
 calendar-year inventory. The specification's `reporting-period` admits only
 whole calendar periods, so the document carries `"2025"` — the calendar year in
 which the fiscal year ended — and states the exact boundary two further ways: in
-the `provider` text, and in the machine-readable extension member
-`io.github.andreibesleaga.reporting-period-basis`, whose value is
-`"fiscal-year-ended-2025-06-30"`. A consumer comparing this document with a
-calendar-year one is comparing offset periods.
+the `provider` text, and in a machine-readable member. Since -07 closed the
+top-level member set, that member lives inside `extensions`, under this
+registry's own extension name `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041`
+(see [Extension names served here](#extension-names-served-here)), as
+`reporting-period-basis`, whose value is `"fiscal-year-ended-2025-06-30"`. (It
+was the top-level member `io.github.andreibesleaga.reporting-period-basis`
+through -06.) A consumer comparing this declaration with a calendar-year one is
+comparing offset periods.
 
 Other caveats: the market-based basis is declared; location-based Scope 2 is
 12,030,556 mtCO2e and is not carried. Scope 3 and the total are the
@@ -241,7 +278,7 @@ publishes no inventory of its own — see [`_no-data.json`](_no-data.json).
 **Fiscal-year caveat.** FY2025 is **1 September 2024 – 31 August 2025**. As with
 Microsoft, `reporting-period` carries `"2025"` (the calendar year in which the
 fiscal year ended) and the boundary is stated in the `provider` text and in
-`io.github.andreibesleaga.reporting-period-basis`
+the same `reporting-period-basis` member of the same extension name
 (`"fiscal-year-ended-2025-08-31"`).
 
 Other caveats: market-based basis; the location-based figures (total 158,748,
@@ -309,8 +346,14 @@ in capitals, in its own `provider` member, and the index page badges them
 A synthetic organization-wide annual inventory (`2025`) exercising the widest
 optional member set: energy with a non-default unit (MWh), a market-based total
 with a full scope 1/2/3 breakdown, carbon intensity, an annualized figure,
-renewable share, a disclosure link, and a reverse-domain extension member
-(`example.retailer.pue`) that conformant clients ignore.
+renewable share and a disclosure link.
+
+Until -07 it also carried a reverse-domain extension member
+(`example.retailer.pue`). Draft -07 **closes** the top-level member set — a
+publisher MUST NOT add a member of its own — so that member was removed rather
+than re-homed: the `extensions` mechanism that replaces it is demonstrated on
+`tenant-demo.example.json` below, with the draft's own worked extension name,
+and on the two fiscal-year subjects above with this registry's.
 
 Internally consistent by construction: 4,310 + 9,888 + 114,260 = 128,458 mtCO2e,
 and 41,200 MWh × 240 gCO2e/kWh = 9,888 mtCO2e (the Scope 2 figure). Source: none
@@ -324,6 +367,121 @@ score with its mandatory `functional-unit`, to exercise that co-occurrence rule
 on a live endpoint. 1,860 MWh × 373 gCO2e/kWh = 693.78 mtCO2e. Source: none —
 **invented**. `methodology-uri` points at
 [`METHODOLOGY.md`](../METHODOLOGY.md).
+
+### `cloud-demo.example.json` — an upstream provider's tenant-scoped declaration
+
+A synthetic cloud provider reporting what it **states it delivered to one
+customer** in `2025`: `target-type: "tenant"` and an opaque tenant identifier
+(`t-7f3a9c41`) as `target`, which is the shape draft -07 §Upstream Declarations
+describes for an upstream that reports per customer. The identifier is
+deliberately opaque: naming the customer in the provider's public declaration
+would disclose the commercial relationship to every reader.
+
+180,000 kWh and 48 mtCO2e, with the delivered energy under the provider's own
+Scope 2 (48 mtCO2e), and 180,000 kWh × 267 gCO2e/kWh ≈ 48 mtCO2e. Source: none
+— **invented**. `methodology-uri` points at
+[`METHODOLOGY.md`](../METHODOLOGY.md).
+
+### `tenant-demo.example.json` — a downstream organization, with `upstream` and `extensions`
+
+The other end of that relationship, and the live counterpart of the draft's
+"Organization with Upstream Providers and Extensions" example. A synthetic
+organization's annual inventory for `2025` (1.2 GWh, 310 mtCO2e, scopes
+35 + 115 + 160 = 310) that additionally carries:
+
+- **`upstream`** — one entry, `role: "cloud"`, whose `declaration` is the URL
+  at which **this gateway actually serves** `cloud-demo.example`. The file
+  writes that URL with the leading token `{base}`, which the loader resolves
+  against `BASE_URL` (falling back to the reference deployment's origin) before
+  the declaration is validated or served, so the member names a real,
+  retrievable declaration on whatever origin the gateway runs. A consumer's
+  `sustainability-fetch …/tenant-demo.example --upstream` therefore walks a
+  chain that genuinely resolves, and finds 180,000 kWh / 48 mtCO2e to sit inside
+  the subject's own 1,200,000 kWh / 310 mtCO2e — `consistent`, which is evidence
+  about consistency between two self-asserted claims and never proof of either.
+- **`extensions`** — the draft's own worked example, reproduced verbatim: the
+  water and waste members under
+  `https://acme.example/esg/extensions/water-and-waste`, and
+  `packaging-recycled-percent` under
+  `urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845`. An `extensions` key is an
+  absolute URI compared as a string. The first is the `https` form — a name under
+  the definer's own control that also points a human at the documentation of what
+  the members mean (`acme.example` is reserved by RFC 2606, so this particular one
+  documents nothing; a real definer's would) — and the second is the `urn:uuid:`
+  form, for a definer that wants a name independent of any domain. Nothing is ever
+  fetched from either. A consumer that does not implement a definition ignores the
+  value and never dereferences anything inside it.
+
+Source: none — **invented**. `methodology-uri` points at
+[`METHODOLOGY.md`](../METHODOLOGY.md).
+
+### `sfc-network.example.json` — a network-level subject
+
+A synthetic many-party system reporting **one annual, system-wide figure set**
+for `2025` — the level at which a whole-network claim can be read at all, as
+distinct from the per-operator level below. `target-type` is **`service`**: the
+enum has no `network` value, and `service` is its classification for a system
+that is not an origin, an organization, a device or a tenant. The period is a
+whole calendar year (`2025`), because a system-wide annual total is what the
+figures are.
+
+800 MWh and 95.5 mtCO2e, internally consistent on every axis a consumer can
+cross-check: 0 + 33.1 + 62.4 = 95.5 mtCO2e; 800,000 kWh x 41.4 gCO2e/kWh =
+33.12 mtCO2e against the declared market-based `scope-2` of 33.1 (0.06%
+rounding); 95.5 mtCO2e = the declared 95,500 `estimated-annual-emissions-kgCO2e`.
+MWh is used rather than GWh so the energy figure stays an integer. The
+`verifiable-attestation-uri` is a reserved-name URI that dereferences to
+nothing — presence of that member is evidence of nothing, here or anywhere.
+Source: none — **invented**. `methodology-uri` points at
+[`METHODOLOGY.md`](../METHODOLOGY.md).
+
+It carries three extension names — `hardware-lifecycle`, `carbon-neutrality` and
+`network-topology`, all under `https://andreibesleaga.com/sfc/extensions/` (see
+[Extension names served here](#extension-names-served-here)) — for the three
+kinds of data this specification does not define and a network-level subject
+nevertheless has to state: what its hardware is and how long it lives, what its
+neutrality claim is and what backs it, and how the network is actually
+constituted. Their normative definitions live in
+[`sfc-compliance/PROFILE.md`](../../sfc-compliance/PROFILE.md), not here; a
+consumer that does not implement them ignores the values and dereferences
+nothing.
+
+### `sfc-operator.example.json` — one operator inside that network
+
+The other level of the same picture: a single node operator, `target-type:
+"origin"`, `hardware-metered` at its own machines, 4,820 kWh and 0.19 mtCO2e for
+`2025` (4,820 kWh x 39.4 gCO2e/kWh = 0.19 mtCO2e, carried as the whole of its
+market-based Scope 2). Source: none — **invented**. `methodology-uri` points at
+[`METHODOLOGY.md`](../METHODOLOGY.md).
+
+Two things it demonstrates that the network document cannot:
+
+- **`upstream`** — one entry, `role: "cloud"`, whose `declaration` is written
+  with the leading `{base}` token and therefore resolves, at load time, to the
+  URL at which **this gateway actually serves** `cloud-demo.example`, exactly as
+  `tenant-demo.example.json` does it. An operator that rents its capacity has a
+  real upstream, and a consumer's `--upstream` walk from here resolves to a
+  declaration this deployment really answers.
+- **Membership, in band** — `member-of-network: "sfc-network.example"` under the
+  `network-topology` extension name. `upstream` is the wrong mechanism for this:
+  a network is not a supplier of energy or capacity to its operator, and
+  overloading `upstream` would make a chain walk sum the same electricity twice.
+  Without this member a per-operator declaration cannot be attributed to its
+  network by machine at all.
+
+  The profile's companion member `network-declaration` (the network's own
+  declaration URI) is **omitted rather than guessed**: `{base}` is resolved only
+  inside `upstream[].declaration`, so the only way to name this gateway's own
+  `sfc-network.example` document from inside `extensions` would be to hard-code
+  one deployment's origin, which would be false on every other one. Omission
+  carries "not stated", which is true; a wrong absolute URI would not be.
+
+Read together, the two files are the two levels at which a many-party system is
+reported: a whole-network annual total that can be compared with a system-wide
+expectation, and a per-operator declaration that can be compared with nothing of
+the sort. A figure read at one level says nothing about the other, and neither
+document labels itself compliant with anything — this specification's documents
+carry self-asserted figures, never verdicts.
 
 ### `kepler-demo.example` — generated in code, no data file
 

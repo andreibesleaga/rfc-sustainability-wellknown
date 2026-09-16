@@ -26,7 +26,11 @@ function secureSustainabilityReport(array $reports): array {
         return strcmp($a['reporting-period'] ?? '', $b['reporting-period'] ?? '');
     });
 
-    // 3. DoS Protection: 366-object cap, keeping the MOST RECENT periods
+    // 3. Deployment safeguard (NOT a specification requirement as of -07):
+    //    366-object cap, keeping the MOST RECENT periods. The draft no
+    //    longer states a server-side array cap as a MUST; a consumer bounds
+    //    what it accepts regardless. This is a defensive limit an
+    //    implementer may choose to keep.
     if (count($reports) > 366) {
         $reports = array_slice($reports, -366);
     }
@@ -63,13 +67,13 @@ function secureSustainabilityReport(array $reports): array {
     return $securedReports;
 }
 
-// Set mandatory header (draft -06 §Mandatory Minimum Supported Service):
+// Set mandatory header (draft -07 "Mandatory Minimum Supported Service"):
 // successful (200) responses MUST use the dedicated
 // application/sustainability-data+json media type and MUST NOT use another.
 header('Content-Type: application/sustainability-data+json');
-// -05 compatible (not -06 conformant): header('Content-Type: application/json');
-// Servers SHOULD send nosniff so the document can't be induced to be
-// interpreted as some other, more dangerous type (draft -06).
+// Not required by the specification; ordinary web hardening.
 header('X-Content-Type-Options: nosniff');
+// Compatible with documents published before the dedicated media type was
+// registered (not -07 conformant): header('Content-Type: application/json');
 // echo json_encode(secureSustainabilityReport($yourRawData));
 ?>

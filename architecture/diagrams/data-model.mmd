@@ -6,15 +6,16 @@ classDiagram
     }
     note for SustainabilityDocument "Array rules — MUST: ascending reporting-period,
     non-overlapping, uniform period precision,
-    same target (and target-type, when present) in every entry;
-    max 366 entries recommended.
+    same target (and target-type, when present) in every entry.
+    No server-side size cap since -07 (a full calendar year at daily
+    granularity is naturally at most 366 entries; the consumer MUST bound
+    what it accepts - see Consumer Considerations).
     A single object == a one-element array."
 
-    SustainabilityDocument "1" *-- "1..366" SustainabilityMetrics
+    SustainabilityDocument "1" *-- "1..*" SustainabilityMetrics
 
     class SustainabilityMetrics {
-        <<8 mandatory members>>
-        +version : string — informational label "2.0"; never reject or branch on it
+        <<7 mandatory members as of -07>>
         +updated : string — RFC 3339 date-time of generation
         +capabilities : "basic" | "extended" — query-parameter support only
         +provider : string — entity operating the origin
@@ -23,9 +24,12 @@ classDiagram
         +reporting-period : string — YYYY | YYYY-MM | YYYY-MM-DD
         +target : string — reporting subject: origin host, path prefix, entity, tenant, product
     }
+    note for SustainabilityMetrics "-06 and earlier also required an 8th mandatory
+    member, version (informational label 2.0; never reject or branch on it).
+    -07 removes version entirely; it is not carried forward."
 
     class OptionalMetrics {
-        <<16 optional members — omission is the ONLY not-reported mechanism>>
+        <<19 optional members as of -07 - omission is the ONLY not-reported mechanism>>
         +target-type : "origin" | "path" | "organization" | "service" | "product" | "device" | "tenant" | "data-source" — hint classifying target; unrecognized values tolerated
         +energy-consumption : number — MUST NOT be negative
         +energy-unit : "Wh" | "kWh" | "MWh" | "GWh" — default kWh when absent
@@ -42,17 +46,39 @@ classDiagram
         +renewable-energy : number — percent, 0..100 inclusive
         +verifiable-attestation-uri : string — W3C Verifiable Credential link
         +disclosure-uri : string — disclosure index, e.g. carbon.txt
+        +upstream : array of UpstreamEntry — providers this object's figures derive from, new in -07
+        +signed : string — OPTIONAL embedded JWS (alg EdDSA or ES256, cty sustainability-data+json) over this object minus signed; absence is not an error, new in -07
     }
 
     SustainabilityMetrics "1" o-- "0..1" OptionalMetrics : MAY carry
 
-    class ExtensionMembers {
-        <<open schema>>
-        +any additional member : any — clients MUST ignore unknown members
-        +naming : reverse-domain notation, e.g. com.example.pue — undotted names reserved for the spec; no X-/vendor- prefixes (RFC 6648)
+    class UpstreamEntry {
+        <<upstream[] element, new in -07>>
+        +declaration : string — absolute https URI of the provider's declaration
+        +role : string — OPTIONAL token, e.g. hosting, cloud, cdn, network, electricity
     }
-    SustainabilityMetrics "1" o-- "0..*" ExtensionMembers : extensible via
+    OptionalMetrics "1" o-- "0..*" UpstreamEntry : holds
 
-    note for OptionalMetrics "Minimum-reporting rule — SHOULD: at least one numeric
-    metric or a disclosure/attestation URI; else the mandatory
-    methodology-uri MUST lead to the substantive disclosure."
+    class ExtensionMembers {
+        <<extensions object, new in -07 - keyed by absolute URI>>
+        +extension name : string — RFC 3986 absolute URI, ASCII, no fragment
+        +form A : an https URI the definer controls, documenting the extension
+        +form B : urn-uuid plus a lowercase hyphenated UUID, RFC 9562
+        +value : object — members defined by whoever minted that name
+    }
+    SustainabilityMetrics "1" o-- "0..1" ExtensionMembers : extensible via
+
+    note for ExtensionMembers "-06 and earlier put private data directly at the
+    top level under reverse-domain names, e.g. com.example.pue (undotted names
+    reserved for the spec; no X-/vendor- prefixes, RFC 6648). -07 closes the
+    top-level member set (a publisher MUST NOT add other top-level members)
+    and moves such data inside this single OPTIONAL extensions object instead.
+    A name is an identifier compared as a string, never dereferenced; there is
+    no registry, and a methodology document should list the names it uses."
+
+    note for OptionalMetrics "Minimum-reporting rule (-07): a declaration object
+    MUST carry at least one numeric metric or at least one of disclosure-uri
+    and verifiable-attestation-uri; an object with none is not conformant.
+    (-06 and earlier: this was a SHOULD, with a fallback requiring
+    methodology-uri to lead, without authentication or payment, to the method
+    and the figures - that fallback is withdrawn in -07.)"

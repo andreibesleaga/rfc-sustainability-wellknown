@@ -3,7 +3,9 @@ import type { AddressInfo } from "node:net";
 import { resolve } from "node:path";
 import express from "express";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { decodeProtectedHeader } from "jose";
 import { co2jsAdapter, computedAdapter } from "../src/adapters";
+import { generateSigningKey } from "../src/jws";
 import { parseCarbonTxt } from "../src/carbontxt";
 import { buildAdapter, buildPublisher, PublisherConfig, runCli } from "../src/cli";
 import { expressSustainability } from "../src/middleware/express";
@@ -135,10 +137,30 @@ describe("Express middleware", () => {
     }
   });
 
-  // Draft -06 §Mandatory Minimum Supported Service: non-GET/HEAD requests to
-  // the well-known path SHOULD get 405 + Allow: GET, HEAD. That error body is
-  // not a Sustainability Metadata Document, so it stays application/json
-  // regardless of the handler's `mediaType` option.
+  // Draft §Extended Query Parameters, step 1: a repeated parameter name is a
+  // 400 at every entry point, not only on the standalone server.
+  it("400 Bad Request on a repeated query parameter and on a malformed period", async () => {
+    const app = express();
+    app.use(expressSustainability(demoPublisher()));
+    const server = httpCreateServer(app);
+    const { base, close } = await listen(server);
+    try {
+      const dup = await fetch(`${base}/.well-known/sustainability-data?period=2026&period=2025`);
+      expect(dup.status).toBe(400);
+      expect((await dup.json()).error).toMatch(/more than once/);
+      const bad = await fetch(`${base}/.well-known/sustainability-data?period=2026-02-30`);
+      expect(bad.status).toBe(400);
+      expect(bad.headers.get("cache-control")).toBe("no-store");
+      expect(bad.headers.get("access-control-allow-origin")).toBe("*");
+    } finally {
+      await close();
+    }
+  });
+
+  // Draft -07 §Mandatory Minimum Supported Service: "Any other method SHOULD
+  // receive `405 Method Not Allowed` with `Allow: GET, HEAD`." That error body
+  // is not a declaration, so it stays application/json regardless of the
+  // handler's `mediaType` option.
   it("405 on the well-known path stays application/json with Allow: GET, HEAD", async () => {
     const app = express();
     app.use(expressSustainability(demoPublisher()));
@@ -202,6 +224,39 @@ describe("Fastify plugin (mock runtime)", () => {
     await routes.get("/carbon.txt")!({ headers: { host: "demo.example" } }, cReply);
     expect(cReply.statusCode).toBe(200);
     expect(parseCarbonTxt(cReply.sentBody).org.disclosures).toHaveLength(1);
+  });
+
+  it("answers 400 on a repeated parameter (route seam)", async () => {
+    const routes = new Map<string, (req: any, reply: any) => Promise<unknown>>();
+    await fastifySustainability(
+      {
+        get(path: string, handler: any) {
+          routes.set(path, handler);
+        },
+      } as any,
+      { publisher: demoPublisher() },
+    );
+    const reply: any = {
+      statusCode: 0,
+      sentBody: "",
+      code(c: number) {
+        reply.statusCode = c;
+        return reply;
+      },
+      headers() {
+        return reply;
+      },
+      send(b: string) {
+        reply.sentBody = b ?? "";
+        return reply;
+      },
+    };
+    await routes.get("/.well-known/sustainability-data")!(
+      { method: "GET", headers: {}, query: { granularity: ["monthly", "daily"] } },
+      reply,
+    );
+    expect(reply.statusCode).toBe(400);
+    expect(JSON.parse(reply.sentBody).error).toMatch(/more than once/);
   });
 
   // Fix 4 (MAJOR): a real Fastify instance exposes `route`, so the plugin
@@ -268,6 +323,21 @@ describe("CLI / config loader", () => {
       const doc = await buildPublisher(config).getDocument();
       expect(validateDocument(doc).valid, name).toBe(true);
     }
+  });
+
+  it("signs every document when the config supplies a key", async () => {
+    const key = await generateSigningKey();
+    const config = readJson<PublisherConfig>(EX("config.computed.json"));
+    const doc = (await buildPublisher(config, key).getDocument()) as any;
+    const header = decodeProtectedHeader(doc.signed);
+    expect(header).toMatchObject({ alg: "EdDSA", cty: "sustainability-data+json" });
+    expect(validateDocument(doc).valid).toBe(true);
+
+    const withKid = await buildPublisher({ ...config, signing: { keyId: "https://example.com/k#1" } }, key)
+      .getDocument();
+    expect(decodeProtectedHeader((withKid as any).signed).kid).toBe("https://example.com/k#1");
+    // Without a key, no signature.
+    expect(await buildPublisher(config).getDocument()).not.toHaveProperty("signed");
   });
 
   it("rejects an unknown adapter type", () => {

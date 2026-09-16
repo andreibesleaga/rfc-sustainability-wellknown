@@ -13,6 +13,15 @@ function env(name: string, fallback: string): string {
   return v === undefined || v === "" ? fallback : v;
 }
 
+/**
+ * The public origin of the reference deployment. It is the fallback for the
+ * `{base}` token a data file uses to name a declaration this gateway itself
+ * serves (registry.ts): with `BASE_URL` configured that value is used instead,
+ * so the token always resolves to the origin the declaration is really served
+ * from.
+ */
+export const PUBLIC_BASE_URL = "https://sustainability.up.railway.app";
+
 /** A non-negative whole number, e.g. a count of proxies. */
 function envCount(name: string, fallback: number): number {
   const n = envNum(name, fallback);
@@ -88,17 +97,18 @@ export interface GatewayConfig {
   /** Public base URL, used only for absolute links in the HTML/JSON index. */
   baseUrl: string;
   /**
-   * Whole-service default media type for a 200 document response.
-   * `"sustainability-data+json"` (default) serves the -06 dedicated
-   * `application/sustainability-data+json` type, required by draft -06
-   * §Mandatory Minimum Supported Service. `"json"` serves the legacy
-   * `application/json` type that draft -05 and earlier used, for a
-   * v05-compatible deployment — NOT -06 conformant. Set via
-   * `SUSTAINABILITY_MEDIA_TYPE`. A subject listed in `data/_media-type.json`
-   * (see `media-type.ts`) overrides this default for that one domain, so a
-   * legacy subject can coexist with -06-default subjects on the same gateway.
-   * Both settings send `X-Content-Type-Options: nosniff`; error responses
-   * (404/405/503) always use `application/json`, unaffected by this setting.
+   * Whole-service default media type for a 200 declaration response.
+   * `"sustainability-data+json"` (default) serves the dedicated
+   * `application/sustainability-data+json` type, required by draft -07
+   * §Mandatory Minimum Supported Service. `"json"` serves the generic
+   * `application/json` type under which declarations published before the
+   * registration exist, which a consumer MAY still process — NOT conformant
+   * publishing. Set via `SUSTAINABILITY_MEDIA_TYPE`. A subject listed in
+   * `data/_media-type.json` (see `media-type.ts`) overrides this default for
+   * that one domain, so such a subject can coexist with conformant ones on the
+   * same gateway. Both settings send `X-Content-Type-Options: nosniff`; error
+   * responses (400/404/405/503) always use `application/json`, unaffected by
+   * this setting.
    */
   mediaType: MediaTypeSetting;
   /**
@@ -113,9 +123,12 @@ export interface GatewayConfig {
   rateLimit: { perMinute: number; trustProxy: number };
   /**
    * Private JWK (JSON text) of the key that signs the gateway's OWN report
-   * (draft -06 §Document Signing). Unset: the gateway does not sign and
-   * `/.well-known/sustainability-data.jws` is 404. Set via
-   * `SUSTAINABILITY_SIGNING_KEY`; imported and checked at boot.
+   * (draft -07 §Signing). When set, every declaration object the self report
+   * emits — the parameterless one and each object of an Extended trend —
+   * carries a `signed` member, a JWS over that object. Unset, the gateway does
+   * not sign and the member is simply absent, which the draft says means only
+   * that the publisher did not sign. Set via `SUSTAINABILITY_SIGNING_KEY`;
+   * imported and checked at boot.
    */
   signingKeyJwk?: string;
 
@@ -148,21 +161,24 @@ export interface GatewayConfig {
     liveSince: string;
     /** `verifiable-attestation-uri` of the self report: a third-party signed statement about the model. */
     verifiableAttestationUri?: string;
-    /** Where the PUBLIC signing key is hosted (display and index only; the key travels in the JWS header). */
+    /** Where the PUBLIC signing key is hosted, so a verifier can pin it and match it by `kid` (display and index only; the key itself travels in the JWS header as `jwk`). */
     signingKeyUrl?: string;
   };
 }
 
 /**
  * Response and document bounds (draft Security Considerations: Denial of
- * Service, Array Size Limits). These are enforced by the loader and asserted by
+ * Service). These are enforced by the loader and asserted by
  * the test suite, and are documented in GUIDE.md.
  */
 export const LIMITS = {
   /** Largest source document accepted from `data/` and from an adapter's parameterless build (Extended variants are bounded by the entry cap instead). */
   maxDocumentBytes: 256 * 1024,
   /**
-   * Draft RECOMMENDED cap on array entries. Relayed subjects are served at
+   * Cap on array entries. -07 removes the server-side cap in favour of a
+   * consumer-side bound, so this is a defensive default of this deployment,
+   * not a requirement it has to meet; 366 is the calendar bound the draft
+   * notes for daily granularity over a year. Relayed subjects are served at
    * the Basic service, whose parameterless response MUST be a single JSON
    * object, so array source documents are refused outright; the gateway's own
    * report is Extended (period/granularity honoured), and the cap is kept as

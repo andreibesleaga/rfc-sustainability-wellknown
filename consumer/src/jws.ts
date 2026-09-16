@@ -1,24 +1,40 @@
 /**
- * JWS verification for the draft's OPTIONAL detached signature (draft -06
- * §Document Signing) and for a Verifiable Credential secured as `vc+jwt`.
- * Cryptography and JOSE parsing are delegated to `jose`; this module fixes the
- * draft's verifier policy and turns every failure into a stable reason string
- * — nothing here throws on bad input.
+ * JWS verification for the draft's OPTIONAL embedded signature (the `signed`
+ * member, draft -07 §Signing) and for a Verifiable Credential secured as
+ * `vc+jwt`. Cryptography and JOSE parsing are delegated to `jose`; this module
+ * fixes the draft's verifier policy and turns every failure into a stable
+ * reason string — nothing here throws on bad input.
  *
- * Policy (draft §Header Parameters, RFC 8725 "algorithm confusion"):
- *  - only the two draft-RECOMMENDED asymmetric algorithms are accepted; `none`
- *    and every MAC algorithm are rejected (`jose`'s `algorithms` allow-list,
- *    and `jose` itself refuses to verify with a mismatched key type);
+ * Policy (draft -07 §Verification, RFC 8725 §§3.1, 3.2 and 3.12):
+ *  - the acceptable algorithms come from the KEY and this consumer's own
+ *    policy, never from the `alg` header alone; only the two draft-RECOMMENDED
+ *    asymmetric algorithms are accepted, so `none` and every MAC algorithm are
+ *    rejected (`jose`'s `algorithms` allow-list, and `jose` itself refuses to
+ *    verify with a mismatched key type);
  *  - a `crit` header parameter the verifier does not understand is rejected
  *    (`jose` recognises none by default);
+ *  - `requiredCty` pins the payload type: a `signed` member whose `cty` is
+ *    absent or names another media type is rejected, which is what keeps the
+ *    signature from being confused with a JWS produced for another purpose;
+ *    the two RFC 7515 §4.1.10 spellings of one media type (with and without
+ *    the "application/" prefix) are the same type and both are accepted;
  *  - when the caller supplies trusted keys, a header `jwk` is IGNORED; when it
  *    does not, the header `jwk` is used and MUST be a public key (`jose`'s
  *    `EmbeddedJWK` resolver enforces that).
  */
 import * as jose from "jose";
 
-export const SIGNATURE_PATH = "/.well-known/sustainability-data.jws";
-export const JOSE_MEDIA_TYPE = "application/jose";
+/**
+ * The `cty` a declaration signature carries (draft -07 §The signed Member: a
+ * publisher "writes the value `sustainability-data+json`, omitting the
+ * 'application/' prefix as that section recommends"). RFC 7515 §4.1.10 also
+ * REQUIRES a recipient to read a `cty` containing no "/" as though
+ * "application/" were prepended, so this verifier compares media types, not
+ * spellings: both `sustainability-data+json` and
+ * `application/sustainability-data+json` are accepted, and anything else is
+ * `cty-rejected` — see {@link normalizeCty}.
+ */
+export const DECLARATION_CTY = "sustainability-data+json";
 export const VC_JWT_MEDIA_TYPE = "application/vc+jwt";
 
 export type SigningAlg = "EdDSA" | "ES256";
@@ -36,12 +52,21 @@ export interface VerifyPolicy {
   trustedKeys?: PublicJwk[];
   /** Restrict the algorithms accepted (default: both draft-RECOMMENDED ones). */
   allowedAlgs?: SigningAlg[];
+  /**
+   * Require the protected header's `cty` to name this media type, rejecting
+   * anything else. Either spelling matches (RFC 7515 §4.1.10: a value with no
+   * "/" is read with "application/" prepended), so the prefix-omitted and the
+   * full form of the same type are equivalent here.
+   * {@link verifyDeclarationJws} sets it to {@link DECLARATION_CTY}.
+   */
+  requiredCty?: string;
 }
 
 export type VerifyReason =
   | "malformed"
   | "unsupported-crit"
   | "alg-rejected"
+  | "cty-rejected"
   | "no-key"
   | "private-key-in-header"
   | "key-alg-mismatch"
@@ -58,7 +83,7 @@ export interface VerifyResult {
   reason?: VerifyReason;
   /** Decoded protected header (present whenever it parsed). */
   header?: jose.ProtectedHeaderParameters;
-  /** Decoded JSON payload of an attached JWS (verifyJws only). */
+  /** Decoded JSON payload (present on a valid signature over JSON). */
   payload?: unknown;
 }
 
@@ -94,7 +119,7 @@ function decodeHeader(compact: string): jose.ProtectedHeaderParameters | undefin
   }
 }
 
-/** Verify one compact JWS (with its payload part filled in) under the policy. */
+/** Verify one compact JWS under the policy. */
 async function verifyCompact(compact: string, policy: VerifyPolicy): Promise<VerifyResult> {
   const header = decodeHeader(compact);
   if (!header) return { valid: false, reason: "malformed" };
@@ -105,6 +130,18 @@ async function verifyCompact(compact: string, policy: VerifyPolicy): Promise<Ver
   // whatever keys are pinned, and the reason says so.
   if (!isSupportedAlg(header.alg) || !algorithms.includes(header.alg)) {
     return { valid: false, reason: "alg-rejected", header, kid };
+  }
+
+  // Payload typing (draft -07 §Verification): a `signed` member whose `cty` is
+  // absent or names another payload type is rejected before any key is used.
+  // Both spellings of the same media type name it: RFC 7515 §4.1.10 omits the
+  // "application/" prefix by convention and requires a recipient to restore
+  // it, so the comparison is made on the normalized media types.
+  if (policy.requiredCty !== undefined) {
+    const got = normalizeCty(header.cty);
+    if (got === undefined || got !== normalizeCty(policy.requiredCty)) {
+      return { valid: false, reason: "cty-rejected", header, kid, alg: header.alg };
+    }
   }
 
   if (policy.trustedKeys && policy.trustedKeys.length > 0) {
@@ -145,30 +182,30 @@ async function verifyCompact(compact: string, policy: VerifyPolicy): Promise<Ver
   }
 }
 
+/**
+ * The media type a `cty` header parameter names (RFC 7515 §4.1.10): a value
+ * containing no "/" is the media type with its "application/" prefix omitted,
+ * and is read as though the prefix were present. Media-type parameters are
+ * dropped and the type is lower-cased before comparison, as draft -07 has a
+ * consumer do everywhere it compares this media type ("a consumer compares the
+ * media type ignoring any parameters"). `undefined` when there is no usable
+ * value at all (absent, not a string, or empty), which the caller treats as a
+ * rejection.
+ */
+function normalizeCty(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const essence = value.split(";")[0].trim().toLowerCase();
+  if (essence === "") return undefined;
+  return essence.includes("/") ? essence : `application/${essence}`;
+}
+
 function isSupportedAlg(alg: unknown): alg is SigningAlg {
   return typeof alg === "string" && (SUPPORTED_ALGS as readonly string[]).includes(alg);
 }
 
 /**
- * Verify a DETACHED compact JWS (RFC 7515 Appendix F — empty payload part)
- * over the exact `payload` octets the caller retrieved. Never throws.
- */
-export async function verifyDetachedJws(
-  jws: string,
-  payload: Uint8Array | string,
-  policy: VerifyPolicy = {},
-): Promise<VerifyResult> {
-  if (typeof jws !== "string") return { valid: false, reason: "malformed" };
-  const parts = jws.trim().split(".");
-  if (parts.length !== 3 || parts[1] !== "") return { valid: false, reason: "malformed" };
-  const [h, , s] = parts;
-  const encodedPayload = jose.base64url.encode(typeof payload === "string" ? new TextEncoder().encode(payload) : payload);
-  return verifyCompact(`${h}.${encodedPayload}.${s}`, policy);
-}
-
-/**
- * Verify an ATTACHED compact JWS (e.g. a `vc+jwt`) and decode its JSON
- * payload. Never throws.
+ * Verify a compact JWS and decode its JSON payload (a `vc+jwt`, or any other
+ * attached JWS over JSON). Never throws.
  */
 export async function verifyJws(compact: string, policy: VerifyPolicy = {}): Promise<VerifyResult> {
   if (typeof compact !== "string") return { valid: false, reason: "malformed" };
@@ -182,4 +219,13 @@ export async function verifyJws(compact: string, policy: VerifyPolicy = {}): Pro
   } catch {
     return { ...result, valid: false, reason: "malformed" };
   }
+}
+
+/**
+ * Verify the value of a `signed` member: {@link verifyJws} with the draft's
+ * required `cty` pinned, so a JWS produced for any other purpose is rejected
+ * even when it verifies cryptographically.
+ */
+export async function verifyDeclarationJws(compact: string, policy: VerifyPolicy = {}): Promise<VerifyResult> {
+  return verifyJws(compact, { ...policy, requiredCty: policy.requiredCty ?? DECLARATION_CTY });
 }

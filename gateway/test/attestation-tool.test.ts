@@ -3,13 +3,30 @@
  * signs it as vc+jwt with a (test) attester key, and the consumer verifies it.
  */
 import { exportPrivateJwk, generateSigningKey } from "sustainability-wellknown-publisher";
-import { verifyCredentialJwt, VC_V2_CONTEXT } from "sustainability-wellknown-consumer";
+import { checkBinding, declarationCopyOf, verifyCredentialJwt, VC_V2_CONTEXT } from "sustainability-wellknown-consumer";
 import { describe, expect, it } from "vitest";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — plain ESM script, imported for its exported builder
-import { buildCredential, DEFAULTS, issueCredential } from "../scripts/issue-attestation.mjs";
+import { buildCredential, declarationCopy, DEFAULTS, issueCredential } from "../scripts/issue-attestation.mjs";
 
 const NOW = "2026-09-15T10:00:00Z";
+
+/** One served declaration, signature and all, as the gateway would hand it over. */
+const SERVED = {
+  updated: "2026-09-01T00:00:00Z",
+  capabilities: "extended",
+  provider: "Andrei Besleaga, operator of this reference gateway",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": DEFAULTS.methodologyUri,
+  "reporting-period": "2026-08",
+  target: DEFAULTS.target,
+  "energy-consumption": 2.232,
+  "energy-unit": "kWh",
+  "carbon-footprint": 832.5,
+  "carbon-unit": "gCO2e",
+  "target-type": "service",
+  signed: "eyJ.payload.sig",
+};
 
 describe("issue-attestation", () => {
   it("builds a VC 2.0 credential of the model, valid five years, naming the same-person caveat", () => {
@@ -43,6 +60,44 @@ describe("issue-attestation", () => {
     expect(await verifyCredentialJwt(jwt, { now: at, trustedIssuerKeys: [other.publicJwk] })).toMatchObject({ valid: false });
     // Outside the window it is invalid, exactly as VC 2.0 defines validity.
     expect(await verifyCredentialJwt(jwt, { now: new Date("2032-01-01T00:00:00Z") })).toMatchObject({ valid: false, reason: "expired" });
+  });
+
+  it("binds to a declaration by carrying a copy of it WITHOUT `signed` (-07)", async () => {
+    const c = buildCredential({ now: NOW, declaration: SERVED });
+    const copy = c.credentialSubject.declaration;
+    expect(copy.signed).toBeUndefined();
+    const { signed: _s, ...plain } = SERVED;
+    expect(copy).toEqual(plain);
+    // The consumer finds the copy where the draft says it is, and the binding
+    // is a comparison of objects — there is no digest to trust.
+    expect(declarationCopyOf(c)).toEqual(plain);
+    expect(checkBinding(c, SERVED)).toEqual({ status: "match" });
+    expect(checkBinding(c, { ...SERVED, "carbon-footprint": 1 })).toEqual({
+      status: "mismatch",
+      differences: ["carbon-footprint"],
+    });
+    expect(() => declarationCopy([SERVED])).toThrow(/ONE declaration object/);
+  });
+
+  it("carries NO copy by default, so the standing model attestation is not bound to one month", () => {
+    const c = buildCredential({ now: NOW });
+    expect(c.credentialSubject.declaration).toBeUndefined();
+    // `no-copy`, not `mismatch`: the statement is about the model.
+    expect(checkBinding(c, SERVED)).toEqual({ status: "no-copy" });
+  });
+
+  it("never lets the private key reach the credential, the JWT header or the reported output", async () => {
+    const attester = await generateSigningKey();
+    const privateJwk = JSON.stringify(await exportPrivateJwk(attester));
+    const { jwt, credential, publicJwk } = await issueCredential(privateJwk, { now: NOW, declaration: SERVED });
+    const secret = JSON.parse(privateJwk).d as string;
+    expect(secret).toBeTruthy();
+    const header = JSON.parse(Buffer.from(jwt.split(".")[0], "base64url").toString());
+    expect(header.jwk?.d).toBeUndefined();
+    expect(publicJwk).not.toHaveProperty("d");
+    for (const text of [jwt, JSON.stringify(credential), JSON.stringify(publicJwk)]) {
+      expect(text).not.toContain(secret);
+    }
   });
 
   it("refuses to issue with a public-only key", async () => {

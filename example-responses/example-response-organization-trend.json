@@ -1,6 +1,5 @@
 [
   {
-    "version": "2.0",
     "updated": "2026-02-15T00:00:00Z",
     "capabilities": "basic",
     "provider": "Example Annual Corp (sustainability@example.org)",
@@ -22,7 +21,6 @@
     "target-type": "organization"
   },
   {
-    "version": "2.0",
     "updated": "2026-02-15T00:00:00Z",
     "capabilities": "basic",
     "provider": "Example Annual Corp (sustainability@example.org)",
@@ -44,7 +42,6 @@
     "target-type": "organization"
   },
   {
-    "version": "2.0",
     "updated": "2026-02-15T00:00:00Z",
     "capabilities": "basic",
     "provider": "Example Annual Corp (sustainability@example.org)",
@@ -66,7 +63,6 @@
     "target-type": "organization"
   },
   {
-    "version": "2.0",
     "updated": "2026-02-15T00:00:00Z",
     "capabilities": "basic",
     "provider": "Example Annual Corp (sustainability@example.org)",

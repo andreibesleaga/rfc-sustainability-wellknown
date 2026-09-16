@@ -25,6 +25,13 @@ export interface StartOptions {
   now?: Date;
   /** Leave `SELF_PERIOD` unpinned (Extended self-report tests) . */
   unpinPeriod?: boolean;
+  /**
+   * Public base URL. It resolves the `{base}` token a data file uses to name a
+   * declaration this gateway itself serves (the downstream demo's `upstream`),
+   * so an upstream-chain test can rewrite that one origin onto the loopback
+   * instance. Unset, the reference deployment's origin is used.
+   */
+  baseUrl?: string;
 }
 
 export async function startGateway(opts: StartOptions = {}): Promise<TestServer> {
@@ -37,6 +44,7 @@ export async function startGateway(opts: StartOptions = {}): Promise<TestServer>
     // the limiter has its own tests.
     rateLimit: { perMinute: opts.rateLimitPerMinute ?? 0, trustProxy: 1 },
     signingKeyJwk: opts.signingKeyJwk,
+    ...(opts.baseUrl !== undefined ? { baseUrl: opts.baseUrl } : {}),
   });
   // Pin the self-report period so ETags and bodies are byte-stable, and put
   // go-live before it so the pinned period has its full hours.

@@ -1,0 +1,17 @@
+{
+  "updated": "2026-04-20T00:00:00Z",
+  "capabilities": "extended",
+  "provider": "CloudNova Compute (sustainability@cloudnova.example)",
+  "measurement-method": "cloud-billing",
+  "methodology-uri": "https://cloudnova.example/tenant-sustainability-methodology",
+  "reporting-period": "2025",
+  "target": "nordwind",
+  "target-type": "tenant",
+  "energy-consumption": 210000,
+  "energy-unit": "kWh",
+  "carbon-footprint": 84,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-2": 84,
+  "disclosure-uri": "https://cloudnova.example/disclosures"
+}

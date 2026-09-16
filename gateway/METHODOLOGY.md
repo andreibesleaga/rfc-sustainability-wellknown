@@ -90,15 +90,24 @@ draft's three Extended parameters:
   hours of that period inside the live window;
 - `granularity` — `monthly` or `daily`; when finer than the period, one object
   per slice with data, in ascending order (a year of daily slices is at most
-  366 objects, so the draft's array cap is never exceeded). A granularity that is
-  not finer than the period, or any other value, is ignored.
+  366 objects, the calendar bound the draft notes; -07 puts the binding limit on
+  the consumer, and this deployment keeps 366 as a defensive cap of its own). A
+  granularity that is not finer than the period, or any other value, is ignored.
 
-The `target` parameter is **ignored**: the gateway is one process with no path
-prefixes to scope a report to, so the set of honoured prefixes the draft asks a
-publisher to document here is empty. A malformed `period` is ignored as well
-(the draft's "ignore the offending parameter" option). Every slice is the same
-closed-form model evaluated on a shorter window, so aggregation and evaluation
-coincide and there is nothing to sum.
+**The set of path prefixes this publisher honours for the `target` parameter is
+EMPTY.** The draft asks a publisher to document that set here, and here it is:
+the gateway is one process with no path prefixes to scope a report to. Step 4 of
+the draft's query procedure therefore matches no value, and any `target=` request
+is answered `404` — identically for every value, so the response discloses
+nothing about which paths exist.
+
+Since -07 the procedure is strict about malformed input as well: a defined
+parameter given more than once, and a `period` that is not a real calendar year,
+month or day, are both `400 Bad Request` rather than ignored. An unrecognized
+`granularity` value stays ignored, as step 3 requires.
+
+Every slice is the same closed-form model evaluated on a shorter window, so
+aggregation and evaluation coincide and there is nothing to sum.
 
 ### The grid intensity factor, and its limits
 
@@ -148,7 +157,7 @@ Nothing finer than 24 hours is ever reported.
 Documents whose `target` is a name under a reserved TLD (`.example`, per
 RFC 2606) are **synthetic test vectors**. Their numbers are invented. They exist
 so that the full optional-member surface of the specification — SCI scores,
-scope breakdowns, market-based accounting, reverse-domain extension members — is
+scope breakdowns, market-based accounting, URI-keyed `extensions` — is
 exercised by a live endpoint without a single fabricated figure ever being
 attributed to a real organization.
 
@@ -156,8 +165,11 @@ Each says so in its own `provider` member, in capitals, and the index page
 badges them `synthetic`.
 
 - **`retailer.example`** — a synthetic organization-wide annual inventory
-  exercising the full optional member set, including the reverse-domain
-  extension member `example.retailer.pue`. Internally consistent:
+  exercising the widest optional member set. It carried a top-level
+  reverse-domain extension member until -07 closed the top-level member set;
+  that member was removed rather than re-homed, and `extensions` is demonstrated
+  instead on `tenant-demo.example` (see
+  [6. Extension names used here](#6-extension-names-used-here)). Internally consistent:
   scope 1 + 2 + 3 = `carbon-footprint`, and
   `energy-consumption x carbon-intensity-gCO2e-per-kWh` = `scope-2`.
 - **`saas-platform.example`** — a synthetic software service reporting a
@@ -207,29 +219,43 @@ The self report is the reference deployment's demonstration of the draft's two
 optional integrity mechanisms. Neither changes a figure; both are described here
 so that what they do — and do not — establish is on record.
 
-### The detached signature
+### The embedded signature
 
-`/.well-known/sustainability-data.jws` is a detached JWS (RFC 7515 Appendix F,
-EdDSA/Ed25519) over the exact bytes of the parameterless self document, served
-as `application/jose` with the document's caching directives and a correlated
-ETag. The public key travels in the signature's header and is also hosted at the
-URL the index names (`SELF_SIGNING_KEY_URL`), so a verifier can pin it. The
-signing key lives only in the deployment's environment. What the signature
-establishes: that the bytes a consumer holds are the bytes this key signed, and
-that successive documents came from the same key. What it does not establish:
-who holds the key, and whether the figures are right — a correctly signed
-estimate is still an estimate. Extended variants (any request with parameters)
-are not signed; the draft's signature covers the parameterless representation
-only.
+Since -07 the signature is a member of the declaration, not a resource of its
+own: each declaration object the self report emits carries `signed`, a JWS
+Compact Serialization (RFC 7515 §7.1, EdDSA/Ed25519, `cty:
+sustainability-data+json`) whose payload is that same object without `signed`.
+It travels inside the body, so a cache that serves a re-encoded copy cannot
+separate the two, and **every** representation is signed — the parameterless
+declaration and each object of an Extended trend array alike, not just the
+parameterless one as the withdrawn detached form did. The public key travels in
+the signature's header as `jwk`, which the draft RECOMMENDS so that
+verification needs nothing but the declaration, and is also hosted at the URL
+the index names (`SELF_SIGNING_KEY_URL`), so a verifier can pin it and match it
+by `kid`. The signing key lives only in the deployment's environment. What the
+signature establishes: that the object a consumer holds is the object this key
+signed, and that successive declarations came from the same key. What it does
+not establish: who holds the key, and whether the figures are right — a
+correctly signed estimate is still an estimate. The precedent for carrying a
+signature inside the object it secures is the `signed_metadata` parameter of
+RFC 8414. -07 makes that precedence conditional on the key: a payload overrides
+the members around it only where the verifier trusts the key out of band or
+through an `x5c` chain, so for this deployment's header-carried `jwk` the
+members the origin serves remain the ones a consumer uses.
 
 ### The attestation
 
 `verifiable-attestation-uri` points at a W3C Verifiable Credential (Data Model
 2.0) secured as `vc+jwt`, issued with `scripts/issue-attestation.mjs` and hosted
 by the issuer. It attests the **model** of §2 — the two constants, the live
-window and the formula — for five years, so every document derived from the
+window and the formula — for five years, so every declaration derived from the
 model is covered and nothing is re-issued monthly. The issuer's public key is
-hosted at the URL the credential's `kid` names.
+hosted at the URL the credential's `kid` names. Under -07 a credential can also
+bind to one declaration by carrying a copy of that object (without `signed`) at
+`credentialSubject.declaration`; the issuing tool does that on
+`--declaration <file>` and omits the copy otherwise, because a copy binds the
+credential to a single reporting period and this one deliberately covers the
+model for five.
 
 **The operator of this gateway and the issuer of that credential are the same
 person.** The credential therefore demonstrates the mechanism — a second key, a
@@ -240,8 +266,96 @@ in its own words, on its index page and in the credential's description.
 
 ### Third parties
 
-The relayed documents are not signed and carry no attestation, and their
-per-subject `.jws` paths answer `404`: the gateway can vouch for its own bytes,
-never for another organization's figures.
+The relayed declarations are not signed and carry no attestation: the gateway
+can vouch for its own bytes, never for another organization's figures. -07
+defines one resource and no signature path, so a request for the withdrawn
+`.jws` path is an ordinary `404`, at the root and under a subject alike.
+
+### Upstream providers
+
+The gateway's own declaration carries **no** `upstream` member. Its hosting
+platform publishes no declaration of its own, so naming one would assert
+something that does not exist. That is an honest limit of the mechanism rather
+than a gap in this deployment, and the front page says so in a sentence. The
+`cloud-demo.example` / `tenant-demo.example` pair demonstrates a working chain
+instead: a synthetic upstream publishing a tenant-scoped declaration
+(`target-type: "tenant"`, an opaque `target`), and a synthetic downstream
+naming the URL this gateway really serves it at, with `role: "cloud"`. Both are
+reserved names and invented figures; the comparison a consumer draws from them
+is evidence about consistency between two self-asserted claims, never proof of
+either.
+
+## 6. Extension names used here
+
+Data the specification does not define travels in the `extensions` member, whose
+keys are absolute URIs, written in ASCII with the scheme in lowercase and no
+fragment. Two forms are permitted: an `https` URI under the definer's control,
+which should identify human-readable documentation of the extension, or
+`urn:uuid:` followed by a lowercase hyphenated UUID, for a definer without a
+domain. A key is an identifier, not a locator — it is compared as a
+string and never dereferenced, so a later change in who owns a domain does not
+change what an existing declaration means. There is no registry, and a consumer
+ignores a key whose definition it does not implement.
+
+The specification asks a publisher's methodology document to list the extension
+names it uses with their definitions. The names the gateway serves are below, and
+the per-subject detail is in
+[`data/README.md`](data/README.md#extension-names-served-here).
+
+### `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041`
+
+Defined by this gateway's operator; carried by the `microsoft.com` and
+`ovhcloud.com` documents. Its value object carries one member:
+
+- **`reporting-period-basis`** (string) — the exact boundary of a fiscal
+  reporting period, written `fiscal-year-ended-<YYYY-MM-DD>`. It exists because
+  `reporting-period` admits only whole calendar periods, so a fiscal-year
+  inventory has to carry the calendar year in which the fiscal year *ended*; this
+  member states the real boundary in band, machine-readably, next to the same
+  statement in the `provider` text. A consumer that reads it knows it is
+  comparing offset periods. The `urn:uuid:` form is used because the definition
+  belongs to the operator rather than to any one domain.
+
+### `https://acme.example/esg/extensions/water-and-waste` and `urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845`
+
+The specification's own worked example, reproduced verbatim by
+`tenant-demo.example`, which is a synthetic document with invented figures. The
+first name's value object carries `water-consumption-m3` (cubic metres),
+`waste-generated-kg` (kilograms) and `waste-recycled-percent` (0–100); the
+second's carries `packaging-recycled-percent` (0–100). Neither is defined by this
+gateway: they belong, in the fiction of that example, to the example's own
+publisher and to an industry group. They are here so that the deployment serves
+the example as the draft writes it, and so that both forms of an extension name
+appear on the wire. `acme.example` is a reserved name (RFC 2606), so that
+particular URI documents nothing, where a real definer's would.
+
+### `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle`, `.../carbon-neutrality` and `.../network-topology`
+
+Three names minted under a domain the gateway operator controls and carried by
+the synthetic `sfc-network.example` and `sfc-operator.example` documents. Their
+normative definitions are in
+[`sfc-compliance/PROFILE.md`](../sfc-compliance/PROFILE.md), not in this
+document; what each document here actually carries is listed in
+[`data/README.md`](data/README.md#extension-names-served-here).
+
+- **`.../hardware-lifecycle`** — what the equipment is and how long it lives:
+  `general-purpose-hardware` and `single-use-asic-required` (booleans),
+  `expected-service-life-years` (years), `embodied-carbon-in-scope-3` (boolean —
+  the emissions of making that hardware are inside the same object's `scope-3`
+  figure), `reuse-and-recycling-policy-uri` (absolute `https` URI).
+- **`.../carbon-neutrality`** — the subject's own neutrality claim and the
+  evidence behind it: `net-zero-status`, `renewable-procurement`,
+  `residual-emissions-tCO2e` (metric tonnes CO2e remaining after reductions),
+  `offsets-retired-tCO2e` (metric tonnes CO2e), `offset-registry-uri`,
+  `offsets-attested-by` (the party that issued the statement at
+  `verifiable-attestation-uri` — the profile's rule 6 is to say *attested*, never
+  *verified*); the gross figures stay in the top-level members, which
+  a neutrality claim never reduces.
+- **`.../network-topology`** — how a many-party network is constituted:
+  `consensus-mechanism`, `validated-node-count`,
+  `node-count-validation-method`, `per-transaction-energy-Wh` (watt-hours),
+  `nakamoto-coefficient`, `geographic-regions`; and, at operator level, the
+  membership members `member-of-network` and `network-declaration`, which
+  `upstream` cannot express because a network is not a supplier.
 
 [draft]: https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/

@@ -7,9 +7,9 @@ annual sustainability disclosures in the wire format, at the right path, with
 the right headers.
 
 ```
-GET  /{domain}/.well-known/sustainability-data   one subject's document
+GET  /{domain}/.well-known/sustainability-data   one subject's declaration
 GET  /.well-known/sustainability-data            the gateway's own report (Extended: ?period= &granularity=)
-GET  /.well-known/sustainability-data.jws        detached signature of that report (draft -06, OPTIONAL)
+                                                 signed in place: each object carries `signed` (OPTIONAL)
 GET  /                                           human-readable index
 GET  /index.json                                 machine-readable index
 GET  /healthz                                    liveness
@@ -26,10 +26,10 @@ GET  /healthz                                    liveness
   [`data/README.md`](data/README.md).
 - A **worked example** of generating these documents from a publisher adapter
   rather than by hand — see [GUIDE.md](GUIDE.md#wiring-an-adapter).
-- A **complete -06 publication** for its own report: the Extended service
-  (`period`/`granularity` since go-live), the OPTIONAL detached signature, a
-  linked Verifiable Credential attesting the reporting model, and per-client
-  rate limiting — with the honesty caveats stated on the page (the figures are a
+- A **complete -07 publication** for its own report: the Extended service
+  (`period`/`granularity` since go-live), the OPTIONAL `signed` member embedded
+  in every declaration object it emits, a linked Verifiable Credential
+  attesting the reporting model, and per-client rate limiting — with the honesty caveats stated on the page (the figures are a
   model; operator and attester are the same person). See
   [METHODOLOGY.md](METHODOLOGY.md#5-signature-and-attestation) and, for the
   deployment procedure for any publisher or attester,
@@ -55,12 +55,14 @@ routing and the honesty machinery.
 - **Not a replacement** for an organization publishing at its own origin, which
   is what the specification actually describes. A gateway is what you do while
   waiting.
-- **Not an Extended-service relay.** Relayed documents declare
+- **Not an Extended-service relay.** Relayed declarations declare
   `capabilities: "basic"` and ignore query parameters, as the specification
-  requires of a Basic server; only the gateway's *own* report is Extended,
-  because only its figures come from a model the gateway can evaluate for any
-  period. Nor does it sign or attest anything on a third party's behalf: the
-  per-subject `.jws` paths are `404` on purpose.
+  requires of a server that supports none of them; only the gateway's *own*
+  report is Extended, because only its figures come from a model the gateway can
+  evaluate for any period. Nor does it sign or attest anything on a third
+  party's behalf: a relayed declaration carries no `signed` member, on purpose.
+  The gateway's own declaration carries no `upstream` member either — the
+  hosting platform publishes no declaration, so naming one would be false.
 
 Anything invented lives under a reserved `.example` name (RFC 2606), says
 `SYNTHETIC EXAMPLE` in capitals, and is badged as such in the index.
@@ -72,7 +74,7 @@ Anything invented lives under a reserved `.example` name (RFC 2606), says
 ```bash
 npm install
 npm run build
-npm test                       # 268 tests
+npm test                       # 356 tests
 node dist/index.js             # 0.0.0.0:8080
 curl -sS http://127.0.0.1:8080/index.json | jq '.subjects[].domain'
 ```

@@ -1,0 +1,22 @@
+{
+  "name": "sfc-compliance",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The SFC profile of the sustainability-data well-known URI: the normative profile, two reference declarations, and sfc-check, a checker built on the published consumer library.",
+  "license": "BSD-3-Clause",
+  "author": "Andrei Nicolae Besleaga",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "check": "node sfc-check.mjs examples/sfc-network.example.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "sustainability-wellknown-consumer": "^0.7.0"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.0"
+  }
+}

@@ -35,16 +35,34 @@ describe("front-page live requests", () => {
 
   it("renders the table in the Service level section with one hyperlink per request", async () => {
     const html = await (await fetch(`${srv.base}/`)).text();
-    const section = html.slice(html.indexOf("<h2>Service level</h2>"), html.indexOf("<h2>Verify these documents yourself</h2>"));
+    const section = html.slice(html.indexOf("<h2>Service level</h2>"), html.indexOf("<h2>Verify these declarations yourself</h2>"));
     for (const r of liveRequests(srv.gw.index)) {
       expect(section).toContain(`<a href="${r.href.replace(/&/g, "&amp;")}"`);
     }
   });
 
   it("an unsigned deployment lists no signature, key or attestation links", () => {
-    const hrefs = liveRequests(srv.gw.index).map((r) => r.href);
-    expect(hrefs.some((h) => h.endsWith(".jws") && !h.includes("/", 1))).toBe(false);
-    expect(hrefs.some((h) => /^https?:/.test(h))).toBe(false);
+    const rows = liveRequests(srv.gw.index);
+    const hrefs = rows.map((r) => r.href);
+    // -07 withdrew the signature resource: no row may name one, signed or not.
+    expect(hrefs.some((h) => h.includes(".jws"))).toBe(false);
+    expect(rows.some((r) => /signed/.test(r.what))).toBe(false);
+    // The only absolute URL on an unsigned deployment is the upstream chain
+    // row, which shows the `upstream[].declaration` value verbatim — the draft
+    // requires that member to be an absolute "https" URI.
+    const absolute = hrefs.filter((h) => /^https?:/.test(h));
+    expect(absolute).toHaveLength(1);
+    expect(absolute[0]).toContain("/cloud-demo.example/.well-known/sustainability-data");
+  });
+
+  it("lists the upstream chain: the declaration the downstream demo names, served here", async () => {
+    const row = liveRequests(srv.gw.index).find((r) => r.what.startsWith("the upstream chain"));
+    expect(row).toBeDefined();
+    expect(row!.href).toContain("/cloud-demo.example/.well-known/sustainability-data");
+    // It is an absolute URI (the draft requires https), so it is followed by
+    // path here rather than by host: this instance is a loopback http server.
+    const doc = await (await fetch(`${srv.base}${new URL(row!.href).pathname}`)).json();
+    expect(doc["target-type"]).toBe("tenant");
   });
 });
 
@@ -57,15 +75,19 @@ describe("front-page live requests, signed and attested", () => {
   });
   afterAll(async () => srv.close());
 
-  it("adds the signature resource and the two hosted files, external ones opened safely", async () => {
+  it("adds a row for the in-place signature and the two hosted files, external ones opened safely", async () => {
     const rows = liveRequests(srv.gw.index);
     const hrefs = rows.map((r) => r.href);
-    expect(hrefs).toContain("/.well-known/sustainability-data.jws");
+    expect(hrefs.some((h) => h.includes(".jws"))).toBe(false);
+    const signedRow = rows.find((r) => r.what.includes("`signed` member"));
+    expect(signedRow).toBeDefined();
+    expect(signedRow!.href).toBe("/.well-known/sustainability-data");
+    expect(signedRow!.expect).toContain("no separate signature resource");
     expect(hrefs).toContain(KEY_URL);
     expect(hrefs).toContain(VC_URL);
-    const sig = await fetch(`${srv.base}/.well-known/sustainability-data.jws`);
-    expect(sig.status).toBe(200);
-    expect(sig.headers.get("content-type")).toBe("application/jose");
+    // The row's promise holds: the served declaration really carries `signed`.
+    const doc = await (await fetch(`${srv.base}${signedRow!.href}`)).json();
+    expect(typeof doc.signed).toBe("string");
     const html = renderIndexHtml(srv.gw.index);
     expect(html).toContain(`<a href="${KEY_URL}" rel="noopener noreferrer">`);
     expect(html).toContain(`<a href="${VC_URL}" rel="noopener noreferrer">`);

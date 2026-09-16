@@ -10,17 +10,18 @@
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import {
+  badRequestResult,
   handleRequest,
-  handleSignatureRequest,
   importSigningKey,
   parseQuery,
-  SIGNATURE_PATH,
+  queryFromSearchParams,
+  type ServiceQuery,
   type SigningKey,
 } from "sustainability-wellknown-publisher";
-import { verifyDetachedJws } from "sustainability-wellknown-consumer";
+import { verifyEmbeddedSignature } from "sustainability-wellknown-consumer";
 import { demoSpecs } from "./adapters/demo-specs";
 import { lastCompletedMonth, selfReportAdapter } from "./adapters/self-report";
-import { LIMITS, type GatewayConfig, type MediaTypeSetting } from "./config";
+import { LIMITS, PUBLIC_BASE_URL, type GatewayConfig, type MediaTypeSetting } from "./config";
 import { loadWireExamples, type WireExample } from "./examples";
 import { CORS_ORIGIN, corsHeaders, jsonError, methodNotAllowed, notModified, withBody, type Result } from "./http";
 import {
@@ -38,8 +39,6 @@ import { crossValidate, type CrossValidation } from "./verify";
 
 /** `/{domain}/.well-known/sustainability-data` — the primary route. */
 const SUBJECT_ROUTE = new RegExp(`^/([^/]{1,${LIMITS.maxDomainLength}})/\\.well-known/sustainability-data$`);
-/** A per-subject signature path: never served — the gateway signs only its own report. */
-const SUBJECT_SIGNATURE_ROUTE = new RegExp(`^/([^/]{1,${LIMITS.maxDomainLength}})/\\.well-known/sustainability-data\\.jws$`);
 /** The self report's variant cache: in-progress periods change hourly. */
 const SELF_CACHE_TTL_MS = 60 * 60 * 1000;
 const SELF_CACHE_ENTRIES = 64;
@@ -80,7 +79,11 @@ export interface Gateway {
   indexHtml: string;
   /** The machine-readable index, serialized once per build. */
   indexJson: string;
-  /** The key signing the gateway's own report; unset ⇒ `.jws` is 404 (draft: "does not sign"). */
+  /**
+   * The key that signs the gateway's own report. Unset, the declaration simply
+   * carries no `signed` member, which the draft says means only that the
+   * publisher did not sign — not evidence of anything.
+   */
   signingKey?: SigningKey;
   /** Per-client request limiter; unset when disabled. */
   rateLimiter?: RateLimiter;
@@ -137,7 +140,7 @@ async function serveDocument(
   ifNoneMatch: string | undefined,
   ifModifiedSince: string | undefined,
   mediaType: MediaTypeSetting,
-  query: Record<string, string> = {},
+  query: ServiceQuery = {},
 ): Promise<Result> {
   const r = await handleRequest(
     subject.publisher,
@@ -148,7 +151,7 @@ async function serveDocument(
   const headers: Record<string, string> = { ...r.headers, "Last-Modified": subject.lastModified };
   // A query variant describes a different period than the subject's own
   // document, so its `Last-Modified` comes from the variant's `updated`.
-  if (r.status === 200 && Object.keys(query).length > 0) {
+  if (r.status === 200 && Object.values(query).some((v) => v !== undefined)) {
     const variantUpdated = lastUpdatedIn(r.body);
     if (variantUpdated) headers["Last-Modified"] = variantUpdated;
   }
@@ -192,7 +195,6 @@ export async function route(
     path === "/index.json" ||
     path === "/healthz" ||
     path === WELL_KNOWN_PATH ||
-    path === SIGNATURE_PATH ||
     SUBJECT_ROUTE.test(path);
 
   if (isKnown && method !== "GET" && method !== "HEAD") return methodNotAllowed();
@@ -235,31 +237,14 @@ export async function route(
 
   if (path === WELL_KNOWN_PATH) {
     const self = gw.refreshSelf ? await gw.refreshSelf() : gw.self;
-    // The self report is an Extended publisher: `period` and `granularity`
-    // pass through the publisher's own parameter-tolerance rules (a malformed
-    // period and an unknown granularity are dropped, per the draft); `target`
-    // is ignored, so it never reaches the publisher.
-    return serveDocument(self, { ...gw.config, maxAge: selfMaxAge(gw.config) }, ifNoneMatch, ifModifiedSince, gw.config.mediaType, extendedQuery(search));
-  }
-
-  if (path === SIGNATURE_PATH) {
-    // Draft -06 §Document Signing: the detached JWS over the exact bytes of
-    // the parameterless self document. Without a key the publisher answers
-    // 404, which the draft defines as meaning only "does not sign".
-    const self = gw.refreshSelf ? await gw.refreshSelf() : gw.self;
-    const r = await handleSignatureRequest(
-      self.publisher,
-      { maxAge: selfMaxAge(gw.config), cors: CORS_ORIGIN, signingKey: gw.signingKey },
-      ifNoneMatch,
-    );
-    const headers = { ...r.headers, "Last-Modified": self.lastModified };
-    return r.status === 304 ? { status: 304, headers, body: "" } : withBody(r.status, headers, r.body);
-  }
-
-  if (SUBJECT_SIGNATURE_ROUTE.test(path)) {
-    // A relayed document is not the gateway's to sign: it can vouch for its own
-    // bytes, never for a third party's figures.
-    return jsonError(404, `this gateway signs only its own report, at ${SIGNATURE_PATH}`);
+    // The self report is an Extended publisher, so the draft's numbered
+    // query procedure applies in full: a repeated defined parameter or a
+    // malformed `period` is 400, an unknown `granularity` value is ignored,
+    // and a `target` is matched against the published prefix set — which for
+    // one process with no path prefixes is empty, so any value is 404.
+    const parsed = extendedQuery(search, { maxAge: selfMaxAge(gw.config) });
+    if (!parsed.ok) return parsed.result;
+    return serveDocument(self, { ...gw.config, maxAge: selfMaxAge(gw.config) }, ifNoneMatch, ifModifiedSince, gw.config.mediaType, parsed.query);
   }
 
   const m = SUBJECT_ROUTE.exec(path);
@@ -302,17 +287,19 @@ export async function route(
     }
     // Extended parameters pass through only for the wire-format examples that
     // declare `capabilities: "extended"`; the publisher's own selection rule
-    // then decides (an array only for a granularity finer than the period).
-    // Every other subject is Basic: its parameters are ignored, never an error.
+    // then decides (an array only for a granularity finer than the period),
+    // and the draft's numbered procedure gives 400 for a repeated or
+    // malformed parameter and 404 for an unpublished `target`. Every other
+    // subject is Basic: it supports none of the parameters, so the draft says
+    // it MUST ignore them and return the Basic response, never an error.
     const mediaType = gw.mediaTypeOverrides.get(domain) ?? gw.config.mediaType;
-    return serveDocument(
-      subject,
-      gw.config,
-      ifNoneMatch,
-      ifModifiedSince,
-      mediaType,
-      gw.examples?.get(domain)?.granularity ? extendedQuery(search) : {},
-    );
+    let query: ServiceQuery = {};
+    if (gw.examples?.get(domain)?.granularity) {
+      const parsed = extendedQuery(search, { maxAge: gw.config.maxAge });
+      if (!parsed.ok) return parsed.result;
+      query = parsed.query;
+    }
+    return serveDocument(subject, gw.config, ifNoneMatch, ifModifiedSince, mediaType, query);
   }
 
   return jsonError(404, "not found");
@@ -326,23 +313,49 @@ export function splitTarget(rawUrl: string): { path: string; search: URLSearchPa
     : { path: rawUrl.slice(0, q), search: new URLSearchParams(rawUrl.slice(q + 1)) };
 }
 
-/** The two Extended parameters of a request, after the publisher's tolerance rules; `target` never passes. */
-function extendedQuery(search: URLSearchParams): Record<string, string> {
-  const parsed = parseQuery(Object.fromEntries(search.entries()));
-  const query: Record<string, string> = {};
-  if (parsed.period !== undefined) query.period = parsed.period;
-  if (parsed.granularity !== undefined) query.granularity = parsed.granularity;
-  return query;
+/**
+ * The draft's Extended query procedure for a subject this gateway does honour
+ * the parameters on, applied with the published library's own `parseQuery`:
+ *
+ *  - a defined parameter given more than once, or a `period` that is not a
+ *    real calendar year/month/day, is `400 Bad Request` (steps 1 and 2);
+ *  - a `granularity` value that is not `monthly` or `daily` is ignored (step 3);
+ *  - a `target` is compared with the publisher's PUBLISHED set of path
+ *    prefixes (step 4). This gateway publishes an empty prefix set for every
+ *    subject it serves — one process with no path prefixes, and relayed
+ *    documents whose subjects are whole organizations — so a `target` matches
+ *    nothing and the answer is `404`. The value is never echoed: every
+ *    unmatched target gets the identical response (Privacy Considerations).
+ *
+ * `queryFromSearchParams` is what preserves a repeated name; collapsing the
+ * query into a plain object first would hide the very duplication step 1 is
+ * about.
+ */
+type ExtendedQuery = { ok: true; query: ServiceQuery } | { ok: false; result: Result };
+
+function extendedQuery(search: URLSearchParams, opts: { maxAge: number }): ExtendedQuery {
+  const parsed = parseQuery(queryFromSearchParams(search));
+  if (!parsed.ok) {
+    const r = badRequestResult(parsed.error, { maxAge: opts.maxAge, cors: CORS_ORIGIN });
+    return { ok: false, result: withBody(r.status, r.headers, r.body) };
+  }
+  if (parsed.query.target !== undefined) {
+    return {
+      ok: false,
+      result: jsonError(404, "no declaration published for the requested target"),
+    };
+  }
+  return { ok: true, query: { period: parsed.query.period, granularity: parsed.query.granularity } };
 }
 
 /**
- * Cache lifetime of the self report and its signature: one hour, the model's
- * own resolution. The document changes every hour for a period in progress
- * and every month for the parameterless request, and a shared cache holds the
- * document and the `.jws` as separate entries taken at different moments —
- * with a day's lifetime a verifier could see a mismatched pair for up to a
- * day after every change. One hour bounds that window; the relayed subjects
- * keep the configured day.
+ * Cache lifetime of the gateway's own report: one hour, the model's own
+ * resolution. The document changes every hour for a period in progress and
+ * every month for the parameterless request. Since -07 the signature travels
+ * inside the body, so a cache can no longer hold a document and its signature
+ * as two entries taken at different moments; one hour simply keeps the served
+ * figures close to the model's resolution. The relayed subjects keep the
+ * configured day.
  */
 const SELF_MAX_AGE = 3600;
 const selfMaxAge = (config: GatewayConfig): number => Math.min(config.maxAge, SELF_MAX_AGE);
@@ -353,7 +366,11 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   const { config } = opts;
   const log = opts.log ?? defaultLog;
 
-  const subjects = await loadRegistry(config.dataDir);
+  // The origin the declarations are really served from: it resolves the
+  // `{base}` token a data file uses to name a declaration relayed here (the
+  // downstream demonstration subject's `upstream`), so an upstream chain walk
+  // resolves against this deployment and not against some other one.
+  const subjects = await loadRegistry(config.dataDir, config.baseUrl || PUBLIC_BASE_URL);
   const noData = loadNoData(config.dataDir);
   const mediaTypeOverrides = loadMediaTypeOverrides(config.dataDir);
   const clock = opts.clock ?? (() => new Date());
@@ -363,10 +380,10 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
    */
   const selfClock = () => (opts.clock ? opts.clock() : opts.now ?? new Date());
 
-  // ---- The signing key for the gateway's OWN report (draft -06 §Document
-  // Signing). A key that cannot be imported stops the deploy, like a bad data
-  // file: a gateway that claims to sign and cannot is worse than one that
-  // does not sign. ----
+  // ---- The signing key for the gateway's OWN report (draft -07 §Signing).
+  // A key that cannot be imported stops the deploy, like a bad data file: a
+  // gateway that claims to sign and cannot is worse than one that does not
+  // sign. ----
   let signingKey: SigningKey | undefined;
   if (config.signingKeyJwk) {
     try {
@@ -400,6 +417,15 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       label: "adapter:computed (gateway self-report)",
       cacheTtlMs: SELF_CACHE_TTL_MS,
       maxCacheEntries: SELF_CACHE_ENTRIES,
+      // Draft -07 §Signing: the publisher inserts the `signed` member into
+      // every object it builds — the parameterless declaration and each
+      // object of an Extended trend alike. The gateway implements no signing
+      // of its own; it only hands the library the key. The public key travels
+      // in the JWS header as `jwk`, which the draft RECOMMENDS so that
+      // verification needs nothing but the declaration, and the same key is
+      // published out of band at SELF_SIGNING_KEY_URL so a verifier can pin it
+      // and match it by `kid`.
+      ...(signingKey ? { signing: { key: signingKey } } : {}),
     });
   const self = await selfSubject(config.self.period);
 
@@ -447,23 +473,27 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     examples.values(),
   );
 
-  // ---- Boot self-check of the signature: sign the self document exactly as
-  // it will be served and verify it with the consumer library, in-process.
-  // A signature the ecosystem's own verifier rejects must not go live. ----
+  // ---- Boot self-check of the signature: take the self declaration exactly
+  // as it will be served and verify its embedded `signed` member with the
+  // consumer library, in-process. A signature the ecosystem's own verifier
+  // rejects must not go live. ----
   if (signingKey) {
     const served = await handleRequest(self.publisher, {}, { cors: CORS_ORIGIN });
-    const sig = await handleSignatureRequest(self.publisher, { cors: CORS_ORIGIN, signingKey });
-    const verdict = await verifyDetachedJws(sig.body, Buffer.from(served.body, "utf8"));
-    if (sig.status !== 200 || !verdict.valid) {
-      throw new Error(`self-signature check failed: ${verdict.reason ?? `signature status ${sig.status}`}`);
+    const outcome = await verifyEmbeddedSignature(JSON.parse(served.body));
+    if (outcome.result.status !== "verified") {
+      throw new Error(
+        `self-signature check failed: ${
+          outcome.result.status === "unverified" ? outcome.result.reason : "the declaration carries no signed member"
+        }`,
+      );
     }
     log({
       ts: clock().toISOString(),
       level: "info",
       event: "self-signature",
       valid: true,
-      alg: verdict.alg,
-      kid: verdict.kid,
+      alg: outcome.result.alg,
+      kid: signingKey.kid,
     });
   }
 

@@ -6,17 +6,15 @@
  * Fastify is referenced structurally so this compiles without Fastify installed.
  */
 import {
+  badRequestResult,
   CarbonTxtServeOptions,
   CARBON_TXT_PATHS,
   carbonTxtResult,
   handleRequest,
-  handleSignatureRequest,
-  assertSignable,
   HandlerOptions,
   parseQuery,
   WELL_KNOWN_PATH,
 } from "../handler";
-import { SIGNATURE_PATH } from "../jws";
 import { Publisher } from "../publisher";
 
 type FastifyHandler = (req: any, reply: any) => Promise<unknown>;
@@ -77,7 +75,6 @@ export async function fastifySustainability(
   options: FastifyPluginOptions,
 ): Promise<void> {
   const { publisher, carbonTxt, ...handlerOpts } = options;
-  assertSignable(publisher, handlerOpts);
   const cors: Record<string, string> =
     handlerOpts.cors !== false
       ? { "Access-Control-Allow-Origin": handlerOpts.cors ?? "*" }
@@ -94,30 +91,16 @@ export async function fastifySustainability(
   registerAllMethods(fastify, WELL_KNOWN_PATH, async (req: any, reply: any) => {
     if (isDisallowed(req.method)) return send405(reply);
     const ifNoneMatch = req.headers?.["if-none-match"];
-    const result = await handleRequest(
-      publisher,
-      parseQuery(req.query ?? {}),
-      handlerOpts,
-      ifNoneMatch,
-    );
+    const parsed = parseQuery(req.query ?? {});
+    const result = parsed.ok
+      ? await handleRequest(publisher, parsed.query, handlerOpts, ifNoneMatch)
+      : badRequestResult(parsed.error, handlerOpts);
     reply.code(result.status).headers(result.headers);
     if (result.status === 304 || String(req.method).toUpperCase() === "HEAD") {
       return reply.send();
     }
     return reply.send(result.body);
   });
-
-  if (handlerOpts.signingKey) {
-    registerAllMethods(fastify, SIGNATURE_PATH, async (req: any, reply: any) => {
-      if (isDisallowed(req.method)) return send405(reply);
-      const result = await handleSignatureRequest(publisher, handlerOpts, req.headers?.["if-none-match"]);
-      reply.code(result.status).headers(result.headers);
-      if (result.status === 304 || String(req.method).toUpperCase() === "HEAD") {
-        return reply.send();
-      }
-      return reply.send(result.body);
-    });
-  }
 
   if (carbonTxt) {
     for (const path of CARBON_TXT_PATHS) {

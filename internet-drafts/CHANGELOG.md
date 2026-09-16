@@ -4,6 +4,172 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
+### **Version 06 to Version 07 (`draft-besleaga-sustainability-wellknown`) — in preparation, not yet posted**
+
+Withdraws the companion signature resource entirely and moves signing inside the document itself;
+closes the top-level member set and gives private extensions a namespace that cannot collide;
+adds a mechanism for a declaration to point at the declarations it derives from; replaces the
+metric-less-document floor with a stricter conformance rule; and removes the server-side array
+cap, which had stopped doing useful work. **No member is renamed or retyped**; one member
+(`version`) is removed, three (`signed`, `extensions`, `upstream`) are added, and the signature
+is relocated into the document.
+
+Why each change was made, what it costs an existing `-06` publisher or consumer to move, and
+what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RATIONALE.md).
+
+**Signing moved into the document**
+
+* **The companion well-known resource `/.well-known/sustainability-data.jws` and its detached
+  JWS are withdrawn.** There is no legacy support, no redirect, and no fallback: a consumer of
+  `-07` does not look for that resource. The second "Well-Known URIs" registration this document
+  requested for the `.jws` suffix is withdrawn along with it; this document now requests exactly
+  one well-known URI registration.
+* **New OPTIONAL `signed` member**, carried inside each declaration object (inside each array
+  element, for a trend). Its value is a JWS Compact Serialization whose payload is the object it
+  appears in, minus `signed` itself, serialized by the publisher. `alg` (EdDSA/Ed25519 or ES256)
+  and the key as `jwk`/`x5c`/`kid` are as `-06`'s detached signature specified them. **`cty`
+  carrying `sustainability-data+json` is new in `-07`**: the detached signature was identified by
+  the `application/jose` media type of its own resource, and an embedded JWS has no such
+  resource, so the media type moves into the JOSE Header instead. A consumer MUST reject a
+  signature whose `cty` is absent or names another type. The member is OPTIONAL, not
+  RECOMMENDED; a consumer verifies it only when present, and an absent member means unsigned,
+  never an error.
+* **Precedence between the verified payload and the surrounding members is conditional on how
+  far the key is trusted.** A key obtained out of band, pinned from an earlier retrieval, or
+  validated through an `x5c` chain to an already-trusted anchor gives the payload precedence (the
+  `signed_metadata` pattern of RFC 8414). A key that arrived in the JOSE Header is trusted no
+  further than the declaration carrying it, so the members served by the origin remain the ones
+  the consumer uses, and the signature establishes integrity and key continuity only; otherwise
+  anyone able to add one member could replace every figure. Either way a consumer MAY report a
+  difference as evidence that the object was modified after signing, which is not a verification
+  failure. A consumer that promotes an `x5c`-validated key MUST also require that the certificate
+  identify the publisher, since a chain to a widely trusted anchor otherwise establishes only
+  that some party holds a certificate.
+* **Verification is specified.** A consumer rejects `alg` `none` or a MAC algorithm, an absent or
+  foreign `cty`, and a `crit` parameter it does not understand, and treats the object as
+  unverified when the payload is not a declaration object or when the payload's `target` or
+  `reporting-period` differs from the object's.
+
+**Closed member set; extensions get a collision-proof namespace**
+
+* **The `version` member is removed.** `-06` fixed it at the single value `"2.0"`; that value
+  carried no processing consequence once fixed, and the media type alone now identifies the
+  format. The mandatory member count drops from eight to **seven**: `updated`, `capabilities`,
+  `provider`, `measurement-method`, `methodology-uri`, `reporting-period`, `target`.
+* **The top-level member set is now closed.** A publisher MUST NOT add other top-level members; a
+  consumer ignores one it does not recognize. Reverse-domain top-level extension names
+  (`com.example.pue`) are withdrawn along with the practice of adding arbitrary top-level members.
+* **New OPTIONAL `extensions` object**, whose member names are extension names — absolute URIs
+  (RFC 3986, Section 4.3), written in ASCII with the scheme in lowercase and carrying no
+  fragment — and whose values are objects defined by the party that defined the name. Two forms are the ones used in practice: an
+  `https` URI under the definer's control when the name was minted, which SHOULD identify
+  human-readable documentation of the extension, or a UUID URN, `urn:uuid:` followed by the
+  lowercase hyphenated form of a UUID (RFC 9562, Section 4; the Nil and Max UUIDs are excluded),
+  for a definer that has no domain or wants a name independent of any domain. Names are compared
+  as strings, octet for octet, and never normalized. A name is an identifier, not a locator —
+  nothing is fetched from it, and no registry is defined; a consumer that does not implement a
+  name MUST ignore its value and MUST NOT dereference the name or anything within the value, and
+  the methodology document SHOULD list the extension names a publisher uses. A URI rather than a
+  bare UUID because it names the party that defined the members and can lead a reader to the
+  definition: this is collision-resistant naming as RFC 7519, Section 2 describes it, and the way
+  RFC 8288, Section 2.1.2 names extension relation types, as URIs compared as strings that need
+  not be dereferenceable.
+
+**New: declarations that name their own upstream sources**
+
+* **New OPTIONAL `upstream` member**, an array of `{ declaration: <absolute https URI>, role?:
+  <token, e.g. hosting/cloud/cdn/network/electricity> }`, linking to the declarations of providers
+  a subject's figures derive from. An upstream reporting what it delivers to one customer
+  publishes a declaration with `target-type` `"tenant"`; it may also be the party that issues the
+  statement the subject links from `verifiable-attestation-uri`. A consumer MAY walk the chain,
+  and one that does MUST NOT go deeper than three declarations below the one it started from,
+  MUST refuse a URI it has already retrieved, and MUST bound the total number of retrievals. The
+  comparison runs in one direction only, and only against a tenant-scoped upstream declaration:
+  for the same `reporting-period`, and after conversion to one unit, the subject cannot report a
+  smaller energy or carbon figure than that upstream states it delivered. It is evidence of
+  consistency between two self-asserted claims, never proof of either.
+
+**A stricter conformance floor; two provisions removed**
+
+* **The old minimum-reporting floor is replaced by a stricter rule.** `-06` required, of a
+  metric-less document, that its `methodology-uri` resource be openly retrievable without
+  authentication or payment, and only SHOULD have required a metric or an evidence link. `-07`
+  drops the conditions on the methodology resource, which the specification cannot police, and
+  makes the remaining rule a MUST: a declaration object MUST carry at least one numeric metric
+  member, or `disclosure-uri`, or `verifiable-attestation-uri`; an object with none of the three
+  is not conformant.
+* **The server-side 366-object array cap is removed.** A conforming response is bounded only by
+  the calendar; the rule that remains is on the consumer, which MUST bound the bytes and objects
+  it accepts and MUST NOT rely on any server-side bound.
+* **The `X-Content-Type-Options: nosniff` recommendation is removed from the specification.**
+  Implementations may still send the header operationally; the draft no longer requires or
+  recommends it.
+
+**Query parameters formalized**
+
+* **Extended Query Parameters now have an ABNF grammar** (RFC 5234, using the case-sensitive
+  string notation of RFC 7405, a new normative reference, and importing `date-fullyear` /
+  `date-month` / `date-mday` from RFC 3339 Appendix A and `unreserved` / `pct-encoded` from RFC
+  3986 Section 2) and a **numbered processing procedure**: a duplicated parameter name yields
+  `400 Bad Request`, whether or not the server supports that parameter; a `period` value that
+  does not match the grammar or does not name a real calendar date yields `400`; an unrecognized
+  or too-coarse `granularity` is ignored; a `target` outside the published prefix set yields
+  `404 Not Found`; undefined parameters are ignored and kept out of the cache key.
+* **Aggregation is specified rather than suggested.** The contributing entries are of one
+  precision, the coarsest the server holds inside the requested period; they MUST NOT overlap and
+  MUST cover the period, or its completed portion; the unit is the one declared by the last
+  contributing entry in ascending order of `reporting-period`; `provider`, `measurement-method`,
+  `methodology-uri`, `target` and `target-type` MUST agree or no aggregate is served; any other
+  non-metric optional member is carried only where every entry carries it with the same value,
+  and `signed` is omitted unless the server signs the aggregate itself.
+
+**Other normative changes**
+
+* **The Basic response is no longer required to be a single JSON object**, and the `-06` rules
+  that it MUST cover the most recently completed reporting period and the full declared reporting
+  subject are gone. What remains is the Partial Knowledge rule that figures covering part of a
+  declared subject MUST NOT be presented as though they covered the whole.
+* **Access control is explicitly out of scope**, and the `Accept` header field and the processing
+  of `Content-Type` values are specified separately; a consumer compares media types ignoring
+  parameters, and the `application/json` fallback is kept for consumers.
+* **A consumer that follows a redirect to another origin** MUST NOT record the result as a
+  declaration of the origin it queried unless the object's `target` names that origin.
+* **The tolerance rules now apply to OPTIONAL members only.** A defective `capabilities` value is
+  read as `basic` rather than disregarded in favour of observed server behaviour, and a defective
+  value of any other mandatory member leaves the object non-conformant.
+* **The anti-fingerprinting noise rules are tightened**: noise MUST also be consistent across
+  annualized and otherwise derived members, and the methodology document MUST state that noise is
+  applied and bound its magnitude, where `-06` only SHOULD have disclosed it.
+* **Four gaps closed after the reference implementation was built against the text.** The
+  tolerance rules are stated to be exhaustive (a defect they do not name, such as an `extensions`
+  key that is not an absolute URI, an empty `upstream` array, or a malformed mandatory value,
+  leaves the object non-conformant); a numeric value a receiver cannot represent as a finite
+  number is treated as not reported and a publisher MUST NOT emit one; the duplicate-member-name
+  rule binds a consumer whose parser exposes duplicates, and one whose parser does not applies
+  its resolution consistently and states it; and a server that sees only percent-decoded values
+  applies the `target-value` rule to the decoded value.
+
+**Editorial**
+
+* Text stating that publication is voluntary, referring to IETF or IRTF groups, or explaining
+  design rationale is removed; the separate Interoperability and Deployment sections and the
+  "Alternatives Considered" discussion are gone; Security Considerations is condensed to a short
+  summary and four subsections that cite rather than restate. The body is about a quarter shorter.
+* A worked deployment example is added as an appendix, and an Implementations appendix, marked
+  for removal before publication, records the three reference implementations.
+* `-07` is **not posted** to the Datatracker; `-06` remains the latest posted revision until `-07`
+  is submitted.
+
+**Repository, not draft changes**
+
+* Library versions referenced throughout the repository move to `0.7.0` (publisher and consumer).
+* The reference deployment's verifiable credential now carries a copy of the declaration object
+  (without `signed`) inside `credentialSubject`, so a consumer can compare it directly against
+  the verified payload. The draft constrains no credential format, in `-06` or in `-07`; this is
+  a change to the deployment and to the repository's credential profile only.
+
+---
+
 ### **Version 05 to Version 06 (`draft-besleaga-sustainability-wellknown`) — latest posted revision (posted 2026-09-10)**
 
 Responds to two rounds of Independent-Stream feedback: the Editor's direction that security belong in the document from the beginning, and the first commissioned review, which asked that the protocol be separated cleanly from policy, that the consumer be defined, and that the incremental-adoption path be made explicit. Makes **no change to the wire format**: no member is added, removed, renamed, or retyped; the CDDL and JTD schemas are byte-for-byte unchanged; every document conformant to `-04` or `-05` remains conformant.

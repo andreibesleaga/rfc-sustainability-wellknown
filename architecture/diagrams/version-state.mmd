@@ -2,15 +2,18 @@ stateDiagram-v2
     state "Schema / data-model lifecycle" as SCHEMA {
         state "1.0 (historical): 4 metric members mandatory, negative value = not-reported sentinel, optional target-path (absent = origin-wide)" as V10
         state "1.1 (historical): adds optional disclosure-uri" as V11
-        state "2.0 (current, -03 onward): 8 mandatory + 16 optional members, omission is the only not-reported mechanism, mandatory target (+ optional target-type hint since -04), CO2e renames, energy/carbon optional with kWh/gCO2e defaults; -06 fixes 2.0 as the single defined label a publisher MUST use" as V20
-        state "Client processing of ANY document (field-driven, never version-driven): negative value in a non-negative member = not reported (subsumes the sentinel); missing target = origin-wide report; unknown members ignored; version label never rejected or branched on" as COMPAT
+        state "2.0 (historical, -03 through -06): 8 mandatory + 16 optional members, omission is the only not-reported mechanism, mandatory target (+ optional target-type hint since -04), CO2e renames, energy/carbon optional with kWh/gCO2e defaults; -06 fixed 2.0 as the single defined label a publisher MUST use" as V20
+        state "unlabeled (current, -07): the version member is removed outright, not replaced by a new label; 7 mandatory + 19 optional members; extensions keyed by absolute URI (https or urn-uuid) replaces reverse-domain naming; new upstream and signed members; top-level member set closed" as V07
+        state "Client processing of ANY document (field-driven, never version-driven): negative value in a non-negative member = not reported (subsumes the sentinel); missing target = origin-wide report; unknown members ignored; a version member, where one is carried by a 1.x/2.0-era document, is never rejected or branched on" as COMPAT
 
         [*] --> V10
         V10 --> V11 : add disclosure-uri
         V11 --> V20 : BREAKING revision (draft -03)
+        V20 --> V07 : BREAKING revision (draft -07) — version label withdrawn
         V20 --> COMPAT : consumed under
         V11 --> COMPAT : consumed under
         V10 --> COMPAT : consumed under
+        V07 --> COMPAT : consumed under
     }
 
     state "Internet-Draft revision lifecycle" as DRAFT {
@@ -20,7 +23,8 @@ stateDiagram-v2
         state "-03 POSTED: schema 2.0 revision, posted 2026-07-23 (SUSTAIN RG presentation at IETF 126)" as POSTED
         state "-04 POSTED: URI suffix renamed to sustainability-data (ISE naming feedback), optional target-type member added" as POSTED4
         state "-05 POSTED: posted 2026-07-28 — disclosure-uri made format- and location-agnostic, Internationalization Considerations added; no wire change" as POSTED5
-        state "-06 LATEST: posted 2026-09-10, under ISE review — application/sustainability-data+json required, HTTPS raised to MUST, nosniff, OPTIONAL detached JWS, version fixed as a single label; no wire change" as POSTED6
+        state "-06 LATEST POSTED: posted 2026-09-10, under ISE review — application/sustainability-data+json required, HTTPS raised to MUST, nosniff, OPTIONAL detached JWS, version fixed as a single label; no wire change" as POSTED6
+        state "-07 IN PREPARATION: current draft in this repository, not yet posted — withdraws the .jws companion resource for an embedded OPTIONAL signed member, removes version (7 mandatory members), closes the top-level member set, replaces reverse-domain extensions with a URI-keyed extensions object, adds upstream, drops nosniff and the server-side 366 cap, adds ABNF query-parameter processing" as POSTED7
         state "Informational RFC + IANA 'sustainability-data' well-known URI (provisional, promotable to permanent)" as RFC
 
         [*] --> GREEN
@@ -30,6 +34,7 @@ stateDiagram-v2
         POSTED --> POSTED4 : ISE naming feedback (RFC 8615 precision)
         POSTED4 --> POSTED5 : ISE review of -04
         POSTED5 --> POSTED6 : ISE security round + first commissioned review
-        POSTED6 --> RFC : ISE approval + RFC Editor
+        POSTED6 --> POSTED7 : drafting in this repository, not yet posted
+        POSTED7 --> RFC : ISE approval + RFC Editor
         RFC --> [*]
     }

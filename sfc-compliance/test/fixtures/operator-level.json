@@ -1,0 +1,41 @@
+{
+  "updated": "2026-02-10T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "SYNTHETIC FIXTURE, invented figures, reserved .example name (RFC 2606).",
+  "measurement-method": "hardware-metered",
+  "methodology-uri": "https://operator7.example/methodology",
+  "reporting-period": "2025",
+  "target": "validator.operator7.example",
+  "target-type": "origin",
+  "energy-consumption": 4820,
+  "energy-unit": "kWh",
+  "carbon-footprint": 0.19,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 0,
+  "scope-2": 0.19,
+  "carbon-intensity-gCO2e-per-kWh": 39.4,
+  "renewable-energy": 90,
+  "disclosure-uri": "https://operator7.example/disclosures",
+  "extensions": {
+    "https://andreibesleaga.com/sfc/extensions/hardware-lifecycle": {
+      "general-purpose-hardware": true,
+      "single-use-asic-required": false,
+      "expected-service-life-years": 5
+    },
+    "https://andreibesleaga.com/sfc/extensions/network-topology": {
+      "member-of-network": "ledger.example",
+      "network-declaration": "https://ledger.example/.well-known/sustainability-data"
+    }
+  },
+  "upstream": [
+    {
+      "declaration": "https://cloud.example/tenants/operator7.json",
+      "role": "cloud"
+    },
+    {
+      "declaration": "https://greenpower.example/.well-known/sustainability-data",
+      "role": "electricity"
+    }
+  ]
+}

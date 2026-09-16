@@ -60,11 +60,42 @@ describe("GET /.well-known/sustainability-data with Extended parameters", () => 
     expect(doc.updated).toBe("2026-09-01T00:00:00Z");
   });
 
-  it("ignores `target` and unknown granularities: bytes identical to the parameterless response", async () => {
-    for (const qs of ["?target=/x", "?granularity=weekly", "?target=/&granularity=hourly", "?period=not-a-date"]) {
+  it("ignores an unknown granularity value: bytes identical to the parameterless response", async () => {
+    // Draft -07 step 3: a `granularity` that is neither monthly nor daily is
+    // ignored, never an error.
+    for (const qs of ["?granularity=weekly", "?granularity=hourly", "?utm_source=x"]) {
       const r = await get(qs);
       expect(r.status).toBe(200);
       expect(await r.text(), qs).toBe(parameterless);
+    }
+  });
+
+  it("answers 404 for any `target`: the published prefix set is empty (step 4)", async () => {
+    // One process has no path prefixes, so METHODOLOGY.md publishes an empty
+    // set and every value matches nothing. The value is never echoed back.
+    for (const qs of ["?target=/x", "?target=/&granularity=daily", "?target=anything"]) {
+      const r = await get(qs);
+      expect(r.status, qs).toBe(404);
+      expect(await r.json()).toMatchObject({
+        status: 404,
+        error: "no declaration published for the requested target",
+      });
+    }
+  });
+
+  it("answers 400 for a repeated defined parameter or a malformed period (steps 1 and 2)", async () => {
+    for (const qs of [
+      "?period=2026&period=2025",
+      "?granularity=daily&granularity=monthly",
+      "?target=/a&target=/b",
+      "?period=not-a-date",
+      "?period=2026-13",
+    ]) {
+      const r = await get(qs);
+      expect(r.status, qs).toBe(400);
+      expect(r.headers.get("content-type")).toBe("application/json");
+      expect(r.headers.get("cache-control")).toBe("no-store");
+      expect((await r.json()).error, qs).toMatch(/^bad request: /);
     }
   });
 
@@ -173,14 +204,16 @@ describe("period tolerance and cache lifetime of the self report", () => {
   });
   afterAll(async () => srv.close());
 
-  it("a well-shaped but non-existent day is ignored: the Basic response", async () => {
+  it("a well-shaped but non-existent day is 400: it names no real calendar date", async () => {
+    // Draft -07 step 2: a `period` that "does not name a real calendar date"
+    // is 400 Bad Request, not a silent fall-back to the Basic response.
     const r = await fetch(`${srv.base}${SELF}?period=2026-02-31`);
-    expect(r.status).toBe(200);
-    expect((await r.json())["reporting-period"]).toBe("2026-08");
+    expect(r.status).toBe(400);
+    expect((await r.json()).error).toContain("2026-02-31");
     expect(() => periodBounds("2026-02-31")).toThrow(/calendar/);
   });
 
-  it("every self-report response is cacheable for an hour, so a cached document and signature can never disagree for longer", async () => {
+  it("every self-report response is cacheable for an hour, the model's own resolution", async () => {
     const inProgress = await fetch(`${srv.base}${SELF}?period=2026-09`);
     expect(inProgress.headers.get("cache-control")).toBe("public, max-age=3600");
     const complete = await fetch(`${srv.base}${SELF}?period=2026-08`);

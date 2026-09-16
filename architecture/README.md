@@ -11,8 +11,12 @@ Context → Level 2 Container → Level 3 Component), written in
 inline (Mermaid source) and as a pre-rendered image in [`images/`](images/); the
 sources live in [`diagrams/`](diagrams/).
 
-**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-06.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-06.md)
-(the latest "2.0" protocol revision, carrying the `sustainability-data` URI rename), [`../README.md`](../README.md),
+**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-07.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-07.md)
+(the active draft under development in this repository — **`-07` is in
+preparation and not yet posted**; see [§3](#3-the-protocol-subsystem) for what
+it changes), with [`internet-drafts/draft-besleaga-sustainability-wellknown-06.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-06.md)
+kept as the historical reference for the latest revision actually *posted*
+(2026-09-10, the "2.0"-labeled `sustainability-data` URI rename), [`../README.md`](../README.md),
 [`publisher/src/`](../publisher/src/), [`consumer/src/`](../consumer/src/),
 [`schemas-validators/`](../schemas-validators/),
 [`server-configurations/`](../server-configurations/),
@@ -26,7 +30,7 @@ sources live in [`diagrams/`](diagrams/).
 2. [Container view](#2-container-view-c4-level-2)
 3. [The protocol subsystem](#3-the-protocol-subsystem)
    - [Wire-protocol lifecycle](#31-wire-protocol-lifecycle)
-   - [Data model](#32-data-model-24-members)
+   - [Data model](#32-data-model-26-members)
    - [Versioning and legacy-compatibility state logic](#33-versioning-and-legacy-compatibility-state-logic)
 4. [Publisher subsystem — the universal gateway](#4-publisher-subsystem--the-universal-gateway)
 5. [Consumer subsystem](#5-consumer-subsystem)
@@ -214,16 +218,43 @@ flowchart TB
 
 ## 3. The protocol subsystem
 
-The normative artifact is the Internet-Draft (`internet-drafts/`). Revision **-06**
-(schema `2.0`) is the *latest* revision — posted to the Datatracker 2026-09-10,
-under ISE review: it requires the dedicated `application/sustainability-data+json`
-media type, raises HTTPS from SHOULD to MUST, adds `X-Content-Type-Options: nosniff`
-and an OPTIONAL detached JWS, with no wire-format change. Revisions **-05** (posted
-2026-07-28), **-04** (URI suffix renamed to `sustainability-data`, optional
-`target-type` member added) and **-03** (posted 2026-07-23) are the prior revisions;
-the schema label has been `2.0` since `-03`.
-The whole codebase implements the **2.0** model,
-with field-driven compatibility for historical `1.x` documents.
+The normative artifact is the Internet-Draft (`internet-drafts/`). **`-07` is
+the active draft under development in this repository — in preparation, not
+yet posted to the Datatracker.** Since `-06` it: withdraws the companion
+`sustainability-data.jws` resource and its detached signature entirely, in
+favor of an OPTIONAL `signed` member embedded in each declaration object (a
+JWS Compact Serialization over the object itself, typed by `cty`); removes the
+`version` member outright (seven members are now mandatory, not eight) and
+closes the top-level member set; replaces reverse-domain private extension
+members with a single OPTIONAL `extensions` object keyed by an absolute URI
+(RFC 3986) — an `https` URI under the definer's control, which should identify
+documentation of the extension, or `urn:uuid:` plus a lowercase hyphenated UUID
+(RFC 9562) for a definer without a domain, compared as a string and never
+dereferenced; adds an OPTIONAL `upstream` member linking to the declarations of
+providers a subject's figures derive from; drops the "unauthenticated/free
+methodology resource" fallback from the minimum-reporting rule; specifies
+Extended Query Parameters as ABNF plus a numbered procedure (duplicate
+parameter ⇒ 400, malformed `period` ⇒ 400, `target` outside the published
+prefix set ⇒ 404); removes the server-side "cap at 366" MUST/RECOMMENDED in
+favor of a consumer-side bound; and removes the `X-Content-Type-Options:
+nosniff` recommendation. See the draft's own Changelog appendix for the full
+list.
+**`-06`** (schema `2.0`) remains the *latest revision actually posted* —
+posted to the Datatracker 2026-09-10, under ISE review: it requires the
+dedicated `application/sustainability-data+json` media type, raises HTTPS
+from SHOULD to MUST, added `X-Content-Type-Options: nosniff` and the
+now-withdrawn detached JWS, with no wire-format change from `-05`. Earlier
+revisions **-05** (posted 2026-07-28), **-04** (URI suffix renamed to
+`sustainability-data`, optional `target-type` member added) and **-03**
+(posted 2026-07-23) are prior history; the schema label was `2.0` from `-03`
+through `-06` and is removed entirely in `-07`. The diagrams and prose below
+describe the `-07` wire protocol throughout, and the reference codebase
+(`publisher/` and `consumer/` 0.7.0, `schemas-validators/`, the gateway)
+implements it. Two habits of the implementations are not `-07` requirements
+and are labelled as such where they appear: the publisher keeps a defensive
+366-object cap, and the servers still send `X-Content-Type-Options: nosniff`.
+Field-driven compatibility for historical `1.x` documents (§3.3) does not
+depend on any of this and remains current.
 
 ### 3.1 Wire-protocol lifecycle
 
@@ -241,6 +272,11 @@ Two service levels:
   yield an array — a single (possibly aggregated) object, or 404 per the
   no-data rule. Servers that do not support the
   parameters MUST ignore them and return the Basic response — never an error.
+  As of `-07`, the syntax is specified in ABNF and processing as a numbered
+  seven-step procedure: a duplicate parameter name is rejected with `400`, a
+  malformed or non-real `period` is rejected with `400`, an unrecognized or
+  too-coarse `granularity` is silently ignored, and a `target` outside the
+  published prefix set yields `404`.
 
 Caching is first-class: `Cache-Control: public, max-age=86400` is recommended,
 `ETag`/`Last-Modified` enable conditional requests, and the reference publisher
@@ -272,7 +308,7 @@ sequenceDiagram
 
     Note over C,S: 4 — Extended service: trend query
     C->>S: GET /.well-known/sustainability-data?period=2025&granularity=monthly
-    S-->>C: 200 OK · JSON array (≤366 entries, ascending reporting-period,<br/>uniform precision, single target)
+    S-->>C: 200 OK · JSON array (ascending reporting-period, uniform precision,<br/>single target — no server-side size cap since -07, the consumer bounds what it accepts)
 
     Note over C,S: 5 — Extended service: scoped single period
     C->>S: GET ...?target=/api/v1&period=2026-03
@@ -289,25 +325,49 @@ sequenceDiagram
     Note over C,S: 8 — Publish-only-if-valid (reference publisher)
     C->>S: GET /.well-known/sustainability-data
     S-->>C: 503 Service Unavailable (adapter/validation failure —<br/>corrupt data is never published)
+
+    Note over C,S: 9 — Extended service: malformed query (-07)
+    C->>S: GET ...?period=2025&period=2026
+    S-->>C: 400 Bad Request (duplicate parameter name)
+
+    Note over C,S: 10 — Extended service: target outside the published prefix set (-07)
+    C->>S: GET ...?target=/not-published
+    S-->>C: 404 Not Found
 ```
 
-### 3.2 Data model (24 members)
+### 3.2 Data model (26 members)
 
 A response is a single `SustainabilityMetrics` object or an array of them
-(a trend). **8 members are mandatory, 16 optional** — 24 total. Since `2.0`,
-*omission is the only "not reported" mechanism*: a present member always carries
-a real value. Gross quantities are non-negative; `renewable-energy` is bounded
-0–100 inclusive; `scope-1/2/3` **may** be negative (removals / net accounting);
-absent unit members default to `kWh` and `gCO2e`; `sci-score` requires
-`functional-unit`. The `-04` revision adds the optional `target-type` member —
-an enumerated hint (`origin`/`path`/`organization`/`service`/`product`/`device`/
-`tenant`/`data-source`) classifying the reporting subject named by `target`;
-unrecognized values are tolerated (the client reads `target` as if the hint were
-absent), and array entries share one value. The formal schemas are open
-(`additionalProperties` / `* tstr => any`): clients MUST ignore unknown members,
-which — together with the reverse-domain extension-member naming rule
-(`com.example.pue`; undotted names reserved for the spec) — is the entire
-forward-compatibility story.
+(a trend). **As of `-07`: 7 members are mandatory, 19 optional — 26 total**
+(the reference codebase this section also describes still implements the
+`-06`/"2.0" count of 8 mandatory + 16 optional = 24, and carries the
+now-removed `version` member; see the note at the top of §3). Omission is the
+only "not reported" mechanism (true since `-03`, unaffected by `version`'s
+removal): a present member always carries a real value. Gross quantities are
+non-negative; `renewable-energy` is bounded 0–100 inclusive; `scope-1/2/3`
+**may** be negative (removals / net accounting); absent unit members default
+to `kWh` and `gCO2e`; `sci-score` requires `functional-unit`. The `-04`
+revision adds the optional `target-type` member — an enumerated hint
+(`origin`/`path`/`organization`/`service`/`product`/`device`/`tenant`/`data-source`)
+classifying the reporting subject named by `target`; unrecognized values are
+tolerated (the client reads `target` as if the hint were absent), and array
+entries share one value. **`-07` closes the top-level member set**: a
+publisher MUST NOT add other top-level members, and a consumer MUST ignore
+one it does not recognize. Private extension data now lives inside an
+OPTIONAL top-level `extensions` object keyed by an absolute URI (RFC 3986;
+either an `https` URI the definer controls, which should identify documentation
+of the extension, or `urn:uuid:` plus a lowercase hyphenated UUID, RFC 9562),
+replacing the reverse-domain convention (`com.example.pue`; undotted names
+"reserved for the spec") of `-06` and earlier. A key is an identifier compared
+as a string, never dereferenced, and there is no registry; a publisher's
+methodology document should list the names it uses with their definitions. `-07` also adds `upstream` (an
+array of `{declaration, role?}` objects linking to the declarations of
+providers this object's figures derive from, walked by a consumer to a depth
+of at most three, refusing revisited URIs) and `signed` (an OPTIONAL embedded
+JWS replacing the withdrawn `.jws` companion resource). The reference
+codebase's open schema (`additionalProperties` / `* tstr => any`) still
+implements only the `-06` convention; the closed member set, `extensions`,
+and `upstream` are not yet wired in.
 
 ![Data model](images/data-model.png)
 
@@ -322,15 +382,16 @@ classDiagram
     }
     note for SustainabilityDocument "Array rules — MUST: ascending reporting-period,
     non-overlapping, uniform period precision,
-    same target (and target-type, when present) in every entry;
-    max 366 entries recommended.
+    same target (and target-type, when present) in every entry.
+    No server-side size cap since -07 (a full calendar year at daily
+    granularity is naturally at most 366 entries; the consumer MUST bound
+    what it accepts - see Consumer Considerations).
     A single object == a one-element array."
 
-    SustainabilityDocument "1" *-- "1..366" SustainabilityMetrics
+    SustainabilityDocument "1" *-- "1..*" SustainabilityMetrics
 
     class SustainabilityMetrics {
-        <<8 mandatory members>>
-        +version : string — informational label "2.0"; never reject or branch on it
+        <<7 mandatory members as of -07>>
         +updated : string — RFC 3339 date-time of generation
         +capabilities : "basic" | "extended" — query-parameter support only
         +provider : string — entity operating the origin
@@ -339,9 +400,12 @@ classDiagram
         +reporting-period : string — YYYY | YYYY-MM | YYYY-MM-DD
         +target : string — reporting subject: origin host, path prefix, entity, tenant, product
     }
+    note for SustainabilityMetrics "-06 and earlier also required an 8th mandatory
+    member, version (informational label 2.0; never reject or branch on it).
+    -07 removes version entirely; it is not carried forward."
 
     class OptionalMetrics {
-        <<16 optional members — omission is the ONLY not-reported mechanism>>
+        <<19 optional members as of -07 - omission is the ONLY not-reported mechanism>>
         +target-type : "origin" | "path" | "organization" | "service" | "product" | "device" | "tenant" | "data-source" — hint classifying target; unrecognized values tolerated
         +energy-consumption : number — MUST NOT be negative
         +energy-unit : "Wh" | "kWh" | "MWh" | "GWh" — default kWh when absent
@@ -358,39 +422,70 @@ classDiagram
         +renewable-energy : number — percent, 0..100 inclusive
         +verifiable-attestation-uri : string — W3C Verifiable Credential link
         +disclosure-uri : string — disclosure index, e.g. carbon.txt
+        +upstream : array of UpstreamEntry — providers this object's figures derive from, new in -07
+        +signed : string — OPTIONAL embedded JWS (alg EdDSA or ES256, cty sustainability-data+json) over this object minus signed; absence is not an error, new in -07
     }
 
     SustainabilityMetrics "1" o-- "0..1" OptionalMetrics : MAY carry
 
-    class ExtensionMembers {
-        <<open schema>>
-        +any additional member : any — clients MUST ignore unknown members
-        +naming : reverse-domain notation, e.g. com.example.pue — undotted names reserved for the spec; no X-/vendor- prefixes (RFC 6648)
+    class UpstreamEntry {
+        <<upstream[] element, new in -07>>
+        +declaration : string — absolute https URI of the provider's declaration
+        +role : string — OPTIONAL token, e.g. hosting, cloud, cdn, network, electricity
     }
-    SustainabilityMetrics "1" o-- "0..*" ExtensionMembers : extensible via
+    OptionalMetrics "1" o-- "0..*" UpstreamEntry : holds
 
-    note for OptionalMetrics "Minimum-reporting rule — SHOULD: at least one numeric
-    metric or a disclosure/attestation URI; else the mandatory
-    methodology-uri MUST lead, without authentication or payment, to the method and the figures."
+    class ExtensionMembers {
+        <<extensions object, new in -07 - keyed by absolute URI>>
+        +extension name : string — RFC 3986 absolute URI, ASCII, no fragment
+        +form A : an https URI the definer controls, documenting the extension
+        +form B : urn-uuid plus a lowercase hyphenated UUID, RFC 9562
+        +value : object — members defined by whoever minted that name
+    }
+    SustainabilityMetrics "1" o-- "0..1" ExtensionMembers : extensible via
+
+    note for ExtensionMembers "-06 and earlier put private data directly at the
+    top level under reverse-domain names, e.g. com.example.pue (undotted names
+    reserved for the spec; no X-/vendor- prefixes, RFC 6648). -07 closes the
+    top-level member set (a publisher MUST NOT add other top-level members)
+    and moves such data inside this single OPTIONAL extensions object instead.
+    A name is an identifier compared as a string, never dereferenced; there is
+    no registry, and a methodology document should list the names it uses."
+
+    note for OptionalMetrics "Minimum-reporting rule (-07): a declaration object
+    MUST carry at least one numeric metric or at least one of disclosure-uri
+    and verifiable-attestation-uri; an object with none is not conformant.
+    (-06 and earlier: this was a SHOULD, with a fallback requiring
+    methodology-uri to lead, without authentication or payment, to the method
+    and the figures - that fallback is withdrawn in -07.)"
 ```
 
 Two more prose rules complete the model:
 
-* **Minimum-reporting rule** — a document SHOULD carry at least one numeric
-  metric or a `disclosure-uri`/`verifiable-attestation-uri`; failing both, the
-  mandatory `methodology-uri` MUST lead, without authentication or payment, to the method and the figures.
+* **Minimum-reporting rule** — as of `-07`, a declaration object MUST carry at
+  least one numeric metric or at least one of `disclosure-uri` and
+  `verifiable-attestation-uri`; an object with none is not conformant. (`-06`
+  and earlier: this was a SHOULD, with a fallback requiring `methodology-uri`
+  to lead, without authentication or payment, to the method and the figures —
+  that fallback is withdrawn in `-07`.)
 * **Trust posture** — the endpoint *asserts*, it does not *verify*. Clients MUST
-  NOT treat the document as proof; `verifiable-attestation-uri` (W3C Verifiable
-  Credentials) and `disclosure-uri` (e.g. carbon.txt) are the composable path to
-  independent verification.
+  NOT treat the document as proof; `verifiable-attestation-uri` (as of `-07`, a
+  verifiable credential binds to the declaration by embedding a copy of the
+  object, without `signed`, inside `credentialSubject` — not a byte hash),
+  `disclosure-uri` (e.g. carbon.txt), and a verified `signed` member are the
+  composable paths to independent verification, none of them proof.
 
 ### 3.3 Versioning and legacy-compatibility state logic
 
-The `version` member is an informational label with **no negotiation
-semantics** — clients MUST NOT reject or branch on it. Interop with historical
-`1.0`/`1.1` documents (the submitted `-02` model: four mandatory metric members,
-negative "not reported" sentinel, optional `target-path`) is achieved entirely
-through two **field-driven** rules:
+Through `-06`, the `version` member was an informational label with **no
+negotiation semantics** — clients MUST NOT reject or branch on it. **`-07`
+removes the `version` member entirely**; the mandatory-member count drops to
+seven (§3.2), and a consumer that still receives it on an older document MUST
+simply ignore it, per the general forward-compatibility rule. Interop with
+historical `1.0`/`1.1` documents (the submitted `-02` model: four mandatory
+metric members, negative "not reported" sentinel, optional `target-path`) is
+achieved entirely through two **field-driven** rules, neither of which reads
+`version`, so both are unaffected by its removal:
 
 1. A negative value in a member defined as non-negative ⇒ treat that member as
    *not reported* (subsumes the historical sentinel).
@@ -399,9 +494,12 @@ through two **field-driven** rules:
 
 The same diagram tracks the draft's own revision lifecycle, from the renamed
 predecessor series through `-02`, `-03` and `-04` (URI suffix renamed to
-`sustainability-data`, optional `target-type` added) to the latest, ISE-reviewed
-`-06` (media type required, HTTPS MUST, nosniff, OPTIONAL detached JWS) and the
-eventual Informational RFC + IANA registration.
+`sustainability-data`, optional `target-type` added) to `-06`, the latest
+revision actually *posted* (media type required, HTTPS MUST, `nosniff`, the
+now-withdrawn OPTIONAL detached JWS), to `-07`, the active *in-preparation*
+draft in this repository (embedded `signed` member, `version` removed, closed
+member set, `extensions` by absolute URI, `upstream`, `nosniff` recommendation
+withdrawn — §3), and the eventual Informational RFC + IANA registration.
 
 ![Version & revision states](images/version-state.png)
 
@@ -412,15 +510,18 @@ stateDiagram-v2
     state "Schema / data-model lifecycle" as SCHEMA {
         state "1.0 (historical): 4 metric members mandatory, negative value = not-reported sentinel, optional target-path (absent = origin-wide)" as V10
         state "1.1 (historical): adds optional disclosure-uri" as V11
-        state "2.0 (current, -03 onward): 8 mandatory + 16 optional members, omission is the only not-reported mechanism, mandatory target (+ optional target-type hint since -04), CO2e renames, energy/carbon optional with kWh/gCO2e defaults; -06 fixes 2.0 as the single defined label a publisher MUST use" as V20
-        state "Client processing of ANY document (field-driven, never version-driven): negative value in a non-negative member = not reported (subsumes the sentinel); missing target = origin-wide report; unknown members ignored; version label never rejected or branched on" as COMPAT
+        state "2.0 (historical, -03 through -06): 8 mandatory + 16 optional members, omission is the only not-reported mechanism, mandatory target (+ optional target-type hint since -04), CO2e renames, energy/carbon optional with kWh/gCO2e defaults; -06 fixed 2.0 as the single defined label a publisher MUST use" as V20
+        state "unlabeled (current, -07): the version member is removed outright, not replaced by a new label; 7 mandatory + 19 optional members; extensions keyed by absolute URI (https or urn-uuid) replaces reverse-domain naming; new upstream and signed members; top-level member set closed" as V07
+        state "Client processing of ANY document (field-driven, never version-driven): negative value in a non-negative member = not reported (subsumes the sentinel); missing target = origin-wide report; unknown members ignored; a version member, where one is carried by a 1.x/2.0-era document, is never rejected or branched on" as COMPAT
 
         [*] --> V10
         V10 --> V11 : add disclosure-uri
         V11 --> V20 : BREAKING revision (draft -03)
+        V20 --> V07 : BREAKING revision (draft -07) — version label withdrawn
         V20 --> COMPAT : consumed under
         V11 --> COMPAT : consumed under
         V10 --> COMPAT : consumed under
+        V07 --> COMPAT : consumed under
     }
 
     state "Internet-Draft revision lifecycle" as DRAFT {
@@ -430,7 +531,8 @@ stateDiagram-v2
         state "-03 POSTED: schema 2.0 revision, posted 2026-07-23 (SUSTAIN RG presentation at IETF 126)" as POSTED
         state "-04 POSTED: URI suffix renamed to sustainability-data (ISE naming feedback), optional target-type member added" as POSTED4
         state "-05 POSTED: posted 2026-07-28 — disclosure-uri made format- and location-agnostic, Internationalization Considerations added; no wire change" as POSTED5
-        state "-06 LATEST: posted 2026-09-10, under ISE review — application/sustainability-data+json required, HTTPS raised to MUST, nosniff, OPTIONAL detached JWS, version fixed as a single label; no wire change" as POSTED6
+        state "-06 LATEST POSTED: posted 2026-09-10, under ISE review — application/sustainability-data+json required, HTTPS raised to MUST, nosniff, OPTIONAL detached JWS, version fixed as a single label; no wire change" as POSTED6
+        state "-07 IN PREPARATION: current draft in this repository, not yet posted — withdraws the .jws companion resource for an embedded OPTIONAL signed member, removes version (7 mandatory members), closes the top-level member set, replaces reverse-domain extensions with a URI-keyed extensions object, adds upstream, drops nosniff and the server-side 366 cap, adds ABNF query-parameter processing" as POSTED7
         state "Informational RFC + IANA 'sustainability-data' well-known URI (provisional, promotable to permanent)" as RFC
 
         [*] --> GREEN
@@ -440,7 +542,8 @@ stateDiagram-v2
         POSTED --> POSTED4 : ISE naming feedback (RFC 8615 precision)
         POSTED4 --> POSTED5 : ISE review of -04
         POSTED5 --> POSTED6 : ISE security round + first commissioned review
-        POSTED6 --> RFC : ISE approval + RFC Editor
+        POSTED6 --> POSTED7 : drafting in this repository, not yet posted
+        POSTED7 --> RFC : ISE approval + RFC Editor
         RFC --> [*]
     }
 ```
@@ -469,15 +572,18 @@ same three-property contract: `{ name, capabilities, fetch(query) }`.
 1. **`adapter.fetch(query)`** → `RawMetrics | RawMetrics[]`.
 2. **`normalize()`** (`normalize.ts`) — joules→kWh and full unit conversion
    (`Wh…GWh`, `g…mtCO2e`), carbon derived from energy × grid intensity when
-   absent, defaults (`version "2.0"`, `capabilities "basic"`, `updated` now),
+   absent, defaults (`capabilities "basic"`, `updated` now; the `-06`-era
+   `version "2.0"` default is gone with the member itself, see §3),
    the mandatory `target` (adapter value or configured fallback), and hard
    errors on constraint violations (negative gross metrics, `renewable-energy`
    outside 0–100, `sci-score` without `functional-unit`, malformed periods).
-3. **`secureReports()`** (`security.ts`) — the draft's operational safeguards:
-   drop sub-daily entries (traffic-analysis floor), sort ascending, cap at 366
-   keeping the most recent (DoS), optional deterministic ~±1% multiplicative
-   noise (anti-fingerprinting; same factor per period so scopes still sum to the
-   footprint and re-generation is stable for caching).
+3. **`secureReports()`** (`security.ts`) — operational safeguards: drop
+   sub-daily entries (traffic-analysis floor), sort ascending, cap at 366
+   keeping the most recent (a `-06`-era DoS mandate; `-07` withdraws the
+   server-side cap in favor of a consumer-side bound, see §3 — the pipeline
+   still applies it as a defensive default), optional deterministic ~±1%
+   multiplicative noise (anti-fingerprinting; same factor per period so scopes
+   still sum to the footprint and re-generation is stable for caching).
 4. **Shape rule** — no `granularity` in the query ⇒ single object (most recent
    entry); granularity ⇒ array. Zero entries ⇒ `NotFoundError` ⇒ HTTP 404.
 5. **JTD validation gate** (`validate.ts`) — every payload is validated against
@@ -516,14 +622,14 @@ flowchart TD
 
     AD["SourceAdapter.fetch(query)"] -- "RawMetrics | RawMetrics[]" --> N
 
-    N["normalize()<br/>· joules → kWh, unit conversion (Wh…GWh, g…mtCO2e)<br/>· carbon = energy × grid intensity when absent<br/>· defaults: version 2.0, capabilities basic, updated now<br/>· mandatory target (adapter value or configured fallback)<br/>· reject negative gross metrics, renewable outside 0–100,<br/>  sci-score without functional-unit, bad periods"]
+    N["normalize()<br/>· joules → kWh, unit conversion (Wh…GWh, g…mtCO2e)<br/>· carbon = energy × grid intensity when absent<br/>· defaults: capabilities basic, updated now<br/>· mandatory target (adapter value or configured fallback)<br/>· reject negative gross metrics, renewable outside 0–100,<br/>  sci-score without functional-unit, bad periods"]
 
     N -- "SustainabilityMetrics[]" --> G1
 
-    subgraph SAFE["secureReports() — draft safeguards"]
+    subgraph SAFE["secureReports() — operational safeguards"]
         G1["Daily floor: drop entries with<br/>reporting-period finer than 24h"] --> G2
         G2["Sort ascending by reporting-period"] --> G3
-        G3["DoS cap: max 366 objects,<br/>keep most recent"] --> G4
+        G3["Defensive cap: max 366 objects,<br/>keep most recent (a deployment safeguard;<br/>-07 puts the binding bound on the consumer)"] --> G4
         G4["Optional anti-fingerprinting noise:<br/>~±1% multiplicative, deterministic per period,<br/>consistent across related fields"]
     end
 
@@ -573,7 +679,7 @@ flowchart TB
             A7["enterprise/: salesforce-nzc,<br/>ms-sustainability, watershed"]
         end
         NORM["normalize.ts<br/>units (J→kWh, Wh↔GWh, g↔mt), carbon = energy × intensity,<br/>defaults, PERIOD_RE, mandatory target, range checks"]
-        SEC["security.ts — secureReports()<br/>daily floor · sort ascending · cap 366 (keep newest) ·<br/>optional deterministic ~1% noise"]
+        SEC["security.ts — secureReports()<br/>daily floor · sort ascending · cap 366 (keep newest;<br/>a deployment safeguard, not a -07 requirement) ·<br/>optional deterministic ~1% noise"]
         VAL["validate.ts — JTD gate (ajv/jtd)<br/>+ prose rules: non-negative, 0–100, sci↔functional-unit,<br/>finite numbers, cross-entry array rules"]
         SCH["schema.ts<br/>embedded RESPONSE_JTD_SCHEMA<br/>(byte-equal to schemas-validators/, CI-checked)"]
         PUBL["publisher.ts — Publisher<br/>orchestrates build(); single-vs-array shape rule;<br/>bounded in-memory cache (TTL 24h, 256 keys) + SHA-1 ETag"]
@@ -636,13 +742,18 @@ in early adoption), and transform. Three tiers:
    (origin + params) ETag cache; a `304` transparently replays the cached
    document; `getTrend()` asserts the array shape.
 3. **CLI `sustainability-fetch`** — JSON/CSV/NDJSON output, plus `--strict`,
-   which runs the **8-check conformance battery** (`conformance.ts`) against
+   which runs the **7-check conformance battery** (`conformance.ts`) against
    *any* implementation: Basic single object · media type (`application/sustainability-data+json`;
-   legacy `application/json` ⇒ WARN, not FAIL) · `X-Content-Type-Options: nosniff` present ·
-   detached signature (OPTIONAL) absent or verifiable over the served bytes ·
-   ETag present · fresh ETag ⇒ 304 · POST ⇒ 405 + `Allow` · granularity request
-   yields a valid (sorted-array-when-honored) response. The battery deliberately
-   disables the legacy-compat pre-pass so it sees the document exactly as served.
+   legacy `application/json` ⇒ WARN, not FAIL) · the OPTIONAL embedded `signed`
+   member absent, or present and verifiable over the object it accompanies ·
+   ETag present · fresh ETag ⇒ 304 · POST ⇒ 405 + `Allow` · granularity
+   request yields a valid (sorted-array-when-honored) response. The `-06`-era
+   `X-Content-Type-Options: nosniff` and detached-`.jws` checks are gone with
+   the provisions behind them (see §3). The battery
+   deliberately disables the legacy-compat pre-pass so it sees the document
+   exactly as served. Beyond `--strict`, the CLI also offers `--verify` (the
+   embedded signature), `--upstream` (the bounded chain walk and comparison)
+   and `--verify-attestation` (the linked credential).
 
 The **legacy-compat pre-pass** in `fetch.ts` implements the draft's
 "missing `target` ⇒ origin-wide" rule before the schema gate: the injected host
@@ -709,9 +820,12 @@ flowchart TB
         UNITS["units.ts<br/>convertEnergy / convertCarbon"]
         TRANS["transform.ts<br/>toCsvRows · toNdjson · flatten (one row/metric,<br/>default units kWh/gCO2e) · aggregate (sum/average,<br/>unit-normalized)"]
         CLIENT2["client.ts — SustainabilityClient<br/>ETag cache per origin+params (bounded 256);<br/>304 ⇒ replay cached document; getTrend()"]
-        CONF["conformance.ts — runConformanceChecks()<br/>8 checks: basic single object · media type (application/sustainability-data+json;<br/>legacy application/json ⇒ WARN) · nosniff header present ·<br/>detached signature (OPTIONAL) absent or verifiable · ETag present · fresh ETag ⇒ 304 · POST ⇒ 405+Allow ·<br/>granularity ⇒ valid (sorted array when honored);<br/>legacyCompat OFF (sees the document as served)"]
+        CONF["conformance.ts — runConformanceChecks()<br/>7 checks: basic single object · media type (application/sustainability-data+json;<br/>legacy application/json ⇒ WARN) · embedded signed member (OPTIONAL)<br/>absent or verifiable · ETag present · fresh ETag ⇒ 304 ·<br/>POST ⇒ 405+Allow · granularity ⇒ valid (sorted array when honored);<br/>legacyCompat OFF (sees the declaration as served)"]
         DISC["disclosure.ts<br/>resolveDisclosureLinks (passive — never auto-fetches);<br/>fetchDisclosure only on explicit opt-in"]
-        CLI3["cli.ts / bin/sustainability-fetch<br/>--format=json|csv|ndjson · --strict = conformance battery ·<br/>exit codes per status"]
+        SIG["signature.ts — verifyEmbeddedSignature()<br/>the OPTIONAL `signed` member: JWS over the object minus signed;<br/>rejects alg none/MAC, absent or wrong cty, unknown crit;<br/>payload must be a declaration, carry no signed, and match<br/>target + reporting-period; header jwk ⇒ origin members still win"]
+        UPS["upstream.ts — walkUpstream()<br/>depth ≤ 3 · visited URIs refused · ≤ 20 retrievals ·<br/>same fetch limits per hop; compares energy/carbon for the<br/>same reporting-period against a tenant-scoped upstream:<br/>consistent · under-reported · not-comparable · unreachable"]
+        ATT["attestation.ts — verifyAttestation()<br/>vc+jwt credential, explicit opt-in only;<br/>issuer key pinned or self-asserted; binds the copy<br/>at credentialSubject.declaration to what was served"]
+        CLI3["cli.ts / bin/sustainability-fetch<br/>--format=json|csv|ndjson · --strict = conformance battery ·<br/>--verify · --upstream · --verify-attestation ·<br/>exit codes per status"]
         TYPES["types.ts — wire-format types,<br/>FetchResult status union: ok · not-modified · not-found ·<br/>no-report · invalid · http-error · timeout · too-large · insecure-transport"]
     end
 
@@ -725,7 +839,14 @@ flowchart TB
     CLIENT2 --> FETCH
     CLI3 --> FETCH
     CLI3 --> CONF
+    CLI3 --> SIG
+    CLI3 --> UPS
+    CLI3 --> ATT
     CONF --> FETCH
+    CONF --> SIG
+    UPS -- "bounded GETs" --> ORIGIN
+    ATT -- "explicit GET of the credential" --> ORIGIN
+    UPS --> VAL2
     APP --> TRANS
     TRANS --> SENT
     TRANS --> UNITS
@@ -818,19 +939,21 @@ flowchart TB
   the JTD schema in their `schema.ts`; CI asserts **byte-equality** with the
   canonical file, so the three copies cannot drift.
 * **`example-scripts/`** — zero-dependency ports of the operational safeguards
-  (`security.py/.js/.php`: 366-object cap, sub-daily filter, deterministic ~1%
-  noise) and a complete stdlib-only reference request handler
-  (`request-handler.py`) exercising the full Basic/Extended semantics — proof
-  the protocol needs no framework.
+  (`security.py/.js/.php`: 366-object cap — a `-06`-era mandate; `-07` makes it
+  a consumer-side bound, see §3 — sub-daily filter, deterministic ~1% noise)
+  and a complete stdlib-only reference request handler (`request-handler.py`)
+  exercising the full Basic/Extended semantics — proof the protocol needs no
+  framework.
 * **`server-configurations/`** — the nginx/Apache snippets used by topology 3/4,
   live-tested in CI (below).
-* **`example-responses/`** — 14 golden documents covering every service level
-  and field combination; all pass both validators.
+* **`example-responses/`** — 16 golden documents covering every service level
+  and field combination; all pass both validators against the `-07` schemas in
+  `schemas-validators/`, which are byte-identical to the draft's own blocks.
 
 ## 8. CI / verification architecture
 
-Eight GitHub Actions workflows (`.github/workflows/`) verify each subsystem and
-the whole (seven verification workflows plus one publishing workflow):
+Seven GitHub Actions workflows (`.github/workflows/`) verify each subsystem and
+the whole (six verification workflows plus one publishing workflow):
 
 | Workflow | Scope |
 |---|---|
@@ -873,7 +996,9 @@ same JTD schema enforced, identically, at every layer.
 * Diagrams rendered with
   [`@mermaid-js/mermaid-cli`](https://github.com/mermaid-js/mermaid-cli)
   (`mmdc -s 2 -b white`).
-* **Repository ground truth** — the `-06` draft, root `README.md`,
+* **Repository ground truth** — the `-07` draft (in preparation; the active
+  source for the protocol content in this document — see §3), with `-06` kept
+  as the historical latest-*posted* reference, root `README.md`,
   `publisher/src/`, `consumer/src/`, `schemas-validators/`,
   `server-configurations/`, `example-scripts/`, and `.github/workflows/` as
   cited throughout.
@@ -891,7 +1016,7 @@ architecture/
 │   ├── protocol-sequence.mmd          # wire-protocol lifecycle
 │   ├── gateway-flow.mmd               # universal-gateway pipeline
 │   ├── consumer-flow.mmd              # consumer fetch/validate/transform
-│   ├── data-model.mmd                 # 24-member document model
+│   ├── data-model.mmd                 # 26-member document model (per -07)
 │   ├── version-state.mmd              # schema + draft revision lifecycles
 │   └── deployment.mmd                 # five deployment topologies
 └── images/                            # rendered PNGs (same basenames)

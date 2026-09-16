@@ -28,9 +28,8 @@ const okRaw = (over: Partial<RawMetrics> = {}): RawMetrics => ({
 
 // #1 fromWire preserves carbon-intensity + vendor extensions
 describe("fromWire round-trip (fix 1)", () => {
-  it("preserves target, carbon-intensity-gCO2e-per-kWh and unknown vendor fields", () => {
+  it("preserves target and carbon-intensity, carries extensions/upstream, drops unknown members", () => {
     const wire: SustainabilityMetrics = {
-      version: "2.0",
       updated: "2026-03-01T00:00:00Z",
       capabilities: "extended",
       provider: "P",
@@ -43,21 +42,31 @@ describe("fromWire round-trip (fix 1)", () => {
       "carbon-footprint": 2760,
       "carbon-unit": "gCO2e",
       "carbon-intensity-gCO2e-per-kWh": 276,
+      extensions: { "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": { pue: 1.15 } },
+      upstream: [{ declaration: "https://cloud.example/tenants/acme.json", role: "cloud" }],
+      // A member outside the -07 closed set: a consumer ignores it, so
+      // re-ingestion drops it rather than republishing a non-conformant object.
       "x-vendor-note": "hello",
-    };
+      // A signature covers the object it was served in, never a new one.
+      signed: "eyJhbGciOiJFZERTQSJ9..sig",
+    } as any;
     const raw = fromWire(wire);
     expect(raw.target).toBe("example.com");
     expect(raw.carbonIntensity).toBe(276);
-    expect(raw.extra?.["x-vendor-note"]).toBe("hello");
+    expect(raw.extensions).toEqual({ "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": { pue: 1.15 } });
+    expect(raw.upstream).toEqual([{ declaration: "https://cloud.example/tenants/acme.json", role: "cloud" }]);
+    expect(raw.extra).toBeUndefined();
     const out = normalize(raw);
     expect(out.target).toBe("example.com");
     expect(out["carbon-intensity-gCO2e-per-kWh"]).toBe(276);
-    expect((out as any)["x-vendor-note"]).toBe("hello");
+    expect(out).not.toHaveProperty("x-vendor-note");
+    expect(out).not.toHaveProperty("signed");
+    expect(out.extensions).toEqual({ "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": { pue: 1.15 } });
+    expect(validateDocument(out).valid).toBe(true);
   });
 
   it("re-ingests a sparse -03 document without fabricating energy/carbon", () => {
     const wire: SustainabilityMetrics = {
-      version: "2.0",
       updated: "2026-04-01T00:00:00Z",
       capabilities: "basic",
       provider: "P",
@@ -85,7 +94,6 @@ describe("fromWire round-trip (fix 1)", () => {
 describe("fromWire target-type (draft -04)", () => {
   const wireBase = (over: Record<string, unknown> = {}): SustainabilityMetrics =>
     ({
-      version: "2.0",
       updated: "2026-03-01T00:00:00Z",
       capabilities: "basic",
       provider: "P",
@@ -93,6 +101,7 @@ describe("fromWire target-type (draft -04)", () => {
       "methodology-uri": "https://x/m",
       "reporting-period": "2026-02",
       target: "example.com",
+      "disclosure-uri": "https://x.example/disclosures",
       ...over,
     }) as SustainabilityMetrics;
 
@@ -107,8 +116,8 @@ describe("fromWire target-type (draft -04)", () => {
   it("drops an unrecognized target-type rather than throwing", () => {
     const raw = fromWire(wireBase({ "target-type": "datacenter" }));
     expect(raw.targetType).toBeUndefined();
-    // Dropped entirely — not smuggled through as an extension member.
-    expect(raw.extra?.["target-type"]).toBeUndefined();
+    // Dropped entirely — not smuggled through as some other member.
+    expect(raw.extra).toBeUndefined();
     const out = normalize(raw);
     expect(out).not.toHaveProperty("target-type");
     expect(validateDocument(out).valid).toBe(true);
@@ -126,15 +135,18 @@ describe("ifNoneMatchMatches (fix 2)", () => {
   });
 });
 
-// #3 bounded cache
+// #3 bounded cache. The keys vary on a parameter the publisher HONORS
+// (`target` against a published prefix set), since since -07 a parameter the
+// publisher ignores no longer produces a distinct cache entry at all.
 describe("Publisher cache is bounded (fix 3)", () => {
   it("never exceeds maxCacheEntries under unique-query spam", async () => {
+    const prefixes = Array.from({ length: 50 }, (_, i) => `/p${i}`);
     const pub = new Publisher(
       { name: "c", capabilities: "extended", fetch: async (q) => okRaw({ target: q?.target }) },
-      { cacheTtlMs: 60_000, maxCacheEntries: 8 },
+      { cacheTtlMs: 60_000, maxCacheEntries: 8, targetPrefixes: prefixes },
     );
-    for (let i = 0; i < 50; i++) await pub.getSerialized({ target: `/p${i}` });
-    expect((pub as any).cache.size).toBeLessThanOrEqual(8);
+    for (const prefix of prefixes) await pub.getSerialized({ target: prefix });
+    expect(pub.cacheSize).toBeLessThanOrEqual(8);
   });
 });
 
@@ -251,12 +263,11 @@ describe("carbonTxtResult rejects a poisoned Host (fix 9)", () => {
 describe("security floor-before-cap (fix 10)", () => {
   it("yields up to 366 daily objects even when sub-daily entries precede them", () => {
     const daily = (i: number): SustainabilityMetrics => ({
-      version: "2.0",
       updated: "2026-01-01T00:00:00Z",
       capabilities: "basic",
       provider: "p",
       "measurement-method": "m",
-      "methodology-uri": "u",
+      "methodology-uri": "https://example.com/methodology",
       "reporting-period": "2026-01-01",
       target: "example.com",
       "energy-consumption": 1,
@@ -313,19 +324,35 @@ describe("server hardening (fix 11/12)", () => {
   });
 });
 
-// blocker: open schema accepts vendor extensions, still rejects missing mandatory
-describe("open schema (extensibility fix)", () => {
-  it("validate gate accepts a document carrying a vendor extension", async () => {
+// -07: the base object is CLOSED and publisher-defined data lives in
+// `extensions`, keyed by an absolute URI.
+describe("closed base object, URI-keyed extensions", () => {
+  const UUID = "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845";
+
+  it("serves publisher-defined data under extensions", async () => {
+    const pub = new Publisher(
+      {
+        name: "x",
+        capabilities: "extended",
+        fetch: async () => okRaw({ extensions: { [UUID]: { "x-vendor": 1 } } }),
+      },
+      { cacheTtlMs: 0 },
+    );
+    const doc = (await pub.getDocument()) as any;
+    expect(doc.extensions[UUID]["x-vendor"]).toBe(1);
+    expect(validateDocument(doc).valid).toBe(true);
+  });
+
+  it("refuses to publish a member outside the closed set", async () => {
     const pub = new Publisher(
       { name: "x", capabilities: "extended", fetch: async () => okRaw({ extra: { "x-vendor": 1 } }) },
       { cacheTtlMs: 0 },
     );
-    const doc = (await pub.getDocument()) as any;
-    expect(doc["x-vendor"]).toBe(1);
-    expect(validateDocument(doc).valid).toBe(true);
+    await expect(pub.getDocument()).rejects.toThrow(/closed/);
   });
+
   it("still rejects a document missing a mandatory member", () => {
-    const bad: any = { version: "2.0", provider: "p" }; // missing most mandatory
+    const bad: any = { provider: "p" }; // missing most mandatory
     expect(validateDocument(bad).valid).toBe(false);
   });
 });
@@ -333,12 +360,11 @@ describe("open schema (extensibility fix)", () => {
 // draft -02 pre-submission hardening: deterministic noise, sort, truncation
 describe("security conforms to draft -02 review hardening", () => {
   const rep = (period: string, energy = 10): SustainabilityMetrics => ({
-    version: "2.0",
     updated: "2026-04-01T00:00:00Z",
     capabilities: "basic",
     provider: "p",
     "measurement-method": "m",
-    "methodology-uri": "u",
+    "methodology-uri": "https://example.com/methodology",
     "reporting-period": period,
     target: "example.com",
     "energy-consumption": energy,
@@ -397,12 +423,11 @@ describe("draft -02 conformance sweep fixes", () => {
 
   it("validateDocument enforces cross-entry array rules", () => {
     const entry = (period: string, target?: string) => ({
-      version: "2.0",
       updated: "2026-04-01T00:00:00Z",
       capabilities: "basic",
       provider: "p",
       "measurement-method": "m",
-      "methodology-uri": "u",
+      "methodology-uri": "https://example.com/methodology",
       "reporting-period": period,
       target: target ?? "example.com",
       "energy-consumption": 1,
@@ -419,14 +444,14 @@ describe("draft -02 conformance sweep fixes", () => {
 
   it("gate enforces the -04 all-or-none target-type array rule", () => {
     const entry = (period: string, targetType?: string) => ({
-      version: "2.0",
       updated: "2026-04-01T00:00:00Z",
       capabilities: "basic",
       provider: "p",
       "measurement-method": "m",
-      "methodology-uri": "u",
+      "methodology-uri": "https://example.com/methodology",
       "reporting-period": period,
       target: "example.com",
+      "disclosure-uri": "https://example.com/disclosures",
       ...(targetType !== undefined ? { "target-type": targetType } : {}),
     });
     // All present with the same value, or absent from every entry: valid.
@@ -461,7 +486,6 @@ describe("co2js swdVersion (dependency bump)", () => {
 describe("fromWire scope-unit + legacy re-ingest (final-audit fixes)", () => {
   it("preserves a declared carbon-unit for scopes when carbon-footprint is absent", () => {
     const wire = {
-      version: "2.0",
       updated: "2026-04-01T00:00:00Z",
       capabilities: "basic",
       provider: "P",
@@ -513,7 +537,6 @@ describe("fromWire scope-unit + legacy re-ingest (final-audit fixes)", () => {
 
   it("gate rejects a malformed reporting-period on hand-built documents", () => {
     const doc = {
-      version: "2.0",
       updated: "2026-01-01T00:00:00Z",
       capabilities: "basic",
       provider: "P",
@@ -521,6 +544,7 @@ describe("fromWire scope-unit + legacy re-ingest (final-audit fixes)", () => {
       "methodology-uri": "https://x/m",
       "reporting-period": "not-a-date",
       target: "example.com",
+      "disclosure-uri": "https://x.example/disclosures",
     } as any;
     const r = validateDocument(doc);
     expect(r.valid).toBe(false);
@@ -531,7 +555,6 @@ describe("fromWire scope-unit + legacy re-ingest (final-audit fixes)", () => {
 // Final pre-tag fixes: gate updated/target shape, fromWire value policy, ms carbon-only
 describe("final pre-tag hardening", () => {
   const base = {
-    version: "2.0",
     updated: "2026-01-01T00:00:00Z",
     capabilities: "basic",
     provider: "P",
@@ -539,6 +562,7 @@ describe("final pre-tag hardening", () => {
     "methodology-uri": "https://x/m",
     "reporting-period": "2026-01",
     target: "example.com",
+    "disclosure-uri": "https://x.example/disclosures",
   } as any;
 
   it("gate rejects a garbage updated and an empty target", () => {

@@ -18,7 +18,7 @@ is [GUIDE.md](GUIDE.md).
 cd gateway
 npm install
 npm run build
-npm test          # 268 tests; everything must be green before you deploy
+npm test          # 356 tests; everything must be green before you deploy
 node dist/index.js &
 curl -sSI http://127.0.0.1:8080/cloudflare.com/.well-known/sustainability-data
 kill %1
@@ -109,7 +109,7 @@ default; set them under **Variables** (dashboard) or with
 | `DATA_DIR` | `<app>/data` | Where subject documents are read from. |
 | `EXAMPLES_DIR` | `<app>/examples` | Where the canonical wire-format example documents are read from. |
 | `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`, the draft's RECOMMENDED value. |
-| `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` document response media type. `sustainability-data+json` (default) serves the -06 dedicated `application/sustainability-data+json` type with `X-Content-Type-Options: nosniff`; `json` serves the legacy `application/json` type instead (-05-compatible, not -06-conformant, also with `nosniff`). One subject can be pinned to the legacy type regardless of this default via `data/_media-type.json` — see `GUIDE.md`. |
+| `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` declaration response media type. `sustainability-data+json` (default) serves the dedicated `application/sustainability-data+json` type -07 requires, with `X-Content-Type-Options: nosniff`; `json` serves the generic `application/json` type instead (a consumer MAY process it, but publishing it is not conformant; also with `nosniff`). One subject can be pinned to the generic type regardless of this default via `data/_media-type.json` — see `GUIDE.md`. |
 | `BASE_URL` | *(empty)* | Public base URL, for absolute links in the index. Setting it also turns the co2js demonstration's Greencheck lookup live (keyless). |
 | `GWF_API_KEY` | *(unset)* | Optional free Green Web Foundation key → carbontxt demonstration runs live. |
 | `CLIMATIQ_API_KEY` | *(unset)* | Optional; set only under your own Climatiq license (their terms restrict redistribution) — replay is the default. The demo passes Climatiq's required `data_version` selector (`^34`, set in `demo-specs.ts`). |
@@ -121,7 +121,7 @@ default; set them under **Variables** (dashboard) or with
 | `SELF_WATTS` | `3` | Modelled average container power draw. |
 | `SELF_GRID_INTENSITY` | `373` | gCO2e/kWh. Cited in `METHODOLOGY.md`. |
 | `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When this gateway went live; the self model counts no hours before it. |
-| `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | Private JWK (JSON) signing the gateway's own report → `/.well-known/sustainability-data.jws`. See [Signing and attestation](#signing-and-attestation). |
+| `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | Private JWK (JSON) signing the gateway's own report: every declaration object it emits then carries a `signed` member (-07 defines no separate signature resource). See [Signing and attestation](#signing-and-attestation). |
 | `SELF_SIGNING_KEY_URL` | *(unset)* | Public URL of the signing key's public half (index display). |
 | `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report. |
 | `RATE_LIMIT_PER_MINUTE` | `600` | Per-client limit; `0` disables. `TRUST_PROXY` stays `1` on Railway. |
@@ -164,14 +164,14 @@ credential stays valid until its `validUntil`.
 Expect a stale window after enabling or rotating signing, and after each
 monthly rollover of the self report. Railway's edge caches each response for
 its full `max-age`, separately per `Accept-Encoding` variant, and offers no
-purge: a client may still receive the previous document while the `.jws`
-resource is already the new one, and the consumer then reports the signature
-as *unverified* (never *false*) for that copy — the draft's intended outcome
-for a signature that does not match. The self report and its `.jws` are
-therefore served with `max-age=3600`, so the window is at most an hour (the
-first, pre-signing deployment was cached for a day). A request with a query
-string (`?period=…`) or an unusual `Accept-Encoding` reaches the process and
-shows the current state.
+purge: a client may still receive the previous declaration for up to its
+`max-age`. Since -07 the signature is a member of that declaration rather than
+a second resource, so a cached copy is at worst *old* and never *mismatched* —
+the old body and the old signature travel together and still verify. The self
+report is served with `max-age=3600`, the resolution of the model behind it, so
+the window is at most an hour (the first, pre-signing deployment was cached for
+a day). A request with a query string (`?period=…`) or an unusual
+`Accept-Encoding` reaches the process and shows the current state.
 
 > **Railway CLI note (seen 2026-09-14 while setting these variables).** The CLI
 > now warns: *"Config as Code (railway.json / railway.toml) is deprecated. Prefer
@@ -208,8 +208,8 @@ citation, and lets you serve the gateway's own report from a stable origin.
    the same target.
 3. Wait for propagation. Railway shows the domain as **Active** and issues a
    Let's Encrypt certificate automatically — no configuration and no manual
-   renewal. The draft requires the resource to be served over HTTPS (a MUST
-   since -06); this is how that is satisfied.
+   renewal. The draft requires the declaration to be published and retrieved
+   over HTTPS (a MUST); this is how that is satisfied.
 4. If you use Cloudflare in front, set the record to **DNS only (grey cloud)**
    until Railway reports the domain Active, then re-enable the proxy if you want
    it. Proxying before issuance can stall certificate validation.
@@ -274,9 +274,17 @@ curl -sS "$BASE/.well-known/sustainability-data?period=2026-08" | jq '.["reporti
 curl -sS "$BASE/.well-known/sustainability-data?period=2026&granularity=monthly" | jq 'map(.["reporting-period"])'
 curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data?period=2026-06"   # -> 404
 
-# 13. The signature resource and the attestation, verified over the wire bytes
-curl -sSI "$BASE/.well-known/sustainability-data.jws" | grep -Ei 'HTTP/|content-type|etag'
+# 13. The embedded signature and the attestation. -07 defines ONE resource: the
+#     signature is the declaration's own `signed` member, so there is no second
+#     URL to fetch, and the old .jws path is a plain 404.
+curl -sS "$BASE/.well-known/sustainability-data" | jq -r '.signed | split(".")[0] | @base64d'
+curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data.jws"          # -> 404
 npx -y -p sustainability-wellknown-consumer sustainability-fetch "$BASE" --verify --verify-attestation >/dev/null
+
+# 13b. The -07 query procedure and the upstream chain
+curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data?period=2026&period=2025"  # -> 400
+curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data?target=/anything"          # -> 404
+npx -y -p sustainability-wellknown-consumer sustainability-fetch "$BASE/tenant-demo.example" --upstream >/dev/null
 
 # 14. Rate limiting: a burst from one client ends in 429 + Retry-After
 for i in $(seq 1 650); do curl -sS -o /dev/null -w '%{http_code}\n' -I "$BASE/healthz-not/"; done | sort | uniq -c

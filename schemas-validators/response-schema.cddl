@@ -1,33 +1,24 @@
-; Root: a single object, or an array of objects for trends
+; Root: a single declaration object, or an array for trends
 sustainability-response =
   sustainability-metrics / [+ sustainability-metrics]
 
 sustainability-metrics = {
-  ; Versioning and provenance
-  version: tstr,
-  updated: tstr,
+  ; Mandatory members
+  updated: tstr,                  ; RFC 3339 date-time
   capabilities: "basic" / "extended",
   provider: tstr,
-
-  ; Mandatory methodology disclosure
   measurement-method: tstr,
-  methodology-uri: tstr,
+  methodology-uri: tstr,          ; absolute https URI
+  reporting-period: tstr,         ; YYYY, YYYY-MM, or YYYY-MM-DD
+  target: tstr,                   ; reporting subject
 
-  ; Timeframe of the report (YYYY, YYYY-MM, or RFC3339 full-date)
-  reporting-period: tstr,
-
-  ; Reporting subject (origin host, path prefix, entity, ...)
-  target: tstr,
-
-  ; Energy metrics; when energy-unit is absent, kWh applies
+  ; Energy; when energy-unit is absent, kWh applies
   ? energy-consumption: number,   ; non-negative
   ? energy-unit: "Wh" / "kWh" / "MWh" / "GWh",
 
-  ; Carbon metrics; when carbon-unit is absent, gCO2e applies
+  ; Carbon; when carbon-unit is absent, gCO2e applies
   ? carbon-footprint: number,     ; gross, non-negative
   ? carbon-unit: "gCO2e" / "kgCO2e" / "mtCO2e",
-
-  ; Other optional metric and linkage members
   ? carbon-accounting: "location-based" / "market-based",
   ? scope-1: number,              ; may be negative (removals)
   ? scope-2: number,              ; may be negative (removals)
@@ -37,14 +28,29 @@ sustainability-metrics = {
   ? carbon-intensity-gCO2e-per-kWh: number,   ; non-negative
   ? estimated-annual-emissions-kgCO2e: number, ; non-negative
   ? renewable-energy: number,     ; percentage, 0-100
+
+  ; Evidence links (absolute https URIs)
   ? verifiable-attestation-uri: tstr,
   ? disclosure-uri: tstr,
 
-  ; Classification hint for the reporting subject in target
+  ; Classification of the subject named by target
   ? target-type: "origin" / "path" / "organization" / "service"
                / "product" / "device" / "tenant" / "data-source",
 
-  ; Extension members (reverse-domain names); clients
-  ; ignore unknown members
-  * tstr => any
+  ; Declarations this object's figures derive from
+  ? upstream: [+ upstream-entry],
+
+  ; Members defined outside this document, keyed by
+  ; an absolute URI (see Extensions)
+  ? extensions: { * ext-name => { * tstr => any } },
+
+  ; JWS Compact Serialization over this object minus "signed"
+  ? signed: tstr,
 }
+
+upstream-entry = {
+  declaration: tstr,              ; absolute https URI
+  ? role: tstr,                   ; e.g. hosting, cloud, cdn
+}
+
+ext-name = tstr .regexp "[a-z][a-z0-9+.-]*:[!$-;=?-Z\\[\\]_a-z~]+"

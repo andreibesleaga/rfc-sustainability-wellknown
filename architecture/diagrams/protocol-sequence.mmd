@@ -5,7 +5,7 @@ sequenceDiagram
 
     Note over C,S: 1 — Basic service (Mandatory Minimum)
     C->>S: GET /.well-known/sustainability-data
-    S-->>C: 200 OK · application/json · ETag: "abc" · Cache-Control: public, max-age=86400<br/>single JSON object (most recent completed period, origin-wide target)
+    S-->>C: 200 OK · application/sustainability-data+json · ETag: "abc" · Cache-Control: public, max-age=86400<br/>single JSON object (most recent completed period, origin-wide target)
 
     Note over C,S: 2 — Conditional revalidation (RFC 9110/9111)
     C->>S: GET /.well-known/sustainability-data · If-None-Match: "abc"
@@ -17,7 +17,7 @@ sequenceDiagram
 
     Note over C,S: 4 — Extended service: trend query
     C->>S: GET /.well-known/sustainability-data?period=2025&granularity=monthly
-    S-->>C: 200 OK · JSON array (≤366 entries, ascending reporting-period,<br/>uniform precision, single target)
+    S-->>C: 200 OK · JSON array (ascending reporting-period, uniform precision,<br/>single target — no server-side size cap since -07, the consumer bounds what it accepts)
 
     Note over C,S: 5 — Extended service: scoped single period
     C->>S: GET ...?target=/api/v1&period=2026-03
@@ -34,3 +34,11 @@ sequenceDiagram
     Note over C,S: 8 — Publish-only-if-valid (reference publisher)
     C->>S: GET /.well-known/sustainability-data
     S-->>C: 503 Service Unavailable (adapter/validation failure —<br/>corrupt data is never published)
+
+    Note over C,S: 9 — Extended service: malformed query (-07)
+    C->>S: GET ...?period=2025&period=2026
+    S-->>C: 400 Bad Request (duplicate parameter name)
+
+    Note over C,S: 10 — Extended service: target outside the published prefix set (-07)
+    C->>S: GET ...?target=/not-published
+    S-->>C: 404 Not Found

@@ -5,17 +5,16 @@
  */
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";
 import {
+  badRequestResult,
   CarbonTxtServeOptions,
   CARBON_TXT_PATHS,
   carbonTxtResult,
   handleRequest,
-  handleSignatureRequest,
-  assertSignable,
   HandlerOptions,
   parseQuery,
+  queryFromSearchParams,
   WELL_KNOWN_PATH,
 } from "./handler";
-import { SIGNATURE_PATH } from "./jws";
 import { Publisher } from "./publisher";
 
 export interface ServerOptions extends HandlerOptions {
@@ -29,12 +28,8 @@ export function createSustainabilityServer(
   publisher: Publisher,
   opts: ServerOptions = {},
 ): Server {
-  assertSignable(publisher, opts);
   const paths = new Set([WELL_KNOWN_PATH, ...(opts.extraPaths ?? [])]);
   const carbonPaths = new Set(opts.carbonTxt ? CARBON_TXT_PATHS : []);
-  // The signature resource exists only for a signing publisher (draft: 404
-  // otherwise means exactly "does not sign").
-  const signaturePath = opts.signingKey ? SIGNATURE_PATH : undefined;
 
   // CORS header echoed on every response (incl. 404/405/500) so cross-origin
   // aggregators can read error statuses, not just 200s.
@@ -46,9 +41,8 @@ export function createSustainabilityServer(
       const url = new URL(req.url ?? "/", "http://localhost");
       const isSustainability = paths.has(url.pathname);
       const isCarbonTxt = carbonPaths.has(url.pathname);
-      const isSignature = url.pathname === signaturePath;
 
-      if (!isSustainability && !isCarbonTxt && !isSignature) {
+      if (!isSustainability && !isCarbonTxt) {
         res.writeHead(404, { ...corsHeaders(), "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "not found" }));
         return;
@@ -67,18 +61,11 @@ export function createSustainabilityServer(
         return;
       }
 
-      if (isSignature) {
-        const ifNoneMatch = req.headers["if-none-match"] as string | undefined;
-        const result = await handleSignatureRequest(publisher, opts, ifNoneMatch);
-        res.writeHead(result.status, result.headers);
-        if (req.method === "HEAD" || result.status === 304) res.end();
-        else res.end(result.body);
-        return;
-      }
-
-      const query = parseQuery(Object.fromEntries(url.searchParams.entries()));
+      const parsed = parseQuery(queryFromSearchParams(url.searchParams));
       const ifNoneMatch = req.headers["if-none-match"] as string | undefined;
-      const result = await handleRequest(publisher, query, opts, ifNoneMatch);
+      const result = parsed.ok
+        ? await handleRequest(publisher, parsed.query, opts, ifNoneMatch)
+        : badRequestResult(parsed.error, opts);
 
       res.writeHead(result.status, result.headers);
       if (req.method === "HEAD" || result.status === 304) res.end();

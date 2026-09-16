@@ -37,15 +37,27 @@ To validate every example document against both formal schemas:
 cd schemas-validators && bash validate-all.sh
 ```
 
+`sfc-compliance/` is the fourth area with a test suite. It depends on exactly one package,
+the published consumer, and deliberately carries **no lockfile**, so it installs with
+`npm install`, never `npm ci`:
+
+```bash
+cd sfc-compliance
+npm install
+npm test
+node sfc-check.mjs examples/sfc-network.example.json
+```
+
 `.github/workflows/full-verify.yml` runs all of the above on every push and pull request except
-the gateway, which `gateway.yml` covers on changes under `gateway/`. It
+the gateway, which `gateway.yml` covers on changes under `gateway/`, and `sfc-compliance/`,
+which `sfc-compliance.yml` covers on changes under that directory. `full-verify.yml`
 is the check to satisfy before opening a PR.
 
 ## The schema identity rule
 
 The data model exists in four places, and they must stay identical (the embedded TypeScript copies are equal to the JSON schema as JSON values; the CDDL and JSON files are byte-identical):
 
-1. the CDDL and JTD blocks in `internet-drafts/draft-besleaga-sustainability-wellknown-06.md`
+1. the CDDL and JTD blocks in `internet-drafts/draft-besleaga-sustainability-wellknown-07.md` (the revision currently being drafted; `-07` is not yet posted — do not edit the posted `-05`/`-06` files)
 2. `schemas-validators/response-schema.cddl` and `response-schema.json`
 3. `publisher/src/schema.ts`
 4. `consumer/src/schema.ts`

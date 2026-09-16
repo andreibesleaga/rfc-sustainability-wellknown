@@ -1,13 +1,14 @@
 /**
- * Legacy-compatibility helpers (draft §Versioning and Extensibility).
+ * Legacy-compatibility helpers, and the draft's tolerance rules
+ * (draft -07 §Value Constraints and Omitted Metrics).
  *
- * Since -03 ("2.0") there is no in-band "not reported" marker: omitting a
- * member is the only way to convey that a metric is unreported. Historical
- * "1.0"/"1.1" documents, however, used a negative value as a "not reported"
- * sentinel. The draft resolves this with a field-driven compatibility rule
- * that subsumes the old sentinel: a client that encounters a negative value
- * in a member defined as NON-NEGATIVE MUST treat that member as not reported
- * (rather than reject the document).
+ * Since -03 there is no in-band "not reported" marker: omitting a member is the
+ * only way to convey that a metric is unreported. Historical documents,
+ * however, used a negative value as a "not reported" sentinel. The draft's
+ * out-of-range rule subsumes the old sentinel: a value "outside a member's
+ * stated range ... is treated as not reported", so a negative value in a member
+ * defined as NON-NEGATIVE reads as unreported rather than making the object
+ * unreadable.
  *
  * `scope-1`/`scope-2`/`scope-3` are deliberately NOT in the list below: since
  * -03 they MAY legitimately be negative (net accounting / removals, draft
@@ -39,6 +40,12 @@ export const NUMERIC_KEYS = [
  */
 export function isNotReported(value: unknown, key?: string): boolean {
   if (typeof value !== "number") return false;
+  // NaN and ±Infinity are not values a member can carry: JSON has no literal
+  // for either, but `1e999` parses to Infinity, so an origin can put one on the
+  // wire. "A member that is present always carries an actual value" (draft -07
+  // §Value Constraints and Omitted Metrics), and re-serializing one yields
+  // `null` — a wrongly typed member — so it reads as not reported.
+  if (!Number.isFinite(value)) return true;
   if (value < 0) return true;
   return key === "renewable-energy" && value > 100;
 }
@@ -106,7 +113,9 @@ export const ENUMERATED_MEMBERS: ReadonlyArray<{ member: string; values: readonl
  * the document processable (it would just fail as "missing" instead of
  * "wrong type"), so a wrong-typed mandatory member still fails validation.
  */
-export const OPTIONAL_MEMBER_JSON_TYPES: Readonly<Record<string, "number" | "string">> = {
+export type MemberJsonType = "number" | "string" | "array" | "object";
+
+export const OPTIONAL_MEMBER_JSON_TYPES: Readonly<Record<string, MemberJsonType>> = {
   "energy-consumption": "number",
   "energy-unit": "string",
   "carbon-footprint": "number",
@@ -123,6 +132,9 @@ export const OPTIONAL_MEMBER_JSON_TYPES: Readonly<Record<string, "number" | "str
   "verifiable-attestation-uri": "string",
   "disclosure-uri": "string",
   "target-type": "string",
+  upstream: "array",
+  extensions: "object",
+  signed: "string",
 };
 
 /**
@@ -134,12 +146,38 @@ export const OPTIONAL_MEMBER_JSON_TYPES: Readonly<Record<string, "number" | "str
 export function isWrongJsonType(key: string, value: unknown): boolean {
   const expected = OPTIONAL_MEMBER_JSON_TYPES[key];
   if (expected === undefined || value === undefined) return false;
+  if (expected === "array") return !Array.isArray(value);
+  if (expected === "object") return typeof value !== "object" || value === null || Array.isArray(value);
   return typeof value !== expected;
 }
 
 /**
+ * Every OPTIONAL member the draft types as a number, the scopes included.
+ * Derived from {@link OPTIONAL_MEMBER_JSON_TYPES} so the two cannot drift.
+ */
+export const NUMERIC_MEMBERS: readonly string[] = Object.keys(OPTIONAL_MEMBER_JSON_TYPES).filter(
+  (k) => OPTIONAL_MEMBER_JSON_TYPES[k] === "number",
+);
+
+/**
+ * True when a numeric member carries a value JSON can express but the format
+ * cannot: `NaN` or ±`Infinity`.
+ *
+ * JSON has no literal for either ({{RFC8259}}, Section 6), but a number
+ * literal outside the double-precision range — `1e999` — parses to `Infinity`
+ * in every JavaScript runtime, which the media type's own security
+ * considerations call out ("the implementation-dependent handling ... of
+ * numbers outside the range exactly representable in IEEE 754 double
+ * precision"). Such a member has no actual value and re-serializes as `null`,
+ * so it is disregarded like any other defective value.
+ */
+export function isNonFiniteNumber(key: string, value: unknown): boolean {
+  return NUMERIC_MEMBERS.includes(key) && typeof value === "number" && !Number.isFinite(value);
+}
+
+/**
  * The reporting subject for a legacy (1.x) entry that lacks the mandatory
- * `target` member (a -05-and-earlier form; -06 removed the rule): when the entry
+ * `target` member (a pre-06 form, kept readable here): when the entry
  * carries the historical `target-path` member, that member's VALUE is the
  * reporting subject; only when neither member exists is the document an
  * origin-wide report attributed to the final response origin's host.
@@ -149,4 +187,88 @@ export function isWrongJsonType(key: string, value: unknown): boolean {
 export function legacyReportingSubject(entry: Record<string, unknown>, originHost: string): string {
   const tp = entry["target-path"];
   return typeof tp === "string" && tp !== "" ? tp : originHost;
+}
+
+/**
+ * The draft's tolerance rules (§Value Constraints and Omitted Metrics) applied
+ * to ONE declaration object, in place: the affected member is stripped before
+ * the schema gate — which would otherwise fail the whole object on exactly
+ * that value — and its path is appended to `disregarded`, so a caller can
+ * still see that tolerance was applied and to what.
+ *
+ *  1. "A value ... of the wrong JSON type (including `null`) is treated as not
+ *     reported", for the draft-defined OPTIONAL members — and, for the same
+ *     reason, a numeric member carrying `NaN` or ±`Infinity`, which a `1e999`
+ *     literal on the wire produces and which re-serializes as `null`.
+ *  1b. Mandatory members take no tolerance, with the one exception the draft
+ *     names: "a defective `capabilities` value is read as `basic`, and a
+ *     defective value of any other mandatory member leaves the object
+ *     non-conformant".
+ *  2. "A `sci-score` without `functional-unit` is treated as not reported." A
+ *     negative `sci-score` is already "not reported" under the out-of-range
+ *     rule and is left in place for this module's on-demand interpretation.
+ *  3. "An unrecognized value of `capabilities`, `energy-unit`, `carbon-unit`,
+ *     `carbon-accounting`, or `target-type` causes that member to be
+ *     disregarded; for a unit member the numeric members it parameterizes are
+ *     then treated as not reported, and for `target-type` the consumer reads
+ *     `target` as if the member were absent."
+ *
+ * It is shared rather than inlined because the draft asks for one reading, not
+ * two: the fetch path applies it to the declaration it retrieved, and the
+ * upstream walk applies it to every declaration it retrieves, which "reads a
+ * retrieved declaration exactly as it reads any other, applying the tolerance
+ * rules of Value Constraints and Omitted Metrics rather than refusing one over
+ * a defective value" (draft -07 §Upstream Declarations).
+ *
+ * What it deliberately does NOT do is make an unreadable object readable: a
+ * missing mandatory member, or a body that is not a declaration at all, is
+ * left exactly as served for validation to reject.
+ *
+ * @param o the declaration object (anything else is ignored)
+ * @param path prefix for the reported member paths (e.g. `"[2]."`)
+ * @param disregarded collector, appended to in place
+ */
+export function applyToleranceRules(o: unknown, path: string, disregarded: string[]): void {
+  if (typeof o !== "object" || o === null || Array.isArray(o)) return;
+  const rec = o as Record<string, unknown>;
+  // (1) Wrong JSON type in a draft-defined OPTIONAL member (stripping a
+  // mandatory member could not make the object processable), and — the same
+  // defect one step in — a numeric member carrying NaN or ±Infinity, which
+  // `1e999` on the wire produces and which no member can actually carry
+  // ({@link isNonFiniteNumber}).
+  for (const key of Object.keys(rec)) {
+    if (isWrongJsonType(key, rec[key]) || isNonFiniteNumber(key, rec[key])) {
+      delete rec[key];
+      disregarded.push(`${path}${key}`);
+    }
+  }
+  // (1b) A value of the wrong JSON type is as defective as an unrecognized
+  // one, and the enumerated-member loop below covers the unrecognized-string
+  // case; this covers the rest. Every other mandatory member is left exactly
+  // as served, so the schema gate reports the object as non-conformant.
+  if ("capabilities" in rec && typeof rec.capabilities !== "string") {
+    rec.capabilities = "basic";
+    disregarded.push(`${path}capabilities`);
+  }
+  // (2) sci-score without functional-unit.
+  const sci = rec["sci-score"];
+  if (typeof sci === "number" && sci >= 0 && rec["functional-unit"] === undefined) {
+    delete rec["sci-score"];
+    disregarded.push(`${path}sci-score`);
+  }
+  // (3) Enumerated-member tolerance. `capabilities` is mandatory, so the
+  // conservative value stands in for it rather than a hole.
+  for (const { member, values, parameterizes } of ENUMERATED_MEMBERS) {
+    const value = rec[member];
+    if (typeof value !== "string" || values.includes(value)) continue;
+    if (member === "capabilities") rec[member] = "basic";
+    else delete rec[member];
+    disregarded.push(`${path}${member}`);
+    for (const dependent of parameterizes) {
+      if (dependent in rec) {
+        delete rec[dependent];
+        disregarded.push(`${path}${dependent}`);
+      }
+    }
+  }
 }

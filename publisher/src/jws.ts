@@ -1,16 +1,16 @@
 /**
- * Detached JSON Web Signature for the published document (draft -06 §Document
- * Signing) and an attached compact JWS for a Verifiable Credential secured as
- * `vc+jwt`. All JOSE operations are delegated to `jose` (RFC 7515/7517/7518/
- * 7638/8037 as implemented by the reference JavaScript library); this module
- * only fixes the draft's choices: which algorithms, which header parameters,
- * and — most importantly — WHAT is signed.
+ * The embedded `signed` member (draft §Signing) and an attached compact JWS for
+ * a Verifiable Credential secured as `vc+jwt`. All JOSE operations are
+ * delegated to `jose` (RFC 7515/7517/7518/7638/8037 as implemented by the
+ * reference JavaScript library); this module only fixes the draft's choices:
+ * which algorithms, which header parameters, and WHAT is signed.
  *
- * What is signed: the EXACT octets served for the parameterless request, after
- * any content coding. There is no canonicalization (draft §"What the Signature
- * Covers"); reserialising the document invalidates the signature, which is why
- * `handleSignatureRequest` in `handler.ts` signs the very string the document
- * handler serves and nothing else.
+ * What is signed: the declaration object in which the member appears, WITHOUT
+ * its `signed` member, serialized as JSON by the publisher — the payload of a
+ * JWS Compact Serialization, typed by the `cty` header parameter. There is one
+ * resource and one file: the signature travels inside the body, so an edge
+ * cache cannot separate the two. In an array every object carries its own
+ * `signed` member.
  *
  * Algorithms: EdDSA (Ed25519, RFC 8037) and ES256 (RFC 7518 §3.4), the two the
  * draft RECOMMENDS. `none` and MAC algorithms are never produced.
@@ -20,11 +20,14 @@
  * file, mode 0600).
  */
 import * as jose from "jose";
+import { SustainabilityDocument, SustainabilityMetrics } from "./types";
 
-/** Path of the detached-signature companion resource (draft §Document Signing). */
-export const SIGNATURE_PATH = "/.well-known/sustainability-data.jws";
-/** Media type of the signature resource (RFC 7515 §9.2.1; draft SHOULD). */
-export const JOSE_MEDIA_TYPE = "application/jose";
+/**
+ * The `cty` of the embedded signature (draft §The signed Member): the registered
+ * media type with the "application/" prefix omitted, per RFC 7515 §4.1.10. A
+ * verifier MUST reject a `signed` whose `cty` is absent or different.
+ */
+export const SIGNED_CTY = "sustainability-data+json";
 /** Media type of a Verifiable Credential secured with JOSE (VC-JOSE-COSE). */
 export const VC_JWT_MEDIA_TYPE = "application/vc+jwt";
 
@@ -116,32 +119,130 @@ export async function exportPrivateJwk(key: SigningKey): Promise<jose.JWK> {
 }
 
 export interface SignOptions {
-  /** Include the public key as the `jwk` header parameter (draft SHOULD). Default true. */
-  includeJwk?: boolean;
+  /**
+   * Identify the verification key with `kid` (a URL or identifier the publisher
+   * distributes out of band) INSTEAD of embedding it as `jwk`. Unset, the public
+   * key travels in the header as `jwk`, which the draft RECOMMENDS so that
+   * verification needs nothing but the declaration.
+   */
+  keyId?: string;
 }
 
-function toBytes(payload: Uint8Array | string): Uint8Array {
-  return typeof payload === "string" ? new TextEncoder().encode(payload) : payload;
+function toBytes(payload: string): Uint8Array {
+  return new TextEncoder().encode(payload);
 }
 
 /**
- * Detached JWS (RFC 7515 Appendix F) over `payload`: the compact serialization
- * with an EMPTY payload part — exactly two periods, `header..signature`. The
- * verifier supplies the payload from the retrieved document.
+ * Sign ONE declaration object: the returned copy carries `signed` as its LAST
+ * member, a JWS Compact Serialization whose payload is the UTF-8 JSON
+ * serialization of the object WITHOUT `signed`, with the protected header
+ * `{ alg, cty, jwk }` — or `{ alg, cty, kid }` when `keyId` is given.
+ *
+ * A publisher MUST regenerate `signed` whenever it regenerates the object, so
+ * any `signed` already present is discarded before signing, never re-used.
  */
-export async function signDetached(
-  payload: Uint8Array | string,
+export async function signDeclaration<T extends SustainabilityMetrics>(
+  object: T,
   key: SigningKey,
   opts: SignOptions = {},
-): Promise<string> {
-  const header: jose.CompactJWSHeaderParameters = { alg: key.alg, kid: key.kid };
-  if (opts.includeJwk !== false) header.jwk = key.publicJwk;
-  const compact = await new jose.CompactSign(toBytes(payload)).setProtectedHeader(header).sign(key.privateKey);
-  const [h, , s] = compact.split(".");
-  return `${h}..${s}`;
+): Promise<T> {
+  const { signed: _previous, ...payload } = object;
+  const header: jose.CompactJWSHeaderParameters = { alg: key.alg, cty: SIGNED_CTY };
+  if (opts.keyId !== undefined) header.kid = opts.keyId;
+  else header.jwk = key.publicJwk;
+  const jws = await new jose.CompactSign(toBytes(JSON.stringify(payload)))
+    .setProtectedHeader(header)
+    .sign(key.privateKey);
+  // `signed` last: the member set is ordered as the draft lists it.
+  return { ...(payload as T), signed: jws };
 }
 
-export interface AttachedSignOptions extends SignOptions {
+/**
+ * Sign a whole document: one object, or every object of an array individually
+ * (draft §The signed Member: "In an array each object carries its own `signed`
+ * member").
+ */
+export async function signDocument(
+  document: SustainabilityDocument,
+  key: SigningKey,
+  opts: SignOptions = {},
+): Promise<SustainabilityDocument> {
+  if (Array.isArray(document)) {
+    return Promise.all(document.map((entry) => signDeclaration(entry, key, opts)));
+  }
+  return signDeclaration(document, key, opts);
+}
+
+/**
+ * Decode the payload of a JWS Compact Serialization WITHOUT verifying the
+ * signature. This is the publisher's own integrity check on what it is about
+ * to serve, never a substitute for a consumer's verification.
+ */
+export function decodeSignedPayload(jws: string): string {
+  const parts = jws.split(".");
+  if (parts.length !== 3) {
+    throw new Error("signed: not a JWS Compact Serialization (expected three dot-separated parts)");
+  }
+  return Buffer.from(parts[1], "base64url").toString("utf8");
+}
+
+/**
+ * Draft §The signed Member: "The payload MUST NOT itself contain a `signed`
+ * member", and §Signing: "A publisher MUST NOT serve an object whose `signed`
+ * payload differs from the object it accompanies". Both are checked here, on
+ * the object as it will be served — so a stale or foreign signature cannot
+ * reach the wire through any path (a cache, a conditional request, or a
+ * transformation applied after signing).
+ */
+export function assertSignedMatchesObject(object: SustainabilityMetrics, label = ""): void {
+  const { signed, ...rest } = object;
+  if (signed === undefined) return;
+  if (typeof signed !== "string") {
+    throw new Error(`signed${label}: must be a JWS Compact Serialization (a string)`);
+  }
+  const payloadText = decodeSignedPayload(signed);
+  let payload: unknown;
+  try {
+    payload = JSON.parse(payloadText);
+  } catch {
+    throw new Error(`signed${label}: the payload is not JSON`);
+  }
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+    throw new Error(`signed${label}: the payload is not a declaration object`);
+  }
+  if ((payload as Record<string, unknown>).signed !== undefined) {
+    throw new Error(`signed${label}: the payload MUST NOT itself contain a "signed" member`);
+  }
+  if (payloadText !== JSON.stringify(rest)) {
+    throw new Error(
+      `signed${label}: the payload differs from the object it accompanies; a publisher ` +
+        "regenerating an object MUST regenerate its signature in the same step " +
+        "(draft §Signing)",
+    );
+  }
+}
+
+/**
+ * The same two rules over a whole document, plus the array rule of §The signed
+ * Member: "a publisher that signs the objects of an array signs all of them".
+ * Returns the document so it can be used inline.
+ */
+export function assertSignedMatches(document: SustainabilityDocument): SustainabilityDocument {
+  const items = Array.isArray(document) ? document : [document];
+  const signedCount = items.filter((o) => o?.signed !== undefined).length;
+  if (signedCount > 0 && signedCount !== items.length) {
+    throw new Error(
+      `signed: ${signedCount} of ${items.length} objects in the array carry a signature; ` +
+        "a publisher that signs the objects of an array signs all of them (draft §The signed Member)",
+    );
+  }
+  items.forEach((o, i) => assertSignedMatchesObject(o, Array.isArray(document) ? `[${i}]` : ""));
+  return document;
+}
+
+export interface AttachedSignOptions {
+  /** Include the public key as the `jwk` header parameter. Default true. */
+  includeJwk?: boolean;
   /** `typ` header parameter, e.g. "vc+jwt". */
   typ?: string;
   /** `cty` header parameter, e.g. "vc". */

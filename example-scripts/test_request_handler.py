@@ -35,6 +35,37 @@ BASE = f"http://127.0.0.1:{PORT}"
 WELL_KNOWN = f"{BASE}/.well-known/sustainability-data"
 
 
+def _validator_python() -> str:
+    """The interpreter that runs the validators: this one if it has the `jtd`
+    module, otherwise the project's virtualenv (see schemas-validators/README.md),
+    otherwise fail with a message that says what to install."""
+    try:
+        import jtd  # noqa: F401
+        return sys.executable
+    except ImportError:
+        pass
+    venv = os.path.expanduser("~/.cache/sustain-venv/bin/python3")
+    if os.path.exists(venv):
+        return venv
+    raise AssertionError(
+        "validator-json.py needs the `jtd` module: run `python3 -m pip install jtd` "
+        "or run this test with a Python that has it (e.g. ~/.cache/sustain-venv/bin/python3)"
+    )
+
+
+def _validator_env() -> dict:
+    """PATH for the validators: validator-cddl.py needs the `cddl` gem executable,
+    which on a user-gem install lives under ~/.local/share/gem/ruby/<ver>/bin."""
+    env = dict(os.environ)
+    import glob
+    import shutil
+    if shutil.which("cddl") is None:
+        for d in glob.glob(os.path.expanduser("~/.local/share/gem/ruby/*/bin")):
+            env["PATH"] = d + os.pathsep + env.get("PATH", "")
+            break
+    return env
+
+
 def _validate_schema(doc) -> None:
     """Cross-check a response body against both independent validators."""
     path = os.path.abspath(os.path.join(HERE, "_rh_test_tmp.json"))
@@ -45,8 +76,9 @@ def _validate_schema(doc) -> None:
             # The validators resolve response-schema.{json,cddl} relative to
             # their own cwd, so this must run with cwd=VALIDATORS_DIR.
             r = subprocess.run(
-                [sys.executable, script, path],
+                [_validator_python(), script, path],
                 cwd=VALIDATORS_DIR,
+                env=_validator_env(),
                 capture_output=True,
                 text=True,
             )
@@ -94,19 +126,18 @@ class RequestHandlerE2ETests(unittest.TestCase):
     def test_basic_returns_single_object(self):
         status, headers, body = self._get()
         self.assertEqual(status, 200)
-        # draft -06 §Mandatory Minimum Supported Service: successful (200)
+        # draft -07 "Mandatory Minimum Supported Service": successful (200)
         # responses MUST use the dedicated media type.
         self.assertEqual(headers["Content-Type"], "application/sustainability-data+json")
-        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
         self.assertIn("public, max-age=86400", headers["Cache-Control"])
         self.assertEqual(headers["Access-Control-Allow-Origin"], "*")
         doc = json.loads(body)
         self.assertIsInstance(doc, dict)
-        # -03: `target` (the reporting subject) is mandatory; these are
-        # origin-wide reports, so it carries the origin's host. `version`
-        # is an informational label; "2.0" denotes the -03 field set.
+        # `target` (the reporting subject) is mandatory; these are
+        # origin-wide reports, so it carries the origin's host. The
+        # `version` member was removed in -07.
         self.assertEqual(doc["target"], "example.com")
-        self.assertEqual(doc["version"], "2.0")
+        self.assertNotIn("version", doc)
         _validate_schema(doc)
 
     def test_extended_with_granularity_returns_sorted_array(self):
@@ -142,11 +173,9 @@ class RequestHandlerE2ETests(unittest.TestCase):
         self.assertEqual(status, 405)
         self.assertEqual(headers["Allow"], "GET, HEAD")
         # A 405 error body is not a Sustainability Metadata Document, so it
-        # keeps application/json (draft -06 media type rule applies to
-        # successful (200) responses only); nosniff still applies to every
-        # response at this well-known URI.
+        # keeps application/json (the -07 media type rule applies to
+        # successful (200) responses only).
         self.assertEqual(headers["Content-Type"], "application/json")
-        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
         json.loads(body)  # body is valid JSON
 
     def test_put_and_delete_also_405(self):
@@ -193,6 +222,75 @@ class RequestHandlerE2ETests(unittest.TestCase):
         status, _, body = self._get("?granularity=weekly")
         self.assertEqual(status, 200)
         self.assertIsInstance(json.loads(body), dict)
+
+    # --- draft -07 "Extended Query Parameters" procedure (steps 1-5) ---
+
+    def test_duplicate_parameter_name_returns_400(self):
+        # Step 1: one of the three defined names appearing more than once is a
+        # 400, even when the values are identical, because the request would
+        # otherwise be ambiguous.
+        for query in ("?period=2026&period=2026", "?granularity=daily&granularity=monthly", "?target=/api/v1&target=/api/v2"):
+            status, _, _ = self._get(query)
+            self.assertEqual(status, 400, f"{query} should be 400")
+
+    def test_repeated_undefined_parameter_name_is_ignored(self):
+        # Step 1 ignores names this specification does not define, so repeating
+        # one (an analytics parameter, say) is not an error.
+        status, _, _ = self._get("?nonsense=1&nonsense=2")
+        self.assertEqual(status, 200)
+
+    def test_malformed_period_returns_400(self):
+        # Step 2: wrong syntax, and syntactically-plausible but unreal dates.
+        for period in ("2026-13", "2026-02-30", "26", "2026-1", "not-a-period"):
+            status, _, _ = self._get(f"?period={period}")
+            self.assertEqual(status, 400, f"period={period} should be 400")
+
+    def test_unmatched_target_returns_404(self):
+        # Step 4: a `target` outside the published prefix set is a 404.
+        status, _, _ = self._get("?target=/nope")
+        self.assertEqual(status, 404)
+
+    def test_matched_target_scopes_the_response(self):
+        status, _, body = self._get("?target=/api/v1&period=2026-03-02")
+        self.assertEqual(status, 200)
+        doc = json.loads(body)
+        self.assertIsInstance(doc, dict)
+        self.assertEqual(doc["target"], "/api/v1")
+        self.assertEqual(doc["reporting-period"], "2026-03-02")
+        _validate_schema(doc)
+
+    def test_granularity_finer_than_period_returns_sorted_daily_array(self):
+        # Step 3 + 5: daily is finer than the month precision of "2026-03",
+        # so this is the array branch, sorted ascending.
+        status, _, body = self._get("?target=/api/v1&period=2026-03&granularity=daily")
+        self.assertEqual(status, 200)
+        doc = json.loads(body)
+        self.assertIsInstance(doc, list)
+        self.assertGreater(len(doc), 1)
+        periods = [d["reporting-period"] for d in doc]
+        self.assertEqual(periods, sorted(periods))
+        _validate_schema(doc)
+
+    def test_aggregation_when_no_exact_entry_but_finer_entries_lie_within(self):
+        # Step 5: no entry is held for the whole of March 2026, but daily
+        # entries within it exist, so the response is their aggregate — a
+        # single object (no `granularity` was requested), never an array.
+        status, _, body = self._get("?target=/api/v1&period=2026-03")
+        self.assertEqual(status, 200)
+        doc = json.loads(body)
+        self.assertIsInstance(doc, dict)
+        self.assertEqual(doc["reporting-period"], "2026-03")
+        _validate_schema(doc)
+
+    def test_aggregation_of_monthly_entries_to_a_year(self):
+        # Step 5: the origin subject holds only monthly entries, so a yearly
+        # `period` with no `granularity` aggregates them into one object.
+        status, _, body = self._get("?period=2026")
+        self.assertEqual(status, 200)
+        doc = json.loads(body)
+        self.assertIsInstance(doc, dict)
+        self.assertEqual(doc["reporting-period"], "2026")
+        _validate_schema(doc)
 
 
 if __name__ == "__main__":

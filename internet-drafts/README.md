@@ -9,6 +9,28 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 Well-Known URI* — the Datatracker document name is unchanged).
 Individual submission on the IETF **Independent Submission Stream** (Informational).
 
+- **`-07`** is **in preparation** in this directory (`draft-besleaga-sustainability-wellknown-07.{md,xml,txt}`)
+  and has **not been posted** to the Datatracker — do not cite it as posted or published; `-06`
+  remains the latest posted revision until `-07` is submitted. `-07` withdraws the companion
+  `/.well-known/sustainability-data.jws` resource and the detached signature entirely (no legacy
+  support, no redirect, no fallback) and replaces it with an OPTIONAL `signed` member embedded in
+  each declaration object itself (a JWS Compact Serialization over the object minus `signed`,
+  typed by `cty: sustainability-data+json`); removes the `version` member, leaving exactly seven
+  mandatory members; closes the top-level member set and moves private extensions out of
+  reverse-domain top-level names into an OPTIONAL `extensions` object whose keys are absolute
+  URIs (RFC 3986) — an `https` URI under the definer's control, or `urn:uuid:` plus a lowercase
+  hyphenated UUID (RFC 9562) — compared as strings and never dereferenced, with no registry;
+  adds an OPTIONAL `upstream` member linking to the declarations of providers a
+  subject's figures derive from, with a depth-3, no-revisit consumer-side walk; replaces the old
+  free/unauthenticated-methodology conformance floor with a simpler rule (at least one numeric
+  metric, `disclosure-uri`, or `verifiable-attestation-uri`); gives Extended Query Parameters an
+  ABNF grammar and a numbered processing procedure with defined `400`/`404` cases; drops the
+  server-side 366-object cap in favor of a consumer-side byte/object bound; and drops the
+  `X-Content-Type-Options` recommendation from the specification text. See the draft's own
+  "Since -06" changelog appendix, `internet-drafts/CHANGELOG.md`, and
+  [`REVISION-07-RATIONALE.md`](REVISION-07-RATIONALE.md), which gives the reason for each
+  change, what it costs an existing publisher or consumer, and what reversing it would involve.
+
 - **`-06`** is the **latest posted** revision — its sources live in this directory
   (`draft-besleaga-sustainability-wellknown-06.{md,xml,txt}`) and it is under the ISE's
   review. It carries the security package the ISE asked for ("security is not
@@ -19,7 +41,8 @@ Individual submission on the IETF **Independent Submission Stream** (Information
   signature at a companion well-known resource, and a restructured threat-model section.
   It adds **no member** — the CDDL and JTD schemas remain byte-identical to `-05`. It was
   **posted to the Datatracker on 2026-09-10**; it is an Internet-Draft under ISE review,
-  so do not cite it as a published RFC.
+  so do not cite it as a published RFC. (`-07`, described above, supersedes the detached-JWS
+  and `nosniff` points of this paragraph; they are accurate as a record of what `-06` shipped.)
 
 - **`-05`** is the **prior posted** revision — posted to the Datatracker 2026-07-28,
   responding to the ISE's initial review of `-04`. It makes no change to the wire format: no member is added, removed,
@@ -57,15 +80,21 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 | File | Role |
 |---|---|
 | `build.sh` | Build-and-check script for any revision (see "Building the draft" below). |
-| `draft-besleaga-sustainability-wellknown-06.md` | Markdown source of the latest **posted** revision (2026-09-10). Edit this. |
+| `draft-besleaga-sustainability-wellknown-07.md` | Markdown source of the **in-preparation, unposted** revision. Edit this one for any further change. |
+| `draft-besleaga-sustainability-wellknown-07.xml` | xml2rfc v3 XML of `-07`. |
+| `draft-besleaga-sustainability-wellknown-07.txt` | Rendered plain-text form of `-07`. |
+| `draft-besleaga-sustainability-wellknown-06.md` | Markdown source of the latest **posted** revision (2026-09-10). Do not edit — it is a posted artifact. |
 | `draft-besleaga-sustainability-wellknown-06.xml` | xml2rfc v3 XML of `-06` — the submission form. |
 | `draft-besleaga-sustainability-wellknown-06.txt` | Rendered plain-text form of `-06`. |
-| `draft-besleaga-sustainability-wellknown-05.md` | Markdown source of the prior posted revision. |
+| `draft-besleaga-sustainability-wellknown-05.md` | Markdown source of the prior posted revision. Do not edit — it is a posted artifact. |
 | `draft-besleaga-sustainability-wellknown-05.xml` | xml2rfc v3 XML of `-05` — the authoritative submission form. |
 | `draft-besleaga-sustainability-wellknown-05.txt` | Rendered plain-text form of `-05`. |
 
-Only `-05` and `-06` are kept as files here. Revisions `-00` through `-04` were removed once
-posted; they remain on the Datatracker and in this repository's git history.
+`-05` and `-06` are posted revisions kept as files for reference; `-07` is the current
+in-preparation revision, not yet posted. Once `-07` is posted, `-05` is expected to drop out of
+this directory in favor of the two-posted-plus-one-in-prep convention this repository follows.
+Revisions `-00` through `-04` were removed once posted; they remain on the Datatracker and in
+this repository's git history.
 
 Datatracker: <https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/>
 
@@ -90,6 +119,7 @@ design discussion is also recorded on the GREEN working group mailing list.
 |---|---|
 | `draft-verifiable-credential.md` | Non-normative: an example W3C Verifiable Credential structure that a `verifiable-attestation-uri` may point to (anti-greenwashing). Not part of the normative draft. |
 | `CHANGELOG.md` | Human-readable summary of changes across every version, from the initial `-00` to the current draft (including the rename). |
+| `REVISION-07-RATIONALE.md` | Why `-07` changed what it changed: each substantive change mapped to the reviewer point or implementation-found defect that triggered it, its migration cost, and its reversal cost. |
 
 ## Building the draft
 

@@ -14,10 +14,11 @@ import {
   fromWire,
   staticAdapter,
   type RawMetrics,
+  type SigningOptions,
   type SourceAdapter,
   type SustainabilityMetrics,
 } from "sustainability-wellknown-publisher";
-import { LIMITS } from "./config";
+import { LIMITS, PUBLIC_BASE_URL } from "./config";
 
 /** Hostname shape accepted as a route segment (also the data-file basename). */
 export const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
@@ -49,6 +50,39 @@ export interface Subject {
   publisher: Publisher;
   /** `Last-Modified`, derived from the document's own `updated` member. */
   lastModified: string;
+}
+
+/**
+ * The token a data file uses where it must name a declaration THIS gateway
+ * serves — today, the `upstream[].declaration` of the downstream demonstration
+ * subject, which has to point at the tenant-scoped declaration relayed here.
+ *
+ * Hard-coding one deployment's host would make the member false everywhere
+ * else, and the draft requires an absolute "https" URI, so a relative one is
+ * not an option. The token is resolved once at load time against the origin the
+ * gateway is actually served from (`BASE_URL`, falling back to the reference
+ * deployment), which is what makes a consumer's `--upstream` chain walk resolve
+ * to a declaration this gateway really answers.
+ */
+export const BASE_URL_TOKEN = "{base}";
+
+/**
+ * Resolve {@link BASE_URL_TOKEN} in the `upstream[].declaration` members of one
+ * parsed data file. Nothing else in the document is templated: a figure, a
+ * methodology link or a provider string must read in the file exactly as it is
+ * served.
+ */
+export function resolveBaseUrlToken(doc: SustainabilityMetrics, baseUrl: string): SustainabilityMetrics {
+  if (!Array.isArray(doc.upstream)) return doc;
+  const base = baseUrl.replace(/\/+$/, "");
+  return {
+    ...doc,
+    upstream: doc.upstream.map((e) =>
+      typeof e?.declaration === "string" && e.declaration.startsWith(BASE_URL_TOKEN)
+        ? { ...e, declaration: base + e.declaration.slice(BASE_URL_TOKEN.length) }
+        : e,
+    ),
+  };
 }
 
 /** Canonical JSON (recursively key-sorted) — used for exact round-trip checks. */
@@ -98,8 +132,14 @@ export function publisherForDocument(doc: SustainabilityMetrics): Publisher {
   });
 }
 
-/** Parse + bound-check + validate one data file into a Subject. */
-export async function loadSubjectFile(file: string): Promise<Subject> {
+/**
+ * Parse + bound-check + validate one data file into a Subject.
+ *
+ * `baseUrl` is the origin this gateway is served from; it resolves the
+ * {@link BASE_URL_TOKEN} of an `upstream[].declaration` that names a
+ * declaration relayed here.
+ */
+export async function loadSubjectFile(file: string, baseUrl: string = PUBLIC_BASE_URL): Promise<Subject> {
   const domain = basename(file, ".json").toLowerCase();
   if (!DOMAIN_RE.test(domain) || domain.length > LIMITS.maxDomainLength) {
     throw new Error(
@@ -131,7 +171,7 @@ export async function loadSubjectFile(file: string): Promise<Subject> {
     throw new Error(`registry: ${basename(file)} is not a JSON object`);
   }
 
-  const document = parsed as SustainabilityMetrics;
+  const document = resolveBaseUrlToken(parsed as SustainabilityMetrics, baseUrl);
   const publisher = publisherForDocument(document);
 
   // The JTD gate + prose-rule checks run inside getSerialized(); a
@@ -180,6 +220,13 @@ export async function subjectFromAdapter(opts: {
   cacheTtlMs?: number;
   /** Bound on cached query variants. Default 4. */
   maxCacheEntries?: number;
+  /**
+   * Draft -07 §Signing: when set, the publisher embeds a `signed` member in
+   * every declaration object it builds — including each object of an Extended
+   * trend array. Only the gateway's own report is ever signed here: a relayed
+   * document is not the gateway's to vouch for.
+   */
+  signing?: SigningOptions;
 }): Promise<Subject> {
   const domain = opts.domain.toLowerCase();
   if (!DOMAIN_RE.test(domain) || domain.length > LIMITS.maxDomainLength) {
@@ -189,6 +236,7 @@ export async function subjectFromAdapter(opts: {
     normalize: { target: opts.target, targetType: opts.targetType },
     cacheTtlMs: opts.cacheTtlMs ?? 365 * 24 * 60 * 60 * 1000,
     maxCacheEntries: opts.maxCacheEntries ?? 4,
+    ...(opts.signing ? { signing: opts.signing } : {}),
   });
   const { body } = await publisher.getSerialized({});
   if (Buffer.byteLength(body) > LIMITS.maxDocumentBytes) {
@@ -211,14 +259,14 @@ export async function subjectFromAdapter(opts: {
 }
 
 /** Load every `data/*.json` file (skipping `_`-prefixed ones) into a registry. */
-export async function loadRegistry(dataDir: string): Promise<Map<string, Subject>> {
+export async function loadRegistry(dataDir: string, baseUrl: string = PUBLIC_BASE_URL): Promise<Map<string, Subject>> {
   const files = readdirSync(dataDir)
     .filter((f) => f.endsWith(".json") && !f.startsWith("_"))
     .sort();
 
   const registry = new Map<string, Subject>();
   for (const f of files) {
-    const subject = await loadSubjectFile(join(dataDir, f));
+    const subject = await loadSubjectFile(join(dataDir, f), baseUrl);
     if (registry.has(subject.domain)) {
       throw new Error(`registry: duplicate subject "${subject.domain}"`);
     }

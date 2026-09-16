@@ -103,61 +103,148 @@ await app.listen({ port: 8080 });
 ```
 
 All entry points (standalone server, both middlewares, `handleRequest`) emit
-`Access-Control-Allow-Origin: *` on every response — the final -04 draft says
-successful responses SHOULD carry it (WebFinger practice), and echoing it on the
-error statuses too lets cross-origin aggregators read those as well (`cors`
-option to override/disable). They also share the draft's query-parameter
-tolerance: an unrecognized `granularity` value (e.g. `weekly`) and a malformed
-`period` are ignored rather than erroring, and `granularity` without `period`
-applies to the default reporting period; an array is returned only for a
-granularity finer than the period — see `USAGE.md` §3b.
+`Access-Control-Allow-Origin: *` on every response — the draft says successful
+responses SHOULD carry it (WebFinger practice), and echoing it on the error
+statuses too lets cross-origin aggregators read those as well (`cors` option to
+override/disable). They also share the draft's query-processing procedure
+(§Extended Query Parameters): a repeated parameter name and a `period` that is
+not a real calendar year/month/day (the ABNF's `period-value` rule) are
+`400 Bad Request`; an unrecognized `granularity` value (e.g. `weekly`), and one
+whose **precision** is not finer than the period's, are ignored; a `target`
+outside the publisher's published prefix set is `404`; an array is returned only
+for a granularity finer than the period, and `404` when no held entry has that
+precision — see `USAGE.md` §3b.
 
-## Media type and -05 compatibility
+A period with no entry of its own is answered with the **aggregate** of the finer
+entries inside it (step 5). The contributing entries are the held entries of
+**one precision** that lie inside the period, and where more than one precision
+lies inside it the draft requires the **coarsest** of them (the months, where a
+publisher holds both the twelve months of a year and some days inside January),
+"so that two servers holding the same data return the same figures" — see
+`USAGE.md` §3b. They must meet two further conditions. They **must not overlap**:
+a publisher holding both a month and a day inside that month never sums the two,
+since the day would be counted twice. And they **must cover** the period — or,
+where it has not yet completed, the completed portion of it that step 6 provides
+for, since "a server holding figures for only part of a finished period cannot
+present their sum as a figure for the whole of it". Coverage is a *tiling*: a
+publisher holding three months of a finished year has no year to serve, and nor
+has one whose year is missing its June. For a period still running, what must be
+covered is every sub-period that has **completed** by the clock the publisher
+reads (`PublisherOptions.now`, the wall clock by default), so a year-to-date
+aggregate is served while the months that have ended are all held.
 
-Draft -06 §Mandatory Minimum Supported Service requires that a successful
-(`200 OK`) response carrying a Sustainability Metadata Document use the
-registered `application/sustainability-data+json` media type, and forbids any
-other media type on that response. By default, every entry point in this
-package (the standalone server, `expressSustainability`, `fastifySustainability`,
-and `handleRequest` directly) does exactly that, and also sends
-`X-Content-Type-Options: nosniff` on the document response, as the draft says
-servers SHOULD, so a client cannot be induced to interpret the document as some
-other, more dangerous type.
+The aggregate then carries sums converted into the unit declared by the **last
+contributing entry in ascending order of `reporting-period`** (a dimension of its
+own: not the entry with the latest `updated`), each summable member only where
+**every** contributing entry reports it, the latest `updated`, and a non-metric
+optional member only where every contributing entry carries it with the same
+value. Where the contributing entries disagree on `provider`,
+`measurement-method`, `methodology-uri`, `target` or `target-type`, overlap, or
+leave a gap, "a server whose held data cannot meet these conditions has no
+aggregate it can honestly serve and responds as it does when it has no data": the
+requester gets the ordinary **`404`**, not a `503`, while the `onError` hook
+still fires with an `UnservableAggregateError` — the member and values that
+disagreed, the period held twice, or the sub-periods missing — so an operator
+learns that the published data set is inconsistent or incomplete. That
+diagnostic is written to your hook and **nowhere else**: pass no hook and
+nothing is printed, since the server is not broken, the finding repeats on every
+request that touches the period, and its message names the periods you hold. (A
+genuine fault — the adapter throwing, answered `503` — is the other thing
+`onError` receives, and that one does fall back to `console.error`.)
 
-Documents published before that media type was registered (draft -05 and
-earlier) are found in the field as plain `application/json`; the draft
-acknowledges this and says clients SHOULD also accept it. For a deployment that
-still needs to serve that legacy media type, pass `mediaType: "json"` to any
-entry point's options:
+The -07 ABNF is **case-sensitive** throughout (RFC 7405 `%s` notation), and this
+package matches it exactly: `Period=`, `TARGET=` and `Granularity=` name none of
+the three parameters and are ignored as undefined names, and `MONTHLY` is not a
+`granularity-value`. A `target` value carries any `&` or `=` of its own
+percent-encoded on the wire, and is compared with the published prefix set after
+percent-decoding.
+
+### What the server is obliged to serve
+
+A `GET` without query parameters is answered `200 OK` with the declaration **when
+the server has one to serve for that requester**; when nothing is published the
+answer is `404`. Access control is outside the scope of the specification: a
+deployment that restricts access to the resource, or that rate-limits it,
+responds as RFC 9110 defines, and nothing in this package presumes otherwise —
+put the publisher behind whatever authorization or rate limiter your deployment
+needs. What the package does guarantee is that whatever it *does* serve as a
+`200` is a conformant declaration with the registered media type.
+
+### Caching and the cache key
+
+`Publisher` computes its cache key from the parameters it **honors**, in the
+draft's canonical order (`target`, `period`, `granularity`), never from the query
+string as received (§Extended Query Parameters, step 7). Two requests differing
+only in a parameter the publisher ignores — an analytics parameter, a `target`
+when no prefix set is configured, a `granularity` that is not finer than the
+period — therefore share one cache entry and one `ETag`, so a client cannot flood
+the cache with `?a=1`, `?a=2`, … A honored `target` is keyed by the **matched
+prefix**, so every path under one prefix shares an entry too (§Denial of Service:
+"honoring `target` only for a published prefix set bounds the cache-key space").
+`cacheKeyFor(query)` is exported so a CDN or reverse proxy in front can key the
+same way, and `cacheSize` reports the number of entries held. The honored query
+is also what reaches the adapter, so a custom adapter cannot make its output
+depend on a parameter the publisher ignores.
+
+## Media type and the `application/json` fallback
+
+The draft's §Mandatory Minimum Supported Service requires that a successful
+(`200 OK`) response carrying a declaration use the registered
+`application/sustainability-data+json` media type, and forbids any other media
+type on that response. By default, every entry point in this package (the
+standalone server, `expressSustainability`, `fastifySustainability`, and
+`handleRequest` directly) does exactly that, and also sends
+`X-Content-Type-Options: nosniff` on the document response, so a client cannot
+be induced to interpret the document as some other, more dangerous type. (The
+header is this package's own hardening: -07 no longer mentions it.)
+
+Declarations published before that media type was registered are found in the
+field as plain `application/json`; the draft says a consumer MAY process such a
+response as a declaration. For a deployment that still needs to serve that
+media type, pass `mediaType: "json"` to any entry point's options:
 
 ```ts
 app.use(expressSustainability(publisher, { mediaType: "json" }));
 ```
 
-`mediaType: "json"` is **v05-compatible but NOT -06 conformant** — use it only
-when you know a consumer in your deployment depends on the older, undifferentiated
+`mediaType: "json"` is **NOT conformant publishing** — use it only when you know
+a consumer in your deployment depends on the older, undifferentiated
 `application/json` type. It still sends `X-Content-Type-Options: nosniff`. Error
-responses (404/405/503 JSON error objects) are never Sustainability Metadata
-Documents, so they always use `application/json` regardless of this option, and
+responses (400/404/405/503 JSON error objects) are never declarations, so they
+always use `application/json` regardless of this option, and
 a `304 Not Modified` response carries no `Content-Type` at all (there is no
 body to type). `HEAD` responses carry the same `Content-Type` as the
 corresponding `GET`, per the draft's "same status and header fields, no body"
 rule. The two media-type strings are exported as `MEDIA_TYPE` and
 `LEGACY_MEDIA_TYPE` from the package root.
 
-## Signing the document (draft -06, Document Integrity and Signing)
+## Signing the declaration (draft §Signing)
 
-Since 0.6.5 the publisher can sign its document. The mechanism is the draft's
-OPTIONAL detached JWS: a compact serialization with an empty payload part
-(RFC 7515 Appendix F), served at `/.well-known/sustainability-data.jws` as
-`application/jose`, over the **exact bytes** of the parameterless document —
-there is no canonicalization, so the handler signs the very string it serves and
-keeps one signature per document generation (on the cached document itself, so
-the document request and the signature request are served from one generation;
-a signing publisher therefore needs `cacheTtlMs` above 0, and the server refuses
-`0` at start-up).
-Algorithms are the two the draft recommends, EdDSA (Ed25519) and ES256; all JOSE
-work is done by [`jose`](https://github.com/panva/jose).
+Since 0.7.0 the signature is the OPTIONAL **`signed` member embedded in every
+declaration object** — a JWS Compact Serialization (RFC 7515 §7.1) whose payload
+is the UTF-8 JSON serialization of that same object *without* `signed`, with the
+protected header `{ alg, cty: "sustainability-data+json", jwk }`. There is one
+resource and one file: the signature travels inside the body, so an edge cache
+that serves a re-encoded copy cannot separate the two. In an array every object
+carries its own `signed`. Algorithms are the two the draft recommends, EdDSA
+(Ed25519) and ES256; all JOSE work is done by
+[`jose`](https://github.com/panva/jose).
+
+Signing is a property of the document, so it is configured on the `Publisher`
+and happens **once per built (and therefore cached) document**, never per
+request:
+
+```ts
+import { Publisher, computedAdapter, importSigningKey } from "sustainability-wellknown-publisher";
+
+const key = await importSigningKey(process.env.SUSTAINABILITY_SIGNING_KEY!);
+const publisher = new Publisher(computedAdapter({ /* … */ }), {
+  normalize: { target: "example.com" },
+  signing: { key },                       // every object gets `signed`
+  // signing: { key, keyId: "https://example.com/keys/2026#1" },
+  //   ^ names an out-of-band key with `kid` instead of embedding `jwk`
+});
+```
 
 ```bash
 # 1. one key, once; the PRIVATE half goes to a file (0600), the PUBLIC half is printed
@@ -166,27 +253,37 @@ sustainability-publisher keygen --out ~/.config/sustainability-publisher/private
 # 2a. a served deployment: the key by environment variable (its JWK JSON) …
 SUSTAINABILITY_SIGNING_KEY="$(cat ~/.config/sustainability-publisher/private.jwk)" \
   sustainability-publisher --config config.json
-# … or by config: "server": { "signingKeyFile": "~/.config/sustainability-publisher/private.jwk" }
+# … or by config: "signing": { "keyFile": "~/.config/…/private.jwk", "keyId": "https://…#1" }
 
-# 2b. a static host: sign the file you serve, and serve the output next to it
-sustainability-publisher sign /var/www/.well-known/sustainability-data --key ~/.config/sustainability-publisher/private.jwk \
-  > /var/www/.well-known/sustainability-data.jws     # Content-Type: application/jose
+# 2b. a static host: sign the file you serve, in place of a running publisher
+sustainability-sign in.json /var/www/.well-known/sustainability-data \
+  --key ~/.config/sustainability-publisher/private.jwk [--kid https://example.com/keys#1]
 ```
 
-In code, pass `signingKey` (from `importSigningKey()` or `generateSigningKey()`)
-in the options of `createSustainabilityServer`, `expressSustainability` or
-`fastifySustainability`, and the `.jws` route appears; `handleSignatureRequest()`
-is the framework-agnostic handler. Without a key the path is `404`, which the
-draft defines as meaning only that the publisher does not sign. The public key
-travels in the signature's own header (`jwk`, the draft's SHOULD) and should
-also be hosted out of band so verifiers can pin it. `signAttached()` produces
-an attached JWS — used to secure a Verifiable Credential as `vc+jwt` for the
-`verifiable-attestation-uri` member (see
+`sustainability-sign <in.json> <out.json> --key <private.jwk> [--kid <id>]`
+(also available as `sustainability-publisher sign …`) reads one declaration
+object or an array, validates it, signs **every object individually**, inserts
+`signed` as each object's last member and writes the result. It refuses to sign
+a document that would not pass the validation gate — a file it did not build
+goes through `assertValid()` and nothing else, so that gate carries every prose
+rule of the draft in its own right, the URI-valued members included: a
+`methodology-uri`, `disclosure-uri`, `verifiable-attestation-uri` or
+`upstream[].declaration` that is not an absolute `https` URI is refused rather
+than signed.
+
+Without a key nothing changes: the member is simply absent, which the draft says
+means only that the publisher did not sign. The public key travels in the
+signature's own header (`jwk`, the draft's SHOULD) and should also be hosted out
+of band so verifiers can pin it. `signAttached()` produces an attached JWS —
+used to secure a Verifiable Credential as `vc+jwt` for the
+`verifiable-attestation-uri` member, which is served under the
+`VC_JWT_MEDIA_TYPE` (`application/vc+jwt`) this package exports for the purpose
+(see
 [`internet-drafts/draft-verifiable-credential.md`](../internet-drafts/draft-verifiable-credential.md)).
 
 What the signature establishes is integrity after the fact and key continuity,
 not identity and not accuracy: a signed estimate is still an estimate, and the
-draft says a failed or absent signature makes a document *unverified*, never
+draft says a failed or absent signature makes a declaration *unverified*, never
 *false*. Key rotation: run `keygen` again, host the new public key, replace the
 variable, redeploy — earlier signatures then stop verifying against the new key,
 which is the point. The end-to-end procedure for publishers, attesters and
@@ -231,10 +328,12 @@ The CLI loads a JSON config:
 {
   "adapter":  { "type": "computed", "options": { /* adapter options */ } },
   "publisher": {
-    "normalize": { "version": "2.0", "target": "example.com", "targetType": "origin", "energyUnit": "kWh", "carbonUnit": "gCO2e" },
+    "normalize": { "target": "example.com", "targetType": "origin", "energyUnit": "kWh", "carbonUnit": "gCO2e" },
     "security":  { "maxObjects": 366, "enforceDailyFloor": true, "applyNoise": false },
+    "targetPrefixes": ["/api", "/app/storage"],
     "cacheTtlMs": 86400000
   },
+  "signing": { "keyFile": "/run/secrets/private.jwk" },
   "server": { "port": 8080, "maxAge": 86400, "extraPaths": ["/sustainability"] }
 }
 ```
@@ -256,12 +355,60 @@ enumerated members. In an array (trend) response, `target-type` is **all-or-none
 from every entry — mixed presence is invalid, and the validation gate enforces this
 alongside the shared-`target` rule.
 
+`publisher.targetPrefixes` is the set of path prefixes this origin honours for the
+Extended `target` parameter — the set the draft says a publisher lists in its
+methodology document. A `target` matching none of them is answered `404`, and a
+matching one becomes the `target` member of every returned object (matching is
+byte-wise, case-sensitive and on complete segments, so `/api` matches `/api/v1`
+but not `/apifoo`). Leave it unset and the publisher does not support the
+parameter: every value gets the same response, which is what Privacy
+Considerations asks for.
+
 Since draft -03, `energy-consumption`/`energy-unit` and `carbon-footprint`/`carbon-unit`
 are **optional**: a metric that is not reported is simply omitted (there is no negative
 "not reported" sentinel anymore). When a unit member is absent, the defaults `kWh` and
 `gCO2e` apply — this publisher always emits the unit explicitly alongside a reported
 value. Gross metrics must be non-negative and `renewable-energy` must be 0–100;
-`scope-1/2/3` may be negative (removals under net accounting).
+`scope-1/2/3` may be negative (removals under net accounting). Since -07 every
+declaration MUST report **something**: at least one numeric metric member, or
+`disclosure-uri`, or `verifiable-attestation-uri` — the normalizer and the
+validation gate both refuse an object that carries none.
+
+### Extensions and upstream declarations (-07)
+
+The declaration object is **closed**: a publisher MUST NOT add top-level members
+of its own. Publisher-defined data goes in `extensions`, an object whose keys are
+absolute URIs (RFC 3986, Section 4.3: ASCII, scheme in lowercase, only the characters RFC 3986 allows (so no space, and none of `" < > \ ^ ` { | }`), no fragment) and
+whose values are objects. The draft names two forms: an `https` URI with a host,
+which should point at human-readable documentation of the members but which a
+consumer MUST NEVER dereference, and `urn:uuid:` followed by a lowercase
+hyphenated UUID you generate once — and a consumer that does not implement a key
+ignores its value. `upstream` is an array of
+`{ declaration, role? }` naming the declarations of the providers a subject's
+figures derive from (`declaration` is an absolute `https` URI). Adapters supply
+both through `raw.extensions` / `raw.upstream`:
+
+```ts
+return {
+  provider: "Acme Retail plc (sustainability@acme.example)",
+  // …
+  upstream: [{ declaration: "https://cloud.example/tenants/acme.json", role: "cloud" }],
+  extensions: {
+    "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": { "water-consumption-m3": 1250, "waste-generated-kg": 340 },
+    "https://example.com/sustainability/extensions/water-and-waste": { "water-consumption-m3": 1250 },
+  },
+};
+```
+
+A key that is not an absolute URI (a bare UUID, `com.example.pue`, a relative
+reference, a fragment, whitespace, non-ASCII, a character RFC 3986 does not
+allow in a URI such as `" < > \ ^ ` { | }`, an uppercase scheme such as
+`HTTPS://…`, `https:` with no host), a
+`urn:uuid:` key in uppercase or holding the Nil or Max UUID (which the draft
+forbids as guaranteed collisions), a
+non-object value, a relative or non-`https` upstream URI, or any member outside
+the closed set is rejected at normalization **and** by the validation gate, with
+a message naming it — never published.
 
 Adapter `type` is one of: `static`, `static-file`, `computed`, `kepler-prometheus`,
 `climatiq`, `co2js`, `carbontxt-api`, `salesforce-nzc`, `ms-sustainability`, `watershed`.
@@ -281,19 +428,42 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
 
 ## Security & privacy safeguards (draft §Security / §Privacy)
 
-- **DoS**: arrays capped at 366 objects; responses cached (in-memory) and `Cache-Control`/`ETag` set.
+- **DoS**: arrays capped at 366 objects (-07 dropped the server-side cap in favour of a
+  consumer-side bound, but a conforming response is bounded by the calendar anyway, so the cap
+  stays as this package's own safeguard — `SecurityOptions.maxObjects` raises or lowers it).
+  Note the one interaction: the cap keeps the **most recent** entries, so a publisher holding
+  more than a year of daily figures and asked for a year aggregate can lose contributors to the
+  cap, fail the draft's coverage rule for that year, and answer `404` rather than a sum over
+  part of it — raise `maxObjects` past the number of entries you hold if you serve aggregates
+  over a period that long. Responses are cached (in-memory) and `Cache-Control`/`ETag` set;
+  the cache key is derived from the honored parameters in a canonical order, so requests that
+  differ only in parameters the publisher ignores cannot multiply cache entries (above).
 - **Traffic analysis**: the normalizer constrains `reporting-period` to day granularity at
   the finest; the security layer additionally drops any sub-daily entry.
-- **Hardware fingerprinting**: optional ~1% noise (`security.applyNoise`, off by default).
-  When enabled it is applied once at document-generation time, deterministically per
-  reporting period, with a single factor per report so related fields stay consistent
-  (per the draft's Hardware Fingerprinting rules); the multiplicative factor preserves
+- **Hardware fingerprinting**: optional ~1% noise (`security.applyNoise`, **off by
+  default** — nothing in this package perturbs a published value unless the operator
+  opts in). When enabled it is applied once at document-generation time, deterministically
+  per reporting period, with a single factor per report so related fields stay consistent
+  (per the draft's Privacy Considerations); the multiplicative factor preserves
   the sign of negative scope values (removals). Noise covers only the additive family
   (energy, footprint, scopes): the range-bounded `renewable-energy` member is **never
-  noised**, so the draft's stay-in-range MUST ("members bounded to a range MUST remain
-  within their stated range after noise") is trivially satisfied.
-- **Trust**: link a signed W3C Verifiable Credential via the adapter's attestation field
-  (`verifiable-attestation-uri`).
+  noised**, so the draft's stay-in-range MUST ("bounded members MUST remain within their
+  range") is trivially satisfied.
+  **Disclosure is a MUST, and it is yours to make**: if you enable `applyNoise`, the
+  methodology document MUST state that noise is applied and MUST bound its magnitude
+  (at most ±1% for this implementation). The library cannot write that statement for you
+  and cannot check that you wrote it, which is exactly why it never enables noise on your
+  behalf — opting in *is* taking on the disclosure obligation. `methodology-uri` is where
+  the statement belongs.
+- **Trust**: sign each declaration object (`signing`, above) and link a signed W3C
+  Verifiable Credential via the adapter's attestation field
+  (`verifiable-attestation-uri`). The signature is produced as the **last** step of
+  building a document, over the object without its `signed` member — so the payload
+  never contains `signed` itself, every object of an array response is signed, and no
+  cache or conditional-request path can serve a signature that does not match the body
+  beside it ("a publisher MUST NOT serve an object whose `signed` payload differs from
+  the object it accompanies"). `assertSignedMatches()` enforces that invariant on every
+  document the publisher and the `sign` CLI emit, and is exported for your own checks.
 
 ## Conformance
 
@@ -303,13 +473,11 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
 repo's **independent** Python (JTD) and Ruby (CDDL) validators in CI — see
 `.github/workflows/publisher.yml`.
 
-> Note on extensibility: the bundled JTD/CDDL schemas are open per the draft (unknown
-> members are permitted and clients MUST ignore them). Extension members supplied by an
-> adapter via `raw.extra` pass through `normalize` and the validation gate onto the wire;
-> the gateway itself emits only spec-defined fields unless an adapter adds extras. Since
-> draft -04, member names without a "." are reserved for the specification — name your
-> extension members using reverse-domain notation rooted in a domain you control (e.g.
-> `com.example.pue`), not an `X-`/`vendor-` prefix.
+> Note on extensibility: since -07 the bundled JTD/CDDL schemas **close** the top-level
+> member set, and publisher-defined data lives under `extensions`, keyed by an absolute
+> URI. The schemas cannot express that form of those keys, the `https` form of the URI
+> members, the value ranges or the at-least-one rule; `src/validate.ts` enforces those
+> prose rules alongside the schema, so nothing non-conformant reaches the wire.
 
 ## Verifying a deployment once it's live
 
@@ -317,8 +485,8 @@ Once a server built with this publisher is deployed, verify it the same way any
 `/.well-known/sustainability-data` origin is verified — curl for headers/body plus the
 consumer's `--strict` conformance battery. See
 [consumer/README.md § Verify a live deployment](../consumer/README.md#verify-a-live-deployment)
-for the four commands and expected output (requires `sustainability-wellknown-consumer`
-0.6.5 or later for the signature check; `--verify` reports the signature outcome).
+for the four commands and expected output (`--verify` reports the outcome of the
+`signed` member's verification).
 
 ## License
 

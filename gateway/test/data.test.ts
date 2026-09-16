@@ -15,19 +15,28 @@ import {
   type SustainabilityMetrics,
 } from "sustainability-wellknown-publisher";
 import { describe, expect, it } from "vitest";
-import { DOMAIN_RE, isSyntheticDomain } from "../src/registry";
+import { DOMAIN_RE, isSyntheticDomain, resolveBaseUrlToken } from "../src/registry";
 import { DATA_DIR } from "./helpers";
 
 const files = readdirSync(DATA_DIR)
   .filter((f) => f.endsWith(".json") && !f.startsWith("_"))
   .sort();
 
+/**
+ * A data file as the gateway SERVES it: the `{base}` token of an
+ * `upstream[].declaration` resolved against an origin, exactly as
+ * `loadSubjectFile` does, so the conformance checks below see the real
+ * absolute "https" URI rather than the template.
+ */
+const SERVED_BASE = "https://gateway.example";
 const load = (f: string) =>
-  JSON.parse(readFileSync(join(DATA_DIR, f), "utf8")) as SustainabilityMetrics;
+  resolveBaseUrlToken(
+    JSON.parse(readFileSync(join(DATA_DIR, f), "utf8")) as SustainabilityMetrics,
+    SERVED_BASE,
+  );
 
-/** The 8 mandatory members (draft, Mandatory Response Fields). */
+/** The seven mandatory members (draft -07, Mandatory Members). */
 const MANDATORY = [
-  "version",
   "updated",
   "capabilities",
   "provider",
@@ -38,6 +47,40 @@ const MANDATORY = [
 ] as const;
 
 const URI_MEMBERS = ["methodology-uri", "verifiable-attestation-uri", "disclosure-uri"] as const;
+
+/** The closed top-level member set of a -07 declaration object. */
+const KNOWN_MEMBERS = new Set([
+  ...MANDATORY,
+  "energy-consumption",
+  "energy-unit",
+  "carbon-footprint",
+  "carbon-unit",
+  "carbon-accounting",
+  "scope-1",
+  "scope-2",
+  "scope-3",
+  "sci-score",
+  "functional-unit",
+  "carbon-intensity-gCO2e-per-kWh",
+  "estimated-annual-emissions-kgCO2e",
+  "renewable-energy",
+  "verifiable-attestation-uri",
+  "disclosure-uri",
+  "target-type",
+  "upstream",
+  "extensions",
+  "signed",
+]);
+
+/**
+ * The absolute-URI form (RFC 3986, ASCII, no fragment) the draft requires of an
+ * `extensions` key: a lowercase scheme, then an `https` URI under the definer's
+ * control, or `urn:uuid:` plus a lowercase hyphenated UUID (RFC 9562). Keys are
+ * compared as strings and are never dereferenced. This is the CDDL `ext-name`
+ * rule of `schemas-validators/response-schema.cddl`, character for character.
+ */
+const EXT_KEY_RE = /^[a-z][a-z0-9+.-]*:[!$-;=?-Z\[\]_a-z~]+$/;
+const URN_UUID_RE = /^urn:uuid:[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 
 it("ships at least one data file", () => {
   expect(files.length).toBeGreaterThan(0);
@@ -71,9 +114,9 @@ describe.each(files)("%s", (file) => {
     expect(r.valid).toBe(true);
   });
 
-  it("carries every mandatory member", () => {
+  it("carries every mandatory member, and no `version` (removed in -07)", () => {
     for (const m of MANDATORY) expect(doc[m], m).toBeTruthy();
-    expect(doc.version).toBe("2.0");
+    expect(doc.version).toBeUndefined();
     expect(doc.capabilities).toBe("basic");
   });
 
@@ -112,31 +155,42 @@ describe.each(files)("%s", (file) => {
     }
   });
 
-  it("uses reverse-domain names for any extension member", () => {
-    const known = new Set([
-      ...MANDATORY,
-      "energy-consumption",
-      "energy-unit",
-      "carbon-footprint",
-      "carbon-unit",
-      "carbon-accounting",
-      "scope-1",
-      "scope-2",
-      "scope-3",
-      "sci-score",
-      "functional-unit",
-      "carbon-intensity-gCO2e-per-kWh",
-      "estimated-annual-emissions-kgCO2e",
-      "renewable-energy",
-      "verifiable-attestation-uri",
-      "disclosure-uri",
-      "target-type",
-    ]);
+  it("keeps to the closed top-level member set (-07)", () => {
+    // -07 closes the object: a publisher MUST NOT add a top-level member of
+    // its own. Anything this specification does not define lives in
+    // `extensions`, which the next test checks.
     for (const k of Object.keys(doc)) {
-      if (known.has(k)) continue;
-      // Undotted names are reserved for the specification itself.
-      expect(k, `extension member ${k}`).toContain(".");
-      expect(k).toBe(k.toLowerCase());
+      expect(KNOWN_MEMBERS.has(k), `unexpected top-level member ${k}`).toBe(true);
+    }
+  });
+
+  it("keys any `extensions` entry with an absolute URI and gives it an object value", () => {
+    const ext = doc.extensions as Record<string, unknown> | undefined;
+    if (ext === undefined) return;
+    for (const [key, value] of Object.entries(ext)) {
+      expect(key, `extensions key ${key}`).toMatch(EXT_KEY_RE);
+      expect(key.includes("#"), `extensions key ${key} carries a fragment`).toBe(false);
+      // The two forms this registry uses: an https URI the definer controls, or urn:uuid:.
+      if (key.startsWith("urn:")) {
+        expect(key, `extensions key ${key}`).toMatch(URN_UUID_RE);
+        expect(key).not.toBe("urn:uuid:00000000-0000-0000-0000-000000000000");
+        expect(key).not.toBe("urn:uuid:ffffffff-ffff-ffff-ffff-ffffffffffff");
+      } else {
+        expect(key, `extensions key ${key}`).toMatch(/^https:\/\//);
+      }
+      expect(typeof value, `extensions["${key}"]`).toBe("object");
+      expect(Array.isArray(value)).toBe(false);
+    }
+  });
+
+  it("gives every `upstream` entry an absolute https declaration URI", () => {
+    const up = doc.upstream as { declaration?: unknown; role?: unknown }[] | undefined;
+    if (up === undefined) return;
+    expect(up.length).toBeGreaterThan(0);
+    for (const e of up) {
+      expect(typeof e.declaration).toBe("string");
+      expect(String(e.declaration)).toMatch(/^https:\/\/\S+$/);
+      if (e.role !== undefined) expect(typeof e.role).toBe("string");
     }
   });
 

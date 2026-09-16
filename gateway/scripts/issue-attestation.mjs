@@ -8,13 +8,32 @@
  *   node scripts/issue-attestation.mjs --out attestation.vc.jwt
  *   node scripts/issue-attestation.mjs --key ~/.config/sustainability-attester/private.jwk \
  *        --issuer https://andreibesleaga.com --gateway https://sustainability.up.railway.app --out ...
+ *   node scripts/issue-attestation.mjs --declaration served.json --out attestation.vc.jwt
  *
  * The credential attests the model (constants and formula), valid for five
- * years, so every monthly document derived from it is covered and nothing
+ * years, so every monthly declaration derived from it is covered and nothing
  * needs re-issuing. It says, in its own description, that the issuer and the
  * gateway operator are the same person: the credential demonstrates the
  * mechanism of draft-besleaga-sustainability-wellknown and is not
  * independent assurance.
+ *
+ * Binding to a declaration (-07). Draft -07, Appendix A step 5: the issuer
+ * "issues a verifiable credential whose subject contains a copy of the
+ * declaration object (without `signed`)", and the consumer "compares the
+ * credential's copy with the verified payload". `--declaration <file>` reads
+ * one served declaration, strips its `signed` member, and carries the copy at
+ * `credentialSubject.declaration`; the reference consumer then reports the
+ * binding as `match` or `mismatch`. There is no digest anywhere: the copy IS
+ * the binding, so a verifier compares objects rather than trusting a hash it
+ * cannot recompute.
+ *
+ * The flag is deliberately OPT-IN. A copy binds the credential to ONE
+ * declaration, so a credential carrying last month's copy would be reported as
+ * a `mismatch` the moment the month rolls over. Without it the credential
+ * attests the MODEL and carries no copy, which the consumer reports as
+ * `no-copy` — accurate, since the statement is about the model and not about
+ * any single declaration. Bind to a declaration when you re-issue per period;
+ * leave it off for the standing five-year model attestation.
  *
  * The private key is read from a local file (default
  * `~/.config/sustainability-attester/private.jwk`, as written by
@@ -46,6 +65,19 @@ export const DEFAULTS = {
 /** RFC 3339 instant without milliseconds. */
 const instant = (d) => new Date(d).toISOString().replace(/\.\d{3}Z$/, "Z");
 
+/**
+ * A copy of a declaration object as a credential carries it: the object
+ * exactly as served, minus `signed` (the draft defines the copy that way, and
+ * the signature covers the object it was served in, not this copy).
+ */
+export function declarationCopy(declaration) {
+  if (typeof declaration !== "object" || declaration === null || Array.isArray(declaration)) {
+    throw new Error("--declaration must name a file holding ONE declaration object, not an array");
+  }
+  const { signed: _signed, ...copy } = declaration;
+  return copy;
+}
+
 /** The credential JSON (VC Data Model 2.0), before signing. Pure. */
 export function buildCredential(opts = {}) {
   const o = { ...DEFAULTS, ...opts };
@@ -61,7 +93,7 @@ export function buildCredential(opts = {}) {
     validUntil: instant(until),
     name: "Attestation of the reporting model of the Sustainability Data Reference Gateway",
     description:
-      "The issuer attests that the gateway's own /.well-known/sustainability-data document is " +
+      "The issuer attests that the gateway's own /.well-known/sustainability-data declaration is " +
       "derived by the model below, from the stated constants, for each reporting period since " +
       "the gateway went live. The issuer and the gateway operator are the same person; this " +
       "credential demonstrates the attestation mechanism of " +
@@ -73,6 +105,9 @@ export function buildCredential(opts = {}) {
       "measurement-method": "third-party-modeled",
       "methodology-uri": o.methodologyUri,
       "live-since": o.liveSince,
+      // -07 binding: the copy of the declaration this credential attests,
+      // without `signed`. Absent unless the caller passed one.
+      ...(o.declaration ? { declaration: declarationCopy(o.declaration) } : {}),
       model: {
         "constant-draw-watts": o.watts,
         "grid-intensity-gCO2e-per-kWh": o.gridIntensity,
@@ -128,6 +163,7 @@ function parseArgs(argv) {
     else if (a === "--live-since") out.liveSince = take();
     else if (a === "--valid-years") out.validYears = takeNumber();
     else if (a === "--now") out.now = take();
+    else if (a === "--declaration") out.declaration = JSON.parse(readFileSync(take(), "utf8"));
     else throw new Error(`unknown argument "${a}"`);
   }
   return out;
@@ -150,6 +186,9 @@ async function main() {
       `  issuer      ${credential.issuer}`,
       `  valid       ${credential.validFrom} .. ${credential.validUntil}`,
       `  subject     ${credential.credentialSubject.id}`,
+      credential.credentialSubject.declaration
+        ? `  binds to    a copy of the declaration for ${credential.credentialSubject.declaration["reporting-period"]} (without \`signed\`)`
+        : "  binds to    the MODEL only (no declaration copy; pass --declaration to bind one)",
       `  attester kid ${publicJwk.kid}`,
       opts.out ? `  written     ${opts.out}` : "",
       "",

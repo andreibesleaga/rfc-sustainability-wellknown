@@ -85,12 +85,14 @@ describe("standalone server", () => {
   });
 });
 
-// Draft -06 §Mandatory Minimum Supported Service: a successful (200 OK)
-// response carrying a Sustainability Metadata Document MUST use
-// application/sustainability-data+json and MUST NOT use another; servers
-// SHOULD send X-Content-Type-Options: nosniff. `mediaType: "json"` is this
-// package's opt-in v05-compatible legacy mode (NOT -06 conformant).
-describe("media type (-06 conformance) and the v05-compatible legacy option", () => {
+// Draft -07 §Mandatory Minimum Supported Service: a successful (200 OK)
+// response carrying a declaration MUST use application/sustainability-data+json
+// and MUST NOT carry any other media type. `X-Content-Type-Options: nosniff` is
+// this package's own hardening — -07 dropped the recommendation — and is sent
+// either way. `mediaType: "json"` serves the generic media type under which
+// declarations published before the registration exist, which a consumer MAY
+// process; it is NOT conformant publishing.
+describe("media type (-07 conformance) and the application/json legacy option", () => {
   function legacyPublisher() {
     return new Publisher(
       computedAdapter({
@@ -158,9 +160,9 @@ describe("media type (-06 conformance) and the v05-compatible legacy option", ()
   });
 });
 
-// Draft §Optional Extended Query Parameters (-04): parameter-tolerance rules,
+// Draft §Extended Query Parameters (-07): the numbered processing procedure,
 // applied centrally in parseQuery so every entry point behaves identically.
-describe("handler query semantics (draft parameter tolerance)", () => {
+describe("handler query processing (draft numbered procedure)", () => {
   const rawTrend = (period: string): RawMetrics => ({
     provider: "Trend Corp",
     measurementMethod: "cloud-billing",
@@ -171,27 +173,80 @@ describe("handler query semantics (draft parameter tolerance)", () => {
     target: "trend.example",
   });
 
-  async function trendServer() {
+  async function trendServer(opts: ServerOptions = {}, publisherOptions = {}) {
     const publisher = new Publisher(
       staticAdapter({
         data: ["2026-01", "2026-02", "2026-03"].map(rawTrend),
         capabilities: "extended",
       }),
-      { cacheTtlMs: 0 },
+      // A FIXED CLOCK, so nothing here depends on the day the suite runs: at
+      // this instant the completed portion of 2026 is exactly the three months
+      // the trend holds, which is what draft step 5 requires the contributing
+      // entries of the year's aggregate to cover.
+      { cacheTtlMs: 0, now: () => new Date("2026-04-01T00:00:00Z"), ...publisherOptions },
     );
-    return makeServer(publisher);
+    return makeServer(publisher, opts);
   }
 
-  it("parseQuery ignores an unrecognized granularity value and a malformed period", () => {
-    expect(parseQuery({ granularity: "weekly" }).granularity).toBeUndefined();
-    expect(parseQuery({ granularity: "monthly" }).granularity).toBe("monthly");
-    expect(parseQuery({ granularity: "daily" }).granularity).toBe("daily");
-    expect(parseQuery({ period: "not-a-date" }).period).toBeUndefined();
-    expect(parseQuery({ period: "2026-13" }).period).toBeUndefined(); // no 13th month
-    expect(parseQuery({ period: "2026" }).period).toBe("2026");
-    expect(parseQuery({ period: "2026-02" }).period).toBe("2026-02");
-    expect(parseQuery({ period: "2026-02-01" }).period).toBe("2026-02-01");
-    expect(parseQuery({ target: "/api/v1" }).target).toBe("/api/v1");
+  const ok = (q: Record<string, unknown>) => {
+    const parsed = parseQuery(q);
+    if (!parsed.ok) throw new Error(`expected a query, got 400: ${parsed.error}`);
+    return parsed.query;
+  };
+
+  it("parseQuery: ignores an unrecognized granularity, rejects a malformed period (step 2)", () => {
+    expect(ok({ granularity: "weekly" }).granularity).toBeUndefined();
+    expect(ok({ granularity: "monthly" }).granularity).toBe("monthly");
+    expect(ok({ granularity: "daily" }).granularity).toBe("daily");
+    expect(ok({ period: "2026" }).period).toBe("2026");
+    expect(ok({ period: "2026-02" }).period).toBe("2026-02");
+    expect(ok({ period: "2026-02-01" }).period).toBe("2026-02-01");
+    expect(ok({ target: "/api/v1" }).target).toBe("/api/v1");
+    expect(ok({ unknown: "x" })).toEqual({ target: undefined, period: undefined, granularity: undefined });
+
+    for (const period of ["not-a-date", "2026-13", "2026-02-30", "2026-2", ""]) {
+      const parsed = parseQuery({ period });
+      expect(parsed.ok, period).toBe(false);
+      if (!parsed.ok) expect(parsed.error).toMatch(/calendar/);
+    }
+  });
+
+  it("parseQuery: a repeated parameter name is 400 (step 1)", () => {
+    for (const q of [
+      { period: ["2026", "2025"] },
+      { granularity: ["monthly", "daily"] },
+      { target: ["/a", "/b"] },
+    ]) {
+      const parsed = parseQuery(q);
+      expect(parsed.ok, JSON.stringify(q)).toBe(false);
+      if (!parsed.ok) expect(parsed.error).toMatch(/more than once/);
+    }
+    // A single value in an array (as some frameworks hand it over) is not a duplicate.
+    expect(ok({ period: ["2026"] }).period).toBe("2026");
+    // Step 1 ignores names this specification does not define, so repeating one
+    // is not an error: only a repeated defined name makes the request ambiguous.
+    expect(parseQuery({ unknown: ["1", "2"] }).ok).toBe(true);
+  });
+
+  it("400 Bad Request over HTTP for a duplicate name and for a malformed period", async () => {
+    const srv2 = await trendServer();
+    for (const q of ["?period=2026&period=2025", "?granularity=monthly&granularity=daily"]) {
+      const r = await fetch(`${srv2.url}${q}`);
+      expect(r.status, q).toBe(400);
+      expect(r.headers.get("content-type")).toBe("application/json");
+      expect(r.headers.get("cache-control")).toBe("no-store");
+      expect(r.headers.get("access-control-allow-origin")).toBe("*");
+      expect((await r.json()).error).toMatch(/bad request/);
+    }
+    // A repeated undefined name is ignored, not rejected.
+    const ignored = await fetch(`${srv2.url}?x=1&x=2`);
+    expect(ignored.status).toBe(200);
+    for (const q of ["?period=not-a-date", "?period=2026-02-31", "?period=2026-13"]) {
+      const r = await fetch(`${srv2.url}${q}`);
+      expect(r.status, q).toBe(400);
+      expect((await r.json()).error).toMatch(/calendar/);
+    }
+    await srv2.close();
   });
 
   it("an unrecognized granularity (weekly) is ignored: single object, same as the Basic response", async () => {
@@ -202,16 +257,6 @@ describe("handler query semantics (draft parameter tolerance)", () => {
     // Ignored granularity -> no array may be returned (draft MUST NOT).
     expect(Array.isArray(body)).toBe(false);
     expect(body["reporting-period"]).toBe("2026-03"); // most recent = Basic default
-    await srv2.close();
-  });
-
-  it("a malformed period is ignored (200 Basic response, not an error)", async () => {
-    const srv2 = await trendServer();
-    const r = await fetch(`${srv2.url}?period=not-a-date`);
-    expect(r.status).toBe(200);
-    const body = await r.json();
-    expect(Array.isArray(body)).toBe(false);
-    expect(body["reporting-period"]).toBe("2026-03");
     await srv2.close();
   });
 
@@ -232,28 +277,57 @@ describe("handler query semantics (draft parameter tolerance)", () => {
     const year = await (await fetch(`${srv2.url}?period=2026`)).json();
     expect(Array.isArray(year)).toBe(false);
     expect(year).toMatchObject({ "reporting-period": "2026", "energy-consumption": 30, "energy-unit": "kWh", "carbon-footprint": 300 });
+    // Per-period members are omitted from an aggregate (step 5).
+    expect(year["renewable-energy"]).toBeUndefined();
     const month = await (await fetch(`${srv2.url}?period=2026-02`)).json();
     expect(month["reporting-period"]).toBe("2026-02");
     await srv2.close();
   });
 
-  it("a granularity the data cannot honour, a non-existent day, and a period with no data", async () => {
+  it("a granularity in effect that matches no held entry is 404, as is a period with no data", async () => {
     const srv2 = await trendServer();
-    // Daily on monthly data: the parameter is ignored (no array, the period's object).
-    const daily = await (await fetch(`${srv2.url}?period=2026&granularity=daily`)).json();
-    expect(daily["reporting-period"]).toBe("2026");
-    // "2026-02-31" is well-shaped but not a calendar day: ignored, Basic response.
-    const badDay = await (await fetch(`${srv2.url}?period=2026-02-31`)).json();
-    expect(badDay["reporting-period"]).toBe("2026-03");
+    // Daily IS finer than the year, so G is in effect (step 3) and the response
+    // is the array of held daily entries — of which there are none (step 5).
+    expect((await fetch(`${srv2.url}?period=2026&granularity=daily`)).status).toBe(404);
+    // Monthly is not finer than a month, so G is ignored and the month's object
+    // is returned instead of an array.
+    const month = await fetch(`${srv2.url}?period=2026-02&granularity=monthly`);
+    expect(month.status).toBe(200);
+    expect((await month.json())["reporting-period"]).toBe("2026-02");
     // No entries in 2025: the no-data rule.
     expect((await fetch(`${srv2.url}?period=2025`)).status).toBe(404);
+    await srv2.close();
+  });
+
+  it("target: 404 for a value outside the published prefix set, the matched prefix otherwise (step 4)", async () => {
+    const srv2 = await trendServer({}, { targetPrefixes: ["/api", "/app/storage"] });
+    const scoped = await fetch(`${srv2.url}?target=/api/v1`);
+    expect(scoped.status).toBe(200);
+    // Every returned object carries the MATCHED prefix in its target member.
+    expect((await scoped.json()).target).toBe("/api");
+    expect((await (await fetch(`${srv2.url}?target=/app/storage`)).json()).target).toBe("/app/storage");
+
+    for (const value of ["/apifoo", "/other", "/API", "api"]) {
+      const r = await fetch(`${srv2.url}?target=${encodeURIComponent(value)}`);
+      expect(r.status, value).toBe(404);
+      // Identical responses for every unmatched value (Privacy Considerations).
+      expect((await r.json()).error).toBe("no declaration published for the requested target");
+    }
+    await srv2.close();
+  });
+
+  it("a publisher that publishes no prefix set ignores target entirely", async () => {
+    const srv2 = await trendServer();
+    const r = await fetch(`${srv2.url}?target=/anything`);
+    expect(r.status).toBe(200);
+    expect((await r.json()).target).toBe("trend.example");
     await srv2.close();
   });
 
   it("a Basic-declaring trend ignores every parameter and answers the most recent entry", async () => {
     const publisher = new Publisher(staticAdapter({ data: ["2026-01", "2026-02", "2026-03"].map(rawTrend) }), { cacheTtlMs: 0 });
     const srv2 = await makeServer(publisher);
-    for (const q of ["?granularity=monthly", "?period=2026&granularity=monthly", "?period=2025"]) {
+    for (const q of ["?granularity=monthly", "?period=2026&granularity=monthly", "?period=2025", "?target=/api"]) {
       const r = await fetch(`${srv2.url}${q}`);
       expect(r.status, q).toBe(200);
       expect((await r.json())["reporting-period"], q).toBe("2026-03");
@@ -276,7 +350,6 @@ describe("404 when no metadata", () => {
 describe("security safeguards", () => {
   it("caps arrays at 366 objects", () => {
     const many: SustainabilityMetrics[] = Array.from({ length: 500 }, (_, i) => ({
-      version: "2.0",
       updated: "2026-01-01T00:00:00Z",
       capabilities: "extended",
       provider: "p",
@@ -295,7 +368,6 @@ describe("security safeguards", () => {
   it("drops sub-daily entries (traffic-analysis floor)", () => {
     const reports: SustainabilityMetrics[] = [
       {
-        version: "2.0",
         updated: "2026-01-01T00:00:00Z",
         capabilities: "extended",
         provider: "p",
@@ -318,7 +390,6 @@ describe("security safeguards", () => {
     // every other reported value — multiplication preserves the sign.
     const reports: SustainabilityMetrics[] = [
       {
-        version: "2.0",
         updated: "2026-01-01T00:00:00Z",
         capabilities: "extended",
         provider: "p",
@@ -354,7 +425,6 @@ describe("security safeguards", () => {
     // boundary value like 100 can never be pushed out of [0, 100].
     const reports: SustainabilityMetrics[] = [
       {
-        version: "2.0",
         updated: "2026-01-01T00:00:00Z",
         capabilities: "extended",
         provider: "p",

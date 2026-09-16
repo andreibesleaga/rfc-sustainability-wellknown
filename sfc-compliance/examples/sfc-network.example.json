@@ -1,0 +1,48 @@
+{
+  "updated": "2026-02-10T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "SYNTHETIC EXAMPLE, not a real network and not a real measurement. Published by the profile author, Andrei Besleaga, as a reserved-name (RFC 2606 .example) reference declaration for the network level of the SFC profile. Every figure below is invented and describes nothing real.",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://ledger.example/sustainability/methodology-2025",
+  "reporting-period": "2025",
+  "target": "ledger.example",
+  "target-type": "service",
+  "energy-consumption": 800,
+  "energy-unit": "MWh",
+  "carbon-footprint": 95.5,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 0,
+  "scope-2": 33.1,
+  "scope-3": 62.4,
+  "carbon-intensity-gCO2e-per-kWh": 41.4,
+  "estimated-annual-emissions-kgCO2e": 95500,
+  "renewable-energy": 82,
+  "verifiable-attestation-uri": "https://assurance.example/vc/ledger-example-2025",
+  "disclosure-uri": "https://ledger.example/sustainability/disclosures",
+  "extensions": {
+    "https://andreibesleaga.com/sfc/extensions/hardware-lifecycle": {
+      "general-purpose-hardware": true,
+      "single-use-asic-required": false,
+      "expected-service-life-years": 5,
+      "embodied-carbon-in-scope-3": true,
+      "reuse-and-recycling-policy-uri": "https://ledger.example/sustainability/hardware-policy"
+    },
+    "https://andreibesleaga.com/sfc/extensions/carbon-neutrality": {
+      "net-zero-status": "achieved",
+      "renewable-procurement": "power-purchase-agreements",
+      "residual-emissions-tCO2e": 95.5,
+      "offsets-retired-tCO2e": 95.5,
+      "offset-registry-uri": "https://registry.example/retirements/ledger-example-2025",
+      "offsets-attested-by": "Third Party Assurance Ltd."
+    },
+    "https://andreibesleaga.com/sfc/extensions/network-topology": {
+      "consensus-mechanism": "proof-of-stake",
+      "validated-node-count": 137,
+      "node-count-validation-method": "signed block attribution over the 2025 calendar year",
+      "per-transaction-energy-Wh": 0.06,
+      "nakamoto-coefficient": 21,
+      "geographic-regions": 19
+    }
+  }
+}

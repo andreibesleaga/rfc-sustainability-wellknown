@@ -1,0 +1,35 @@
+{
+  "updated": "2026-02-10T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "SYNTHETIC EXAMPLE — not a real operator and not a real measurement. Published by the gateway operator, Andrei Besleaga, as a reserved-name (RFC 2606 .example) test vector for an OPERATOR-LEVEL subject: one node operator inside the network that sfc-network.example reports for, metered at its own origin. Every number below is invented and describes nothing real. The upstream member points at the tenant-scoped declaration this gateway serves for cloud-demo.example, so a consumer's chain walk genuinely resolves, and membership of the network — which upstream cannot express, because a network is not a supplier — is declared in band under the Sustainability-First Consensus (SFC) profile's network-topology extension name, defined in sfc-compliance/PROFILE.md.",
+  "measurement-method": "hardware-metered",
+  "methodology-uri": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/METHODOLOGY.md",
+  "reporting-period": "2025",
+  "target": "sfc-operator.example",
+  "energy-consumption": 4820,
+  "energy-unit": "kWh",
+  "carbon-footprint": 0.19,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-2": 0.19,
+  "carbon-intensity-gCO2e-per-kWh": 39.4,
+  "renewable-energy": 90,
+  "disclosure-uri": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/data/README.md",
+  "target-type": "origin",
+  "upstream": [
+    {
+      "declaration": "{base}/cloud-demo.example/.well-known/sustainability-data",
+      "role": "cloud"
+    }
+  ],
+  "extensions": {
+    "https://andreibesleaga.com/sfc/extensions/hardware-lifecycle": {
+      "general-purpose-hardware": true,
+      "single-use-asic-required": false,
+      "expected-service-life-years": 6
+    },
+    "https://andreibesleaga.com/sfc/extensions/network-topology": {
+      "member-of-network": "sfc-network.example"
+    }
+  }
+}

@@ -1,5 +1,4 @@
 {
-  "version": "2.0",
   "updated": "2026-03-21T00:05:00Z",
   "capabilities": "extended",
   "provider": "Global Storage Inc. (compliance@storage.example)",
@@ -23,5 +22,9 @@
   "verifiable-attestation-uri": "https://verify.example/vc/storage",
   "disclosure-uri": "https://storage.example/disclosures",
   "target-type": "path",
-  "com.example.pue": 1.21
+  "extensions": {
+    "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": {
+      "pue": 1.21
+    }
+  }
 }

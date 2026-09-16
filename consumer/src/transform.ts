@@ -1,4 +1,4 @@
-/** Format transformations for a validated Sustainability Metadata Document. */
+/** Format transformations for a validated Sustainability Declaration. */
 import { CarbonUnit, EnergyUnit, SustainabilityDocument, SustainabilityMetrics } from "./types";
 import { isNotReported, NUMERIC_KEYS } from "./sentinel";
 import { convertCarbon, convertEnergy } from "./units";
@@ -86,7 +86,7 @@ export function flatten(doc: SustainabilityDocument): FlatRecord[] {
       // a renewable-energy percentage above 100.
       if (NON_NEGATIVE.includes(metric) && isNotReported(value, metric)) continue;
       // sci-score is expressed in gCO2e per the declared functional-unit
-      // (draft §Optional Response Fields) — label it truthfully rather than
+      // (draft §Optional Members) — label it truthfully rather than
       // emitting an empty unit into time-series backends.
       const unit =
         metric === "sci-score"
@@ -116,14 +116,55 @@ export interface AggregateOptions {
 }
 
 /**
- * Combine a trend array into one summary object. Refuses to silently mix
- * units — everything is normalized to the requested (or the first reporting
- * entry's) unit before combining. Entries not reporting a metric (member
- * absent, or negative under the legacy-compatibility rule) simply don't
- * contribute; an absent unit member means the draft's default (kWh / gCO2e).
- * When no entry reports a metric at all, the summary omits it.
+ * The `reporting-period` of a summary: `"<first>..<last>"`.
+ *
+ * It is deliberately NOT a draft `period-value`. The draft's §Mandatory Members
+ * allows `YYYY`, `YYYY-MM` and `YYYY-MM-DD` and nothing else, and a range is
+ * none of them — `validateDocument()` rejects an object carrying one, which is
+ * the guarantee that a summary cannot be mistaken for, or republished as, a
+ * declaration.
  */
-export function aggregate(entries: SustainabilityMetrics[], opts: AggregateOptions): SustainabilityMetrics {
+export type PeriodRange = `${string}..${string}`;
+
+/**
+ * What {@link aggregate} returns: a CLIENT-SIDE SUMMARY of a trend, **not a
+ * declaration**.
+ *
+ * This is a reading convenience — "what did these twelve months come to?" — and
+ * it is not a conformant object under any circumstances:
+ *
+ *  - its `reporting-period` is a {@link PeriodRange} (`"2026-01..2026-12"`),
+ *    which is not one of the three forms the draft defines, so
+ *    `validateDocument()` refuses it;
+ *  - it carries no `signed` member and cannot: a signature covers the object it
+ *    was made for, and nothing signed this one;
+ *  - the draft defines exactly one way to combine periods, the server-side
+ *    aggregate of §Extended Query Parameters step 5, with rules this function
+ *    does not apply (one precision, no overlap, coverage of P, the MUST-agree
+ *    members). A publisher wanting a figure for a longer period asks its own
+ *    origin for that period and serves what step 5 produces.
+ *
+ * So: read it, print it, put it in a spreadsheet. Do not publish it, do not sign
+ * it, and do not feed it back into anything that expects a declaration.
+ */
+export type AggregateSummary = Omit<SustainabilityMetrics, "reporting-period" | "signed"> & {
+  "reporting-period": PeriodRange;
+  /** Never present: a summary is not signed, and is not a declaration to sign. */
+  signed?: never;
+};
+
+/**
+ * Combine a trend array into one {@link AggregateSummary} — a reading
+ * convenience, **not a declaration**: see that type for why it can never be
+ * published, signed or round-tripped as one.
+ *
+ * Refuses to silently mix units — everything is normalized to the requested (or
+ * the first reporting entry's) unit before combining. Entries not reporting a
+ * metric (member absent, or out of range under the tolerance rules) simply
+ * don't contribute; an absent unit member means the draft's default
+ * (kWh / gCO2e). When no entry reports a metric at all, the summary omits it.
+ */
+export function aggregate(entries: SustainabilityMetrics[], opts: AggregateOptions): AggregateSummary {
   if (entries.length === 0) throw new Error("aggregate: empty input");
 
   const reported = (key: "energy-consumption" | "carbon-footprint") =>
@@ -157,13 +198,14 @@ export function aggregate(entries: SustainabilityMetrics[], opts: AggregateOptio
   // intensity / annual-estimate are per-period figures; and unknown VENDOR
   // members have unknown aggregability, so they are excluded too (a spread
   // would carry them over verbatim).
-  const out: SustainabilityMetrics = {
-    version: first.version,
+  const out: AggregateSummary = {
     updated: last.updated, // the summary is as fresh as its newest entry
     capabilities: first.capabilities,
     provider: first.provider,
     "measurement-method": first["measurement-method"],
     "methodology-uri": first["methodology-uri"],
+    // A RANGE, not a `period-value`: this is what stops a summary being read,
+    // or republished, as a declaration (see AggregateSummary).
     "reporting-period": `${first["reporting-period"]}..${last["reporting-period"]}`,
     target: first.target,
   };

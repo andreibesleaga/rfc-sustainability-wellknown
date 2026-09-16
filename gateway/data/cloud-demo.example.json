@@ -1,0 +1,19 @@
+{
+  "updated": "2026-02-01T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "SYNTHETIC EXAMPLE — not a real cloud provider and not a real measurement. Published by the gateway operator, Andrei Besleaga, as a reserved-name (RFC 2606 .example) test vector for an UPSTREAM provider reporting what it states it delivered to ONE tenant, which is the shape the draft's Upstream Declarations section describes (target-type: tenant, an opaque tenant identifier in target). Every number below is invented and describes nothing real. The downstream subject tenant-demo.example names this declaration in its upstream member, so a consumer's chain walk resolves here.",
+  "measurement-method": "cloud-billing",
+  "methodology-uri": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/METHODOLOGY.md",
+  "reporting-period": "2025",
+  "target": "t-7f3a9c41",
+  "energy-consumption": 180000,
+  "energy-unit": "kWh",
+  "carbon-footprint": 48,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-2": 48,
+  "carbon-intensity-gCO2e-per-kWh": 267,
+  "renewable-energy": 58,
+  "disclosure-uri": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/data/README.md",
+  "target-type": "tenant"
+}

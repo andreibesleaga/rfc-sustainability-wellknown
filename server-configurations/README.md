@@ -17,8 +17,7 @@ per-request responses), see "Optional: dynamic Extended service" below.
 
 | Feature | nginx.conf | apache.conf | Draft requirement |
 |---|---|---|---|
-| `Content-Type: application/sustainability-data+json` on 200 responses (draft -06; commented `application/json` -05 fallback kept for reverting) | ✓ | ✓ | MUST |
-| `X-Content-Type-Options: nosniff` | ✓ | ✓ | SHOULD |
+| `Content-Type: application/sustainability-data+json` on 200 responses (commented `application/json` fallback kept for pre-registration documents) | ✓ | ✓ | MUST |
 | `Cache-Control: max-age=86400` | ✓ | ✓ | RECOMMENDED |
 | `ETag` / `Last-Modified` | auto (on by default) | auto (static files) | RECOMMENDED |
 | `Access-Control-Allow-Origin: *` | ✓ | ✓ | SHOULD (on successful responses; WebFinger practice) |
@@ -129,11 +128,8 @@ directives for fields the gateway already sets correctly** (Content-Type,
 Cache-Control, ETag, CORS, and 405/Allow) — both nginx and Apache pass upstream
 response headers through unmodified by default, and duplicating them risks a
 future silent mismatch between the proxy layer and the real implementation.
-Before relying on this, confirm your gateway deployment already sends the -06
-`application/sustainability-data+json` media type and `X-Content-Type-Options:
-nosniff` on its 200 responses — if it does not yet, add the nosniff header at
-the proxy layer as an interim measure (see the commented example in each
-config file).
+Before relying on this, confirm your gateway deployment already sends the
+`application/sustainability-data+json` media type on its 200 responses.
 
 This exact reverse-proxy pattern was verified end-to-end (2026-07-09) with Apache
 2.4.58 + `mod_proxy_http` fronting a live run of `publisher/`: query strings and
@@ -142,6 +138,6 @@ every upstream header (including the 405/Allow path) passed through correctly.
 ## Security notes (per draft §Security)
 
 - **Rate limiting** is RECOMMENDED on requests that include `period` or `granularity` query parameters, as dynamic aggregation can be CPU/DB-intensive.
-- **Array size cap** of 366 objects should be enforced in your application layer (see `example-scripts/security.*`, or `publisher/` if running the dynamic gateway).
-- **HTTPS** is a **MUST** (draft -06; RECOMMENDED through -05) — configure TLS in your server block separately; these snippets cover the endpoint behaviour only.
+- **Array size cap**: the specification does not require a server-side cap on the number of objects returned — a consumer is required to bound what it accepts instead. An application-layer cap of 366 objects is nonetheless a reasonable deployment safeguard against unbounded aggregation (see `example-scripts/security.*`, or `publisher/` if running the dynamic gateway).
+- **HTTPS** is a **MUST** — configure TLS in your server block separately; these snippets cover the endpoint behaviour only.
 - The endpoint publishes no PII; metrics SHOULD be aggregated to ≥ 24-hour granularity before serving (enforced in `example-scripts/security.*`).

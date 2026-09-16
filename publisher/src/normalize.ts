@@ -9,15 +9,18 @@
  *  - Validating the `reporting-period` shape.
  */
 import { isCalendarPeriod } from "./period";
-import { round } from "./util";
+import { hasReportableContent, round } from "./util";
 import {
   CarbonUnit,
   EnergyUnit,
+  Extensions,
+  extensionNameError,
   NormalizeOptions,
   RawMetrics,
   SustainabilityMetrics,
   TARGET_TYPES,
   TargetType,
+  UpstreamEntry,
 } from "./types";
 
 /** Joules → kWh. 1 kWh = 3.6e6 J. */
@@ -104,9 +107,11 @@ export function computeSci(
 export { PERIOD_RE } from "./period";
 
 /**
- * Draft §Payload Format: the three URI members "MUST be absolute URIs using
- * the 'https' scheme". A publisher is fail-loud: a wrong URI is a
- * configuration error, never a published non-conformance.
+ * Draft §Payload Format: the URI-valued members (`methodology-uri`,
+ * `verifiable-attestation-uri`, `disclosure-uri` and `upstream[].declaration`)
+ * "MUST be absolute URIs {{RFC3986}} with the 'https' scheme". A publisher is
+ * fail-loud: a wrong URI is a configuration error, never a published
+ * non-conformance.
  */
 export function assertHttpsUri(member: string, value: string): void {
   let url: URL | undefined;
@@ -121,6 +126,49 @@ export function assertHttpsUri(member: string, value: string): void {
 }
 
 
+/**
+ * Draft §Extensions: `extensions` is an object whose member names are absolute
+ * URIs (RFC 3986, Section 4.3: ASCII, no whitespace, no fragment) and whose
+ * values are objects. The two forms the draft names are an "https" URI with a
+ * host — documentation for a human, never dereferenced — and `urn:uuid:` plus a
+ * lowercase UUID, the Nil and Max UUIDs excluded. Any other key, or a value that
+ * is not a JSON object, is a configuration error.
+ */
+export function assertExtensions(extensions: Extensions): void {
+  for (const [key, value] of Object.entries(extensions)) {
+    const why = extensionNameError(key);
+    if (why !== undefined) {
+      throw new Error(`normalize: extensions key "${key}" ${why}`);
+    }
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      throw new Error(`normalize: extensions["${key}"] must be a JSON object`);
+    }
+  }
+}
+
+/**
+ * Draft §Upstream Declarations: each entry carries `declaration`, the absolute
+ * "https" URI of another publisher's declaration, and an OPTIONAL `role` token.
+ * An empty array conveys nothing and the schema requires at least one entry.
+ */
+export function assertUpstream(upstream: UpstreamEntry[]): void {
+  if (!Array.isArray(upstream) || upstream.length === 0) {
+    throw new Error("normalize: upstream must be a non-empty array; omit the member instead");
+  }
+  upstream.forEach((entry, i) => {
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+      throw new Error(`normalize: upstream[${i}] must be an object with a declaration member`);
+    }
+    if (typeof entry.declaration !== "string" || entry.declaration === "") {
+      throw new Error(`normalize: upstream[${i}].declaration is required`);
+    }
+    assertHttpsUri(`upstream[${i}].declaration`, entry.declaration);
+    if (entry.role !== undefined && typeof entry.role !== "string") {
+      throw new Error(`normalize: upstream[${i}].role must be a string token`);
+    }
+  });
+}
+
 function nowIso(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
@@ -130,23 +178,21 @@ function nowIso(): string {
  * Throws if mandatory inputs are missing or the period is malformed.
  */
 export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): SustainabilityMetrics {
-  // Draft §Mandatory Response Fields: "2.0" is the single version label a
-  // conforming publisher MUST use; it is not configurable.
-  const version = "2.0";
-
   if (!raw.provider) throw new Error("normalize: provider is required");
   if (!raw.measurementMethod) throw new Error("normalize: measurementMethod is required");
   if (!raw.methodologyUri) throw new Error("normalize: methodologyUri is required");
   assertHttpsUri("methodologyUri", raw.methodologyUri);
   if (raw.verifiableAttestationUri !== undefined) assertHttpsUri("verifiableAttestationUri", raw.verifiableAttestationUri);
   if (raw.disclosureUri !== undefined) assertHttpsUri("disclosureUri", raw.disclosureUri);
+  if (raw.extensions !== undefined) assertExtensions(raw.extensions);
+  if (raw.upstream !== undefined) assertUpstream(raw.upstream);
   if (!raw.reportingPeriod || !isCalendarPeriod(raw.reportingPeriod)) {
     throw new Error(
       `normalize: reportingPeriod must be YYYY, YYYY-MM, or YYYY-MM-DD (got "${raw.reportingPeriod}")`,
     );
   }
 
-  // --- Target (mandatory reporting subject, draft §Mandatory Response Fields) ---
+  // --- Target (mandatory reporting subject, draft §Mandatory Members) ---
   const target = raw.target ?? opts.target;
   if (target === undefined || target === "") {
     throw new Error(
@@ -205,7 +251,6 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   }
 
   const out: SustainabilityMetrics = {
-    version,
     updated: raw.updated ?? nowIso(),
     capabilities: raw.capabilities ?? "basic",
     provider: raw.provider,
@@ -215,7 +260,7 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
     target,
   };
 
-  // Publishers SHOULD state units explicitly (draft §Optional Response Fields),
+  // Publishers SHOULD state units explicitly (draft §Optional Members),
   // so the unit members are always emitted alongside their value — but only
   // then: an energy-unit without energy-consumption "has no effect and SHOULD
   // be omitted".
@@ -247,11 +292,11 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   if (raw.scope1 !== undefined) out["scope-1"] = toScope(raw.scope1);
   if (raw.scope2 !== undefined) out["scope-2"] = toScope(raw.scope2);
   if (raw.scope3 !== undefined) out["scope-3"] = toScope(raw.scope3);
-  // Draft §Optional Response Fields: "If sci-score is present, functional-unit
+  // Draft §Optional Members: "If sci-score is present, functional-unit
   // MUST also be present." The JTD gate cannot express this dependency, so it
   // is enforced here (fail loudly rather than publish a MUST-violating doc).
   if (raw.sciScore !== undefined && raw.functionalUnit === undefined) {
-    throw new Error("normalize: sci-score requires functional-unit (draft, Optional Response Fields)");
+    throw new Error("normalize: sci-score requires functional-unit (draft, Optional Members)");
   }
   if (raw.sciScore !== undefined) {
     if (raw.sciScore < 0) {
@@ -282,7 +327,7 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
     out["estimated-annual-emissions-kgCO2e"] = round(raw.estimatedAnnualEmissionsKg);
   }
   if (raw.renewableEnergy !== undefined) {
-    // Draft §Optional Response Fields: renewable-energy MUST be between 0 and
+    // Draft §Optional Members: renewable-energy MUST be between 0 and
     // 100 inclusive. Since -03 there is no negative "not reported" sentinel —
     // an unreported metric is simply omitted — so any out-of-range value is an
     // error, never a marker.
@@ -299,7 +344,7 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   }
   if (raw.disclosureUri !== undefined) out["disclosure-uri"] = raw.disclosureUri;
 
-  // target-type (draft -04, §Optional Response Fields): a hint classifying
+  // target-type (draft -04, §Optional Members): a hint classifying
   // the reporting subject named by `target`. The publisher is fail-loud on its
   // own output — the draft's unrecognized-value tolerance is a CLIENT rule
   // (fromWire applies it when re-ingesting foreign documents); emitting an
@@ -309,17 +354,46 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
     if (!TARGET_TYPES.includes(targetType as TargetType)) {
       throw new Error(
         `normalize: target-type must be one of ${TARGET_TYPES.join(", ")} (got "${targetType}"); ` +
-          "omit the member instead (draft, Optional Response Fields)",
+          "omit the member instead (draft, Optional Members)",
       );
     }
     out["target-type"] = targetType;
   }
 
-  // Extension members, copied through (clients MUST ignore unknown fields).
-  if (raw.extra) {
-    for (const [k, v] of Object.entries(raw.extra)) {
-      if (!(k in out)) out[k] = v;
+  // Draft §Upstream Declarations / §Extensions, emitted in schema order after
+  // target-type and before the signature.
+  if (raw.upstream !== undefined) {
+    out.upstream = raw.upstream.map((e) => ({
+      declaration: e.declaration,
+      ...(e.role !== undefined ? { role: e.role } : {}),
+    }));
+  }
+  if (raw.extensions !== undefined) out.extensions = raw.extensions;
+
+  // Draft §Payload Format: "A declaration object contains the seven mandatory
+  // members, any of the optional members, and nothing else." The base object is
+  // closed in -07, so anything an adapter hands over outside that set is a
+  // configuration error, not a pass-through.
+  if (raw.extra !== undefined) {
+    const names = Object.keys(raw.extra);
+    if (names.length > 0) {
+      throw new Error(
+        `normalize: unknown top-level member(s) ${names.map((n) => `"${n}"`).join(", ")}; ` +
+          "the declaration object is closed (draft, Payload Format) — carry publisher-defined " +
+          'data under extensions["<absolute-URI>"] instead',
+      );
     }
+  }
+
+  // Draft §Value Constraints and Omitted Metrics: "A declaration object MUST
+  // carry at least one numeric metric member or at least one of disclosure-uri
+  // and verifiable-attestation-uri; an object with none is not conformant."
+  if (!hasReportableContent(out)) {
+    throw new Error(
+      "normalize: a declaration must carry at least one numeric metric member, or " +
+        "disclosure-uri or verifiable-attestation-uri (draft, Value Constraints and " +
+        "Omitted Metrics); this object carries none",
+    );
   }
 
   return out;

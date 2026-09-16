@@ -30,7 +30,11 @@ function secureSustainabilityReport(reports) {
     .filter((report) => (report["reporting-period"] ?? "").length <= 10)
     // 2. Trend arrays MUST be sorted ascending by reporting-period
     .sort((a, b) => String(a["reporting-period"]).localeCompare(String(b["reporting-period"])))
-    // 3. DoS Protection: 366-object limit, keeping the MOST RECENT periods
+    // 3. Deployment safeguard (NOT a specification requirement as of -07):
+    //    366-object limit, keeping the MOST RECENT periods. The draft no
+    //    longer states a server-side array cap as a MUST; a consumer bounds
+    //    what it accepts regardless. This is a defensive limit an
+    //    implementer may choose to keep.
     .slice(-366)
     .map((report) => {
       // 4. Anti-Fingerprinting: ~1% noise, deterministic per reporting period

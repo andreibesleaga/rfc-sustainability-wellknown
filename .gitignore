@@ -11,3 +11,8 @@ coverage/
 *.tgz
 .vscode/
 .idea/
+# Signing keys: keygen --out writes a private JWK; never commit one. Public halves live
+# under temp/deploy-andreibesleaga.com/keys/ (temp/ is ignored above anyway).
+*private*.jwk
+*.private.json
+*.pem

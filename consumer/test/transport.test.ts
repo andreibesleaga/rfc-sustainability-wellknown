@@ -1,21 +1,21 @@
 /**
- * The transport rules, checked at the hop: HTTPS on every hop and, for the
- * signature resource, the same origin as the document — decided BEFORE a hop
- * is requested, so an excluded origin is never contacted. Also the streaming
- * byte cap on chunked bodies, redirect loops, and final-URL attribution.
+ * The transport rules, checked at the hop: HTTPS on every hop, and the
+ * same-origin pin available to callers that need one — both decided BEFORE a
+ * hop is requested, so an excluded origin is never contacted. Also the
+ * streaming byte cap on chunked bodies, redirect loops, and final-URL
+ * attribution.
  */
 import { createServer, Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import * as jose from "jose";
 import { afterEach, describe, expect, it } from "vitest";
 import { verifyAttestation } from "../src/attestation";
 import { fetchDisclosure } from "../src/disclosure";
-import { fetchSignature, fetchSustainability, WELL_KNOWN_PATH } from "../src/fetch";
-import { verifyDetachedJws } from "../src/jws";
-import { ALLOW_INSECURE } from "./helpers";
+import { fetchSustainability, WELL_KNOWN_PATH } from "../src/fetch";
+import { isBlockedAddress, secureGet } from "../src/transport";
+import { compareUpstream } from "../src/upstream";
+import { ALLOW_INSECURE, PUBLIC_LOOKUP } from "./helpers";
 
 const DOC = {
-  version: "2.0",
   updated: "2026-01-01T00:00:00Z",
   capabilities: "basic",
   provider: "T",
@@ -46,23 +46,24 @@ function listen(handler: Handler): Promise<string> {
 }
 
 describe("redirect hops are judged before they are requested", () => {
-  it("a signature redirect to another origin is refused without contacting that origin", async () => {
+  it("a same-origin-pinned fetch refuses a cross-origin redirect without contacting that origin", async () => {
     let otherHits = 0;
     const other = await listen((_req, res) => {
       otherHits++;
-      res.writeHead(200, { "Content-Type": "application/jose" });
-      res.end("x..y");
-    });
-    const base = await listen((req, res) => {
-      if (req.url === `${WELL_KNOWN_PATH}.jws`) {
-        res.writeHead(302, { Location: `${other}${WELL_KNOWN_PATH}.jws` });
-        return res.end();
-      }
       res.writeHead(200, { "Content-Type": "application/sustainability-data+json" });
       res.end(BODY);
     });
-    const r = await fetchSignature(base, { ...ALLOW_INSECURE, documentOrigin: base });
-    expect(r).toMatchObject({ status: "error", reason: "cross-origin-redirect" });
+    const base = await listen((_req, res) => {
+      res.writeHead(302, { Location: `${other}${WELL_KNOWN_PATH}` });
+      res.end();
+    });
+    const r = await secureGet(new URL(base + WELL_KNOWN_PATH), {
+      timeoutMs: 5_000,
+      allowInsecure: true,
+      sameOrigin: base,
+    });
+    expect(r.ok).toBe(false);
+    expect(!r.ok && r.refusal.reason).toBe("cross-origin-redirect");
     expect(otherHits).toBe(0);
   });
 
@@ -81,32 +82,6 @@ describe("redirect hops are judged before they are requested", () => {
     expect(r.url).toBe(`${final}${WELL_KNOWN_PATH}`);
   });
 
-  it("after a document redirect, the signature is looked for on the FINAL origin", async () => {
-    const key = await jose.generateKeyPair("EdDSA", { crv: "Ed25519", extractable: true });
-    const publicJwk = await jose.exportJWK(key.publicKey);
-    const jws = await new jose.CompactSign(Buffer.from(BODY)).setProtectedHeader({ alg: "EdDSA", jwk: publicJwk }).sign(key.privateKey);
-    const [h, , s] = jws.split(".");
-    const final = await listen((req, res) => {
-      if (req.url === `${WELL_KNOWN_PATH}.jws`) {
-        res.writeHead(200, { "Content-Type": "application/jose" });
-        return res.end(`${h}..${s}`);
-      }
-      res.writeHead(200, { "Content-Type": "application/sustainability-data+json" });
-      res.end(BODY);
-    });
-    const base = await listen((req, res) => {
-      if (req.url === WELL_KNOWN_PATH) {
-        res.writeHead(302, { Location: `${final}${WELL_KNOWN_PATH}` });
-        return res.end();
-      }
-      res.writeHead(404);
-      res.end();
-    });
-    const r = await fetchSustainability(base, { ...ALLOW_INSECURE, verifySignature: true });
-    expect(r.status === "ok" && r.signature).toMatchObject({ status: "verified", keySource: "header" });
-    expect(await verifyDetachedJws(`${h}..${s}`, Buffer.from(BODY))).toMatchObject({ valid: true });
-  });
-
   it("a redirect loop ends after five hops as an error, not a hang", async () => {
     let hits = 0;
     const base = await listen((_req, res) => {
@@ -116,7 +91,6 @@ describe("redirect hops are judged before they are requested", () => {
     });
     await expect(fetchSustainability(base, ALLOW_INSECURE)).rejects.toThrow(/more than 5 redirects/);
     expect(hits).toBe(6);
-    expect(await fetchSignature(base, { ...ALLOW_INSECURE, documentOrigin: base })).toMatchObject({ status: "error", reason: "too-many-redirects" });
   });
 
   it("without allowInsecure, an http hop is refused before it is requested", async () => {
@@ -127,7 +101,6 @@ describe("redirect hops are judged before they are requested", () => {
       res.end(BODY);
     });
     expect((await fetchSustainability(base)).status).toBe("insecure-transport");
-    expect(await fetchSignature(base)).toMatchObject({ status: "error", reason: "insecure-transport" });
     expect(await verifyAttestation(`${base}/a.jwt`)).toMatchObject({ valid: false, reason: "not-https-uri" });
     await expect(fetchDisclosure(`${base}/d`)).rejects.toThrow(/https/);
     expect(hits).toBe(0);
@@ -160,7 +133,7 @@ describe("bodies are read under a streaming byte cap", () => {
         }),
         { status: 200, headers: { "Content-Type": "text/html" } },
       )) as unknown as typeof fetch;
-    await expect(fetchDisclosure("https://d.example/d", fetchImpl)).rejects.toThrow(/exceeds maxBytes/);
+    await expect(fetchDisclosure("https://d.example/d", fetchImpl, PUBLIC_LOOKUP)).rejects.toThrow(/exceeds maxBytes/);
   });
 });
 
@@ -172,6 +145,9 @@ describe("tolerance for unrecognized enumerated values (draft §Value Constraint
         JSON.stringify({
           ...DOC,
           "energy-unit": "kwh",
+          // A metric no unit member parameterizes, so the object still carries
+          // one after the strips below (the -07 at-least-one rule).
+          "renewable-energy": 40,
           "carbon-footprint": 5,
           "scope-2": 2,
           "carbon-unit": "tonnes",
@@ -199,5 +175,247 @@ describe("tolerance for unrecognized enumerated values (draft §Value Constraint
     });
     const r = await fetchSustainability(base, ALLOW_INSECURE);
     expect(r.status === "ok" && r.document).toMatchObject({ "energy-consumption": 7, target: "dup.example" });
+  });
+});
+
+/**
+ * The address check (draft -07 §Consumer Considerations): a consumer "SHOULD
+ * bound the time, size, and redirects of every fetch, including those of
+ * upstream declarations, and SHOULD refuse URIs that resolve to private or
+ * link-local addresses, since dereferencing URIs from an untrusted document
+ * exposes it to server-side request forgery".
+ *
+ * Every URI this package dereferences was written by some other origin, so the
+ * check runs on every hop of every fetch, BEFORE the request. The resolver is
+ * injected throughout, so nothing here touches DNS.
+ */
+describe("§Consumer Considerations: URIs that resolve to private addresses are refused", () => {
+  /** A fetch that records every URL it is asked for, so "never requested" is testable. */
+  function recording(): { impl: typeof fetch; asked: string[] } {
+    const asked: string[] = [];
+    const impl = (async (url: string) => {
+      asked.push(String(url));
+      return new Response(BODY, { status: 200, headers: { "Content-Type": "application/sustainability-data+json" } });
+    }) as unknown as typeof fetch;
+    return { impl, asked };
+  }
+
+  const never = async () => {
+    throw new Error("the resolver must not be called for a literal IP host");
+  };
+
+  it("refuses a literal loopback, private, link-local, unique-local or unspecified host, without resolving it", async () => {
+    for (const host of [
+      "127.0.0.1",
+      "127.1.2.3",
+      "10.0.0.1",
+      "172.16.5.5",
+      "192.168.1.1",
+      "169.254.1.1",
+      "0.0.0.0",
+      "[::1]",
+      "[fe80::1]",
+      "[fc00::1]",
+      "[fd12:3456::1]",
+      "[::]",
+      // IPv4-mapped IPv6, in both the dotted spelling and the hex form a URL
+      // normalizes it to — the same address, so the same refusal.
+      "[::ffff:10.0.0.1]",
+      "[::ffff:a00:1]",
+      "[::ffff:127.0.0.1]",
+    ]) {
+      const { impl, asked } = recording();
+      const r = await fetchSustainability(`https://${host}`, { fetchImpl: impl, lookup: never });
+      expect(r.status, host).toBe("refused-uri");
+      if (r.status !== "refused-uri") continue;
+      expect(r.reason, host).toBe("blocked-address");
+      expect(r.detail, host).toContain("the host is");
+      // Nothing was sent: the refusal is decided before the request.
+      expect(asked, host).toEqual([]);
+    }
+  });
+
+  it("allows a literal PUBLIC address, so the rule is a filter and not a ban on IP hosts", async () => {
+    for (const host of ["93.184.216.34", "8.8.8.8", "172.32.0.1", "[2606:4700:4700::1111]", "[::ffff:8.8.8.8]"]) {
+      const { impl } = recording();
+      const r = await fetchSustainability(`https://${host}`, { fetchImpl: impl, lookup: never });
+      expect(r.status, host).toBe("ok");
+    }
+  });
+
+  it("refuses a HOST NAME whose lookup returns a private address, and names it", async () => {
+    const { impl, asked } = recording();
+    const r = await fetchSustainability("https://inside.example", {
+      fetchImpl: impl,
+      lookup: async (hostname) => {
+        expect(hostname).toBe("inside.example");
+        return ["10.1.2.3"];
+      },
+    });
+    expect(r.status).toBe("refused-uri");
+    if (r.status !== "refused-uri") return;
+    expect(r.reason).toBe("blocked-address");
+    expect(r.detail).toContain("inside.example resolves to 10.1.2.3");
+    expect(asked).toEqual([]);
+  });
+
+  it("refuses a name that resolves to BOTH a public and a private address (the rebinding shape)", async () => {
+    const { impl, asked } = recording();
+    const r = await fetchSustainability("https://split.example", {
+      fetchImpl: impl,
+      lookup: async () => ["93.184.216.34", "127.0.0.1"],
+    });
+    expect(r.status).toBe("refused-uri");
+    if (r.status !== "refused-uri") return;
+    expect(r.detail).toContain("127.0.0.1");
+    expect(asked).toEqual([]);
+  });
+
+  it("allows a host name that resolves only to public addresses", async () => {
+    const { impl, asked } = recording();
+    const r = await fetchSustainability("https://outside.example", {
+      fetchImpl: impl,
+      lookup: async () => ["93.184.216.34", "2606:4700:4700::1111"],
+    });
+    expect(r.status).toBe("ok");
+    expect(asked).toHaveLength(1);
+  });
+
+  it("refuses a URI carrying userinfo, with no opt-out, and never echoes the credentials", async () => {
+    const { impl, asked } = recording();
+    const r = await fetchSustainability("https://alice:hunter2@outside.example", {
+      fetchImpl: impl,
+      ...PUBLIC_LOOKUP,
+    });
+    expect(r.status).toBe("refused-uri");
+    if (r.status !== "refused-uri") return;
+    expect(r.reason).toBe("userinfo-in-uri");
+    expect(asked).toEqual([]);
+    // The password is not in the reported URL, nor in the detail.
+    expect(`${r.url} ${r.detail}`).not.toContain("hunter2");
+    expect(`${r.url} ${r.detail}`).not.toContain("alice");
+
+    // Not even the local-development opt-outs reach it: credentials from a
+    // third-party document are never put on the wire.
+    const again = await fetchSustainability("https://alice:hunter2@outside.example", {
+      fetchImpl: impl,
+      allowInsecure: true,
+      allowPrivateAddresses: true,
+    });
+    expect(again.status).toBe("refused-uri");
+  });
+
+  it("refuses a REDIRECT HOP that points at a private address, before requesting it", async () => {
+    // The first origin answers honestly and then points inward — the case the
+    // hop-by-hop check exists for.
+    const asked: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      asked.push(String(url));
+      if (String(url).includes("outside.example")) {
+        return new Response(null, { status: 302, headers: { Location: "https://10.0.0.5/.well-known/sustainability-data" } });
+      }
+      return new Response(BODY, { status: 200, headers: { "Content-Type": "application/sustainability-data+json" } });
+    }) as unknown as typeof fetch;
+
+    const r = await fetchSustainability("https://outside.example", {
+      fetchImpl,
+      lookup: async () => ["93.184.216.34"],
+    });
+    expect(r.status).toBe("refused-uri");
+    if (r.status !== "refused-uri") return;
+    expect(r.reason).toBe("blocked-address");
+    expect(r.url).toContain("10.0.0.5");
+    // The first hop was requested; the inward one never was.
+    expect(asked).toHaveLength(1);
+    expect(asked[0]).toContain("outside.example");
+  });
+
+  it("refuses a FINAL url that lands on a private address, for a fetch impl that followed redirects itself", async () => {
+    const fetchImpl = (async () => {
+      const res = new Response(BODY, { status: 200, headers: { "Content-Type": "application/sustainability-data+json" } });
+      Object.defineProperty(res, "url", { value: "https://192.168.0.9/.well-known/sustainability-data" });
+      Object.defineProperty(res, "redirected", { value: true });
+      return res;
+    }) as unknown as typeof fetch;
+    const r = await fetchSustainability("https://outside.example", { fetchImpl, lookup: async () => ["93.184.216.34"] });
+    expect(r.status).toBe("refused-uri");
+    if (r.status !== "refused-uri") return;
+    expect(r.detail).toContain("192.168.0.9");
+  });
+
+  it("a lookup failure is the ordinary network error, not a refusal", async () => {
+    const { impl } = recording();
+    await expect(
+      fetchSustainability("https://nowhere.example", {
+        fetchImpl: impl,
+        lookup: async () => {
+          throw new Error("ENOTFOUND");
+        },
+      }),
+    ).rejects.toThrow(/could not resolve nowhere.example/);
+  });
+
+  it("allowPrivateAddresses opts out on its own, keeping the HTTPS requirement", async () => {
+    const { impl, asked } = recording();
+    const r = await fetchSustainability("https://10.0.0.1", { fetchImpl: impl, allowPrivateAddresses: true });
+    expect(r.status).toBe("ok");
+    expect(asked).toHaveLength(1);
+    // …and the transport MUST still holds.
+    const insecure = await fetchSustainability("http://10.0.0.1", { fetchImpl: impl, allowPrivateAddresses: true });
+    expect(insecure.status).toBe("insecure-transport");
+  });
+
+  it("allowInsecure implies it, which is what keeps a 127.0.0.1 development origin reachable", async () => {
+    const { impl } = recording();
+    const r = await fetchSustainability("http://127.0.0.1:8080", { fetchImpl: impl, ...ALLOW_INSECURE });
+    expect(r.status).toBe("ok");
+  });
+
+  it("guards the upstream walk, the disclosure fetch and the attestation fetch alike", async () => {
+    const asked: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      asked.push(String(url));
+      return new Response(BODY, { status: 200, headers: { "Content-Type": "application/sustainability-data+json" } });
+    }) as unknown as typeof fetch;
+    const inward = async () => ["169.254.169.254"]; // the classic cloud metadata address
+
+    // upstream
+    const subject = {
+      ...DOC,
+      upstream: [{ declaration: "https://metadata.example/.well-known/sustainability-data", role: "cloud" }],
+    } as never;
+    const [comparison] = await compareUpstream(subject, {
+      timeoutMs: 5_000,
+      maxBytes: 10_000,
+      maxObjects: 10,
+      lookup: inward,
+    });
+    expect(comparison.verdict).toBe("unreachable");
+    expect(comparison.detail).toContain("blocked-address");
+    expect(comparison.detail).toContain("169.254.169.254");
+
+    // disclosure (explicit, caller-invoked)
+    await expect(
+      fetchDisclosure("https://metadata.example/d", fetchImpl, { lookup: inward }),
+    ).rejects.toThrow(/blocked-address/);
+
+    // attestation (explicit, caller-invoked)
+    const attestation = await verifyAttestation("https://metadata.example/vc", { fetchImpl, lookup: inward });
+    expect(attestation.valid).toBe(false);
+    if (attestation.valid) return;
+    expect(attestation.reason).toBe("blocked-address");
+
+    // Not one of the three was contacted.
+    expect(asked).toEqual([]);
+  });
+
+  it("isBlockedAddress is exported and says the same thing on its own", () => {
+    for (const a of ["127.0.0.1", "10.0.0.1", "172.16.0.1", "192.168.0.1", "169.254.1.1", "0.0.0.0", "::1", "fe80::1", "fc00::1", "::", "::ffff:10.0.0.1"]) {
+      expect(isBlockedAddress(a), a).toBe(true);
+    }
+    for (const a of ["8.8.8.8", "93.184.216.34", "172.32.0.1", "2606:4700:4700::1111", "::ffff:8.8.8.8"]) {
+      expect(isBlockedAddress(a), a).toBe(false);
+    }
+    expect(isBlockedAddress("not-an-address")).toBe(false);
   });
 });

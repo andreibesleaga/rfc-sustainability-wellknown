@@ -142,12 +142,13 @@ if [ "$RUN_IDNITS" -eq 1 ]; then
     if [ -z "$out" ]; then
       echo "    SKIP could not reach author-tools.ietf.org"
     else
-      echo "$out" | grep -E '^[[:space:]]+(\*\*|==|--)[^-]|^[[:space:]]+Summary:' | sed 's/^ */    /'
+      # A clean run prints only "No nits found." and no Summary line, so the
+      # grep below must not abort the script (set -o pipefail) on that result.
+      echo "$out" | grep -E '^[[:space:]]+(\*\*|==|--)[^-]|^[[:space:]]+Summary:|No nits found' | sed 's/^ */    /' || true
       summary=$(echo "$out" | grep -E 'Summary:' || true)
       errs=$(echo "$summary" | sed -n 's/.*Summary: \([0-9]*\) error.*/\1/p')
       [ "${errs:-0}" -eq 0 ] || note_fail "idnits reports $errs error(s)"
-      # The single expected warning is non-RFC2606 FQDNs in citation URLs
-      # (ghgprotocol.org, un.org, carbontxt.org) -- real references, not fixable.
+      echo "$out" | grep -q 'No nits found' && echo "    OK   idnits: no nits found"
     fi
   else
     echo "    SKIP idnits (curl not installed)"

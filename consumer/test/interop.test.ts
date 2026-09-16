@@ -25,6 +25,7 @@ import { fetchSustainability, WELL_KNOWN_PATH } from "../src/fetch";
 import { SustainabilityClient } from "../src/client";
 import { ALLOW_INSECURE } from "./helpers";
 import { SustainabilityMetrics } from "../src/types";
+import { KNOWN_MEMBERS } from "../src/validate";
 
 const publisherDistDir = path.resolve(__dirname, "../../publisher/dist");
 const hasPublisherDist = fs.existsSync(publisherDistDir);
@@ -71,12 +72,13 @@ describe("interop: consumer <-> real publisher package", () => {
   });
 
   it.runIf(hasPublisherDist)(
-    "(h) the publisher pair agrees on the -06 media type and sends nosniff",
+    "(h) the publisher pair agrees on the registered media type and sends nosniff",
     async () => {
-      // Draft -06 Mandatory Minimum Supported Service: a successful response
-      // MUST use the registered media type and SHOULD send nosniff. This is
-      // the one place the two packages are checked against each other rather
-      // than against a hand-built fixture.
+      // Draft -07 §Mandatory Minimum Supported Service: a successful response
+      // MUST carry the registered media type. `nosniff` is the publisher
+      // package's own hardening (-07 dropped the recommendation). This is the
+      // one place the two packages are checked against each other rather than
+      // against a hand-built fixture.
       const publisher = new Publisher(
         computedAdapter({
           provider: "Interop Corp",
@@ -124,9 +126,15 @@ describe("interop: consumer <-> real publisher package", () => {
       const doc = result.document as SustainabilityMetrics;
       expect(doc.provider).toBe("Interop Test Corp (sustain@interop.example)");
       expect(doc.capabilities).toBe("extended");
-      // -03 wire format: informational "2.0" label and the mandatory target member.
-      expect(doc.version).toBe("2.0");
       expect(doc.target).toBe("interop.example");
+      // -07 closed the base object. Whatever revision the sibling publisher
+      // in this tree is on, a top-level member the consumer does not recognize
+      // (the pre-07 `version`, for one) must be IGNORED rather than rejected:
+      // the declaration stays valid and each such member is reported as an
+      // `unknown-member` warning.
+      for (const member of Object.keys(doc).filter((k) => !KNOWN_MEMBERS.includes(k))) {
+        expect(result.warnings?.some((w) => w.startsWith("unknown-member") && w.includes(member))).toBe(true);
+      }
       // Basic-vs-extended shape is already enforced by validateDocument() inside
       // fetchSustainability (result.status would be "invalid" otherwise), but
       // assert a couple of extended-only fields made it through the real

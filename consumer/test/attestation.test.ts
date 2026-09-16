@@ -7,7 +7,15 @@ import { createServer, Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import * as jose from "jose";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { checkCredentialShape, verifyAttestation, verifyCredentialJwt, VC_V2_CONTEXT } from "../src/attestation";
+import {
+  checkBinding,
+  checkCredentialShape,
+  declarationCopyOf,
+  verifyAttestation,
+  verifyCredentialJwt,
+  VC_V2_CONTEXT,
+} from "../src/attestation";
+import { SustainabilityMetrics } from "../src/types";
 
 const NOW = new Date("2026-09-15T12:00:00Z");
 const ISSUER = "https://issuer.example";
@@ -142,6 +150,9 @@ describe("verifyCredentialJwt / verifyAttestation", () => {
     expect(r).toMatchObject({ valid: true, mediaType: "application/vc+jwt", mediaTypeOk: true, url: uri });
     const wrongType = await serve(jwt, 200, "text/plain");
     expect(await verifyAttestation(wrongType, { now: NOW, allowInsecure: true })).toMatchObject({ valid: true, mediaTypeOk: false });
+    // A media type is compared ignoring its parameters, here as everywhere.
+    const withParams = await serve(jwt, 200, "application/vc+jwt; charset=utf-8");
+    expect(await verifyAttestation(withParams, { now: NOW, allowInsecure: true })).toMatchObject({ mediaTypeOk: true });
   });
 
   it("refuses non-https and non-absolute URIs before any request, and reports HTTP failures", async () => {
@@ -156,5 +167,70 @@ describe("verifyCredentialJwt / verifyAttestation", () => {
     expect(await verifyAttestation(big, { now: NOW, allowInsecure: true })).toMatchObject({ valid: false, reason: "too-large" });
     const garbage = await serve("not.a.jwt");
     expect(await verifyAttestation(garbage, { now: NOW, allowInsecure: true })).toMatchObject({ valid: false, reason: "malformed" });
+  });
+});
+
+describe("-07: the credential binds by carrying a copy of the declaration", () => {
+  const DECLARATION: SustainabilityMetrics = {
+    updated: "2026-03-01T12:00:00Z",
+    capabilities: "basic",
+    provider: "Example Corp (sustain@example.org)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://example.com/methodology",
+    "reporting-period": "2025",
+    target: "example.com",
+    "energy-consumption": 15000,
+    "energy-unit": "kWh",
+  };
+
+  /** A credential whose subject carries the declaration copy, as Appendix A describes. */
+  const binding = (declaration: unknown) =>
+    credential({ credentialSubject: { id: "https://example.com/.well-known/sustainability-data", declaration } });
+
+  it("finds the copy under credentialSubject.declaration, and under the subject itself", () => {
+    expect(declarationCopyOf(binding(DECLARATION))).toEqual(DECLARATION);
+    // A credential whose subject IS the declaration (plus the subject id) also
+    // binds: the id names the subject, it is not part of the declaration.
+    const flat = credential({ credentialSubject: { id: "https://example.com/x", ...DECLARATION } });
+    expect(declarationCopyOf(flat)).toEqual(DECLARATION);
+    // A model attestation carries no copy at all.
+    expect(declarationCopyOf(credential())).toBeUndefined();
+  });
+
+  it("ignores `signed` on either side: the copy is the object without it", () => {
+    const signedDeclaration = { ...DECLARATION, signed: "eyJhbGciOiJFZERTQSJ9.e30.sig" };
+    expect(checkBinding(binding(DECLARATION), signedDeclaration)).toEqual({ status: "match" });
+    expect(checkBinding(binding(signedDeclaration), DECLARATION)).toEqual({ status: "match" });
+  });
+
+  it("reports a mismatch and names the members that differ", () => {
+    const r = checkBinding(binding(DECLARATION), { ...DECLARATION, "energy-consumption": 1, provider: "Someone Else" });
+    expect(r).toMatchObject({ status: "mismatch" });
+    expect(r.status === "mismatch" && r.differences).toEqual(["energy-consumption", "provider"]);
+  });
+
+  it("says nothing when there is no copy, and nothing when the caller supplies no declaration", () => {
+    expect(checkBinding(credential(), DECLARATION)).toEqual({ status: "no-copy" });
+    expect(checkBinding(binding(DECLARATION))).toEqual({ status: "not-checked" });
+  });
+
+  it("verifyCredentialJwt reports the binding after the issuer signature verifies", async () => {
+    const jwt = await issue(binding(DECLARATION));
+    const matched = await verifyCredentialJwt(jwt, { now: NOW, declaration: DECLARATION });
+    expect(matched).toMatchObject({ valid: true, binding: { status: "match" } });
+
+    const changed = await verifyCredentialJwt(jwt, { now: NOW, declaration: { ...DECLARATION, "energy-consumption": 2 } });
+    expect(changed.valid && changed.binding.status).toBe("mismatch");
+
+    // Without a declaration to compare with, the credential is still valid —
+    // the binding is simply not checked.
+    const unchecked = await verifyCredentialJwt(jwt, { now: NOW });
+    expect(unchecked).toMatchObject({ valid: true, binding: { status: "not-checked" } });
+  });
+
+  it("verifyAttestation threads the declaration through the fetch path", async () => {
+    const uri = await serve(await issue(binding(DECLARATION)));
+    const r = await verifyAttestation(uri, { now: NOW, allowInsecure: true, declaration: DECLARATION });
+    expect(r).toMatchObject({ valid: true, binding: { status: "match" } });
   });
 });

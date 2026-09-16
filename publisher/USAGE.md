@@ -39,13 +39,15 @@ and exit instead of serving), `--emit-carbon-txt` (print a matching
 carbon.txt to stdout INSTEAD of the metrics document; requires
 `server.carbonTxt.sustainabilityUrl` in the config). See `bin/sustainability-publisher.js` / `src/cli.ts`.
 
-Two subcommands support the draft's OPTIONAL detached signature (0.6.5):
+Two subcommands support the draft's OPTIONAL `signed` member (0.7.0):
 `keygen [--alg EdDSA|ES256] [--out <private.jwk>]` writes the private JWK
-(mode 0600, never overwriting) and prints the public JWK; `sign <document>
---key <private.jwk> [--no-jwk]` prints the detached JWS over the file's exact
-bytes, for static hosts. A served deployment signs by setting
-`SUSTAINABILITY_SIGNING_KEY` (the private JWK JSON) or `server.signingKeyFile`.
-See `README.md` § Signing the document.
+(mode 0600, never overwriting) and prints the public JWK; `sign <in.json>
+<out.json> --key <private.jwk> [--kid <id>]` — also installed as the
+`sustainability-sign` command — validates a declaration file, signs every object
+in it individually and writes the signed copy, which is the offline path for a
+static host. A served deployment signs by setting `SUSTAINABILITY_SIGNING_KEY`
+(the private JWK JSON) or `signing.keyFile` in the config. See `README.md`
+§ Signing the declaration.
 
 ## 2. Embedded middleware in an existing app
 
@@ -108,38 +110,178 @@ This is enough for a cron job, a build step, or feeding a static-file deployment
 `ETag`/conditional requests, CORS, caching headers) as a plain function returning
 `{ status, headers, body }` — wire it into any request/response model:
 
-**CORS**: per the final -04 draft, successful responses SHOULD include
+**Access control**: the draft answers a `GET` without query parameters with
+`200 OK` **when the server has a declaration to serve for that requester**, and
+`404` when nothing is published. Access control is out of scope: a deployment
+that restricts the resource, or rate-limits it, responds as RFC 9110 defines.
+Nothing here forces the document on every requester — wrap or front the handler
+with whatever authorization your deployment needs.
+
+**CORS**: successful responses SHOULD include
 `Access-Control-Allow-Origin: *` (WebFinger practice, so browser-based
 aggregators can read the public document). `handleRequest`, both middlewares,
 and the standalone server emit the header on **every** response — 200/304 and
 the 404/405/503 error statuses alike, so cross-origin clients can read errors
 too. Set the `cors` option to another value or `false` to override.
 
-**Query-parameter tolerance** (`parseQuery`, applied identically by every entry
-point, per the draft's §Optional Extended Query Parameters):
+**Query processing** (`parseQuery`, applied identically by every entry point;
+the numbered procedure of the draft's §Extended Query Parameters):
 
-- an unrecognized value of the enumerated `granularity` parameter (e.g.
-  `granularity=weekly`) is **ignored** — the request proceeds as if the
-  parameter were absent (so no array can be returned for it);
-- a malformed `period` (anything other than a calendar `YYYY`, `YYYY-MM`,
-  `YYYY-MM-DD` — `2026-02-30` is malformed too) is **ignored** and the rest of
-  the request processed — the draft's "400-or-ignore" choice is exercised as
-  *ignore*, which also collapses attacker-varied malformed values onto the
-  default cache entry;
-- `granularity` **without** `period` is valid and applies to the default period
-  of the Basic service — the most recently completed period, which `monthly`
-  is not finer than for a monthly reporter, so the answer is one object;
-- the response shape then follows the draft's rule (`selectPeriod`,
-  `src/period.ts`): an **array only when the granularity is finer than the
-  period** and the trend holds entries at that precision (`?period=2026&granularity=monthly`
-  over monthly entries); otherwise **one object** — the entry for the period,
-  or the aggregate of the finer entries inside it (energy and carbon summed in
-  one unit); a period with no entries is **404**. An adapter declaring
-  `capabilities: "basic"` ignores both parameters and always answers the
-  Basic response.
+1. a parameter name that appears **more than once** is **`400 Bad Request`**;
+   names other than `target`, `period` and `granularity` are ignored. The ABNF
+   is **case-sensitive** (RFC 7405 `%s`), so `Period=`, `TARGET=` and
+   `Granularity=` are undefined names and are ignored — including when they
+   repeat;
+2. a `period` that is not a real calendar `YYYY`, `YYYY-MM` or `YYYY-MM-DD`
+   (the ABNF's `period-value` rule; `2026-02-30` is not one) is
+   **`400 Bad Request`**;
+3. `monthly` denotes **month precision** and `daily` denotes **day precision**;
+   year is coarser than month, which is coarser than day. Let G be the precision
+   the value denotes. A `granularity` whose value is neither token
+   (`weekly`, `MONTHLY`, …), or whose precision is **not finer than the
+   period's**, is **ignored** — the request proceeds as if the parameter were
+   absent, so no array can be returned for it. One that IS finer is *in effect*,
+   and the response is then the array of the held entries **whose precision is
+   G** inside the period — **`404`** when there are none, never a fallback to
+   the period's own object, and never an entry of some other precision that
+   merely lies inside the period. With `period` absent the period in effect is
+   that of the Basic response — and, where the Basic response is an array, that
+   of its **last** object;
+4. a `target` that matches none of the publisher's published prefixes
+   (`PublisherOptions.targetPrefixes`) is **`404`**; a matching one becomes the
+   `target` member of every returned object. With no prefix set configured the
+   publisher does not support the parameter, ignores it, and does not even pass
+   it to the adapter, so every value gets the same response;
+5. the response shape then follows the draft's rule (`selectPeriod`,
+   `src/period.ts`): an **array only when a finer granularity is in effect**
+   (`?period=2026&granularity=monthly` over monthly entries); otherwise **one
+   object** — the entry for the period, or the aggregate of the finer entries
+   inside it (below) — an aggregate whose contributors are of one precision, do
+   not overlap and **cover** the period; a period with no entries is **404**. An
+   adapter declaring `capabilities: "basic"` ignores every parameter and always
+   answers the Basic response;
+6. for a period that has not yet completed, what is reported is the completed
+   portion to date — the figures are the adapter's, as before, and the library's
+   only part in it is the coverage test of step 5, which for such a period asks
+   for the sub-periods that have **completed** rather than for the whole of it;
+7. the **cache key** is computed from the parameters the publisher honors, in
+   the canonical order `target`, `period`, `granularity` — never from the query
+   string as received. `?a=1` and `?a=2` are one cache entry with one `ETag`;
+   so are two values under the same honored `target` prefix, and a `granularity`
+   the publisher ignores. `publisher.cacheKeyFor(query)` exposes the key so an
+   upstream CDN can key the same way, and `publisher.cacheSize` reports how many
+   entries are held.
+
+**The aggregate** (`aggregatePeriod`, `src/period.ts`) is what a request for a
+period with no entry of its own gets when finer entries lie inside it. It carries
+exactly what the draft's step 5 lists:
+
+- **the contributing entries** are "the held entries of one precision that lie
+  within P: where the server holds more than one precision inside P, it takes
+  the coarsest… They MUST NOT overlap… and they MUST cover P, or, where P has
+  not yet completed, the completed portion of it that step 6 provides for."
+  `contributingEntries` (exported from `src/period.ts`) chooses them, and
+  `aggregatePeriod` sums nothing else:
+  - only an entry **inside** the period and of a precision **finer** than it
+    contributes; an entry for the period itself is the answer to the request,
+    not a contribution to it;
+  - where more than one precision lies inside the period, the **coarsest** one
+    is taken and every entry of any other precision is dropped. A publisher
+    holding the twelve months of 2026 and three days inside January aggregates
+    `?period=2026` from the **twelve months**, so those days are not counted
+    twice. The draft **requires** that choice — "it takes the coarsest, so that
+    two servers holding the same data return the same figures" — and the reason
+    holds in practice too: the rule is deterministic (it depends only on the
+    periods held), reports the period most completely (a coarser series normally
+    spans the whole of it, while finer entries cover a part), is stable as finer
+    entries are published, and uses the publisher's own coarser figures rather
+    than re-deriving them. The finer entries stay reachable:
+    `?period=2026-01&granularity=daily` returns them;
+  - two entries of one precision can overlap only by naming the **same period
+    twice**, which a trend MUST NOT do. Such a set has no aggregate: the answer
+    is the no-data **`404`**, not a figure counting that period twice, and
+    `onError` fires with an `AggregateOverlapError` naming the period held twice;
+  - they must **cover** the period, which is a **tiling with no gaps**, not a
+    count of entries: every sub-period of the period, at the precision chosen
+    above, that has **completed** must be one of them
+    (`completedSubPeriods(period, precision, now)`). A finished year missing its
+    June is refused, and so is one holding only January to March — "a server
+    holding figures for only part of a finished period cannot present their sum
+    as a figure for the whole of it". For a period that has **not yet
+    completed**, what must be covered is the part of it that has: a year whose
+    January to August are all held is served as the year-to-date aggregate in
+    mid-September (step 6), and an entry for the month still running is not
+    required, though where the publisher holds one it still contributes. A gap
+    is the no-data **`404`** with an `AggregateCoverageError` through `onError`,
+    naming the sub-periods missing. **The clock** is the publisher's
+    `PublisherOptions.now` (`() => new Date()` by default) and is read for
+    nothing else; pass a fixed one in tests, and a lagging one where your figures
+    for a period land some days after it ends. Note that only the *aggregate* is
+    refused: `?period=2025&granularity=monthly` still returns the months the
+    publisher does hold, and each month is still served on its own;
+- `reporting-period` is the requested period, and `capabilities` is `extended`;
+- `energy-consumption`, `carbon-footprint` and `scope-1/2/3` are **sums taken
+  after converting the contributing entries to the unit the aggregate itself
+  declares** in `energy-unit` / `carbon-unit`. That unit is **the one declared
+  by the last contributing entry in ascending order of `reporting-period`** —
+  the entry for the latest period, which is a dimension of its own: it is *not*
+  the entry with the latest `updated`, a separate rule of the same step. Where
+  that entry declares no unit, the draft's default for the member applies
+  (`kWh`, `gCO2e`). The library picks it by period rather than by array index,
+  so calling `aggregatePeriod` yourself with the entries in another order gives
+  the same unit;
+- each of those summable members is **carried only where every contributing
+  entry reports it**, and omitted otherwise, "since summing where some entries
+  are silent would understate the period". One month silent about `scope-3`
+  therefore removes `scope-3` from the year, while `scope-1` and `scope-2`,
+  which every contributor reports, are summed as usual. The test is applied over
+  the **contributing** entries only, so an entry dropped by the one-precision
+  rule cannot suppress a member with its silence;
+- `updated` is the **latest** `updated` of the contributing entries;
+- `provider`, `measurement-method`, `methodology-uri`, `target` and
+  `target-type` are those of the contributing entries, which **MUST agree** —
+  when they do not, the server "MUST NOT serve an aggregate, since it could only
+  misdescribe what the figures are about, and responds as it does when it has no
+  data". `aggregatePeriod` raises `AggregateDisagreementError` rather than
+  describing the aggregate with one contributor's context, and the handler
+  answers the requester with the **no-data `404`** — byte for byte the response
+  a period with no entries gets — while reporting the error through `onError`,
+  naming the member and the values that disagreed. That report goes to your hook
+  and **nowhere else**: with no hook configured nothing is written, to the
+  console or anywhere, because the server is not broken, the finding recurs on
+  every request that touches the period, and its message names the periods you
+  hold — the coverage information Privacy Considerations keeps out of the
+  response. Configure a hook if you want to hear about it. It is **not** a `503`: the request is not at fault and the server
+  is not broken, but the data set you are publishing is inconsistent and only
+  the operator can fix it, so watch that hook. A disagreement, an overlap and a
+  gap in the coverage are the same kind of event and share a base class,
+  `UnservableAggregateError`: `catch` that one to handle all three;
+- every other metric member (`sci-score`, `renewable-energy`,
+  `carbon-intensity-gCO2e-per-kWh`, `estimated-annual-emissions-kgCO2e`, and
+  `functional-unit` with the score it belongs to) is **omitted**: this library
+  recomputes none of them. A publisher that does recompute one for the
+  aggregated period adds it itself and says so in the methodology document;
+- an optional member that is **not a metric** (`carbon-accounting`,
+  `disclosure-uri`, `verifiable-attestation-uri`, `upstream`, `extensions`) is
+  "carried only where every contributing entry carries it with the same value,
+  and omitted otherwise". Carrying it is part of the test: a member that one
+  contributor omits is omitted from the aggregate even though the others agree;
+- an aggregate that would carry **no metric member at all** is not emitted: the
+  answer is **`404`**, per step 5, and an evidence link does not stand in for a
+  metric here. A publisher holding only, say, `sci-score` for its monthly
+  entries therefore has no yearly aggregate to serve — and so does one whose
+  months report *different* lone metrics (January energy only, February carbon
+  only): each member is dropped for not being reported by every contributor,
+  which leaves the aggregate with nothing to carry;
+- `signed` is never carried over: the aggregate is a new object, signed after it
+  is built, if the publisher signs at all.
+
+`parseQuery` returns `{ ok: true, query }` or `{ ok: false, error }`; pair the
+rejection with `badRequestResult(error, opts)` (both exported) to produce the
+400 response, as the bundled middlewares do.
 
 ```ts
-import { Publisher, handleRequest, parseQuery, computedAdapter } from "sustainability-wellknown-publisher";
+import { Publisher, handleRequest, parseQuery, badRequestResult, computedAdapter } from "sustainability-wellknown-publisher";
 
 const publisher = new Publisher(computedAdapter({ /* ... */ }));
 
@@ -150,7 +292,10 @@ const publisher = new Publisher(computedAdapter({ /* ... */ }));
 // result onto your framework's response object.
 
 async function onRequest(rawQuery: Record<string, string | string[]>, method: string, ifNoneMatch?: string) {
-  const result = await handleRequest(publisher, parseQuery(rawQuery), {}, ifNoneMatch);
+  const parsed = parseQuery(rawQuery);              // a repeated name / bad period -> 400
+  const result = parsed.ok
+    ? await handleRequest(publisher, parsed.query, {}, ifNoneMatch)
+    : badRequestResult(parsed.error);
   return result; // { status, headers, body } — send as-is
 }
 ```
@@ -160,15 +305,21 @@ Concretely, for a plain Node HTTP server:
 ```ts
 import { createServer } from "node:http";
 import { URL } from "node:url";
-import { Publisher, handleRequest, parseQuery, WELL_KNOWN_PATH, computedAdapter } from "sustainability-wellknown-publisher";
+import {
+  Publisher, handleRequest, parseQuery, queryFromSearchParams, badRequestResult,
+  WELL_KNOWN_PATH, computedAdapter,
+} from "sustainability-wellknown-publisher";
 
 const publisher = new Publisher(computedAdapter({ /* ... */ }));
 
 createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   if (url.pathname !== WELL_KNOWN_PATH) return res.writeHead(404).end();
-  const query = Object.fromEntries(url.searchParams);
-  const result = await handleRequest(publisher, parseQuery(query), {}, req.headers["if-none-match"] as string);
+  // queryFromSearchParams keeps repeated names, which step 1 answers with 400.
+  const parsed = parseQuery(queryFromSearchParams(url.searchParams));
+  const result = parsed.ok
+    ? await handleRequest(publisher, parsed.query, {}, req.headers["if-none-match"] as string)
+    : badRequestResult(parsed.error);
   res.writeHead(result.status, result.headers);
   res.end(req.method === "HEAD" ? undefined : result.body);
 }).listen(8080);
@@ -189,7 +340,15 @@ built-in one), the individual pipeline stages are all exported: an adapter's
 `fetch()`, `normalize()`, `secureReports()`, `validateDocument()`/`assertValid()`.
 `Publisher.build()` is a thin, ~15-line composition of exactly these four calls
 (`src/publisher.ts`) — read it as the reference wiring if you need to diverge
-from it.
+from it. `validateDocument()`/`assertValid()` stand on their own: they apply the
+JTD schema *and* every prose rule of the draft the schema cannot express — the
+value ranges, non-finite numbers, the `sci-score`⇒`functional-unit` dependency,
+the `updated` / `reporting-period` / `target` shapes, the at-least-one rule, the
+absolute-URI form of the `extensions` keys, and the absolute-`https` requirement on
+`methodology-uri`, `disclosure-uri`, `verifiable-attestation-uri` and every
+`upstream[].declaration` — so a hand-built document (the one
+`sustainability-sign` reads, for instance) is held to the same bar as one this
+pipeline produced.
 
 ## 4. Writing a custom adapter (extensibility)
 
@@ -232,6 +391,13 @@ function myAdapter(): SourceAdapter {
         target: query.target,
         energy: { value: row.kwh, unit: "kWh" },
         carbon: { value: row.gCO2e, unit: "gCO2e" },
+        // Publisher-defined data goes under an absolute URI: `urn:uuid:` and
+        // a lowercase UUID you generate once, or an `https` URI documenting the
+        // members for a human (which no consumer ever fetches). The declaration
+        // object itself is closed and takes no other member.
+        extensions: { "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": { "water-consumption-m3": row.m3 } },
+        // The providers these figures derive from, if any.
+        upstream: [{ declaration: "https://cloud.example/tenants/acme.json", role: "cloud" }],
       };
     },
   };
@@ -279,10 +445,10 @@ your embedded app) on a local port and reverse-proxy to it — see
 at module scope (cold-start init), and call `handleRequest` per invocation (§3b).
 Prefer a longer `cacheTtlMs` (the in-memory cache survives warm invocations on
 most platforms) or set `cacheTtlMs: 0` and rely on your platform's own edge/CDN
-caching using the `Cache-Control`/`ETag` headers the gateway already returns —
-except when signing: a signing publisher needs `cacheTtlMs` above 0, so the
-document and its signature are served from one generation (the server and
-middlewares refuse the combination at start-up).
+caching using the `Cache-Control`/`ETag` headers the gateway already returns.
+Signing works with any TTL — the `signed` member is produced when the document
+is built, so it is cached with it — but a longer `cacheTtlMs` avoids signing on
+every cold request.
 
 **Static-file deployment (no Node runtime at all)**: run `--once` on a schedule
 (cron/CI) to regenerate a static JSON file, and serve it with the plain
@@ -317,28 +483,52 @@ The three option bags accepted by `new Publisher(adapter, options)`:
 
 - **`PublisherOptions`** (`src/publisher.ts`): `cacheTtlMs` (default 86 400 000 =
   24h; `0` disables caching), `maxCacheEntries` (default 256, bounds the
-  per-query-variant cache), `security` (see below), `normalize` (`target` — the
+  per-query-variant cache), `now` (the clock the aggregate's coverage test reads,
+  `() => new Date()` by default, and read for nothing else — pin it in tests, or
+  let it lag where your figures land some days after the period they cover ends),
+  `security` (see below), `normalize` (`target` — the
   mandatory reporting subject fallback, use the origin host for origin-wide
   reports; `targetType` — optional `target-type` hint classifying the subject,
   one of `origin`/`path`/`organization`/`service`/`product`/`device`/`tenant`/
   `data-source` (draft -04; any other value throws); `energyUnit`/`carbonUnit`
-  to force specific output units). The `version` label is always `"2.0"` (the
-  draft's single value) and the three URI members (`methodologyUri`,
-  `disclosureUri`, `verifiableAttestationUri`) must be absolute `https` URIs —
-  anything else throws at normalization, never reaching the wire.
+  to force specific output units), `targetPrefixes` (the published prefix set
+  the Extended `target` parameter is matched against; unset means the parameter
+  is not supported), `signing` (`{ key, keyId? }` — see below). The URI members
+  (`methodologyUri`, `disclosureUri`, `verifiableAttestationUri` and every
+  `upstream[].declaration`) must be absolute `https` URIs, `extensions` keys must
+  be absolute URIs with the scheme in lowercase — the two forms the draft names
+  are an `https` URI with a host
+  (documentation for a human, never dereferenced) and `urn:uuid:` plus a
+  lowercase UUID other than the Nil and Max UUIDs (guaranteed collisions) — and
+  the object must report at least one
+  metric or evidence link — anything else throws at normalization, never
+  reaching the wire. `cacheKeyFor(query)` and `cacheSize` expose the canonical
+  cache key and the number of entries held.
 - **`SecurityOptions`** (`src/security.ts`): `maxObjects` (default 366),
-  `enforceDailyFloor` (default `true`), `applyNoise` (default `false`; when
-  `true`, deterministic per-period ~1% noise per the draft's Hardware
-  Fingerprinting rules).
-- **Handler/middleware options** (`HandlerOptions`, `src/handler.ts`): `cors`
-  (default `"*"`; `false` disables), `onError` (hook for 503 logging),
-  `carbonTxt` (see `README.md` §Adapters for the bidirectional carbon.txt setup),
-  `signingKey` (a `SigningKey` from `importSigningKey()`/`generateSigningKey()`;
-  enables the `/.well-known/sustainability-data.jws` route — see `README.md`
-  § Signing the document).
-- **CLI config `server.signingKeyFile`**: path of the private JWK written by
-  `keygen --out`; the `SUSTAINABILITY_SIGNING_KEY` environment variable (the
-  JWK JSON itself) takes precedence.
+  `enforceDailyFloor` (default `true`), `applyNoise` (default `false` — values
+  are published exactly as measured unless you opt in; when `true`,
+  deterministic per-period ±1% noise per the draft's Privacy Considerations).
+  Enabling `applyNoise` carries a **MUST**:
+  the methodology document MUST state that noise is applied, and MUST bound its
+  magnitude (±1% for this implementation). Do not enable it without publishing
+  that statement — the library never turns it on for you.
+- **Handler/middleware options** (`HandlerOptions`, `src/handler.ts`): `maxAge`,
+  `cors` (default `"*"`; `false` disables), `onError` (the operator channel; it
+  receives a FAULT — the adapter threw or the gate refused its output, answered
+  `503`, which falls back to `console.error` when you pass no hook so a
+  deployment that cannot publish never fails silently — and a DIAGNOSTIC, an
+  `UnservableAggregateError` for a disagreement, an overlap or a gap in the
+  coverage, answered `404`, which is written **only** to your hook and to
+  nothing else when you pass none),
+  `mediaType`, `carbonTxt` (see `README.md` §Adapters for the bidirectional
+  carbon.txt setup). Signing is **not** a handler option: the `signed` member is
+  part of the document, so it is configured on the `Publisher`.
+- **`PublisherOptions.signing`**: `{ key, keyId? }`, the key from
+  `importSigningKey()`/`generateSigningKey()`. With `keyId` the JWS header names
+  the key with `kid` instead of embedding the public key as `jwk`.
+- **CLI config `signing.keyFile` / `signing.keyId`**: path of the private JWK
+  written by `keygen --out`; the `SUSTAINABILITY_SIGNING_KEY` environment
+  variable (the JWK JSON itself) takes precedence.
 
 See `README.md` for the full adapter-by-adapter config field reference and the
 JSON config-file schema used by the CLI.

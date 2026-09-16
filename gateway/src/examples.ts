@@ -148,6 +148,24 @@ export const WIRE_CASES: CaseDef[] = [
     note: "A published data feed as the reporting subject.",
   },
   {
+    file: "example-response-upstream-organization.json",
+    domain: "upstream-organization.example",
+    caseName: "Organization with upstream providers",
+    note:
+      "The -07 upstream member: an organization naming the tenant-scoped declaration of the " +
+      "cloud provider its figures partly derive from, with role:cloud. The URI is a reserved " +
+      ".example name, so the chain is illustrative \u2014 tenant-demo.example names a declaration " +
+      "this gateway really serves.",
+  },
+  {
+    file: "example-response-upstream-tenant.json",
+    domain: "upstream-tenant.example",
+    caseName: "Tenant-scoped upstream declaration",
+    note:
+      "The other end of the same pair: what an upstream publishes about ONE customer \u2014 " +
+      "target-type:tenant and an identifier of the provider's choosing in target.",
+  },
+  {
     file: "example-response_yearly.json",
     domain: "yearly.example",
     caseName: "Monthly series (Extended)",

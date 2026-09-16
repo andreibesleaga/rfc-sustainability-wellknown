@@ -13,11 +13,11 @@ import {
   lastModifiedFrom,
   loadRegistry,
   loadSubjectFile,
+  resolveBaseUrlToken,
 } from "../src/registry";
 import { DATA_DIR } from "./helpers";
 
 const VALID = {
-  version: "2.0",
   updated: "2026-01-02T03:04:05Z",
   capabilities: "basic",
   provider: "Test",
@@ -74,7 +74,14 @@ describe("loadSubjectFile", () => {
 
   it("rejects a document over the size bound", async () => {
     const dir = scratch();
-    const fat = { ...VALID, "com.example.filler": "x".repeat(LIMITS.maxDocumentBytes) };
+    const fat = {
+      ...VALID,
+      extensions: {
+        "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": {
+          filler: "x".repeat(LIMITS.maxDocumentBytes),
+        },
+      },
+    };
     await expect(loadSubjectFile(write(dir, "fat.example.json", fat))).rejects.toThrow(
       /document bound/,
     );
@@ -128,6 +135,43 @@ describe("loadRegistry", () => {
     const dir = scratch();
     writeFileSync(join(dir, "_notes.json"), JSON.stringify(VALID));
     await expect(loadRegistry(dir)).rejects.toThrow(/no subject documents/);
+  });
+});
+
+describe("the {base} token", () => {
+  // A data file that must name a declaration this gateway itself serves cannot
+  // hard-code one deployment's host, and the draft requires an absolute https
+  // URI. The token is resolved at load time against the serving origin.
+  const doc = {
+    ...VALID,
+    upstream: [
+      { declaration: "{base}/cloud-demo.example/.well-known/sustainability-data", role: "cloud" },
+      { declaration: "https://elsewhere.example/.well-known/sustainability-data" },
+    ],
+  } as never;
+
+  it("resolves only a leading token, and only in upstream declarations", () => {
+    const r = resolveBaseUrlToken(doc, "https://gw.example/");
+    expect(r.upstream![0].declaration).toBe(
+      "https://gw.example/cloud-demo.example/.well-known/sustainability-data",
+    );
+    expect(r.upstream![0].role).toBe("cloud");
+    expect(r.upstream![1].declaration).toBe("https://elsewhere.example/.well-known/sustainability-data");
+    expect(resolveBaseUrlToken(VALID as never, "https://gw.example")).toEqual(VALID);
+  });
+
+  it("is resolved before the document is validated and served", async () => {
+    const dir = scratch();
+    const s = await loadSubjectFile(
+      write(dir, "downstream.example.json", { ...doc, target: "downstream.example" }),
+      "https://gw.example",
+    );
+    expect(s.document.upstream![0].declaration).toBe(
+      "https://gw.example/cloud-demo.example/.well-known/sustainability-data",
+    );
+    // And it is what the publisher serves, not just what the loader holds.
+    const { body } = await s.publisher.getSerialized({});
+    expect(JSON.parse(body).upstream[0].declaration).toContain("https://gw.example/");
   });
 });
 

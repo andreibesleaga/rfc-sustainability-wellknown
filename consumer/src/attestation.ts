@@ -5,9 +5,9 @@
  * 2.0) secured with JOSE as `vc+jwt` (VC-JOSE-COSE: the credential JSON is
  * the payload of a compact JWS, `typ: "vc+jwt"`, `cty: "vc"`).
  *
- * Explicit, caller-invoked only — never automatic. Draft -06 §Payload Format:
+ * Explicit, caller-invoked only — never automatic. Draft -07 §Optional Members:
  * clients MUST NOT automatically dereference a URI member, and the presence of
- * the member is not verification of anything (§Optional Response Fields).
+ * the member is not verification of anything (§Optional Members).
  * No JSON-LD processing is performed: the enveloping proof secures the
  * credential's bytes, and the checks below are on the decoded JSON.
  *
@@ -18,10 +18,64 @@
  * the credential's own header (`assurance: "self-asserted-key"`), which shows
  * the mechanism but does not by itself establish who the issuer is.
  */
-import { BodyTooLargeError, discardBody, isAbortOrTimeout, readBodyCapped, secureGet } from "./transport";
+import { AddressLookup, BodyTooLargeError, discardBody, isAbortOrTimeout, readBodyCapped, secureGet } from "./transport";
 import { PublicJwk, SigningAlg, VC_JWT_MEDIA_TYPE, verifyJws, VerifyPolicy } from "./jws";
+import { deepEqual, differingMembers, withoutSigned } from "./compare";
+import { RESPONSE_JTD_SCHEMA } from "./schema";
 
 export const VC_V2_CONTEXT = "https://www.w3.org/ns/credentials/v2";
+
+/**
+ * How the credential binds to the declaration (draft -07, Appendix A step 5:
+ * the issuer "issues a verifiable credential whose subject contains a copy of
+ * the declaration object (without `signed`)", and the consumer "compares the
+ * credential's copy with the verified payload").
+ *
+ *  - `match` — the copy is structurally identical to the declaration the
+ *    caller supplied. The issuer signed THAT object, not merely its URL.
+ *  - `mismatch` — the copy differs; `differences` names the members. The
+ *    credential then attests something other than what the origin served.
+ *  - `no-copy` — the credential carries no declaration copy (a model
+ *    attestation, for instance). Nothing is claimed either way.
+ *  - `not-checked` — the caller supplied no declaration to compare with.
+ */
+export type AttestationBinding =
+  | { status: "match" }
+  | { status: "mismatch"; differences: string[] }
+  | { status: "no-copy" }
+  | { status: "not-checked" };
+
+const MANDATORY_MEMBERS = Object.keys(RESPONSE_JTD_SCHEMA.properties);
+
+/**
+ * The copy of the declaration object a credential carries, if any: the
+ * `declaration` member of `credentialSubject` when present, otherwise
+ * `credentialSubject` itself (minus its `id`, which names the subject rather
+ * than belonging to the declaration) when that object carries all seven
+ * mandatory members. `signed` is stripped from the copy, since the draft
+ * defines the copy as the object without it.
+ */
+export function declarationCopyOf(credential: unknown): Record<string, unknown> | undefined {
+  if (!isObject(credential)) return undefined;
+  const subject = credential.credentialSubject;
+  if (!isObject(subject)) return undefined;
+  if (isObject(subject.declaration)) return withoutSigned(subject.declaration) as Record<string, unknown>;
+  if (MANDATORY_MEMBERS.every((k) => subject[k] !== undefined)) {
+    const { id: _id, ...rest } = subject;
+    return withoutSigned(rest) as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+/** Compare a credential's declaration copy with the declaration object in hand. */
+export function checkBinding(credential: unknown, declaration?: unknown): AttestationBinding {
+  if (declaration === undefined) return { status: "not-checked" };
+  const copy = declarationCopyOf(credential);
+  if (copy === undefined) return { status: "no-copy" };
+  const served = withoutSigned(declaration);
+  if (deepEqual(copy, served)) return { status: "match" };
+  return { status: "mismatch", differences: differingMembers(copy, served) };
+}
 
 export interface AttestationOptions {
   fetchImpl?: typeof fetch;
@@ -35,6 +89,22 @@ export interface AttestationOptions {
   allowedAlgs?: SigningAlg[];
   /** Opt out of the HTTPS requirement for the credential URI (local testing only). */
   allowInsecure?: boolean;
+  /**
+   * Opt out of refusing a credential URI that resolves to a loopback, private,
+   * link-local, unique-local or unspecified address (default: the value of
+   * `allowInsecure`). A `verifiable-attestation-uri` is written by the origin
+   * being checked, so the address check applies to it like any other.
+   */
+  allowPrivateAddresses?: boolean;
+  /** Resolver for the address check; see {@link AddressLookup}. */
+  lookup?: AddressLookup;
+  /**
+   * The declaration object the credential is supposed to attest — the
+   * verified `signed` payload when there is one, the object as served
+   * otherwise. When given, the credential's embedded copy is deep-compared
+   * with it and the outcome is reported as {@link AttestationBinding}.
+   */
+  declaration?: unknown;
 }
 
 export type AttestationResult =
@@ -53,6 +123,8 @@ export type AttestationResult =
       mediaTypeOk: boolean;
       /** Whether the JOSE header carried `typ: "vc+jwt"` (VC-JOSE-COSE SHOULD). */
       typOk: boolean;
+      /** How the credential binds to the declaration (see {@link AttestationBinding}). */
+      binding: AttestationBinding;
       url: string;
     }
   | { valid: false; reason: string; detail?: string; mediaType?: string | null; credential?: unknown };
@@ -119,7 +191,7 @@ export function checkCredentialShape(
  */
 export async function verifyCredentialJwt(
   jwt: string,
-  options: Pick<AttestationOptions, "now" | "trustedIssuerKeys" | "allowedAlgs"> = {},
+  options: Pick<AttestationOptions, "now" | "trustedIssuerKeys" | "allowedAlgs" | "declaration"> = {},
 ): Promise<
   Omit<Extract<AttestationResult, { valid: true }>, "mediaType" | "mediaTypeOk" | "url"> | Extract<AttestationResult, { valid: false }>
 > {
@@ -139,6 +211,7 @@ export async function verifyCredentialJwt(
     keySource: v.keySource!,
     assurance: v.keySource === "trusted" ? "issuer-key-pinned" : "self-asserted-key",
     typOk: v.header?.typ === "vc+jwt",
+    binding: checkBinding(v.payload, options.declaration),
   };
 }
 
@@ -166,6 +239,8 @@ export async function verifyAttestation(uri: string, options: AttestationOptions
     fetchImpl: options.fetchImpl,
     timeoutMs: options.timeoutMs ?? 30_000,
     allowInsecure: options.allowInsecure,
+    allowPrivateAddresses: options.allowPrivateAddresses,
+    lookup: options.lookup,
     headers: { Accept: `${VC_JWT_MEDIA_TYPE}, application/jwt;q=0.9, */*;q=0.1` },
   });
   if (!got.ok) return { valid: false, reason: got.refusal.reason, detail: got.refusal.detail };

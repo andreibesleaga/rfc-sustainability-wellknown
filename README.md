@@ -174,7 +174,7 @@ The current draft (`-07`, in preparation) defines the full data model, mandatory
 
 ## example-responses/
 
-17 JSON response files covering every service level and every member defined in the draft except the OPTIONAL `signed`, which a publisher generates at publish time rather than hand-writing. All pass both CDDL and JTD validation.
+22 JSON response files covering every service level and every member defined in the draft, including the OPTIONAL `signed` (one file was signed once, with a throw-away key, so that the served signature is real and verifies). All pass both CDDL and JTD validation.
 
 | File | Description |
 |---|---|
@@ -195,6 +195,11 @@ The current draft (`-07`, in preparation) defines the full data model, mandatory
 | `example-response-organization-trend.json` | Basic service — 4-year annual trend array (2022-2025, `target-type: "organization"`), demonstrating array ordering/non-overlap/uniformity rules |
 | `example-response-upstream-organization.json` | The downstream half of the `-07` `upstream` pair — an organization naming the tenant-scoped declaration of the cloud provider its figures partly derive from |
 | `example-response-upstream-tenant.json` | The upstream half of the pair — what that provider states it delivered to one tenant (`target-type: "tenant"`, an opaque `target`), the only shape the draft defines a comparison for |
+| `example-response-upstream-multiple.json` | Several `upstream` entries with different roles — `cloud` and `cdn` name tenant-scoped declarations about this customer (comparable), `electricity` names the supplier's own totals (no comparison defined); each entry is compared on its own |
+| `example-response-signed.json` | The OPTIONAL `signed` member, real and verifiable: an EdDSA JWS whose payload is the object without `signed`, `cty: sustainability-data+json`, public key in the header as `jwk`. The origin is an internationalized host, so `target` and every URI carry its A-label (`xn--grn-ioa.example`) while `provider` is UTF-8 text |
+| `example-response-removals.json` | A negative scope — `scope-1` nets 320 t of inventoried removals against 140 t of direct emissions, as the draft allows where the accounting method conveys removals; `carbon-footprint` stays gross (140 + 400 + 700 = 1240), so the scopes as published no longer sum to it and the methodology document explains why. Also a free-text `measurement-method`, an omitted `energy-unit` (kWh applies) and an attestation link for the removals claim |
+| `example-response-daily-trend.json` | Extended service — a `daily` series for a metered device, in watt-hours and grams: the response to `?period=2026-03&granularity=daily` for the three days held. The same month requested without `granularity` is `404`: three days do not cover March, so no honest aggregate exists |
+| `example-response-aggregate.json` | What the Extended aggregation rule produces: the answer `example-response_yearly.json` gives to `?period=2025` when it holds only months — energy and carbon summed in the last entry's unit, `capabilities: "extended"`, `renewable-energy` omitted (a percentage is not a sum), `carbon-accounting` kept because every month agrees |
 
 ---
 

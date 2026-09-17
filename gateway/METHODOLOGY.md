@@ -333,6 +333,15 @@ the example as the draft writes it, and so that both forms of an extension name
 appear on the wire. `acme.example` is a reserved name (RFC 2606), so that
 particular URI documents nothing, where a real definer's would.
 
+### `urn:uuid:96a3b405-2151-4b00-842e-02a5260331c1`
+
+Carried by the wire-format examples `device.example` and `extended.example`,
+with one member, **`pue`** (number — power usage effectiveness, ISO/IEC
+30134-2). An illustrative name for data defined outside the specification,
+minted for these two files so that the draft's own `urn:uuid:16c36135…` name
+above keeps its one meaning (`packaging-recycled-percent`): a name is compared
+octet for octet, and one name never carries two definitions.
+
 ### `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle`, `.../carbon-neutrality` and `.../network-topology`
 
 Three names minted under a domain the gateway operator controls and carried by

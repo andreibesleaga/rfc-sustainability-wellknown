@@ -1,0 +1,18 @@
+{
+  "updated": "2026-02-02T10:00:00Z",
+  "capabilities": "basic",
+  "provider": "Grün Webdesign GmbH (nachhaltigkeit@xn--grn-ioa.example)",
+  "measurement-method": "cloud-billing",
+  "methodology-uri": "https://xn--grn-ioa.example/nachhaltigkeit/methode",
+  "reporting-period": "2025",
+  "target": "xn--grn-ioa.example",
+  "energy-consumption": 640,
+  "energy-unit": "kWh",
+  "carbon-footprint": 149.1,
+  "carbon-unit": "kgCO2e",
+  "carbon-accounting": "location-based",
+  "carbon-intensity-gCO2e-per-kWh": 233,
+  "disclosure-uri": "https://xn--grn-ioa.example/nachhaltigkeit",
+  "target-type": "origin",
+  "signed": "eyJhbGciOiJFZERTQSIsImN0eSI6InN1c3RhaW5hYmlsaXR5LWRhdGEranNvbiIsImp3ayI6eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6Ilg4ai0wSlZiLUdIS3hSS1dJTEV5SnhzekNYNkRJNUdtVnRMbnAwRzgtOGciLCJraWQiOiIwMF9PVDNlSW44QzNuQ3BRcEJpbjVIeDFPMGI0aUpvOXBDTFFuYzM0ZXprIiwiYWxnIjoiRWREU0EiLCJ1c2UiOiJzaWcifX0.eyJ1cGRhdGVkIjoiMjAyNi0wMi0wMlQxMDowMDowMFoiLCJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsInByb3ZpZGVyIjoiR3LDvG4gV2ViZGVzaWduIEdtYkggKG5hY2hoYWx0aWdrZWl0QHhuLS1ncm4taW9hLmV4YW1wbGUpIiwibWVhc3VyZW1lbnQtbWV0aG9kIjoiY2xvdWQtYmlsbGluZyIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8veG4tLWdybi1pb2EuZXhhbXBsZS9uYWNoaGFsdGlna2VpdC9tZXRob2RlIiwicmVwb3J0aW5nLXBlcmlvZCI6IjIwMjUiLCJ0YXJnZXQiOiJ4bi0tZ3JuLWlvYS5leGFtcGxlIiwiZW5lcmd5LWNvbnN1bXB0aW9uIjo2NDAsImVuZXJneS11bml0Ijoia1doIiwiY2FyYm9uLWZvb3RwcmludCI6MTQ5LjEsImNhcmJvbi11bml0Ijoia2dDTzJlIiwiY2FyYm9uLWFjY291bnRpbmciOiJsb2NhdGlvbi1iYXNlZCIsImNhcmJvbi1pbnRlbnNpdHktZ0NPMmUtcGVyLWtXaCI6MjMzLCJkaXNjbG9zdXJlLXVyaSI6Imh0dHBzOi8veG4tLWdybi1pb2EuZXhhbXBsZS9uYWNoaGFsdGlna2VpdCIsInRhcmdldC10eXBlIjoib3JpZ2luIn0.Nd1cQoFdw_TiNWUQTpx60PyEQ1YZ3V2Z2F_NPPotGJ_MoiZ-yJARmYrJGkkJ9w3-tasyeYXorQ2VFwrgk6YuDw"
+}

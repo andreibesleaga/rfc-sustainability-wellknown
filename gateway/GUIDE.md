@@ -351,7 +351,8 @@ Replay mode runs the *same adapter code* against a recorded upstream response
 
 The gateway also serves the repository's canonical **wire-format examples**
 (`gateway/examples/`, byte-identical to `example-responses/`, enforced by
-test): all sixteen cases, including the -07 upstream pair
+test): all twenty-two cases, including the -07 upstream pair, a pre-signed
+declaration served with its own verifiable `signed` member,
 (`upstream-organization.example` and `upstream-tenant.example`) and the trend
 arrays, which follow the
 draft's rule — the Basic response collapses to the most recent entry, and the

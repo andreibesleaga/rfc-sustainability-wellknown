@@ -948,7 +948,7 @@ flowchart TB
   framework.
 * **`server-configurations/`** — the nginx/Apache snippets used by topology 3/4,
   live-tested in CI (below).
-* **`example-responses/`** — 17 golden documents covering every service level
+* **`example-responses/`** — 22 golden documents covering every service level
   and field combination; all pass both validators against the `-07` schemas in
   `schemas-validators/`, which are byte-identical to the draft's own blocks.
 

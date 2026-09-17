@@ -1,0 +1,19 @@
+{
+  "updated": "2026-03-10T08:00:00Z",
+  "capabilities": "basic",
+  "provider": "Upland Data Co-operative Ltd (sustainability@upland.example)",
+  "measurement-method": "fuel and electricity metered; woodland removals from an annual biomass inventory",
+  "methodology-uri": "https://upland.example/sustainability/methodology",
+  "reporting-period": "2025",
+  "target": "Upland Data Co-operative Ltd",
+  "energy-consumption": 2100000,
+  "carbon-footprint": 1240,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": -180,
+  "scope-2": 400,
+  "scope-3": 700,
+  "verifiable-attestation-uri": "https://verifier.example/statements/upland-2025-removals",
+  "disclosure-uri": "https://upland.example/sustainability/disclosures",
+  "target-type": "organization"
+}

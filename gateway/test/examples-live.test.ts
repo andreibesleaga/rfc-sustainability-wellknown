@@ -9,7 +9,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { validateDocument } from "sustainability-wellknown-consumer";
+import { validateDocument, verifyEmbeddedSignature } from "sustainability-wellknown-consumer";
 import { demoSpecs, NESO_FIXTURE_INTENSITY } from "../src/adapters/demo-specs";
 import { loadConfig } from "../src/config";
 import { WIRE_CASES } from "../src/examples";
@@ -119,6 +119,44 @@ describe("wire-format example serving", () => {
       await fetch(url("/yearly.example/.well-known/sustainability-data?granularity=weekly"))
     ).json();
     expect(Array.isArray(unknown)).toBe(false);
+  });
+
+  it("serves the pre-signed example with its own signature, which verifies over exactly the served object", async () => {
+    const file = JSON.parse(readFileSync(resolve(EXAMPLES_DIR, "example-response-signed.json"), "utf8"));
+    const doc = await (await fetch(url("/signed.example/.well-known/sustainability-data"))).json();
+    expect(doc.signed).toBe(file.signed);
+    const outcome = await verifyEmbeddedSignature(doc);
+    expect(outcome.result.status).toBe("verified");
+    const { signed, ...members } = doc;
+    const payload = JSON.parse(Buffer.from(signed.split(".")[1], "base64url").toString("utf8"));
+    expect(payload).toEqual(members);
+    // The header carries a public key only; no private member is ever published.
+    const header = JSON.parse(Buffer.from(signed.split(".")[0], "base64url").toString("utf8"));
+    expect(header).toMatchObject({ alg: "EdDSA", cty: "sustainability-data+json" });
+    expect(header.jwk.d).toBeUndefined();
+  });
+
+  it("the aggregate example is exactly what yearly.example serves for the whole year", async () => {
+    const served = await (await fetch(url("/yearly.example/.well-known/sustainability-data?period=2025"))).json();
+    const file = JSON.parse(readFileSync(resolve(EXAMPLES_DIR, "example-response-aggregate.json"), "utf8"));
+    expect(served).toEqual(file);
+    // A percentage is not summed, so it is omitted; the agreeing accounting basis is kept.
+    expect(served["renewable-energy"]).toBeUndefined();
+    expect(served["carbon-accounting"]).toBe("location-based");
+  });
+
+  it("a daily series returns every held day, and three days are no aggregate for the month", async () => {
+    const arr = await (
+      await fetch(url("/daily-trend.example/.well-known/sustainability-data?period=2026-03&granularity=daily"))
+    ).json();
+    expect(Array.isArray(arr)).toBe(true);
+    expect(arr.map((e: { "reporting-period": string }) => e["reporting-period"])).toEqual([
+      "2026-03-29",
+      "2026-03-30",
+      "2026-03-31",
+    ]);
+    expect(validateDocument(arr).valid).toBe(true);
+    expect((await fetch(url("/daily-trend.example/.well-known/sustainability-data?period=2026-03"))).status).toBe(404);
   });
 
   it("keeps ETags distinct between the Basic and array variants", async () => {

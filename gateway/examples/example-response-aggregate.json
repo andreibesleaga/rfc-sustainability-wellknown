@@ -1,0 +1,14 @@
+{
+  "updated": "2026-01-05T09:00:00Z",
+  "capabilities": "extended",
+  "provider": "CloudProvider Ops (ops@example.com)",
+  "measurement-method": "hardware-metered",
+  "methodology-uri": "https://example.com/methodology",
+  "reporting-period": "2025",
+  "target": "example.com",
+  "energy-consumption": 13730,
+  "energy-unit": "kWh",
+  "carbon-footprint": 3738,
+  "carbon-unit": "kgCO2e",
+  "carbon-accounting": "location-based"
+}

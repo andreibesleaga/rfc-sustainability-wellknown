@@ -211,7 +211,7 @@ describe("index routes", () => {
     expect(html).not.toContain("/.well-known/carbon.txt");
     // The new sections are present.
     expect(html).toContain("Adapter demonstrations (8)");
-    expect(html).toContain("Wire-format examples (17)");
+    expect(html).toContain("Wire-format examples (22)");
     expect(html).toContain("Consumer cross-validation");
   });
 
@@ -245,7 +245,7 @@ describe("index routes", () => {
       /^sustainability-wellknown-consumer@\d/,
     );
     expect(idx["consumer-cross-validation"]["documents-validated"]).toBe(
-      srv.gw.subjects.size + 1 + 2, // every subject + self + the two Extended arrays
+      srv.gw.subjects.size + 1 + 3, // every subject + self + the three Extended arrays
     );
     // Every demonstration runs from its fixture in tests (fetchImpl: null).
     for (const e of idx["adapter-demonstrations"].entries) {

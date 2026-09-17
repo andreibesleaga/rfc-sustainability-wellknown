@@ -16,7 +16,7 @@
   "disclosure-uri": "https://edge.example/disclosures",
   "target-type": "device",
   "extensions": {
-    "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": {
+    "urn:uuid:96a3b405-2151-4b00-842e-02a5260331c1": {
       "pue": 1.15
     }
   }

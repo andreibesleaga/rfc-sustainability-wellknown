@@ -1,0 +1,33 @@
+{
+  "updated": "2026-02-20T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Brightpath Software Ltd (sustainability@brightpath.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://brightpath.example/sustainability/methodology",
+  "reporting-period": "2025",
+  "target": "Brightpath Software Ltd",
+  "target-type": "organization",
+  "energy-consumption": 380,
+  "energy-unit": "MWh",
+  "carbon-footprint": 96,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 4,
+  "scope-2": 22,
+  "scope-3": 70,
+  "disclosure-uri": "https://brightpath.example/sustainability/disclosures",
+  "upstream": [
+    {
+      "declaration": "https://cloudnova.example/tenants/brightpath.json",
+      "role": "cloud"
+    },
+    {
+      "declaration": "https://edgecdn.example/customers/brightpath/sustainability-data.json",
+      "role": "cdn"
+    },
+    {
+      "declaration": "https://greenpower.example/.well-known/sustainability-data",
+      "role": "electricity"
+    }
+  ]
+}

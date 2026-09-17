@@ -25,8 +25,11 @@ import {
   Publisher,
   fromWire,
   staticAdapter,
+  type ServiceQuery,
+  type SustainabilityDocument,
   type SustainabilityMetrics,
 } from "sustainability-wellknown-publisher";
+import { verifyEmbeddedSignature } from "sustainability-wellknown-consumer";
 import { LIMITS } from "./config";
 import {
   canonical,
@@ -74,13 +77,15 @@ export const WIRE_CASES: CaseDef[] = [
     file: "example-response.json",
     domain: "basic.example",
     caseName: "Basic response",
-    note: "The draft's worked Basic example: an origin-wide monthly report.",
+    note: "An origin-wide monthly report in the Basic shape, with explicit units.",
   },
   {
     file: "example-response-minimal.json",
     domain: "minimal.example",
     caseName: "Minimal document",
-    note: "Mandatory members only — every metric omitted, methodology-uri carries the disclosure.",
+    note:
+      "The smallest conformant object: the seven mandatory members and a disclosure-uri. It " +
+      "carries no metric, so the evidence link is what the at-least-one rule requires.",
   },
   {
     file: "example-response-extended.json",
@@ -104,10 +109,21 @@ export const WIRE_CASES: CaseDef[] = [
     note: "A calendar-year report for a whole origin, from cloud-billing data.",
   },
   {
+    file: "example-response-signed.json",
+    domain: "signed.example",
+    caseName: "Signed declaration, internationalized origin",
+    note:
+      "The embedded signed member: an EdDSA JWS over the object without signed, cty " +
+      "sustainability-data+json, public key in the header as jwk. It verifies, and proves " +
+      "only integrity: a key carried in the header is as self-asserted as the figures. The " +
+      "origin is an internationalized host, so target and every URI carry its A-label, while " +
+      "provider is UTF-8 text.",
+  },
+  {
     file: "example-response-organization.json",
     domain: "organization.example",
     caseName: "Organization report",
-    note: "An organization-level mapping in the shape the draft's organization example uses.",
+    note: "An organization-level annual report with GHG Protocol scopes and no energy figure.",
   },
   {
     file: "example-response-organization-trend.json",
@@ -127,6 +143,16 @@ export const WIRE_CASES: CaseDef[] = [
       "water, waste, hardware circularity, refrigerant and generator emissions, and " +
       "renewable procurement. The extension names are under the example publisher's own " +
       "reserved domain and their definitions are illustrative.",
+  },
+  {
+    file: "example-response-removals.json",
+    domain: "removals.example",
+    caseName: "Negative scope (removals netted)",
+    note:
+      "A scope member MAY be negative where the accounting method nets removals; carbon-footprint " +
+      "stays gross, so the scopes no longer sum to it and the methodology document explains why. " +
+      "Also shows a free-text measurement-method, an omitted energy-unit (kWh applies) and an " +
+      "attestation link for the removals claim.",
   },
   {
     file: "example-response-product.json",
@@ -177,6 +203,16 @@ export const WIRE_CASES: CaseDef[] = [
       "target-type:tenant and an identifier of the provider's choosing in target.",
   },
   {
+    file: "example-response-upstream-multiple.json",
+    domain: "upstream-multiple.example",
+    caseName: "Organization with several upstreams",
+    note:
+      "Three upstream entries, each compared on its own: cloud and cdn name tenant-scoped " +
+      "declarations about this customer, which a consumer can compare; electricity names the " +
+      "supplier's own totals, for which no comparison is defined. Reserved .example URIs, so " +
+      "the chain is illustrative.",
+  },
+  {
     file: "example-response_yearly.json",
     domain: "yearly.example",
     caseName: "Monthly series (Extended)",
@@ -191,6 +227,24 @@ export const WIRE_CASES: CaseDef[] = [
     note:
       "A short monthly series for a path-scoped target; Basic collapses, " +
       "?granularity=monthly returns the array.",
+  },
+  {
+    file: "example-response-daily-trend.json",
+    domain: "daily-trend.example",
+    caseName: "Daily series, device (Extended)",
+    note:
+      "?period=2026-03&granularity=daily returns every day held, here the three days since the " +
+      "device was commissioned; watt-hours and grams. A request for the whole month without " +
+      "granularity is 404: three days do not cover March, so no honest aggregate exists.",
+  },
+  {
+    file: "example-response-aggregate.json",
+    domain: "aggregate.example",
+    caseName: "Aggregate of a monthly series",
+    note:
+      "What yearly.example answers to ?period=2025 when it holds only months: energy and carbon " +
+      "summed, capabilities extended, renewable-energy omitted because a percentage is not summed, " +
+      "carbon-accounting kept because every month agrees.",
   },
 ];
 
@@ -236,8 +290,58 @@ function granularityOf(docs: SustainabilityMetrics[]): "monthly" | "daily" {
   return /^\d{4}-\d{2}-\d{2}$/.test(p) ? "daily" : "monthly";
 }
 
+/**
+ * A wire-format example that arrives already signed. The gateway holds no key
+ * for it and never signs on its behalf: it serves the file's own `signed`
+ * member, and only on an object equal to the payload that member was made
+ * over, so the draft's rule that a publisher never serves an object whose
+ * `signed` payload differs from the object it accompanies holds on every path.
+ */
+class PresignedPublisher extends Publisher {
+  constructor(
+    document: SustainabilityMetrics,
+    private readonly payload: string,
+    private readonly signedValue: string,
+  ) {
+    super(staticAdapter({ data: fromWire(document), capabilities: document.capabilities }), {
+      normalize: { target: document.target },
+      cacheTtlMs: 365 * 24 * 60 * 60 * 1000,
+      maxCacheEntries: 4,
+    });
+  }
+
+  override async build(query: ServiceQuery = {}): Promise<SustainabilityDocument> {
+    const document = await super.build(query);
+    if (!Array.isArray(document) && canonical(document) === this.payload) {
+      return { ...document, signed: this.signedValue };
+    }
+    return document;
+  }
+}
+
+/** Check a pre-signed example before it can be served: it must verify, over exactly this object. */
+async function presignedPublisher(def: CaseDef, document: SustainabilityMetrics): Promise<Publisher> {
+  const { signed, ...unsigned } = document;
+  if (typeof signed !== "string") throw new Error(`examples: ${def.file} has a signed member that is not a string`);
+  const outcome = await verifyEmbeddedSignature(document);
+  if (outcome.result.status !== "verified") {
+    throw new Error(`examples: ${def.file} signature does not verify (${JSON.stringify(outcome.result)})`);
+  }
+  const payload = canonical(JSON.parse(Buffer.from(signed.split(".")[1], "base64url").toString("utf8")));
+  if (payload !== canonical(unsigned)) {
+    throw new Error(`examples: ${def.file} signed payload differs from the object it accompanies`);
+  }
+  // The pipeline materializes default units, which would make the served
+  // object differ from the payload: a signed example declares its units.
+  if (canonical(withDefaultUnits(unsigned)) !== payload) {
+    throw new Error(`examples: ${def.file} is signed, so it must declare energy-unit and carbon-unit explicitly`);
+  }
+  return new PresignedPublisher(unsigned, payload, signed);
+}
+
 async function loadObjectCase(def: CaseDef, document: SustainabilityMetrics): Promise<WireExample> {
-  const publisher = publisherForDocument(document);
+  const publisher =
+    document.signed === undefined ? publisherForDocument(document) : await presignedPublisher(def, document);
   const { body } = await publisher.getSerialized({});
   const served = JSON.parse(body) as SustainabilityMetrics;
   if (canonical(served) !== canonical(withDefaultUnits(document))) {

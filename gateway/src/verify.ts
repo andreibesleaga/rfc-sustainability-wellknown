@@ -56,12 +56,20 @@ export async function crossValidate(
 
   for (const ex of examples) {
     // The Basic (collapsed) document was covered above via its subject; also
-    // validate the full array response for the Extended cases.
+    // validate the full array response for the Extended cases. The period is
+    // required: granularity alone applies to the default period, the newest
+    // entry, which is not coarser than the entries, so it would be ignored and
+    // the collapsed object validated a second time instead of the array.
     if (ex.granularity) {
       const { body } = await ex.subject.publisher.getSerialized({
+        period: ex.period,
         granularity: ex.granularity,
       });
-      check(`${ex.domain} (?granularity=${ex.granularity})`, JSON.parse(body));
+      const parsed = JSON.parse(body) as unknown;
+      if (!Array.isArray(parsed) || parsed.length !== ex.entries) {
+        throw new Error(`consumer cross-validation: ${ex.domain} did not return its ${ex.entries}-entry trend array`);
+      }
+      check(`${ex.domain} (?period=${ex.period}&granularity=${ex.granularity})`, parsed);
     }
   }
 

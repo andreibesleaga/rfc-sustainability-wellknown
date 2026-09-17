@@ -21,8 +21,8 @@ data model changed for the first time since `-04`: `version` is gone, the member
 and private extensions live under a URI-keyed member. Two capabilities were added, `upstream`
 declarations and a stricter at-least-one rule; two provisions were removed, the server-side array
 cap and the `X-Content-Type-Options` recommendation. The query parameters gained a grammar and a
-numbered procedure with defined error outcomes. The body is about a quarter shorter: about 9,500
-words against about 13,000 in `-06`.
+numbered procedure with defined error outcomes. The body is about a quarter shorter: 9,803 words
+against 13,010 in `-06`, measured the same way on both files.
 
 ## Change table
 
@@ -73,9 +73,17 @@ Precedence now depends on the key. Obtained out of band (the draft defines this 
 consumer selected independently of the declaration, never a URI the declaration or its JOSE
 Header names), pinned from an earlier retrieval, or validated through an `x5c` chain to a trusted
 anchor whose certificate identifies the publisher: the payload takes precedence, the RFC 8414
-pattern. Carried in the JOSE Header: the members served by the origin remain the ones the
-consumer uses, and the signature gives integrity and key continuity only. Either way a consumer MAY report a difference as evidence of
-modification after signing, which is not a failure.
+pattern. Pinning establishes continuity, not identity; the precedence rests on that continuity,
+that the same holder signed the earlier declaration, and not on knowing who that holder is. In
+every other case the key is trusted no further than the declaration carrying it: the members
+served by the origin remain the ones the consumer uses, and the signature gives integrity and key
+continuity only. A consumer that promotes an `x5c`-validated key MUST also require that the
+certificate identify the publisher, since a chain to a widely trusted anchor otherwise
+establishes only that some party holds a certificate. Either way a consumer MAY report a
+difference as evidence of modification after signing, which is not a failure.
+
+RFC 8725 moves to the normative references in `-07`. The verification rule under a MUST relies on
+it for the algorithm policy, so a reader has to have it.
 
 ## 2. `version` removed; the member set closed
 
@@ -97,8 +105,10 @@ party, is lost, or diverges. `-07` withdraws reverse-domain top-level names and 
 4.3), written in ASCII with the scheme in lowercase and carrying no fragment, whose values are
 objects. Two forms are the ones used in practice: an "https" URI under the definer's control when the name was minted, which
 SHOULD identify human-readable documentation of the extension, and a UUID URN, `urn:uuid:`
-followed by the lowercase hyphenated form of a UUID (RFC 9562, Section 4; Nil and Max excluded),
-for a definer that has no domain or wants a name independent of any domain. A name is compared as
+followed by the hyphenated form of a UUID (RFC 9562, Section 4; Nil and Max excluded) in
+lowercase, which that section permits in either case and which this document fixes as lowercase
+so that names compare octet for octet, for a definer that has no domain or wants a name
+independent of any domain. A name is compared as
 a string, octet for octet, and never normalized. A name is an identifier, not a locator: nothing
 is fetched from it, no registry is defined, and a consumer that does not implement a name MUST
 ignore its value and MUST NOT dereference the name or anything within the value. The methodology
@@ -129,8 +139,11 @@ E11 asked that the validation model implicit in `-06` be made explicit; A5 asked
 for an organization that buys most of its footprint; A18 asked about additional attestations.
 `-07` adds an OPTIONAL `upstream` array, each entry an object with `declaration` (an absolute
 "https" URI) and an OPTIONAL `role`. An upstream reporting what it delivers to one customer
-publishes an ordinary declaration whose `target-type` is `tenant`, and may also be the party that
-issues the statement a subject links from `verifiable-attestation-uri`.
+publishes an ordinary declaration whose `target-type` is `tenant`, at any "https" URI it chooses,
+for example a per-customer URI it gives that customer; it may also be the party that issues the
+statement a subject links from `verifiable-attestation-uri`. A declaration carries at most one
+`verifiable-attestation-uri`; a subject with more than one attestation links an index of them, or
+the remaining ones, from `disclosure-uri`.
 
 The chain walk carries three MUSTs: depth no greater than three declarations below the starting
 one, refusal of any URI already retrieved during the walk, and a bound on the total retrievals.
@@ -156,8 +169,9 @@ testable without retrieving anything.
 ## 6. Array cap and nosniff removed
 
 E10 called the 366-object cap arbitrary. The server obligation is gone; the calendar bound
-remains as an observation, and the rule that matters is on the consumer, which MUST bound the
-bytes and objects it accepts and MUST NOT rely on any server bound. The truncation-signalling
+remains as an observation about a response that names a granularity, `-07` says that nothing
+bounds the size of a Basic response, and the rule that matters is on the consumer, which MUST
+bound the bytes and objects it accepts and MUST NOT rely on any server bound. The truncation-signalling
 guidance goes with it (A17).
 
 E6 asked for the logic behind `X-Content-Type-Options: nosniff`. It was defence in depth against
@@ -172,7 +186,11 @@ case-sensitive string notation of RFC 7405, importing `date-fullyear`, `date-mon
 `date-mday` from RFC 3339 Appendix A and `unreserved` and `pct-encoded` from RFC 3986 Section 2)
 and a seven-step procedure. Each error has one outcome: a repeated defined parameter and a
 malformed or unreal period receive 400, an unusable granularity is ignored, an unmatched target
-receives 404, and undefined parameters are ignored and kept out of the cache key.
+receives 404, and undefined parameters are ignored and kept out of the origin server's own
+response cache key, a shared cache still keying on the request URI. A server that honors `target`
+MUST publish the set of prefixes it honors in the document identified by `methodology-uri`, and
+SHOULD make an unmatched value indistinguishable from a no-data response in body and in timing;
+there is no in-band list, because one would disclose the paths the rule exists to protect.
 
 Implementation found the real defects were in aggregation, now specified: contributing entries
 are of one precision, the coarsest held inside the period; they MUST NOT overlap; they MUST cover
@@ -201,7 +219,8 @@ process one typed `application/json`, under which older declarations exist; any 
 is not a declaration. Media types are compared ignoring parameters, which implementation showed
 would otherwise have broken the first interoperability test over `charset`.
 
-Three further changes came from implementation. Access control is now out of scope, because the
+Three further changes came from implementation. Access control is now out of scope and a server
+MAY restrict access to the declaration, because the
 unconditional `200` MUST the first `-07` text inherited contradicted the 400/404 rules and, by
 omission, re-imposed the "served to everyone" requirement A3 and A5 objected to. A consumer
 following a redirect to another origin MUST NOT record the result as a declaration of the origin it queried unless
@@ -228,9 +247,22 @@ summary and four subsections that cite rather than restate. Privacy Consideratio
 stating that everything in a declaration is available to any party including an adversary, and
 what it can reveal (E12b). Acknowledgments thanks reviewers and names no one (E14). The document
 is called a *declaration* throughout, replacing `-06`'s "Sustainability Metadata Document".
-Appendix A, a worked deployment from meter reading to verified retrieval, is new (E12a); Appendix
-B, marked for removal before publication, names the two npm packages, the repository and the
-gateway deployment.
+Internal cross-references are numbered rather than given by section title in running prose, so
+they render as "Section N". Appendix A, a worked deployment from the figures to verified
+retrieval, is new (E12a); Appendix B, marked for removal before publication, names the two npm
+packages, the repository and the gateway deployment.
+
+## Rules stated for the first time in `-07`
+
+Five rules in `-07` answer nothing in either review directly and appear in no earlier revision.
+A server that honors the `target` parameter MUST publish the set of prefixes it honors in the
+document identified by `methodology-uri`, and SHOULD make an unmatched value indistinguishable
+from a no-data response. A declaration carries at most one `verifiable-attestation-uri`. Where
+scope members accompany `carbon-footprint` for the same period they SHOULD account for it, and a
+publisher whose scopes cover only part of that figure says so in the methodology document; this
+was implicit in every example and stated nowhere. Pinning a key establishes continuity of
+authorship, not identity, which is what the precedence rule rests on. And `sci-score` is in grams
+of CO2e per `functional-unit` regardless of `carbon-unit`.
 
 ## Defects found by implementing the text
 
@@ -266,8 +298,9 @@ honour, an `x5c` path that let any publicly trusted certificate claim payload pr
   URI-valued members. A4 questioned the level of trust required; the answer is that HTTPS gives
   integrity and origin authentication rather than confidentiality, and that retrieval establishes
   attribution, nothing more.
-* **The whole-subject rule.** A declaration MUST NOT present figures covering part of the
-  declared subject as though they covered the whole. A5 said this blocks adoption; it is kept,
+* **The whole-subject rule.** A publisher MUST NOT present figures covering part of the
+  declared subject as though they covered the whole; `-07` puts the prohibition on the publisher
+  rather than on the document. A5 said this blocks adoption; it is kept,
   compressed, and paired with the narrower-subject on-ramp and now with `upstream`.
 * **The labelling rule.** A consumer MUST NOT represent the data as verified. A9 called this
   dictating epistemology; it is kept as a processing rule on conforming consumers, not a

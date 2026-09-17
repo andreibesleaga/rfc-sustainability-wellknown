@@ -111,9 +111,10 @@ This is enough for a cron job, a build step, or feeding a static-file deployment
 `{ status, headers, body }` — wire it into any request/response model:
 
 **Access control**: the draft answers a `GET` without query parameters with
-`200 OK` **when the server has a declaration to serve for that requester**, and
-`404` when nothing is published. Access control is out of scope: a deployment
-that restricts the resource, or rate-limits it, responds as RFC 9110 defines.
+`200 OK`, and `404` when nothing is published. Access control is out of scope: a
+server **MAY** restrict access to the declaration, and a deployment
+that restricts the resource, or rate-limits it, responds as RFC 9110 defines
+(`401`, `403`, `429`).
 Nothing here forces the document on every requester — wrap or front the handler
 with whatever authorization your deployment needs.
 
@@ -168,9 +169,11 @@ the numbered procedure of the draft's §Extended Query Parameters):
    the canonical order `target`, `period`, `granularity` — never from the query
    string as received. `?a=1` and `?a=2` are one cache entry with one `ETag`;
    so are two values under the same honored `target` prefix, and a `granularity`
-   the publisher ignores. `publisher.cacheKeyFor(query)` exposes the key so an
-   upstream CDN can key the same way, and `publisher.cacheSize` reports how many
-   entries are held.
+   the publisher ignores. This is the **origin's own** response cache; a shared
+   cache keys on the request URI (RFC 9111 §4), so each distinct query string is
+   a distinct entry there. `publisher.cacheKeyFor(query)` exposes the key so a
+   reverse proxy you control can key the same way, and `publisher.cacheSize`
+   reports how many entries are held.
 
 **The aggregate** (`aggregatePeriod`, `src/period.ts`) is what a request for a
 period with no entry of its own gets when finer entries lie inside it. It carries
@@ -262,9 +265,10 @@ exactly what the draft's step 5 lists:
   recomputes none of them. A publisher that does recompute one for the
   aggregated period adds it itself and says so in the methodology document;
 - an optional member that is **not a metric** (`carbon-accounting`,
-  `disclosure-uri`, `verifiable-attestation-uri`, `upstream`, `extensions`) is
-  "carried only where every contributing entry carries it with the same value,
-  and omitted otherwise". Carrying it is part of the test: a member that one
+  `disclosure-uri`, `verifiable-attestation-uri`, `upstream`, `extensions`) — but
+  **not** `energy-unit` and `carbon-unit`, whose values the rule on sums above
+  fixes — is "carried only where every contributing entry carries it with the
+  same value, and omitted otherwise". Carrying it is part of the test: a member that one
   contributor omits is omitted from the aggregate even though the others agree;
 - an aggregate that would carry **no metric member at all** is not emitted: the
   answer is **`404`**, per step 5, and an evidence link does not stand in for a
@@ -494,7 +498,9 @@ The three option bags accepted by `new Publisher(adapter, options)`:
   to force specific output units), `targetPrefixes` (the published prefix set
   the Extended `target` parameter is matched against; unset means the parameter
   is not supported), `signing` (`{ key, keyId? }` — see below). The URI members
-  (`methodologyUri`, `disclosureUri`, `verifiableAttestationUri` and every
+  (`methodologyUri`, `disclosureUri`, `verifiableAttestationUri` — a single URI,
+  since a declaration carries at most one attestation and a subject with more
+  than one links an index of them from `disclosureUri` — and every
   `upstream[].declaration`) must be absolute `https` URIs, `extensions` keys must
   be absolute URIs with the scheme in lowercase — the two forms the draft names
   are an `https` URI with a host

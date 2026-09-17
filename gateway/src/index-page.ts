@@ -275,7 +275,7 @@ export function liveRequests(doc: IndexDocument): LiveRequest[] {
     { href: `${self.path}?period=${Number(year) - 1}`, what: "Extended: a period before go-live", expect: "404, the draft's no-data rule" },
     { href: `${self.path}?period=${year}&granularity=weekly`, what: "Extended: an unknown granularity value", expect: "200, the parameter is ignored" },
     { href: `${self.path}?period=${year}&period=${Number(year) - 1}`, what: "Extended: a parameter given twice", expect: "400, the request is ambiguous" },
-    { href: `${self.path}?target=/other`, what: "Extended: the target parameter", expect: "404 — one process has no path prefixes, so the published set is empty" },
+    { href: `${self.path}?target=/other`, what: "Extended: the target parameter", expect: "404 — one process has no path prefixes, so the published set is empty; byte for byte the no-data 404 above" },
   ];
   if (self.signature) {
     out.push({
@@ -811,7 +811,7 @@ and the <a href="${escapeHtml(doc.specification)}" rel="noopener noreferrer">Int
 <li><a href="https://www.rfc-editor.org/rfc/rfc3986" rel="noopener noreferrer">RFC 3986</a> — URI Generic Syntax; the keys of the <code>extensions</code> member are absolute URIs, compared as strings and never dereferenced.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9562" rel="noopener noreferrer">RFC 9562</a> — UUIDs; the lowercase, hyphenated text form an <code>extensions</code> key takes after <code>urn:uuid:</code>, for a definer without a domain.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc7515" rel="noopener noreferrer">RFC 7515</a> — JSON Web Signature; &#167;7.1 defines the Compact Serialization the <code>signed</code> member carries, and &#167;4.1.10 the <code>cty</code> that types its payload.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc8414" rel="noopener noreferrer">RFC 8414</a> — OAuth 2.0 Authorization Server Metadata; its <code>signed_metadata</code> parameter is the precedent for a signature embedded in the object it secures, whose payload takes precedence over the members around it.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8414" rel="noopener noreferrer">RFC 8414</a> — OAuth 2.0 Authorization Server Metadata; its <code>signed_metadata</code> parameter is the precedent for a signature embedded in the object it secures, whose payload takes precedence over the members around it where the verifier trusts the key independently of the declaration.</li>
 <li><a href="https://www.w3.org/TR/vc-data-model-2.0/" rel="noopener noreferrer">W3C Verifiable Credentials Data Model 2.0</a> and <a href="https://www.w3.org/TR/vc-jose-cose/" rel="noopener noreferrer">Securing Verifiable Credentials using JOSE and COSE</a> — the shape of the attestation.</li>
 <li><a href="https://ghgprotocol.org/" rel="noopener noreferrer">GHG Protocol</a> — the scope and accounting definitions the carbon members follow; <a href="https://sci.greensoftware.foundation/" rel="noopener noreferrer">Software Carbon Intensity</a> — the <code>sci-score</code> member.</li>
 </ul>

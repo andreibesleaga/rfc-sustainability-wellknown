@@ -16,7 +16,7 @@ itself removed.
 
 | Mechanism | What it is | What it establishes | What it does not |
 |---|---|---|---|
-| **Embedded signature**, the `signed` member of a declaration object | A JWS Compact Serialization (RFC 7515) whose payload is the object it appears in, minus `signed`, serialized by the publisher; `cty: "sustainability-data+json"`; EdDSA or ES256; key as `jwk`/`x5c`/`kid` | Integrity after the fact and key continuity: the object a consumer holds is the object this key signed, and successive documents came from the same key. Precedence follows Verification: the payload's values replace the plain members only where the key is trusted out of band, pinned, or chained through `x5c`; a key that merely rode in the JOSE header leaves the origin-served members in use | Who holds the key; whether the figures are right. An absent `signed` member is not evidence of anything; a failing one makes the object *unverified*, never *false* |
+| **Embedded signature**, the `signed` member of a declaration object | A JWS Compact Serialization (RFC 7515) whose payload is the object it appears in, minus `signed`, serialized by the publisher; `cty: "sustainability-data+json"`; EdDSA or ES256; key as `jwk`/`x5c`/`kid` | Integrity after the fact and key continuity: the object a consumer holds is the object this key signed, and successive documents came from the same key. Precedence follows Verification: the payload's values replace the plain members only where the key is trusted out of band, pinned (which gives continuity of authorship, not identity), or chained through `x5c` to an anchor already trusted; a key trusted no further than the declaration that carries it leaves the origin-served members in use | Who holds the key; whether the figures are right. An absent `signed` member is not evidence of anything; a failing one makes the object *unverified*, never *false* |
 | **Attestation** linked by `verifiable-attestation-uri` | A statement signed by a party **other than the publisher**. The reference shape is a W3C Verifiable Credential (Data Model 2.0) secured as `vc+jwt`, whose `credentialSubject` carries a copy of the declaration object (`signed` omitted) or, for a model attestation, the formula that produces it; `application/vc+jwt` | Whatever the credential says, backed by the attester's key — about the figures, or about the method that produces them | Anything about the served bytes on its own: editing the document does not invalidate the credential. A consumer fetches both and compares |
 
 Keys: one Ed25519 key per role, generated with `sustainability-publisher keygen`.
@@ -81,10 +81,10 @@ node gateway/scripts/issue-attestation.mjs --key ~/.config/sustainability-attest
 ```
 
 The tool's credential attests a reporting *model* (constants and formula) for five
-years, which is what the reference gateway needs. An auditor attesting *figures*
+years, which is what the reference gateway needs and the shape the draft's own
+Appendix A worked example describes. An auditor attesting *figures*
 for one reporting period embeds a copy of that declaration object (`signed`
-omitted) in `credentialSubject` instead — the shape the draft's own Appendix A
-worked example describes — and issues a new credential per reporting period;
+omitted) in `credentialSubject` instead — the alternative Appendix A names — and issues a new credential per reporting period;
 the consumer's checks are the same either way. The credential's structure is in
 [internet-drafts/draft-verifiable-credential.md](internet-drafts/draft-verifiable-credential.md).
 

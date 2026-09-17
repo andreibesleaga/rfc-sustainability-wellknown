@@ -13,7 +13,7 @@ This directory contains the technical specifications and operational safeguards 
 * **Status Codes**:
     * `200 OK`: Successful retrieval of metadata.
     * `400 Bad Request`: A repeated query-parameter name, or a `period` that is malformed or names no real calendar date.
-    * `404 Not Found`: No metadata is available for the resolved subject/period, or `target` names a prefix outside the published set.
+    * `404 Not Found`: No metadata is available for the resolved subject/period, or `target` names a prefix outside the published set. The two answers are the **same response**, body included: a server SHOULD make an unmatched `target` indistinguishable from a no-data answer, in body and in timing, or the difference discloses which paths exist.
 
 ## 2. Service Levels
 ### Basic Service (Default)

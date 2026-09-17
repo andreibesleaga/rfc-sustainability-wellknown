@@ -196,9 +196,15 @@ export class Publisher {
     // Honoured only by an Extended publisher that publishes a prefix set.
     const { honored, unmatchedTarget } = this.honor(query);
     if (unmatchedTarget) {
-      // The value is deliberately not echoed: every unmatched target gets
-      // the identical response (Privacy Considerations).
-      throw new NotFoundError("no declaration published for the requested target");
+      // The value is deliberately not echoed, and the response is the ORDINARY
+      // no-data one, message included. Draft §Privacy Considerations: a server
+      // honoring `target` "answers every value outside that set with the same
+      // `404 Not Found` it returns when it holds no data. A server SHOULD make
+      // those two responses indistinguishable in body and in timing as well."
+      // A message naming the target would tell a prober which of the two it
+      // hit, and so which prefixes are published — the very path disclosure the
+      // published-prefix-set restriction exists to prevent.
+      throw new NotFoundError();
     }
     const matchedPrefix = honored.target;
 

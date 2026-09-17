@@ -484,7 +484,7 @@ still applies unchanged to `-07`.)*
   every adapter's output validates against both schemas, and the gateway enforces the
   draft's MUSTs that schemas cannot express (sci-score/functional-unit coupling, array
   ordering and uniformity, single-object response rules, deterministic noise).
-- A **reference client** (`consumer/`, TypeScript, a 358-test suite, all passing; also
+- A **reference client** (`consumer/`, TypeScript, a 359-test suite, all passing; also
   published to npm as
   `sustainability-wellknown-consumer`) that complements the publisher: it fetches,
   defensively validates, transforms (CSV/NDJSON/flatten/trend), and conformance-checks a
@@ -656,8 +656,8 @@ model of the specification:
    with IETF work"; process detail in §10).
 7. **Running code, both sides of the wire.** Two interoperating reference
    implementations (publisher with ten adapters; consumer/validator), dual
-   independent schema validators (JTD and CDDL), 623 automated tests (265 publisher +
-   358 consumer, all passing, verified 2026-09-16), real nginx/Apache deployment
+   independent schema validators (JTD and CDDL), 624 automated tests (265 publisher +
+   359 consumer, all passing, verified 2026-09-17), real nginx/Apache deployment
    configurations exercised in CI, and every example in the draft validated against
    both schemas on every commit (details in §9). Few well-known registrations arrive
    with this much implementation evidence.

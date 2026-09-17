@@ -16,8 +16,8 @@
  * Media typing (same section): the request advertises
  * `application/sustainability-data+json` and, at a lower q-value, the generic
  * `application/json` under which declarations published before the
- * registration exist. A response carrying any other media type "is not a
- * declaration" and is refused unread (`status: "wrong-media-type"`).
+ * registration exist. A response carrying "a media type other than those two
+ * is not a declaration" and is refused unread (`status: "wrong-media-type"`).
  *
  * Client-side bounds (§Denial of Service): -07 removed the server-side array
  * cap, and "a consumer MUST NOT rely on any server bound: it MUST limit the

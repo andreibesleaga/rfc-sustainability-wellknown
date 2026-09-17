@@ -124,7 +124,7 @@ sorted trend array only for a granularity finer than the period (see
 | `GET\|HEAD /{domain}/.well-known/sustainability-data` | The subject's declaration. `200` + the dedicated `application/sustainability-data+json` media type (or the generic `application/json`, per [Configuration reference](#configuration-reference)), or `404` if the subject is unknown. |
 | `GET\|HEAD /.well-known/sustainability-data` | The gateway's own report, `target-type: "service"`, `capabilities: "extended"`: `?period=YYYY[-MM[-DD]]` and `?granularity=monthly\|daily` honoured (array only when the granularity is finer than the period), `404` for a period wholly before go-live. When `SUSTAINABILITY_SIGNING_KEY` is set, every object it returns carries a `signed` member — there is no separate signature resource. |
 | a defined query parameter given twice, or a `period` that names no real calendar date, on a route that honours the parameters | `400` + a JSON body naming the fault, `Cache-Control: no-store` (draft §Extended Query Parameters, steps 1 and 2). |
-| `?target=…` on a route that honours the parameters | `404`: this gateway publishes an empty path-prefix set, so no value matches (step 4). The value is never echoed back. |
+| `?target=…` on a route that honours the parameters | `404`: this gateway publishes an empty path-prefix set, so no value matches (step 4). The value is never echoed back, and the response is byte for byte the no-data `404` a period with no figures gets, so the two cannot be told apart (draft §Privacy Considerations). |
 | `GET\|HEAD /` | HTML index: every subject and the honesty notice. |
 | `GET\|HEAD /index.json` | The same index, machine-readable. |
 | `GET\|HEAD /healthz` | `{"status":"ok","subjects":N}`, `Cache-Control: no-store`. |
@@ -656,7 +656,8 @@ service. It exercises every optional part of the draft:
   A defined parameter given twice, or a `period` naming no real calendar date,
   is `400`; a `target` is `404`, because one process has no path prefixes and
   METHODOLOGY.md therefore publishes an empty prefix set, which no value
-  matches. The parameterless declaration is still the
+  matches — and that `404` is byte for byte the no-data one, which is what
+  §Privacy Considerations asks for. The parameterless declaration is still the
   most recently completed month. The key space is bounded by construction:
   periods with any live overlap × two granularities × three shapes, behind a
   64-entry, one-hour variant cache.

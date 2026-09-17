@@ -72,14 +72,22 @@ describe("GET /.well-known/sustainability-data with Extended parameters", () => 
 
   it("answers 404 for any `target`: the published prefix set is empty (step 4)", async () => {
     // One process has no path prefixes, so METHODOLOGY.md publishes an empty
-    // set and every value matches nothing. The value is never echoed back.
+    // set and every value matches nothing. The value is never echoed back, and
+    // the answer is INDISTINGUISHABLE from the no-data 404 of a period the
+    // server holds nothing for: draft §Privacy Considerations, "answers every
+    // value outside that set with the same `404 Not Found` it returns when it
+    // holds no data. A server SHOULD make those two responses indistinguishable
+    // in body and in timing as well."
+    const noData = await get("?period=2024-12");
+    expect(noData.status).toBe(404);
+    const noDataBody = await noData.text();
     for (const qs of ["?target=/x", "?target=/&granularity=daily", "?target=anything"]) {
       const r = await get(qs);
       expect(r.status, qs).toBe(404);
-      expect(await r.json()).toMatchObject({
-        status: 404,
-        error: "no declaration published for the requested target",
-      });
+      expect(await r.text(), qs).toBe(noDataBody);
+      for (const h of ["content-type", "cache-control", "access-control-allow-origin", "last-modified"]) {
+        expect(r.headers.get(h), `${qs} ${h}`).toBe(noData.headers.get(h));
+      }
     }
   });
 

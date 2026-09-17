@@ -470,8 +470,10 @@ Two more prose rules complete the model:
   that fallback is withdrawn in `-07`.)
 * **Trust posture** — the endpoint *asserts*, it does not *verify*. Clients MUST
   NOT treat the document as proof; `verifiable-attestation-uri` (as of `-07`, a
-  verifiable credential binds to the declaration by embedding a copy of the
-  object, without `signed`, inside `credentialSubject` — not a byte hash),
+  verifiable credential attesting one period binds to the declaration by
+  embedding a copy of the object, without `signed`, inside `credentialSubject` —
+  not a byte hash — while one attesting the derivation model carries that model
+  instead, as Appendix A's deployment does),
   `disclosure-uri` (e.g. carbon.txt), and a verified `signed` member are the
   composable paths to independent verification, none of them proof.
 
@@ -946,7 +948,7 @@ flowchart TB
   framework.
 * **`server-configurations/`** — the nginx/Apache snippets used by topology 3/4,
   live-tested in CI (below).
-* **`example-responses/`** — 16 golden documents covering every service level
+* **`example-responses/`** — 17 golden documents covering every service level
   and field combination; all pass both validators against the `-07` schemas in
   `schemas-validators/`, which are byte-identical to the draft's own blocks.
 

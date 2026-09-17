@@ -13,6 +13,7 @@ import {
   badRequestResult,
   handleRequest,
   importSigningKey,
+  NotFoundError,
   parseQuery,
   queryFromSearchParams,
   type ServiceQuery,
@@ -239,7 +240,7 @@ export async function route(
     // malformed `period` is 400, an unknown `granularity` value is ignored,
     // and a `target` is matched against the published prefix set — which for
     // one process with no path prefixes is empty, so any value is 404.
-    const parsed = extendedQuery(search, { maxAge: selfMaxAge(gw.config) });
+    const parsed = extendedQuery(search, { maxAge: selfMaxAge(gw.config), lastModified: self.lastModified });
     if (!parsed.ok) return parsed.result;
     return serveDocument(self, { ...gw.config, maxAge: selfMaxAge(gw.config) }, ifNoneMatch, ifModifiedSince, gw.config.mediaType, parsed.query);
   }
@@ -267,7 +268,7 @@ export async function route(
     const mediaType = gw.mediaTypeOverrides.get(domain) ?? gw.config.mediaType;
     let query: ServiceQuery = {};
     if (gw.examples?.get(domain)?.granularity) {
-      const parsed = extendedQuery(search, { maxAge: gw.config.maxAge });
+      const parsed = extendedQuery(search, { maxAge: gw.config.maxAge, lastModified: subject.lastModified });
       if (!parsed.ok) return parsed.result;
       query = parsed.query;
     }
@@ -296,8 +297,10 @@ export function splitTarget(rawUrl: string): { path: string; search: URLSearchPa
  *    prefixes (step 4). This gateway publishes an empty prefix set for every
  *    subject it serves — one process with no path prefixes, and relayed
  *    documents whose subjects are whole organizations — so a `target` matches
- *    nothing and the answer is `404`. The value is never echoed: every
- *    unmatched target gets the identical response (Privacy Considerations).
+ *    nothing and the answer is the NO-DATA response of {@link noDataResult}.
+ *    The value is never echoed, and the response is the one the publisher
+ *    itself returns when it holds nothing, so an unmatched value cannot be
+ *    told apart from a period the server has no figures for.
  *
  * `queryFromSearchParams` is what preserves a repeated name; collapsing the
  * query into a plain object first would hide the very duplication step 1 is
@@ -305,19 +308,48 @@ export function splitTarget(rawUrl: string): { path: string; search: URLSearchPa
  */
 type ExtendedQuery = { ok: true; query: ServiceQuery } | { ok: false; result: Result };
 
-function extendedQuery(search: URLSearchParams, opts: { maxAge: number }): ExtendedQuery {
+function extendedQuery(
+  search: URLSearchParams,
+  opts: { maxAge: number; lastModified: string },
+): ExtendedQuery {
   const parsed = parseQuery(queryFromSearchParams(search));
   if (!parsed.ok) {
     const r = badRequestResult(parsed.error, { maxAge: opts.maxAge, cors: CORS_ORIGIN });
     return { ok: false, result: withBody(r.status, r.headers, r.body) };
   }
   if (parsed.query.target !== undefined) {
-    return {
-      ok: false,
-      result: jsonError(404, "no declaration published for the requested target"),
-    };
+    return { ok: false, result: noDataResult(opts.maxAge, opts.lastModified) };
   }
   return { ok: true, query: { period: parsed.query.period, granularity: parsed.query.granularity } };
+}
+
+/**
+ * The no-data `404` for a declaration resource — status, header fields and body
+ * exactly as {@link serveDocument} returns them when the publisher library holds
+ * nothing for the request (`handleRequest`'s own 404, plus the `Last-Modified`
+ * that `serveDocument` adds).
+ *
+ * Draft §Privacy Considerations: a server honoring `target` "answers every value
+ * outside that set with the same `404 Not Found` it returns when it holds no
+ * data. A server SHOULD make those two responses indistinguishable in body and
+ * in timing as well." Two distinct bodies would tell a prober which of the two
+ * it had hit, which is the path-disclosure the restriction exists to prevent, so
+ * the unmatched-`target` answer is built here rather than as a `jsonError` of
+ * its own. `NotFoundError`'s default message is the publisher library's own
+ * no-data wording, taken from the library so the two cannot drift apart.
+ */
+function noDataResult(maxAge: number, lastModified: string): Result {
+  return {
+    status: 404,
+    headers: {
+      "Cache-Control": `public, max-age=${maxAge}`,
+      "Access-Control-Allow-Origin": CORS_ORIGIN,
+      "Access-Control-Expose-Headers": "ETag, Last-Modified",
+      "Content-Type": "application/json",
+      "Last-Modified": lastModified,
+    },
+    body: JSON.stringify({ error: new NotFoundError().message.toLowerCase() }),
+  };
 }
 
 /**

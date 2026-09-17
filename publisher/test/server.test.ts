@@ -307,11 +307,22 @@ describe("handler query processing (draft numbered procedure)", () => {
     expect((await scoped.json()).target).toBe("/api");
     expect((await (await fetch(`${srv2.url}?target=/app/storage`)).json()).target).toBe("/app/storage");
 
+    // The no-data answer for a MATCHED prefix, to compare the unmatched ones
+    // against: draft §Privacy Considerations, a server honoring `target`
+    // "answers every value outside that set with the same `404 Not Found` it
+    // returns when it holds no data", and SHOULD make the two indistinguishable
+    // in body and in timing as well — otherwise the difference says which
+    // prefixes are published.
+    const noData = await fetch(`${srv2.url}?target=/api&period=1999`);
+    expect(noData.status).toBe(404);
+    const noDataBody = await noData.text();
+
     for (const value of ["/apifoo", "/other", "/API", "api"]) {
       const r = await fetch(`${srv2.url}?target=${encodeURIComponent(value)}`);
       expect(r.status, value).toBe(404);
-      // Identical responses for every unmatched value (Privacy Considerations).
-      expect((await r.json()).error).toBe("no declaration published for the requested target");
+      // Identical responses for every unmatched value, and identical to the
+      // no-data one (Privacy Considerations).
+      expect(await r.text(), value).toBe(noDataBody);
     }
     await srv2.close();
   });

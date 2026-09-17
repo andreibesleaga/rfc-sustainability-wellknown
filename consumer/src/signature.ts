@@ -11,8 +11,10 @@
  * What the outcome means is fixed by the draft and never softened here:
  * an absent member is NOT evidence of anything, and a member that fails to
  * verify makes the object UNVERIFIED, never false. A verified signature
- * establishes integrity and key continuity — not identity (unless the key was
- * pinned out of band) and never accuracy.
+ * establishes integrity and key continuity — not identity (a pinned key gives
+ * continuity, that the same holder signed the earlier declaration, not identity;
+ * identity needs a key obtained out of band or an `x5c` chain to a trusted
+ * anchor) and never accuracy.
  *
  * Three payload rules of -07 are enforced here, each with its own reason code,
  * because each describes a payload that cannot stand for the object:
@@ -43,8 +45,8 @@ export interface EmbeddedSignatureOutcome {
    *
    * It is the members the consumer USES only when
    * `result.precedence === "payload"` — that is, when the key was pinned or
-   * supplied by the caller. With a key that arrived in the JOSE Header
-   * (`precedence: "origin"`) the payload is reported for inspection and
+   * supplied by the caller. With a key trusted no further than the declaration
+   * carrying it (`precedence: "origin"`) the payload is reported for inspection and
    * comparison, and the members served by the origin remain the ones in use
    * (draft -07 §Verification). Callers substituting members MUST check
    * `precedence` first; `fetchSustainability` does.

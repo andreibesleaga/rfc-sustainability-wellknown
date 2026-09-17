@@ -215,10 +215,15 @@ export const MUST_AGREE_MEMBERS = [
  * Members the draft's list neither sums nor names as carried over. They are not
  * metric members, so "every other metric member is omitted" does not reach
  * them; carrying one contributor's value alone would, however, describe
- * the aggregate with that contributor's context. Draft step 5: "An optional
- * member that is not a metric is carried only where every contributing entry
- * carries it with the same value, and omitted otherwise" — so a member absent
- * from any one entry is omitted, exactly as a member whose values differ is.
+ * the aggregate with that contributor's context. Draft step 5: "Any other
+ * optional member that is not a metric, other than `energy-unit` and
+ * `carbon-unit`, whose values the rule on sums above fixes, is carried only
+ * where every contributing entry carries it with the same value, and omitted
+ * otherwise" — so a member absent from any one entry is omitted, exactly as a
+ * member whose values differ is. The two unit members are deliberately NOT in
+ * this list: they are fixed by the rule on sums (the unit the LAST contributing
+ * entry declares), so a disagreement between entries never drops them and
+ * silently reverts the aggregate to the `kWh`/`gCO2e` defaults.
  */
 const AGREE_OR_OMIT_MEMBERS = [
   "carbon-accounting",

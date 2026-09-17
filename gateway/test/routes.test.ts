@@ -211,7 +211,7 @@ describe("index routes", () => {
     expect(html).not.toContain("/.well-known/carbon.txt");
     // The new sections are present.
     expect(html).toContain("Adapter demonstrations (8)");
-    expect(html).toContain("Wire-format examples (16)");
+    expect(html).toContain("Wire-format examples (17)");
     expect(html).toContain("Consumer cross-validation");
   });
 

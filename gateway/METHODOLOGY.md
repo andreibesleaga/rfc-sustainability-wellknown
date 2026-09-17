@@ -95,11 +95,12 @@ draft's three Extended parameters:
   granularity that is not finer than the period, or any other value, is ignored.
 
 **The set of path prefixes this publisher honours for the `target` parameter is
-EMPTY.** The draft asks a publisher to document that set here, and here it is:
-the gateway is one process with no path prefixes to scope a report to. Step 4 of
-the draft's query procedure therefore matches no value, and any `target=` request
-is answered `404` — identically for every value, so the response discloses
-nothing about which paths exist.
+EMPTY.** A server honouring the parameter MUST publish that set here, and here it
+is: the gateway is one process with no path prefixes to scope a report to. Step 4
+of the draft's query procedure therefore matches no value, and any `target=`
+request is answered `404` — identically for every value, and byte for byte the
+same `404` a period with no figures gets, so the response discloses nothing about
+which paths exist.
 
 Since -07 the procedure is strict about malformed input as well: a defined
 parameter given more than once, and a `period` that is not a real calendar year,
@@ -239,9 +240,12 @@ not establish: who holds the key, and whether the figures are right — a
 correctly signed estimate is still an estimate. The precedent for carrying a
 signature inside the object it secures is the `signed_metadata` parameter of
 RFC 8414. -07 makes that precedence conditional on the key: a payload overrides
-the members around it only where the verifier trusts the key out of band or
-through an `x5c` chain, so for this deployment's header-carried `jwk` the
-members the origin serves remain the ones a consumer uses.
+the members around it only where the verifier obtained the key out of band,
+pinned it from an earlier retrieval, or validated it through an `x5c` chain to an
+anchor it already trusts. For this deployment's header-carried `jwk`, taken on
+first sight, the members the origin serves remain the ones a consumer uses; a
+verifier that pins the key gains precedence on the strength of continuity —
+the same holder signed the earlier declaration — and not of identity.
 
 ### The attestation
 
@@ -357,5 +361,36 @@ document; what each document here actually carries is listed in
   `nakamoto-coefficient`, `geographic-regions`; and, at operator level, the
   membership members `member-of-network` and `network-declaration`, which
   `upstream` cannot express because a network is not a supplier.
+
+### The six `https://greenhost.example/esg/extensions/…` names
+
+Carried by the wire-format example `comprehensive.example`, a synthetic
+data-centre operator whose every figure is invented. The names are minted under
+that document's own reserved domain (RFC 2606), so, like `acme.example` above,
+they document nothing: **their definitions are illustrative and live in the
+example document itself**, and the member-by-member listing is in
+[`data/README.md`](data/README.md#extension-names-served-here). They are served
+to show what one publisher's own extension set looks like when it reports the
+whole of its sustainability data — everything the specification does not define
+— beside the members it does:
+
+- **`…/facility-efficiency`** — the ISO/IEC 30134 KPI family for one site,
+  annualized: `pue`, `ref`, `iteu`, `erf`, `cer`, `wue-L-per-kWh`, plus The Green
+  Grid's `cue-kgCO2e-per-kWh`, with `site-total-energy-MWh` and
+  `heat-reuse-delivered-MWh` as the quantities the ratios are taken over.
+- **`…/water`** — withdrawal, consumption and discharge in cubic metres, the
+  split of withdrawal by source, and the basin's water-stress band.
+- **`…/waste`** — waste generated, hazardous and e-waste in kilograms, with the
+  landfill-diversion, recycling and e-waste-reuse percentages.
+- **`…/hardware-lifecycle`** — general-purpose hardware, expected service life,
+  whether embodied carbon is inside `scope-3`, refurbished share, take-back
+  programme. A different name from the SFC profile's `hardware-lifecycle` above:
+  same topic, different definer, and a name is compared octet for octet.
+- **`…/direct-emissions`** — refrigerant leakage and generator diesel, in mass
+  and in tonnes CO2e, declared as already inside `scope-1` rather than added to
+  it.
+- **`…/renewable-procurement`** — how the base `renewable-energy` percentage was
+  obtained: PPA, unbundled certificates, on-site generation, and the grid mix the
+  rest is priced against.
 
 [draft]: https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/

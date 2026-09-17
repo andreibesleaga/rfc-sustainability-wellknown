@@ -118,6 +118,17 @@ export const WIRE_CASES: CaseDef[] = [
       "response therefore collapses to the most recent year, exactly as the draft requires.",
   },
   {
+    file: "example-response-comprehensive.json",
+    domain: "comprehensive.example",
+    caseName: "Comprehensive organization report",
+    note:
+      "Every optional member the format defines that fits an organization, and six " +
+      "https-keyed extensions for what it does not define: ISO/IEC 30134 facility KPIs, " +
+      "water, waste, hardware circularity, refrigerant and generator emissions, and " +
+      "renewable procurement. The extension names are under the example publisher's own " +
+      "reserved domain and their definitions are illustrative.",
+  },
+  {
     file: "example-response-product.json",
     domain: "product.example",
     caseName: "Product",

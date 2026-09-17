@@ -31,10 +31,15 @@ job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad in
 >   revision). The signed payload's members take precedence over the members
 >   served *only* when the verification key was pinned or supplied out of band
 >   (`signaturePolicy.trustedKeys`); the result then reports
->   `precedence: "payload"`. When the key arrived in the JOSE Header it is
->   trusted no further than the declaration carrying it, so the **members served
->   by the origin remain the ones reported** (`precedence: "origin"`) and the
->   signature establishes integrity and key continuity only. A payload is also
+>   `precedence: "payload"`, and a pinned key gives **continuity of authorship,
+>   not identity** — precedence rests on the same holder having signed the
+>   earlier declaration, not on knowing who that holder is. In every other case
+>   the key is trusted no further than the declaration carrying it, so the
+>   **members served by the origin remain the ones reported**
+>   (`precedence: "origin"`) and the signature establishes integrity and key
+>   continuity only. The split is on how far the key is trusted, not on where
+>   its bytes travelled: an `x5c` chain this package has not validated to a
+>   trusted anchor is in the second case too. A payload is also
 >   rejected — the object left `unverified` — when it is not a valid
 >   declaration (`payload-not-declaration`), when its `target` or
 >   `reporting-period` differs from the object's
@@ -222,7 +227,7 @@ the transformation helpers, disclosure-link handling, and the conformance checke
 | `media-type` | `MEDIA_TYPE` (`application/sustainability-data+json`), `LEGACY_MEDIA_TYPE` (`application/json`), `ACCEPTED_MEDIA_TYPES`, `ACCEPT_HEADER`, `classifyMediaType()` — the draft's media typing, in the one file a future rename would touch |
 | `validate` | `validateDocument()`/`assertValid()`/`ValidationError`/`carriesAtLeastOne()`/`URI_MEMBERS`/`KNOWN_MEMBERS`/`METRIC_MEMBERS`/`isExtensionName`/`extensionNameError`/`isHttpsExtensionName`/`isUrnUuidExtensionName`/`RESERVED_EXTENSION_NAMES` — defensive validation of an incoming declaration: the JTD schema gate plus the prose rules the schemas cannot express (a top-level value that is neither an object nor an array, the at-least-one rule, `sci-score`⇒`functional-unit`, absolute-URI `extensions` keys with object values and neither the Nil nor the Max UUID, the at-least-one-entry rule on `upstream`, a numeric member carrying a value the format cannot express (`NaN`/±`Infinity`, which a `1e999` on the wire produces), and the cross-entry array rules). A non-`https` URI member — `methodology-uri`, `disclosure-uri`, `verifiable-attestation-uri` or an `upstream[].declaration` — is deliberately a WARNING rather than an error: the member is kept and the object stays valid, and the rule is enforced where it bites, at dereference time (`fetchDisclosure` and the upstream walk refuse such a URI outright). `result.warnings` carries those advisory findings (a non-`https` URI member, an `unknown-member`) and never changes `result.valid` |
 | `jws` | `verifyJws()`, `verifyDeclarationJws()`, `algForKey()`, `DECLARATION_CTY`, `VC_JWT_MEDIA_TYPE` — JWS verification on top of [`jose`](https://github.com/panva/jose) with the draft's verifier policy (RFC 8725): the algorithm is determined by the key and the caller's policy, `none`/MACs and unknown `crit` are rejected, a `signed` member whose `cty` is not `sustainability-data+json` is rejected, a header `jwk` must be a public key and is ignored when the caller pins `trustedKeys`; every failure is a stable `reason`, never a throw |
-| `signature` | `verifyEmbeddedSignature(object, policy)` — the `signed` member of one declaration object: `unsigned` / `verified` / `unverified`, the verified payload, `precedence` (`"payload"` only for a pinned/out-of-band key, `"origin"` for a key that arrived in the JOSE Header), and the members that differ when the object was changed after signing. A payload that is not a declaration, that describes another `target`/`reporting-period`, or that carries `signed` itself leaves the object unverified; a wrongly typed `signed` member reads as `unsigned` |
+| `signature` | `verifyEmbeddedSignature(object, policy)` — the `signed` member of one declaration object: `unsigned` / `verified` / `unverified`, the verified payload, `precedence` (`"payload"` only for a pinned/out-of-band key — pinning gives continuity of authorship, not identity — and `"origin"` for a key trusted no further than the declaration carrying it), and the members that differ when the object was changed after signing. A payload that is not a declaration, that describes another `target`/`reporting-period`, or that carries `signed` itself leaves the object unverified; a wrongly typed `signed` member reads as `unsigned` |
 | `compare` | `deepEqual()`, `differingMembers()`, `withoutSigned()` — the structural comparison both the signature and the attestation binding use |
 | `upstream` | `compareUpstream(subject, options)`, `MAX_UPSTREAM_DEPTH`, `DEFAULT_MAX_UPSTREAM_RETRIEVALS` — the bounded upstream walk: https only, depth 3 at most, revisited URIs refused, a total-retrieval budget shared by every level, one verdict per upstream entry (each compared on its own; no relation is defined over several together); every retrieved declaration is read with the same tolerance pre-pass the fetch path applies (`applyToleranceRules`, reported per entry in `upstreamDisregarded`; `legacyCompat: false` turns it off for the walk too), so a defective value is disregarded rather than making the upstream `unreachable`; the arithmetic comparison applies only to a tenant-scoped upstream declaration, covers `energy-consumption` and `carbon-footprint` only, compares `carbon-footprint` only on a shared `carbon-accounting` basis (`carbonComparison` records a skip), and disregards a shortfall no larger than rounding and unit conversion could account for (relative 1e-9) |
 | `attestation` | `verifyAttestation(uri, options)` (explicit; never automatic), `verifyCredentialJwt()`, `checkCredentialShape()`, `checkBinding()`, `declarationCopyOf()`, `VC_V2_CONTEXT` — a W3C Verifiable Credential 2.0 secured as `vc+jwt`: HTTPS only, signature + VC shape + validity window, `assurance: "issuer-key-pinned" \| "self-asserted-key"`, and the -07 binding — the copy of the declaration the credential carries, deep-compared with the object served (`match` / `mismatch` / `no-copy`) |
@@ -326,7 +331,9 @@ two upstream lines, and adds that no relation is defined over several entries
 together.
 
 `--verify-attestation` dereferences the declaration's
-`verifiable-attestation-uri` — explicitly, never automatically — verifies it as
+`verifiable-attestation-uri` — a single URI, since a declaration carries at most
+one, and a subject with more than one attestation links an index of them from
+`disclosure-uri` — explicitly, never automatically — verifies it as
 a W3C Verifiable Credential (Data Model 2.0) secured as `vc+jwt`, and compares
 the copy of the declaration the credential carries with the object served
 (`match`, `mismatch` naming the members, or `no-copy`). Give it the issuer's

@@ -183,7 +183,7 @@ describe("-07: the credential binds by carrying a copy of the declaration", () =
     "energy-unit": "kWh",
   };
 
-  /** A credential whose subject carries the declaration copy, as Appendix A describes. */
+  /** A credential whose subject carries the declaration copy, the per-period shape Appendix A names. */
   const binding = (declaration: unknown) =>
     credential({ credentialSubject: { id: "https://example.com/.well-known/sustainability-data", declaration } });
 

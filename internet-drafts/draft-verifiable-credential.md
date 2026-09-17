@@ -19,12 +19,16 @@ needed to verify it; the signature covers the credential's bytes. The media
 type of the hosted file is `application/vc+jwt`.
 
 As of draft revision `-07`, the draft's own worked example (Appendix A, "Worked
-Example: A Live Deployment") shows a credential whose `credentialSubject` carries a copy of the declaration
-object, without `signed`, in a member of its own. A credential built this way
+Example: A Live Deployment") shows a credential whose `credentialSubject` carries
+the derivation model behind the figures — its constants and its formulas, from
+which every period's figures follow — and names, as the alternative for an issuer
+attesting the figures of one period, a copy of that declaration object, without
+`signed`, in a member of its own. A credential built the second way
 binds to the declaration by carrying that copy directly — never a byte hash or
 digest of the served document — so a consumer compares the credential's
 embedded copy against the (verified, if signed) declaration member-by-member
-instead of recomputing anything. That is the shape of the first example below.
+instead of recomputing anything. That is the shape of the first example below;
+the model shape is the second.
 
 ## Two shapes of `credentialSubject`
 
@@ -37,7 +41,8 @@ vouching for.
 
 An auditor who reviewed one period's figures issues a credential whose
 `credentialSubject` is a copy of that declaration object, with `signed`
-omitted — the shape the draft's own Appendix A worked example describes. One
+omitted — the shape the draft's own Appendix A worked example names for an
+issuer attesting one period. One
 credential per reporting period; a consumer fetches both and compares the
 embedded copy against the served (and, if present, verified) declaration. The
 example below reuses the draft's own "Signed Declaration with Scopes and

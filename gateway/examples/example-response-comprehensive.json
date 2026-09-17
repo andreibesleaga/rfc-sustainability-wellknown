@@ -1,0 +1,79 @@
+{
+  "updated": "2026-03-31T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Greenhost Data Centres Ltd (esg@greenhost.example) - illustrative example; every figure is invented and no real operator is named.",
+  "measurement-method": "hardware-metered",
+  "methodology-uri": "https://greenhost.example/esg/methodology/2025",
+  "reporting-period": "2025",
+  "target": "Greenhost Data Centres Ltd",
+  "energy-consumption": 96000,
+  "energy-unit": "MWh",
+  "carbon-footprint": 20514,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 394,
+  "scope-2": 11520,
+  "scope-3": 8600,
+  "carbon-intensity-gCO2e-per-kWh": 120,
+  "estimated-annual-emissions-kgCO2e": 20514000,
+  "renewable-energy": 68,
+  "verifiable-attestation-uri": "https://assurance.example/statements/greenhost-2025",
+  "disclosure-uri": "https://greenhost.example/esg/disclosures/",
+  "target-type": "organization",
+  "extensions": {
+    "https://greenhost.example/esg/extensions/facility-efficiency": {
+      "reporting-basis": "annualized",
+      "measurement-boundary": "site",
+      "site-identifier": "gh-dc-01",
+      "site-total-energy-MWh": 28000,
+      "pue": 1.25,
+      "ref": 0.71,
+      "iteu": 0.42,
+      "erf": 0.23,
+      "cer": 4.6,
+      "wue-L-per-kWh": 1.35,
+      "cue-kgCO2e-per-kWh": 0.15,
+      "heat-reuse-delivered-MWh": 6440
+    },
+    "https://greenhost.example/esg/extensions/water": {
+      "water-withdrawal-m3": 185000,
+      "water-consumption-m3": 129500,
+      "water-discharge-m3": 55500,
+      "municipal-supply-share-percent": 62,
+      "groundwater-share-percent": 11,
+      "recycled-water-share-percent": 27,
+      "water-stress-level": "medium"
+    },
+    "https://greenhost.example/esg/extensions/waste": {
+      "waste-generated-kg": 148000,
+      "diverted-from-landfill-percent": 91,
+      "recycled-percent": 74,
+      "hazardous-waste-kg": 2400,
+      "e-waste-kg": 38000,
+      "e-waste-reuse-percent": 46
+    },
+    "https://greenhost.example/esg/extensions/hardware-lifecycle": {
+      "general-purpose-hardware": true,
+      "expected-service-life-years": 6,
+      "embodied-carbon-in-scope-3": true,
+      "refurbished-hardware-share-percent": 23,
+      "take-back-programme-uri": "https://greenhost.example/esg/hardware-take-back"
+    },
+    "https://greenhost.example/esg/extensions/direct-emissions": {
+      "included-in-scope-1": true,
+      "refrigerant-leakage-kg": 200,
+      "refrigerant-gwp-basis": "ipcc-ar5-100-year",
+      "refrigerant-leakage-tCO2e": 260,
+      "diesel-generator-hours": 96,
+      "diesel-fuel-litres": 50000,
+      "diesel-emissions-tCO2e": 134
+    },
+    "https://greenhost.example/esg/extensions/renewable-procurement": {
+      "power-purchase-agreement-share-percent": 45,
+      "unbundled-certificate-share-percent": 21,
+      "on-site-generation-share-percent": 2,
+      "on-site-generation-kWh": 1920000,
+      "grid-mix-basis": "national-residual-mix-2024"
+    }
+  }
+}

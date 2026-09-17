@@ -136,8 +136,25 @@ class BadRequest(Exception):
     pass
 
 
+NO_DATA_MESSAGE = "no sustainability metadata available"
+
+
 class NotFound(Exception):
-    pass
+    """No data for this request.
+
+    Every no-data outcome carries the SAME message, and an unmatched ``target``
+    is one of them: the draft's Privacy Considerations has a server honouring
+    ``target`` answer "every value outside that set with the same ``404 Not
+    Found`` it returns when it holds no data", and SHOULD make the two
+    "indistinguishable in body and in timing as well". Two different bodies
+    would tell a prober which of the two it hit, which is the path disclosure
+    the published-prefix-set restriction exists to prevent. What failed is a
+    matter for the operator's log, not for the response.
+    """
+
+    def __init__(self, reason: str = "") -> None:  # reason: operator-facing only
+        super().__init__(NO_DATA_MESSAGE)
+        self.reason = reason or NO_DATA_MESSAGE
 
 
 DEFINED_PARAMETERS = ("target", "period", "granularity")
@@ -170,14 +187,16 @@ def _resolve(params: dict):
     period) is not implemented against wall-clock time in this reference —
     the dataset above is fixed and illustrative, and this repository's tests
     are deterministic; a real deployment applies step 6 against its own
-    clock. Step 7 (each distinct query string is a distinct cache entry) is
-    satisfied by the caller: the response body, and so its ETag, differs by
-    construction for every distinct selection made here."""
+    clock. Step 7 (an origin server computes the cache key of its own response
+    cache from the parameters it honors, in a canonical order, rather than from
+    the query string as received) is satisfied by the caller: the response body,
+    and so its ETag, differs by construction for every distinct selection made
+    here, and for no other reason."""
     # Step 4 (resolve first so later steps operate on the right dataset).
     target_param = params.get("target")
     if target_param is not None:
         if target_param not in PUBLISHED_TARGET_PREFIXES:
-            raise NotFound(f"unpublished target prefix: {target_param}")
+            raise NotFound(f"unpublished target prefix: {target_param}")  # body: the no-data message
         subject = target_param
     else:
         subject = ORIGIN_TARGET
@@ -210,7 +229,7 @@ def _resolve(params: dict):
             key=lambda e: e["reporting-period"],
         )
         if not matches:
-            raise NotFound(f"no entries of granularity {G} within {P}")
+            raise NotFound(f"no entries of granularity {G} within {P}")  # body: the no-data message
         return secure_sustainability_report(matches)
 
     exact = [e for e in entries if e["reporting-period"] == P]
@@ -219,7 +238,7 @@ def _resolve(params: dict):
 
     finer = sorted((e for e in entries if _within(e["reporting-period"], P)), key=lambda e: e["reporting-period"])
     if not finer:
-        raise NotFound(f"nothing lies within {P}")
+        raise NotFound(f"nothing lies within {P}")  # body: the no-data message
     return _aggregate(finer, P)
 
 

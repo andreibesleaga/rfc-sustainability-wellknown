@@ -25,12 +25,18 @@ import type { PublicJwk, SigningAlg } from "./jws";
  * payload's members take precedence over the members around them — the
  * RFC 8414 `signed_metadata` pattern — ONLY where the key was obtained out of
  * band, pinned from an earlier retrieval, or validated through an `x5c` chain
- * to an anchor the consumer already trusts. Where the key arrived in the JOSE
- * Header, and is therefore trusted no further than the declaration carrying
- * it, the members SERVED BY THE ORIGIN remain the ones the consumer uses and
- * the signature establishes integrity and key continuity only: "letting a
- * self-asserted payload override an origin-authenticated one would let anyone
- * able to add a member replace every figure".
+ * to an anchor the consumer already trusts. IN EVERY OTHER CASE the key is
+ * trusted no further than the declaration carrying it, the members SERVED BY
+ * THE ORIGIN remain the ones the consumer uses and the signature establishes
+ * integrity and key continuity only: "letting a self-asserted payload override
+ * an origin-authenticated one would let anyone able to add a member replace
+ * every figure". The split is on how far the key is trusted, not on where its
+ * bytes travelled — an `x5c` chain rides in the JOSE Header too, and one this
+ * package has not validated to a trusted anchor is in the second case.
+ *
+ * Pinning establishes CONTINUITY, not identity: precedence rests on the same
+ * holder having signed the earlier declaration, not on knowing who that holder
+ * is (draft -07 §Verification).
  */
 export type SignatureResult =
   | { status: "unsigned" }
@@ -46,11 +52,12 @@ export type SignatureResult =
        *
        *  - `"payload"` — the key was pinned/supplied by this consumer
        *    (`keySource: "trusted"`), so the signed payload's members took
-       *    precedence over the members served around them;
-       *  - `"origin"` — the key arrived in the JOSE Header
-       *    (`keySource: "header"`), so the members SERVED BY THE ORIGIN are
-       *    the ones in use; the signature establishes integrity and key
-       *    continuity and nothing more.
+       *    precedence over the members served around them. A pinned key gives
+       *    continuity of authorship, not identity;
+       *  - `"origin"` — the key is trusted no further than the declaration
+       *    carrying it (`keySource: "header"`), so the members SERVED BY THE
+       *    ORIGIN are the ones in use; the signature establishes integrity and
+       *    key continuity and nothing more.
        *
        * It is derived from `keySource` and stated separately because it, not
        * the key source, is what a caller needs to know to read `document`.
@@ -412,7 +419,8 @@ export type FetchResult =
   | { status: "invalid"; errors: string[] }
   /**
    * The 200 response carried a media type that is not a declaration (draft
-   * -07: "A response carrying any other media type is not a declaration").
+   * -07: "A response carrying a media type other than those two is not a
+   * declaration").
    * Only `application/sustainability-data+json` and the generic
    * `application/json` are processed; anything else — including a missing
    * `Content-Type` — is refused without parsing the body.

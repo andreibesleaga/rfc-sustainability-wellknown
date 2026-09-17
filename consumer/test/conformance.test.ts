@@ -137,8 +137,8 @@ describe("runConformanceChecks()", () => {
 
   it("true negative: valid JSON served as text/html FAILS — such a response is not a declaration", async () => {
     // The body is valid JSON, but the media type is neither the registered
-    // type nor the generic one. -07: "A response carrying any other media type
-    // is not a declaration", so the consumer refuses it unread and every check
+    // type nor the generic one. -07: "A response carrying a media type other
+    // than those two is not a declaration", so the consumer refuses it unread and every check
     // that needs the declaration fails with it.
     const origin = await startServerWithContentType("text/html; charset=utf-8", NOSNIFF);
 

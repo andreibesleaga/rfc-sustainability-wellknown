@@ -98,9 +98,11 @@ export const MAX_UPSTREAM_DEPTH = 3;
 /**
  * Default bound on the TOTAL number of upstream declarations retrieved for one
  * starting declaration (draft -07 §Upstream Declarations and §Consumer
- * Considerations: a consumer walking the chain "bounds the depth, the breadth,
- * and the total number of retrievals ... so that a chain of declarations
- * cannot be turned into an amplifier").
+ * Considerations: a consumer walking the chain "applies the depth, revisit, and
+ * total-retrieval limits of Upstream Declarations, so that a chain of
+ * declarations cannot be turned into an amplifier"; -07 moved the bounds into
+ * Upstream Declarations and dropped the separate "breadth" limit, which this
+ * package bounds through the total-retrieval budget below).
  *
  * Depth alone does not bound the work: `upstream` is an array, so a document
  * naming ten providers, each naming ten, reaches a thousand retrievals at

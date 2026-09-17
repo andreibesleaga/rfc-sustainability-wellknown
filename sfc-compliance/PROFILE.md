@@ -146,7 +146,7 @@ emissions, and either reaches net zero for the year or says plainly that it has 
 | renewable share | `renewable-energy` | percent, 0 to 100 | SHOULD |
 | carbon per transaction | `sci-score` with `functional-unit` | gCO2e per functional unit | MAY |
 | the net zero claim | `carbon-neutrality` extension, section 5.3 | see the table there | MUST where any net zero claim is made |
-| an outside statement about the figures | `verifiable-attestation-uri` | https URI | SHOULD where a net zero claim is made |
+| an outside statement about the figures | `verifiable-attestation-uri` | https URI, at most one | SHOULD where a net zero claim is made |
 | the index of filed reports | `disclosure-uri` | https URI | MUST, see C4 |
 
 `carbon-footprint` is defined by the draft as **gross** emissions and MUST NOT be negative.

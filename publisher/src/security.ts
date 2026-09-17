@@ -3,10 +3,11 @@
  * ported from `example-scripts/security.js` into the gateway:
  *
  *  1. DoS protection      — cap arrays at 366 objects. -07 dropped the server-side
- *                           cap in favour of a consumer-side bound, but a conforming
- *                           response is bounded by the calendar anyway (at most 366
- *                           daily objects in a year), so the cap is kept as this
- *                           package's own safeguard (draft §Denial of Service).
+ *                           cap in favour of a consumer-side bound, and bounds only
+ *                           a response to a request naming a granularity by the
+ *                           calendar (at most 366 daily objects in a year), nothing
+ *                           bounding the size of a Basic response, so the cap is kept
+ *                           as this package's own safeguard (draft §Denial of Service).
  *  2. Traffic analysis    — drop entries finer than 24h (draft §Privacy Considerations:
  *                           SHOULD NOT report at a granularity finer than 24 hours).
  *  3. Anti-fingerprinting — apply ~1% noise to numeric members (draft §Privacy

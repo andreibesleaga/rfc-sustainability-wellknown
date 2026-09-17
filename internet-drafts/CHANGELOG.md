@@ -37,7 +37,8 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
 * **Precedence between the verified payload and the surrounding members is conditional on how
   far the key is trusted.** A key obtained out of band, pinned from an earlier retrieval, or
   validated through an `x5c` chain to an already-trusted anchor gives the payload precedence (the
-  `signed_metadata` pattern of RFC 8414). A key that arrived in the JOSE Header is trusted no
+  `signed_metadata` pattern of RFC 8414); pinning establishes continuity of authorship, not
+  identity, and the precedence rests on that continuity. In every other case the key is trusted no
   further than the declaration carrying it, so the members served by the origin remain the ones
   the consumer uses, and the signature establishes integrity and key continuity only; otherwise
   anyone able to add one member could replace every figure. Either way a consumer MAY report a
@@ -48,7 +49,8 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
 * **Verification is specified.** A consumer rejects `alg` `none` or a MAC algorithm, an absent or
   foreign `cty`, and a `crit` parameter it does not understand, and treats the object as
   unverified when the payload is not a declaration object or when the payload's `target` or
-  `reporting-period` differs from the object's.
+  `reporting-period` differs from the object's. **RFC 8725 is now a normative reference**, since
+  the algorithm-policy rule it supports is stated under a MUST.
 
 **Closed member set; extensions get a collision-proof namespace**
 
@@ -64,8 +66,10 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
   fragment — and whose values are objects defined by the party that defined the name. Two forms are the ones used in practice: an
   `https` URI under the definer's control when the name was minted, which SHOULD identify
   human-readable documentation of the extension, or a UUID URN, `urn:uuid:` followed by the
-  lowercase hyphenated form of a UUID (RFC 9562, Section 4; the Nil and Max UUIDs are excluded),
-  for a definer that has no domain or wants a name independent of any domain. Names are compared
+  hyphenated form of a UUID (RFC 9562, Section 4; the Nil and Max UUIDs are excluded) in
+  lowercase, which that section permits in either case and which this document fixes as lowercase
+  so that names compare octet for octet, for a definer that has no domain or wants a name
+  independent of any domain. Names are compared
   as strings, octet for octet, and never normalized. A name is an identifier, not a locator —
   nothing is fetched from it, and no registry is defined; a consumer that does not implement a
   name MUST ignore its value and MUST NOT dereference the name or anything within the value, and
@@ -87,7 +91,13 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
   comparison runs in one direction only, and only against a tenant-scoped upstream declaration:
   for the same `reporting-period`, and after conversion to one unit, the subject cannot report a
   smaller energy or carbon figure than that upstream states it delivered. It is evidence of
-  consistency between two self-asserted claims, never proof of either.
+  consistency between two self-asserted claims, never proof of either. An upstream serves such a
+  declaration at any "https" URI it chooses, for example a per-customer URI it gives that
+  customer; the `target` query parameter, which is scoped to path prefixes, is not a way to serve
+  it.
+* **A declaration carries at most one `verifiable-attestation-uri`.** A subject holding
+  statements from more than one issuer links an index of them, or the remaining ones, from
+  `disclosure-uri`. The member stays a single string in the prose and in both schemas.
 
 **A stricter conformance floor; two provisions removed**
 
@@ -98,9 +108,10 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
   makes the remaining rule a MUST: a declaration object MUST carry at least one numeric metric
   member, or `disclosure-uri`, or `verifiable-attestation-uri`; an object with none of the three
   is not conformant.
-* **The server-side 366-object array cap is removed.** A conforming response is bounded only by
-  the calendar; the rule that remains is on the consumer, which MUST bound the bytes and objects
-  it accepts and MUST NOT rely on any server-side bound.
+* **The server-side 366-object array cap is removed.** A response to a request naming a
+  granularity is bounded by the calendar, and nothing bounds the size of a Basic response; the
+  rule that remains is on the consumer, which MUST bound the bytes and objects it accepts and
+  MUST NOT rely on any server-side bound.
 * **The `X-Content-Type-Options: nosniff` recommendation is removed from the specification.**
   Implementations may still send the header operationally; the draft no longer requires or
   recommends it.
@@ -111,10 +122,15 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
   string notation of RFC 7405, a new normative reference, and importing `date-fullyear` /
   `date-month` / `date-mday` from RFC 3339 Appendix A and `unreserved` / `pct-encoded` from RFC
   3986 Section 2) and a **numbered processing procedure**: a duplicated parameter name yields
-  `400 Bad Request`, whether or not the server supports that parameter; a `period` value that
-  does not match the grammar or does not name a real calendar date yields `400`; an unrecognized
-  or too-coarse `granularity` is ignored; a `target` outside the published prefix set yields
-  `404 Not Found`; undefined parameters are ignored and kept out of the cache key.
+  `400 Bad Request`, a server that has entered the procedure answering so whether or not it
+  supports the repeated parameter; a `period` value that does not match the grammar or does not
+  name a real calendar date yields `400`; an unrecognized or too-coarse `granularity` is ignored;
+  a `target` outside the published prefix set yields `404 Not Found`; undefined parameters are
+  ignored and kept out of the origin server's own response cache key, while a shared cache still
+  keys on the request URI.
+* **A server that honors `target` MUST publish the set of prefixes it honors** in the document
+  identified by `methodology-uri`, and SHOULD make an unmatched value indistinguishable from a
+  no-data response in body and in timing. `-06` described the practice and bound nobody.
 * **Aggregation is specified rather than suggested.** The contributing entries are of one
   precision, the coarsest the server holds inside the requested period; they MUST NOT overlap and
   MUST cover the period, or its completed portion; the unit is the one declared by the last
@@ -129,7 +145,8 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
   that it MUST cover the most recently completed reporting period and the full declared reporting
   subject are gone. What remains is the Partial Knowledge rule that figures covering part of a
   declared subject MUST NOT be presented as though they covered the whole.
-* **Access control is explicitly out of scope**, and the `Accept` header field and the processing
+* **Access control is explicitly out of scope** and a server MAY restrict access to the
+  declaration, and the `Accept` header field and the processing
   of `Content-Type` values are specified separately; a consumer compares media types ignoring
   parameters, and the `application/json` fallback is kept for consumers.
 * **A consumer that follows a redirect to another origin** MUST NOT record the result as a
@@ -137,13 +154,20 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
 * **The tolerance rules now apply to OPTIONAL members only.** A defective `capabilities` value is
   read as `basic` rather than disregarded in favour of observed server behaviour, and a defective
   value of any other mandatory member leaves the object non-conformant.
+* **Where an object carries `carbon-footprint` and one or more scope members for the same
+  period, the scope members SHOULD account for the figure in `carbon-footprint`**, and a
+  publisher whose scopes cover only part of it says so in the methodology document. Every example
+  in `-05` and `-06` that carried both already did this; no revision said so.
+* **`sci-score` is in grams of CO2e per `functional-unit` regardless of `carbon-unit`**, which
+  `-06` left to be inferred.
 * **The anti-fingerprinting noise rules are tightened**: noise MUST also be consistent across
   annualized and otherwise derived members, and the methodology document MUST state that noise is
   applied and bound its magnitude, where `-06` only SHOULD have disclosed it.
 * **Four gaps closed after the reference implementation was built against the text.** The
   tolerance rules are stated to be exhaustive (a defect they do not name, such as an `extensions`
   key that is not an absolute URI, an empty `upstream` array, or a malformed mandatory value,
-  leaves the object non-conformant); a numeric value a receiver cannot represent as a finite
+  leaves the object non-conformant, a malformed mandatory value other than `capabilities`
+  included); a numeric value a receiver cannot represent as a finite
   number is treated as not reported and a publisher MUST NOT emit one; the duplicate-member-name
   rule binds a consumer whose parser exposes duplicates, and one whose parser does not applies
   its resolution consistently and states it; and a server that sees only percent-decoded values
@@ -154,7 +178,10 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
 * Text stating that publication is voluntary, referring to IETF or IRTF groups, or explaining
   design rationale is removed; the separate Interoperability and Deployment sections and the
   "Alternatives Considered" discussion are gone; Security Considerations is condensed to a short
-  summary and four subsections that cite rather than restate. The body is about a quarter shorter.
+  summary and four subsections that cite rather than restate. The body is about a quarter
+  shorter: 9,803 words against 13,010 in `-06`, measured the same way on both files.
+* Internal cross-references are numbered rather than given by section title in running prose, so
+  they render as "Section N" in the text version.
 * A worked deployment example is added as an appendix, and an Implementations appendix, marked
   for removal before publication, records the three reference implementations.
 * `-07` is **not posted** to the Datatracker; `-06` remains the latest posted revision until `-07`
@@ -163,10 +190,12 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
 **Repository, not draft changes**
 
 * Library versions referenced throughout the repository move to `0.7.0` (publisher and consumer).
-* The reference deployment's verifiable credential now carries a copy of the declaration object
-  (without `signed`) inside `credentialSubject`, so a consumer can compare it directly against
-  the verified payload. The draft constrains no credential format, in `-06` or in `-07`; this is
-  a change to the deployment and to the repository's credential profile only.
+* The reference deployment's verifiable credential carries the derivation model inside
+  `credentialSubject`, its constants and its formulas, from which every period's figures follow,
+  so a consumer can recompute the verified payload rather than compare it against a copy. The
+  credential also states that the issuer and the gateway operator are the same person and that it
+  is not independent assurance. The draft constrains no credential format, in `-06` or in `-07`;
+  this is a property of the deployment and of the repository's credential profile only.
 
 ---
 

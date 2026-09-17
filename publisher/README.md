@@ -137,7 +137,8 @@ The aggregate then carries sums converted into the unit declared by the **last
 contributing entry in ascending order of `reporting-period`** (a dimension of its
 own: not the entry with the latest `updated`), each summable member only where
 **every** contributing entry reports it, the latest `updated`, and a non-metric
-optional member only where every contributing entry carries it with the same
+optional member other than the two unit members — whose values the rule on sums
+fixes — only where every contributing entry carries it with the same
 value. Where the contributing entries disagree on `provider`,
 `measurement-method`, `methodology-uri`, `target` or `target-type`, overlap, or
 leave a gap, "a server whose held data cannot meet these conditions has no
@@ -161,11 +162,11 @@ percent-decoding.
 
 ### What the server is obliged to serve
 
-A `GET` without query parameters is answered `200 OK` with the declaration **when
-the server has one to serve for that requester**; when nothing is published the
-answer is `404`. Access control is outside the scope of the specification: a
-deployment that restricts access to the resource, or that rate-limits it,
-responds as RFC 9110 defines, and nothing in this package presumes otherwise —
+A `GET` without query parameters is answered `200 OK` with the declaration; when
+nothing is published the answer is `404`. Access control is outside the scope of
+the specification: a server **MAY** restrict access to the declaration, and a
+deployment that restricts or rate-limits a request responds as RFC 9110 defines
+(`401`, `403`, `429`) — nothing in this package presumes otherwise, so
 put the publisher behind whatever authorization or rate limiter your deployment
 needs. What the package does guarantee is that whatever it *does* serve as a
 `200` is a conformant declaration with the registered media type.
@@ -181,7 +182,9 @@ period — therefore share one cache entry and one `ETag`, so a client cannot fl
 the cache with `?a=1`, `?a=2`, … A honored `target` is keyed by the **matched
 prefix**, so every path under one prefix shares an entry too (§Denial of Service:
 "honoring `target` only for a published prefix set bounds the cache-key space").
-`cacheKeyFor(query)` is exported so a CDN or reverse proxy in front can key the
+This is the **origin's own response cache**: a shared cache keys on the request
+URI (RFC 9111 §4), so each distinct query string is a distinct entry there.
+`cacheKeyFor(query)` is exported so a reverse proxy you control can key the
 same way, and `cacheSize` reports the number of entries held. The honored query
 is also what reaches the adapter, so a custom adapter cannot make its output
 depend on a parameter the publisher ignores.
@@ -356,8 +359,10 @@ from every entry — mixed presence is invalid, and the validation gate enforces
 alongside the shared-`target` rule.
 
 `publisher.targetPrefixes` is the set of path prefixes this origin honours for the
-Extended `target` parameter — the set the draft says a publisher lists in its
-methodology document. A `target` matching none of them is answered `404`, and a
+Extended `target` parameter — the set a server honouring the parameter **MUST**
+publish in the document its `methodology-uri` identifies (-07 step 4; there is no
+in-band list, because one would disclose the path information Privacy
+Considerations protects). A `target` matching none of them is answered `404`, and a
 matching one becomes the `target` member of every returned object (matching is
 byte-wise, case-sensitive and on complete segments, so `/api` matches `/api/v1`
 but not `/apifoo`). Leave it unset and the publisher does not support the
@@ -429,7 +434,8 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
 ## Security & privacy safeguards (draft §Security / §Privacy)
 
 - **DoS**: arrays capped at 366 objects (-07 dropped the server-side cap in favour of a
-  consumer-side bound, but a conforming response is bounded by the calendar anyway, so the cap
+  consumer-side bound, and bounds only a response to a request naming a granularity by the
+  calendar — nothing bounds the size of a Basic response — so the cap
   stays as this package's own safeguard — `SecurityOptions.maxObjects` raises or lowers it).
   Note the one interaction: the cap keeps the **most recent** entries, so a publisher holding
   more than a year of daily figures and asked for a year aggregate can lose contributors to the
@@ -457,7 +463,9 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
   the statement belongs.
 - **Trust**: sign each declaration object (`signing`, above) and link a signed W3C
   Verifiable Credential via the adapter's attestation field
-  (`verifiable-attestation-uri`). The signature is produced as the **last** step of
+  (`verifiable-attestation-uri`; a declaration carries **at most one** such URI —
+  a subject with more than one attestation links an index of them, or the
+  remaining ones, from `disclosure-uri`). The signature is produced as the **last** step of
   building a document, over the object without its `signed` member — so the payload
   never contains `signed` itself, every object of an array response is signed, and no
   cache or conditional-request path can serve a signature that does not match the body

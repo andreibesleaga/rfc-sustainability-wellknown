@@ -88,7 +88,7 @@ conformance battery, a fetched attestation, and the `cty` of a signature
 header.
 
 Anything else — including a missing `Content-Type` — is **not a declaration**
-("A response carrying any other media type is not a declaration"), so the body
+("A response carrying a media type other than those two is not a declaration"), so the body
 is refused unread and you get `{ status: "wrong-media-type", mediaType }`. Use
 `MEDIA_TYPE`, `LEGACY_MEDIA_TYPE`, `ACCEPTED_MEDIA_TYPES`, `ACCEPT_HEADER` and
 `classifyMediaType()` (all exported) if you need the same names elsewhere.
@@ -255,8 +255,8 @@ revision). A `verified` result carries `precedence`:
 
 | `precedence` | When | What `result.document` holds |
 |---|---|---|
-| `"payload"` | `keySource: "trusted"` — the key was pinned or supplied out of band through `signaturePolicy.trustedKeys` (or validated through an `x5c` chain to an anchor you already trust) | the **signed payload's** members, taking precedence over the members served, in the manner of RFC 8414 `signed_metadata` |
-| `"origin"` | `keySource: "header"` — the key arrived in the JOSE Header and is trusted no further than the declaration carrying it | the members **served by the origin**; the signature establishes integrity and key continuity only |
+| `"payload"` | `keySource: "trusted"` — the key was pinned or supplied out of band through `signaturePolicy.trustedKeys` (or validated through an `x5c` chain to an anchor you already trust). Pinning establishes **continuity, not identity**: precedence rests on the same holder having signed the earlier declaration | the **signed payload's** members, taking precedence over the members served, in the manner of RFC 8414 `signed_metadata` |
+| `"origin"` | `keySource: "header"` — the key is trusted no further than the declaration carrying it (an `x5c` chain not validated to a trusted anchor included) | the members **served by the origin**; the signature establishes integrity and key continuity only |
 
 The second row is the whole point: letting a self-asserted payload override an
 origin-authenticated one would let anyone able to add a member replace every
@@ -870,8 +870,8 @@ either.
 
 **Every SSRF protection §Consumer Considerations asks for is implemented**, on
 every dereference path: bounded time, size, objects and redirects; HTTPS on
-every hop; the depth, breadth, revisit and total-retrieval bounds on the
-upstream walk; and — since this revision of the package — the refusal of a URI
+every hop; the depth, revisit and total-retrieval bounds on the
+upstream walk (the last of which is also what bounds its breadth); and — since this revision of the package — the refusal of a URI
 whose host is, or resolves to, a private, loopback, link-local, unique-local or
 unspecified address, with the resolver injectable. The one thing it does not do
 is defeat DNS rebinding, which the platform `fetch` gives no way to do from

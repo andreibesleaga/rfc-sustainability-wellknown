@@ -7,13 +7,18 @@
 #   ./build.sh --no-idnits     skip the network idnits run
 #   ./build.sh --help
 #
-# Produces <draft>.xml and <draft>.txt from <draft>.md and then checks:
-#   * kramdown-rfc and xml2rfc --strict complete without error
+# Produces <draft>.xml (RFCXML v3 vocabulary: no <spanx>, <list> or <?line?>
+# processing instructions, which idnits3 flags on upload) and <draft>.txt from
+# <draft>.md and then checks:
+#   * kramdown-rfc -3, xml2rfc --v2v3 and xml2rfc --strict complete without error
 #   * no rendered line exceeds 72 characters, and the text is pure ASCII
 #   * no leaked Markdown code fences
 #   * the schema references resolve and the stale RFC 8949 reference is absent
 #   * the CDDL and JTD blocks in the draft still match schemas-validators/
 #   * idnits (via the IETF author-tools API) reports zero errors
+#   * idnits3 in normal mode (what author-tools.ietf.org/idnits3 runs; stricter
+#     than the submission mode used on upload) reports zero nits, comments
+#     included; needs npx (Node), skipped otherwise
 #
 # Requirements:
 #   kramdown-rfc  — gem install kramdown-rfc2629
@@ -79,8 +84,17 @@ fail=0
 note_fail() { echo "    FAIL: $1"; fail=1; }
 
 # --- build ------------------------------------------------------------------
-kramdown-rfc "$DRAFT.md" > "$DRAFT.xml"
-echo "    wrote $DRAFT.xml"
+# kramdown-rfc -3 still emits the v2 <spanx> and <list> elements and per-line
+# <?line?> processing instructions; xml2rfc --v2v3 rewrites the elements to
+# <tt>/<em>/<strong>/<ul>/<ol> and the PIs are dropped here. Without this the
+# Datatracker's idnits3 reports one warning per element (132 on -07).
+kramdown-rfc -3 "$DRAFT.md" > "$DRAFT.v2.xml"
+xml2rfc --v2v3 --strict "$DRAFT.v2.xml" -o "$DRAFT.xml" 2>&1 | grep -v '^ Created file' || true
+rm -f "$DRAFT.v2.xml"
+# Line PIs, the combined References wrapper, reference abstracts and the
+# BCP 14 no-break space: the remaining idnits3 findings (see the script).
+python3 v3-postprocess.py "$DRAFT.xml"
+echo "    wrote $DRAFT.xml (RFCXML v3 vocabulary)"
 # --strict surfaces long-line and rendering warnings; keep its output visible.
 xml2rfc --strict --text "$DRAFT.xml" -o "$DRAFT.txt"
 echo "    wrote $DRAFT.txt"
@@ -152,6 +166,25 @@ if [ "$RUN_IDNITS" -eq 1 ]; then
     fi
   else
     echo "    SKIP idnits (curl not installed)"
+  fi
+fi
+
+# --- idnits3 (the Datatracker's own upload check) ---------------------------
+if [ "$RUN_IDNITS" -eq 1 ]; then
+  if command -v npx >/dev/null 2>&1; then
+    echo "==> idnits3 (normal mode)"
+    # Normal mode: the stricter one, and the one https://author-tools.ietf.org/idnits3/ runs.
+    n=$(npx --yes @ietf-tools/idnits -m normal -o count --no-progress "$DRAFT.xml" 2>/dev/null | tail -1 || true)
+    if [ -z "$n" ]; then
+      echo "    SKIP could not run idnits3 (npx @ietf-tools/idnits)"
+    elif [ "$n" = "0" ]; then
+      echo "    OK   idnits3: nit-free"
+    else
+      note_fail "idnits3 reports $n nit(s)"
+      npx --yes @ietf-tools/idnits -m normal -o simple --no-progress "$DRAFT.xml" 2>/dev/null | grep -v '^[✔❯]' | head -20 | sed 's/^/         /' || true
+    fi
+  else
+    echo "    SKIP idnits3 (npx not installed)"
   fi
 fi
 

@@ -80,6 +80,7 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 | File | Role |
 |---|---|
 | `build.sh` | Build-and-check script for any revision (see "Building the draft" below). |
+| `v3-postprocess.py` | Run by `build.sh` and CI on the generated XML: drops `<?line?>` PIs, un-nests the References sections, removes cited-reference abstracts and the BCP 14 no-break space, so idnits3 reports no nits in any mode. |
 | `draft-besleaga-sustainability-wellknown-07.md` | Markdown source of the **in-preparation, unposted** revision. Edit this one for any further change. |
 | `draft-besleaga-sustainability-wellknown-07.xml` | xml2rfc v3 XML of `-07`. |
 | `draft-besleaga-sustainability-wellknown-07.txt` | Rendered plain-text form of `-07`. |

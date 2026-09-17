@@ -69,13 +69,13 @@ Table of Contents
    1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
      1.1.  Requirements Language . . . . . . . . . . . . . . . . . .   4
      1.2.  Goals and Non-Goals . . . . . . . . . . . . . . . . . . .   4
-     1.3.  Roles and Processing Model  . . . . . . . . . . . . . . .   5
+     1.3.  Roles and Processing Model  . . . . . . . . . . . . . . .   4
      1.4.  Relationship to Other Work  . . . . . . . . . . . . . . .   5
    2.  The "sustainability-data" Well-Known URI  . . . . . . . . . .   5
-     2.1.  URI Definition  . . . . . . . . . . . . . . . . . . . . .   6
+     2.1.  URI Definition  . . . . . . . . . . . . . . . . . . . . .   5
      2.2.  Mandatory Minimum Supported Service . . . . . . . . . . .   6
      2.3.  Partial Knowledge and Incremental Adoption  . . . . . . .   7
-     2.4.  Extended Query Parameters . . . . . . . . . . . . . . . .   8
+     2.4.  Extended Query Parameters . . . . . . . . . . . . . . . .   7
      2.5.  Payload Format (JSON Data Model)  . . . . . . . . . . . .  11
        2.5.1.  Mandatory Members . . . . . . . . . . . . . . . . . .  11
        2.5.2.  Optional Members  . . . . . . . . . . . . . . . . . .  12
@@ -115,9 +115,8 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 
 
    10. Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .  34
-   11. References  . . . . . . . . . . . . . . . . . . . . . . . . .  34
-     11.1.  Normative References . . . . . . . . . . . . . . . . . .  34
-     11.2.  Informative References . . . . . . . . . . . . . . . . .  36
+   11. Normative References  . . . . . . . . . . . . . . . . . . . .  34
+   12. Informative References  . . . . . . . . . . . . . . . . . . .  36
    Appendix A.  Worked Example: A Live Deployment  . . . . . . . . .  38
    Appendix B.  Implementations  . . . . . . . . . . . . . . . . . .  40
    Appendix C.  Changelog  . . . . . . . . . . . . . . . . . . . . .  40
@@ -152,24 +151,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    The smallest conformant declaration carries the seven mandatory
    members and at least one metric or evidence link (see Section 2.5.3):
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-Besleaga                  Expires 21 March 2027                 [Page 3]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
    {
      "updated": "2026-03-01T12:00:00Z",
      "capabilities": "basic",
@@ -182,12 +163,19 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
      "carbon-unit": "kgCO2e"
    }
 
+
+
+Besleaga                  Expires 21 March 2027                 [Page 3]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
+
 1.1.  Requirements Language
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
    "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
-   "OPTIONAL" in this document are to be interpreted as described in
-   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   "OPTIONAL" in this document are to be interpreted as described in BCP
+   14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
 1.2.  Goals and Non-Goals
@@ -213,19 +201,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
       equipment energy management, which is the subject of [RFC7326] and
       its successors.
 
-
-
-
-
-
-
-
-
-Besleaga                  Expires 21 March 2027                 [Page 4]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
 1.3.  Roles and Processing Model
 
    The _publisher_ operates an origin and publishes one declaration at
@@ -243,6 +218,13 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 
    3.  Ignore any top-level member it does not recognize, and any
        extensions entry it does not implement.
+
+
+
+Besleaga                  Expires 21 March 2027                 [Page 4]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
    4.  If the object carries a signed member, verify it as Section 5
        specifies; otherwise treat the object as unsigned.
@@ -268,20 +250,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 
 2.  The "sustainability-data" Well-Known URI
 
-
-
-
-
-
-
-
-
-
-Besleaga                  Expires 21 March 2027                 [Page 5]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
 2.1.  URI Definition
 
    This document defines the "sustainability-data" well-known URI and
@@ -306,6 +274,14 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    *  *Reporting subject*: the entity or scope the metrics describe,
       named by the mandatory target member.
 
+
+
+
+Besleaga                  Expires 21 March 2027                 [Page 5]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
+
    *  *Consumer*: any client that retrieves the declaration.
 
 2.2.  Mandatory Minimum Supported Service
@@ -327,17 +303,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
       429).  Any other method SHOULD receive 405 Method Not Allowed with
       Allow: GET, HEAD.
 
-
-
-
-
-
-
-Besleaga                  Expires 21 March 2027                 [Page 6]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
    *  A 200 OK response MUST carry the Content-Type application/
       sustainability-data+json and MUST NOT carry any other media type;
       the body SHOULD follow I-JSON [RFC7493].  Caching directives are
@@ -357,6 +322,21 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    *  Because the declaration is public and intended for browser-based
       consumers as well, a 200 OK response SHOULD include Access-
       Control-Allow-Origin: *, following WebFinger ([RFC7033]).
+
+
+
+
+
+
+
+
+
+
+
+Besleaga                  Expires 21 March 2027                 [Page 6]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
    *  A server MAY redirect the well-known URI.  A consumer that follows
       a redirect MUST require HTTPS on every hop and attributes the
@@ -381,19 +361,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    covering part of the declared subject as though they covered the
    whole of it.
 
-
-
-
-
-
-
-
-
-Besleaga                  Expires 21 March 2027                 [Page 7]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
 2.4.  Extended Query Parameters
 
    A server MAY support the query parameters target, period, and
@@ -407,6 +374,25 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    received, before percent-decoding.  A target value therefore carries
    any "&" or "=" of its own percent-encoded, as a query component
    requires:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Besleaga                  Expires 21 March 2027                 [Page 7]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
    sd-query     = param *( "&" param )
    param        = target / period / granularity / other
@@ -437,19 +423,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    names are requirements on a server that supports the parameter
    concerned:
 
-
-
-
-
-
-
-
-
-Besleaga                  Expires 21 March 2027                 [Page 8]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
    1.  Split the query at "&" and each part at its first "=", then
        percent-decode names and values.  Parameters are recognized by
        name: ignore any name other than the three defined here, whose
@@ -464,6 +437,18 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
        absent, the reporting-period of the Basic response, and, where
        the Basic response is an array, the reporting-period of its last
        object.
+
+
+
+
+
+
+
+
+Besleaga                  Expires 21 March 2027                 [Page 8]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
    3.  If granularity is present, let G be the precision its value
        denotes; ignore the parameter when the value is neither monthly
@@ -498,14 +483,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
        is none but held entries of finer precision lie within P, the
        response is their aggregate.  The contributing entries are the
        held entries of one precision that lie within P: where the server
-
-
-
-Besleaga                  Expires 21 March 2027                 [Page 9]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
        holds more than one precision inside P, it takes the coarsest, so
        that two servers holding the same data return the same figures.
        They MUST NOT overlap, since a server that summed a month and a
@@ -518,6 +495,16 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
        it does when it has no data.  The aggregate is formed as follows:
 
        *  reporting-period is P, and capabilities is extended.
+
+
+
+
+
+
+Besleaga                  Expires 21 March 2027                 [Page 9]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
        *  energy-consumption, carbon-footprint and the scope members are
           sums taken after converting the contributing entries to the
@@ -551,17 +538,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
        it carries.  If nothing lies within P, respond 404 Not Found.  A
        server MUST NOT return an array unless G is in effect.
 
-
-
-
-
-
-
-Besleaga                  Expires 21 March 2027                [Page 10]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
    6.  For a period that has not yet completed, report the completed
        portion to date.  A publisher whose figures for a part of that
        portion have not yet reached it holds nothing it can aggregate
@@ -578,6 +554,14 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    The target parameter requests path-prefix scoping; the target member
    names the subject of whatever is returned.  They are distinct.
    Because a server ignores a parameter it does not support, a consumer
+
+
+
+Besleaga                  Expires 21 March 2027                [Page 10]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
+
    MUST compare the reporting-period and target of every object it
    receives against what it requested, and MUST NOT record a response as
    covering a period or a subject it does not name.
@@ -609,15 +593,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    *  *updated* (string): The [RFC3339] date-time at which the
       declaration was last updated.
 
-
-
-
-
-Besleaga                  Expires 21 March 2027                [Page 11]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
    *  *capabilities* (string): "basic" when the publisher offers only
       the Mandatory Minimum Supported Service, "extended" when it
       supports at least one Extended Query Parameter.  The member
@@ -633,6 +608,15 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
       third-party-modeled are RECOMMENDED and are compared as protocol
       elements (Section 9); any other value is a brief human-readable
       description.
+
+
+
+
+
+Besleaga                  Expires 21 March 2027                [Page 11]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
    *  *methodology-uri* (string): An absolute "https" URI of a document
       describing the measurement or estimation method in enough detail
@@ -667,13 +651,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    *  *energy-consumption* (number): Energy consumed by the subject
       during the period, in the unit of energy-unit.
 
-
-
-Besleaga                  Expires 21 March 2027                [Page 12]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
    *  *energy-unit* (string): One of Wh, kWh, MWh, GWh; when absent, kWh
       applies.  Without an energy-consumption member it has no effect
       and SHOULD be omitted.
@@ -686,6 +663,16 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 
    *  *carbon-accounting* (string): location-based or market-based
       [GHG-PROTOCOL].
+
+
+
+
+
+
+Besleaga                  Expires 21 March 2027                [Page 12]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
    *  *scope-1*, *scope-2*, *scope-3* (number): Direct, purchased-
       energy, and value-chain emissions in the unit of carbon-unit.
@@ -722,14 +709,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
       credential [VC-DATA-MODEL-2] is one such form, and the format is
       not constrained.  It is the only mechanism here that can speak to
       the authenticity of the figures, and it does so only once the
-
-
-
-Besleaga                  Expires 21 March 2027                [Page 13]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
       consumer has retrieved the statement and validated it against an
       issuer it trusts; the member's presence alone is evidence of
       nothing.  A declaration carries at most one such URI; a subject
@@ -740,6 +719,16 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
       readable index of the subject's public sustainability disclosures
       (reports, certificates, hosting and energy-source evidence).  The
       format and location of the index are not constrained.
+
+
+
+
+
+
+Besleaga                  Expires 21 March 2027                [Page 13]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
    *  *target-type* (string): Classifies the subject named by target as
       one of origin (the publishing origin; target SHOULD then be its
@@ -769,23 +758,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    for the reason and under the conditions Section 7 gives, in which
    case the methodology document says so.
 
-
-
-
-
-
-
-
-
-
-
-
-
-Besleaga                  Expires 21 March 2027                [Page 14]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
    A declaration object MUST carry at least one numeric metric member or
    at least one of disclosure-uri and verifiable-attestation-uri; an
    object with none is not conformant.  This is judged on the members
@@ -803,6 +775,16 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 
    *  A value outside a member's stated range, or of the wrong JSON type
       (including null), is treated as not reported.
+
+
+
+
+
+
+Besleaga                  Expires 21 March 2027                [Page 14]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
    *  A numeric value that the consumer cannot represent as a finite
       number, including one outside the range of IEEE 754 double
@@ -834,14 +816,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    The tolerance rules above are exhaustive: a defect they do not name,
    such as an extensions key that is not an absolute URI or whose value
    is not an object, an upstream member that is an array of no entries,
-
-
-
-Besleaga                  Expires 21 March 2027                [Page 15]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
    or a mandatory member other than capabilities whose value is
    malformed rather than absent, leaves the object non-conformant, and a
    consumer that validates reports it as such rather than disregarding
@@ -853,6 +827,20 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    apply the rules above rather than reject the object, on the
    assumption that the schemas, like the member set, will be extended
    over time.
+
+
+
+
+
+
+
+
+
+
+Besleaga                  Expires 21 March 2027                [Page 15]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
 2.5.4.  Extensions
 
@@ -891,13 +879,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    pointer to it.  Values are subject to the same I-JSON expectations as
    the rest of the declaration.
 
-
-
-Besleaga                  Expires 21 March 2027                [Page 16]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
    This is collision-resistant naming as [RFC7519], Section 2, describes
    it: the name is drawn from a namespace, such as a domain name, an
    OID, or a UUID, that its definer controlled when the name was minted.
@@ -906,6 +887,16 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    insensitively there, octet for octet here) and need not be
    dereferenceable, and SCIM [RFC7643] keys its extension schemas by
    URN.
+
+
+
+
+
+
+Besleaga                  Expires 21 March 2027                [Page 16]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
 
 2.5.5.  Upstream Declarations
 
@@ -946,14 +937,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    whose declared scope covers what that upstream delivers cannot report
    a smaller energy-consumption, or a smaller carbon-footprint, than the
    upstream states it delivered.  A consumer that finds otherwise has
-
-
-
-Besleaga                  Expires 21 March 2027                [Page 17]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
    found an inconsistency between two self-asserted claims, and nothing
    more; it disregards a shortfall no larger than the rounding and unit
    conversion behind the two figures could account for.
@@ -963,6 +946,14 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    declared scope covers a given upstream is not expressible in this
    format, so a subject that legitimately excludes one will read as
    inconsistent, and the finding is something to investigate rather than
+
+
+
+Besleaga                  Expires 21 March 2027                [Page 17]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
+
    a failure to conform.  No member carries the share of a subject's
    figures attributable to one upstream, so the converse, that the
    subject has not claimed more than the upstream delivered, cannot be
@@ -1002,14 +993,6 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
      ? carbon-accounting: "location-based" / "market-based",
      ? scope-1: number,              ; may be negative (removals)
      ? scope-2: number,              ; may be negative (removals)
-
-
-
-Besleaga                  Expires 21 March 2027                [Page 18]
-
-Internet-Draft     Sustainability-Data Well-Known URI     September 2026
-
-
      ? scope-3: number,              ; may be negative (removals)
      ? sci-score: number,            ; non-negative
      ? functional-unit: tstr,
@@ -1019,6 +1002,14 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 
      ; Evidence links (absolute https URIs)
      ? verifiable-attestation-uri: tstr,
+
+
+
+Besleaga                  Expires 21 March 2027                [Page 18]
+
+Internet-Draft     Sustainability-Data Well-Known URI     September 2026
+
+
      ? disclosure-uri: tstr,
 
      ; Classification of the subject named by target
@@ -1046,6 +1037,15 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 2.5.7.  Formal Definition (JTD)
 
    The JSON Type Definition [RFC8927] of a declaration object:
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1855,9 +1855,7 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
    The author thanks the reviewers of earlier revisions of this
    document.
 
-11.  References
-
-11.1.  Normative References
+11.  Normative References
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -1896,7 +1894,9 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
               DOI 10.17487/RFC7493, March 2015,
               <https://www.rfc-editor.org/info/rfc7493>.
 
-
+   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
+              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
+              2015, <https://www.rfc-editor.org/info/rfc7515>.
 
 
 
@@ -1905,10 +1905,6 @@ Besleaga                  Expires 21 March 2027                [Page 34]
 
 Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 
-
-   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
-              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
-              2015, <https://www.rfc-editor.org/info/rfc7515>.
 
    [RFC7518]  Jones, M., "JSON Web Algorithms (JWA)", RFC 7518,
               DOI 10.17487/RFC7518, May 2015,
@@ -1952,6 +1948,10 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
               DOI 10.17487/RFC9110, June 2022,
               <https://www.rfc-editor.org/info/rfc9110>.
 
+   [RFC9111]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
+              Ed., "HTTP Caching", STD 98, RFC 9111,
+              DOI 10.17487/RFC9111, June 2022,
+              <https://www.rfc-editor.org/info/rfc9111>.
 
 
 
@@ -1962,16 +1962,11 @@ Besleaga                  Expires 21 March 2027                [Page 35]
 Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 
 
-   [RFC9111]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
-              Ed., "HTTP Caching", STD 98, RFC 9111,
-              DOI 10.17487/RFC9111, June 2022,
-              <https://www.rfc-editor.org/info/rfc9111>.
-
    [RFC9562]  Davis, K., Peabody, B., and P. Leach, "Universally Unique
               IDentifiers (UUIDs)", RFC 9562, DOI 10.17487/RFC9562, May
               2024, <https://www.rfc-editor.org/info/rfc9562>.
 
-11.2.  Informative References
+12.  Informative References
 
    [RFC7519]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token
               (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
@@ -2006,6 +2001,11 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
               (SCI) Specification (standardized as ISO/IEC 21031:2024)",
               2024, <https://sci.greensoftware.foundation/>.
 
+   [RFC9547]  Arkko, J., Perkins, C. S., and S. Krishnan, "Report from
+              the IAB Workshop on Environmental Impact of Internet
+              Applications and Systems, 2022", RFC 9547,
+              DOI 10.17487/RFC9547, February 2024,
+              <https://www.rfc-editor.org/info/rfc9547>.
 
 
 
@@ -2017,12 +2017,6 @@ Besleaga                  Expires 21 March 2027                [Page 36]
 
 Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 
-
-   [RFC9547]  Arkko, J., Perkins, C. S., and S. Krishnan, "Report from
-              the IAB Workshop on Environmental Impact of Internet
-              Applications and Systems, 2022", RFC 9547,
-              DOI 10.17487/RFC9547, February 2024,
-              <https://www.rfc-editor.org/info/rfc9547>.
 
    [EU-CSRD]  European Parliament and Council, "Directive (EU) 2022/2464
               as regards corporate sustainability reporting (CSRD)",
@@ -2065,6 +2059,12 @@ Internet-Draft     Sustainability-Data Well-Known URI     September 2026
               DOI 10.17487/RFC8414, June 2018,
               <https://www.rfc-editor.org/info/rfc8414>.
 
+   [RFC6973]  Cooper, A., Tschofenig, H., Aboba, B., Peterson, J.,
+              Morris, J., Hansen, M., and R. Smith, "Privacy
+              Considerations for Internet Protocols", RFC 6973,
+              DOI 10.17487/RFC6973, July 2013,
+              <https://www.rfc-editor.org/info/rfc6973>.
+
 
 
 
@@ -2073,12 +2073,6 @@ Besleaga                  Expires 21 March 2027                [Page 37]
 
 Internet-Draft     Sustainability-Data Well-Known URI     September 2026
 
-
-   [RFC6973]  Cooper, A., Tschofenig, H., Aboba, B., Peterson, J.,
-              Morris, J., Hansen, M., and R. Smith, "Privacy
-              Considerations for Internet Protocols", RFC 6973,
-              DOI 10.17487/RFC6973, July 2013,
-              <https://www.rfc-editor.org/info/rfc6973>.
 
    [RFC7351]  Wilde, E., "A Media Type for XML Patch Operations",
               RFC 7351, DOI 10.17487/RFC7351, August 2014,
@@ -2119,6 +2113,12 @@ Appendix A.  Worked Example: A Live Deployment
    This appendix walks through one complete deployment of this
    specification, from figures to verified retrieval.  Hostnames are
    illustrative.
+
+
+
+
+
+
 
 
 

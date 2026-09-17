@@ -34,9 +34,21 @@ jobs:
         run: |
           md="${{ steps.draft.outputs.md }}"
           base="${md%.md}"
-          kramdown-rfc "$md" > "$base.xml"
+          # RFCXML v3 vocabulary, as build.sh does: kramdown-rfc -3 still emits
+          # <spanx>/<list> and <?line?> PIs, which the Datatracker's idnits3
+          # reports one warning each; --v2v3 rewrites the elements, sed drops the PIs.
+          kramdown-rfc -3 "$md" > "$base.v2.xml"
+          xml2rfc --v2v3 --strict "$base.v2.xml" -o "$base.xml"
+          rm -f "$base.v2.xml"
+          python3 internet-drafts/v3-postprocess.py "$base.xml"
           # --strict surfaces long-line and other rendering warnings as part of CI.
           xml2rfc --strict --text "$base.xml" -o "$base.txt"
+      - name: idnits3 (normal mode, as author-tools.ietf.org/idnits3 runs it)
+        run: |
+          base="${{ steps.draft.outputs.md }}"; base="${base%.md}"
+          n=$(npx --yes @ietf-tools/idnits -m normal -o count --no-progress "$base.xml" | tail -1)
+          npx --yes @ietf-tools/idnits -m normal --no-progress --no-color "$base.xml" || true
+          if [ "$n" != "0" ]; then echo "::error::idnits3 reports $n nit(s)"; exit 1; fi
       - name: Sanity checks
         run: |
           base="${{ steps.draft.outputs.md }}"; base="${base%.md}"

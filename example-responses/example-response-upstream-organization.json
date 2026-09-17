@@ -18,7 +18,7 @@
   "disclosure-uri": "https://nordwind.example/sustainability/disclosures",
   "upstream": [
     {
-      "declaration": "https://cloudnova.example/.well-known/sustainability-data?target=nordwind",
+      "declaration": "https://cloudnova.example/tenants/nordwind.json",
       "role": "cloud"
     }
   ]

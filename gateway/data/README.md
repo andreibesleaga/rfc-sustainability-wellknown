@@ -53,7 +53,7 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 | `cloud-demo.example.json` | *synthetic* upstream provider | 2025 | market-based | — invented — | tenant-scoped declaration; reserved `.example` name |
 | `tenant-demo.example.json` | *synthetic* downstream organization | 2025 | market-based | — invented — | names the declaration above through `upstream`; reserved `.example` name |
 | `sfc-network.example.json` | *synthetic* network-level system | 2025 | market-based | — invented — | one annual, system-wide figure set for a many-party network; reserved `.example` name |
-| `sfc-operator.example.json` | *synthetic* operator inside that network | 2025 | market-based | — invented — | names `cloud-demo.example` through `upstream` and `sfc-network.example` through an extension; reserved `.example` name |
+| `sfc-operator.example.json` | *synthetic* operator inside that network | 2025 | market-based | — invented — | names `sfc-network.example` through an extension; no `upstream` (it meters its own machines); reserved `.example` name |
 
 Plus `kepler-demo.example`, which has no file: it is generated in code by a
 publisher adapter (see below).
@@ -465,14 +465,15 @@ The other level of the same picture: a single node operator, `target-type:
 market-based Scope 2). Source: none — **invented**. `methodology-uri` points at
 [`METHODOLOGY.md`](../METHODOLOGY.md).
 
-Two things it demonstrates that the network document cannot:
+What it demonstrates that the network document cannot:
 
-- **`upstream`** — one entry, `role: "cloud"`, whose `declaration` is written
-  with the leading `{base}` token and therefore resolves, at load time, to the
-  URL at which **this gateway actually serves** `cloud-demo.example`, exactly as
-  `tenant-demo.example.json` does it. An operator that rents its capacity has a
-  real upstream, and a consumer's `--upstream` walk from here resolves to a
-  declaration this deployment really answers.
+- **No `upstream`** — the operator meters its own machines and buys no capacity
+  from another publisher, so it has no supplier to name. It must not borrow
+  `cloud-demo.example`: that declaration states what the cloud provider
+  delivered to ONE customer (`tenant-demo.example`), and a consumer comparing
+  this operator's 4,820 kWh with it would report the operator as under-reported.
+  An operator that rents capacity names its own provider's declaration about
+  it, as `sfc-compliance/examples/sfc-operator.example.json` does.
 - **Membership, in band** — `member-of-network: "sfc-network.example"` under the
   `network-topology` extension name. `upstream` is the wrong mechanism for this:
   a network is not a supplier of energy or capacity to its operator, and

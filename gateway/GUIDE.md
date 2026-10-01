@@ -340,6 +340,8 @@ static adapters are exercised by every curated data file:
 | `salesforce-nzc-demo.example` | `salesforce-nzc` | replay (documented `AnnualEmssnInventory` SOQL shape; NZC needs a tenant — 30-day trials exist) |
 | `ms-sustainability-demo.example` | `ms-sustainability` | replay (the preview API this adapter targeted was retired 2025-05-30) |
 | `watershed-demo.example` | `watershed` | replay (customer-only API keys, no sandbox) |
+| `yang-energy-demo.example` | `yang-power-energy` (this gateway's own, `src/adapters/yang-power-energy.ts`) | **replay** — two recorded RFC 7951 snapshots of the IETF GREEN `ietf-power-and-energy` module; invented figures; no public RESTCONF server implements the draft |
+| `dist-demo.example` | `dist` (this gateway's own, `src/adapters/dist.ts`) | **live** — the Green Web Foundation's own `dist.json`, fetched daily and summed under strict rules (CC BY 4.0, attributed in band); replay of a recorded copy when unreachable |
 
 The mode contract lives in `src/live.ts`: a live build failure at boot falls
 back to the recorded fixture (the gateway never refuses to start because

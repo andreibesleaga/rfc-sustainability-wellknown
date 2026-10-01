@@ -1,0 +1,16 @@
+{
+  "updated": "2026-10-01T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published 2024 Environmental Statement (ISSN 2812-2828); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: 1 January to 31 December 2024, the EMA building in Amsterdam; from 2024 the total includes staff commuting and teleworking (survey-based), so it is not comparable with 2023. carbon-footprint is the printed total of CO2, CH4, N2O, HFCs, PFCs, NF3 and SF6 (2,480.2 tCO2e); the report applies the GHG Protocol but publishes no per-scope figures, so no scope member is carried and no accounting basis is stated. energy-consumption is the printed total energy (3,574.8 MWh); renewable-energy is the printed share of energy from renewable sources. Attribution: European Medicines Agency; reproduction authorised provided the source is acknowledged. EMA does not endorse this service or this use.",
+  "measurement-method": "hardware-estimated",
+  "methodology-uri": "https://www.ema.europa.eu/en/documents/other/environmental-statement-2024_en.pdf",
+  "reporting-period": "2024",
+  "target": "European Medicines Agency",
+  "energy-consumption": 3574.8,
+  "energy-unit": "MWh",
+  "carbon-footprint": 2480.2,
+  "carbon-unit": "mtCO2e",
+  "renewable-energy": 67,
+  "disclosure-uri": "https://www.ema.europa.eu/en/about-us/how-we-work/governance-reporting/environmental-management",
+  "target-type": "organization"
+}

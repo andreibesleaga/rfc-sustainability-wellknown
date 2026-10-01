@@ -1,0 +1,8 @@
+{
+  "months": {
+    "2026-09": {
+      "watts": 0.0149,
+      "source": "Railway usage for 2026-09: 0.83 vCPU-minutes and 1486.7 GB-minutes over 43200 minutes, i.e. average CPU 0.00001921 vCPU (taken as fully used), average memory 0.03441 GB, network egress 0.01 GB; converted with the Cloud Carbon Footprint coefficients (GCP median 0.71-4.26 W per vCPU, 0.392 W per GB of memory, 0.001 kWh per GB of egress) and a PUE of 1.1"
+    }
+  }
+}

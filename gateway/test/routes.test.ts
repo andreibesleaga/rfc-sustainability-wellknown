@@ -210,7 +210,7 @@ describe("index routes", () => {
     // .well-known path of this service.
     expect(html).not.toContain("/.well-known/carbon.txt");
     // The new sections are present.
-    expect(html).toContain("Adapter demonstrations (8)");
+    expect(html).toContain("Adapter demonstrations (10)");
     expect(html).toContain("Wire-format examples (22)");
     expect(html).toContain("Consumer cross-validation");
   });

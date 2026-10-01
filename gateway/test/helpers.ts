@@ -50,6 +50,9 @@ export async function startGateway(opts: StartOptions = {}): Promise<TestServer>
   // go-live before it so the pinned period has its full hours.
   if (!opts.unpinPeriod) config.self.period = "2025";
   config.self.liveSince = "2025-01-01T00:00:00Z";
+  // The model tests must not depend on the operator's entered monthly figures
+  // (data/_self-measured.json); those have their own tests.
+  config.self.measured = false;
   config.self.verifiableAttestationUri = opts.attestationUri;
   // fetchImpl: null — live upstreams are DISABLED in tests; every adapter
   // demonstration boots from its recorded fixture (deterministic, offline).

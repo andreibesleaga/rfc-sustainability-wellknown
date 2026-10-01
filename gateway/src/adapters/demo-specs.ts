@@ -48,6 +48,8 @@ import type { RawMetrics } from "sustainability-wellknown-publisher";
 import type { GatewayConfig } from "../config";
 import type { LiveDeps, LiveSpec } from "../live";
 import { keplerReplayAdapter } from "./kepler-replay";
+import { distLiveAdapter, distReplayAdapter, fetchGwfDist } from "./dist";
+import { yangPowerEnergyReplayAdapter } from "./yang-power-energy";
 import { lastCompletedMonth, periodClose, periodHours } from "./self-report";
 
 /**
@@ -528,6 +530,39 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       labelLive: "adapter:watershed",
       upstream: "Watershed API (customer-only keys, no sandbox; replay)",
       attribution: "synthetic figures; shape per api-docs.watershed.com",
+    },
+    {
+      // Gateway-local adapter for the IETF GREEN working group's Power and
+      // Energy YANG module. Replay-only: no publicly reachable RESTCONF server
+      // implements the working-group draft, and a period needs two snapshots.
+      domain: "yang-energy-demo.example",
+      target: "edge-router-1.yang-energy-demo.example",
+      targetType: "device",
+      fixture: () =>
+        yangPowerEnergyReplayAdapter({
+          target: "edge-router-1.yang-energy-demo.example",
+          gridIntensity: config.self.gridIntensity,
+        }),
+      labelFixture: "adapter:yang-power-energy (recorded RFC 7951 snapshots, replay)",
+      labelLive: "adapter:yang-power-energy",
+      upstream: "ietf-power-and-energy over RESTCONF (IETF GREEN WG draft; no public device; replay)",
+      attribution: "synthetic figures; data model per draft-ietf-green-power-and-energy-yang-04",
+    },
+    {
+      // Gateway-local adapter for DIST. Live: the Green Web Foundation's own
+      // published file, fetched daily (its website content is CC BY 4.0).
+      domain: "dist-demo.example",
+      target: "Green Web Foundation (digital estate, DIST relay)",
+      targetType: "organization",
+      live: async (deps) => {
+        const doc = await fetchGwfDist(deps.fetchImpl as typeof fetch);
+        return distLiveAdapter(doc, deps.now().toISOString().slice(0, 10) + "T00:00:00Z");
+      },
+      fixture: () => distReplayAdapter(),
+      labelLive: "adapter:dist (LIVE Green Web Foundation dist.json, daily)",
+      labelFixture: "adapter:dist (recorded dist.json, replay)",
+      upstream: "Green Web Foundation dist.json (DIST v0.0.1)",
+      attribution: "Green Web Foundation, CC BY 4.0",
     },
   ];
 }

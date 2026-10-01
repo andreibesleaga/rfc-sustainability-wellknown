@@ -81,6 +81,46 @@ the live window, and the two constants below.
 | Reporting period | most recently completed calendar month | `SELF_PERIOD` | The draft's Basic default for a publisher reporting more frequently than annually; any other period since go-live is available through the Extended parameters below. |
 | Live since | 2026-07-30T00:00:00Z | `SELF_LIVE_SINCE` | The earliest surviving deployment record of the reference gateway. No hours before it are counted. |
 
+### Measured months: entering the platform's own figures
+
+The 3 W figure is an assumption. For any month the operator can replace it
+with an average power derived from the hosting platform's own metrics, in
+`data/_self-measured.json`, written by `scripts/self-watts.mjs`:
+
+```
+node scripts/self-watts.mjs 2026-09 --vcpu 0.02 --memory-gb 0.15 --egress-gb 0.4
+node scripts/self-watts.mjs 2026-09 --vcpu-minutes 0.83 --memory-gb-minutes 1486.7 --egress-gb 0.01
+node scripts/self-watts.mjs 2026-09 --watts 1.8 --source "how the figure was obtained"
+```
+
+The `--vcpu-minutes` / `--memory-gb-minutes` form takes the totals of Railway's "Project Cost" view, which
+are accumulated per minute over the billing period, and divides them by the month's minutes (or by
+`--minutes` when the billing period is not exactly the month).
+
+**Read the result for what it is.** These coefficients count only the CPU and memory the service actually
+used. They count no share of the idle power of the machine it runs on, and for a service as small as this
+one that share is most of the real energy. The measured figure is therefore a lower bound and the 3 W
+assumption a generous upper bound; the true figure lies between them. For September 2026 the measured
+figure is about 0.015 W (0.011 kWh), against 2.16 kWh under the assumption.
+
+On Railway: project → service → Metrics, with the range set to the month; read
+the average CPU (vCPU), the average memory (GB) and the total network egress
+(GB). The first form converts them with the Cloud Carbon Footprint coefficients
+(https://www.cloudcarbonfootprint.org/docs/methodology): compute power is
+vCPU allocated × (0.71 W + utilisation × (4.26 W − 0.71 W)), GCP's median
+minimum and maximum per vCPU — without `--vcpu-allocated` the used vCPU are
+taken as fully used, so compute power is vCPU used × 4.26 W; memory 0.392 W per
+GB; network 0.001 kWh per GB of egress, spread over the month's hours; the sum
+multiplied by a PUE of 1.1 (`--pue` to change it). The result is still a model
+(`third-party-modeled`), but one fed by the platform's measured utilisation
+rather than a flat guess.
+
+A measured month uses its own figure; every other month keeps the assumption,
+so entering a month never changes the figures already published for the
+others. A year or a monthly trend adds the months up; a day takes its month's
+figure. Every document that uses an entered figure says so in its `provider`
+member. A malformed file stops the gateway at boot.
+
 ### Extended parameters and the live window
 
 The self report declares `capabilities: "extended"` and honours two of the
@@ -186,9 +226,9 @@ badges them `synthetic`.
 
 ## 4. The adapter demonstrations
 
-Seven further `.example` subjects — with `kepler-demo.example` above, the
+Nine further `.example` subjects — with `kepler-demo.example` above, the
 index's "Adapter demonstrations" section — run every adapter shipped by the published publisher package end to
-end. Two of them point their `methodology-uri` at this document:
+end, plus two adapters that live in this gateway (described at the end of this section). Two of them point their `methodology-uri` at this document:
 
 - **`grid-intensity-demo.example`** (`computed` adapter) reuses the energy
   model of §2 verbatim — the same modelled container wattage over the same
@@ -213,6 +253,31 @@ The remaining five (`carbontxt-demo`, `climatiq-demo`, `salesforce-nzc-demo`,
 and run in the modes documented in GUIDE.md, "Wiring an adapter": live where
 an upstream's license permits attributed republication, replay of a recorded
 response otherwise, always saying which in band.
+
+Two adapters are this gateway's own (`src/adapters/`), not the publisher package's:
+
+- **`yang-energy-demo.example`** (`yang-power-energy`) reads the IETF GREEN
+  working group's Power and Energy YANG module (`ietf-power-and-energy`,
+  draft-ietf-green-power-and-energy-yang-04, revision 2026-07-02). A period is
+  two RFC 7951 snapshots of `/energy-objects` (what RESTCONF returns), and its
+  energy is the growth of `total-energy-consumed` over the period, summed over
+  the energy objects the caller names — energy objects can contain one another,
+  so the adapter never adds every counter. It is `hardware-metered` only when
+  every summed object reports an `accuracy-measured` identity, refuses to
+  publish when a counter went down (a reset inside the period), and reads the
+  counter in watt-hours, the leaf's `units` statement, because the leaf's
+  description says milliwatt-hours; `counterUnit: "mWh"` selects the other
+  reading. Replay only, with invented figures: no public RESTCONF server
+  implements the draft. The document is `target-type: "device"`.
+- **`dist-demo.example`** (`dist`) reads DIST, the Green Web Foundation's
+  Digital Impacts Schema and Taxonomy, from the Foundation's own published
+  `dist.json`, fetched daily (its website content is CC BY 4.0, attributed in
+  band). DIST states no total, so the adapter adds the entries, under strict
+  rules: one whole calendar year only, kgCO2e only, an identical repeated entry
+  counted once, an entry without a value counted as nothing — and the document
+  says how many of each it met. The file as retrieved on 2026-10-01 holds one
+  repeated entry; summed this way it gives 496 kgCO2e, the total the method
+  pages it cites print.
 
 ## 5. Signature and attestation
 

@@ -37,6 +37,7 @@ import { clientKey, createRateLimiter, type RateLimiter } from "./rate-limit";
 import { loadRegistry, subjectFromAdapter, type Subject } from "./registry";
 import { LEGAL_PATH, LEGAL_TEXT } from "./legal";
 import { crossValidate, type CrossValidation } from "./verify";
+import { loadSelfMeasured } from "./self-measured";
 
 /** `/{domain}/.well-known/sustainability-data` — the primary route. */
 const SUBJECT_ROUTE = new RegExp(`^/([^/]{1,${LIMITS.maxDomainLength}})/\\.well-known/sustainability-data$`);
@@ -431,6 +432,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
 
   // ---- Worked adapter example #1: the gateway's own report, produced by the
   // published `computedAdapter` rather than hand-written. ----
+  const selfMeasured = config.self.measured ? loadSelfMeasured(config.dataDir) : {};
   const selfAdapter = (period: string | undefined) =>
     selfReportAdapter({
       target: config.self.target,
@@ -439,6 +441,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       disclosureUri: config.self.disclosureUri,
       period,
       watts: config.self.watts,
+      wattsByMonth: selfMeasured,
       gridIntensity: config.self.gridIntensity,
       liveSince: config.self.liveSince,
       verifiableAttestationUri: config.self.verifiableAttestationUri,

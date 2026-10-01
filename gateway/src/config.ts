@@ -151,6 +151,8 @@ export interface GatewayConfig {
     period?: string;
     /** Modelled average power draw of the gateway container, in watts. */
     watts: number;
+    /** Read the operator's monthly figures from data/_self-measured.json (default true). */
+    measured: boolean;
     /** Grid carbon intensity used for the estimate, gCO2e/kWh. */
     gridIntensity: number;
     /**
@@ -221,6 +223,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
       ),
       period: process.env.SELF_PERIOD || undefined,
       watts: envNum("SELF_WATTS", 3),
+      measured: true,
       gridIntensity: envNum("SELF_GRID_INTENSITY", 373),
       liveSince: envInstant("SELF_LIVE_SINCE", "2026-07-30T00:00:00Z"),
       verifiableAttestationUri: process.env.SELF_ATTESTATION_URI || undefined,

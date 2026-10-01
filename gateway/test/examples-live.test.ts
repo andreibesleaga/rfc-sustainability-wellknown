@@ -187,6 +187,8 @@ describe("adapter demonstrations", () => {
       "salesforce-nzc",
       "ms-sustainability",
       "watershed",
+      "yang-power-energy",
+      "dist",
     ]) {
       expect(covered, name).toContain(name);
     }

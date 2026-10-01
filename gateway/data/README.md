@@ -56,6 +56,12 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 | `torchbox.com.json` | Torchbox | 2024 (CY) | location-based | 2024 impact report | Scope 3 total not published; scopes cover part of the total |
 | `infomaniak.com.json` | Infomaniak Group SA | 2024 (CY) | *omitted* | Bilan des gaz à effet de serre 2024 | total excludes a data-centre construction booked to 2023 |
 | `go.eco.json` | Big Room Inc. (.eco registry) | **FY2025**, ended 2025-09-30 | *omitted* | GHG Emissions Report FY2025 | **fiscal year, not calendar year** |
+| `hmrc.gov.uk.json` | HM Revenue and Customs | **FY 2024-25**, ended 2025-03-31 | *omitted* | Annual Report and Accounts 2024-25, Annex 3 | **financial year**; energy is the sum of the table's rows |
+| `home.cern.json` | CERN | 2024 (CY) | location-based | Environment Report 2023-2024 | total and Scope 3 are sums of printed figures |
+| `commission.europa.eu.json` | European Commission (EMAS sites) | 2024 (CY) | *omitted* | Environmental Statement 2025 | Scope 2 method not labelled |
+| `eca.europa.eu.json` | European Court of Auditors | 2024 (CY) | *omitted* | Environmental statement 2025 | no scope split |
+| `ema.europa.eu.json` | European Medicines Agency | 2024 (CY) | *omitted* | 2024 Environmental Statement | no scope split; commuting added from 2024 |
+| `eea.europa.eu.json` | European Environment Agency | 2024 (CY) | *omitted* | Environmental statement report 2024 | footprint = travel-and-meetings boundary |
 | `retailer.example.json` | *synthetic* | 2025 | market-based | — invented — | reserved `.example` name |
 | `saas-platform.example.json` | *synthetic* | 2025 | location-based | — invented — | reserved `.example` name |
 | `cloud-demo.example.json` | *synthetic* upstream provider | 2025 | market-based | — invented — | tenant-scoped declaration; reserved `.example` name |
@@ -97,7 +103,7 @@ and the same list appears in [`METHODOLOGY.md`](../METHODOLOGY.md).
 
 | Extension name | Used by | Members |
 |---|---|---|
-| `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041` | `go.eco.json` (and the withheld `microsoft.com.json`, `ovhcloud.com.json`) | `reporting-period-basis` (string) — the exact boundary of a fiscal reporting period whose `reporting-period` can only carry the calendar year in which it ended, as `fiscal-year-ended-<YYYY-MM-DD>`. Defined by this gateway's operator. The `urn:uuid:` form is used because the definition is the operator's, not any one domain's. |
+| `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041` | `go.eco.json`, `hmrc.gov.uk.json` (and the withheld `microsoft.com.json`, `ovhcloud.com.json`) | `reporting-period-basis` (string) — the exact boundary of a fiscal reporting period whose `reporting-period` can only carry the calendar year in which it ended, as `fiscal-year-ended-<YYYY-MM-DD>`. Defined by this gateway's operator. The `urn:uuid:` form is used because the definition is the operator's, not any one domain's. |
 | `https://acme.example/esg/extensions/water-and-waste` | `tenant-demo.example.json` | `water-consumption-m3` (number, cubic metres), `waste-generated-kg` (number, kilograms), `waste-recycled-percent` (number, 0–100). Defined, in the fiction of the specification's own worked example, by that example's publisher; reproduced here verbatim so the deployment serves the example as written. It demonstrates the `https` form of the key. `acme.example` is a reserved name (RFC 2606), so this particular URI documents nothing, where a real definer's would. |
 | `urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845` | `tenant-demo.example.json` | `packaging-recycled-percent` (number, 0–100). The other half of the specification's worked example: a name minted by a party that wants one independent of any domain. |
 | `urn:uuid:96a3b405-2151-4b00-842e-02a5260331c1` | `example-response-device.json`, `example-response-extended.json` (wire-format examples) | `pue` (number — power usage effectiveness, ISO/IEC 30134-2). An illustrative name for data defined outside the specification. It is deliberately NOT the draft's `urn:uuid:16c36135…` name above: that one means `packaging-recycled-percent`, and a name is compared octet for octet, so one name never carries two definitions. |
@@ -367,6 +373,71 @@ document is kept deliberately: `reporting-period` and `updated` exist so a
 consumer can see staleness rather than have to guess at it.
 
 ---
+
+### `hmrc.gov.uk.json` — HM Revenue and Customs, **financial year 2024-25**
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | HMRC Annual Report and Accounts 2024 to 2025, "Our accounts and annexes", Annex 3 sustainability data tables (gov.uk, published 17 July 2025) |
+| Retrieved | 2026-10-01 |
+| `carbon-footprint` | 33,160 tCO2e — read: "Total gross emissions … 33.16" in a table headed "tCO2e, 000s", column 2024-25 |
+| Energy | 120,160 MWh — the SUM of the five rows filled for 2024-25 under "Energy consumption (kWh, 000s)": electricity non-renewable 2,323, electricity renewable 54,969, gas 57,432, oil 300, Stratford district heating 5,136 |
+
+Caveats: financial year, carried as 2025 with `reporting-period-basis`; Scope 1 and 2 are published only combined (25.41 thousand tCO2e) and Scope 3 only for business travel (7.75 thousand), so no scope member is carried; no accounting basis stated.
+
+### `home.cern.json` — CERN, CY2024
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | CERN Environment Report 2023-2024 (Vol. 4, 2025), doi:10.25325/CERN-Environment-2025-004 |
+| Retrieved | 2026-10-01 |
+| Scope 1 / 2 (LB) | 170,024 / 66,965 tCO2e — read ("In 2023 and 2024, respectively: Direct Scope 1 emissions amounted to 170 482 and 170 024 …; Indirect Scope 2 … 63 572 and 66 965 tCO2e"; "The Organization reports according to the location-based methodology") |
+| Scope 3 | 114,283 tCO2e — the SUM of 11,553 (excluding procurement) and 102,730 (procurement), both read |
+| `carbon-footprint` | 351,272 tCO2e — the SUM of the three scopes; no all-scope total is printed |
+| Energy | 1,333 GWh — the SUM of "1 290 GWh in 2024" of electricity and "43 GWh … of energy generated by fossil fuels" |
+
+### `commission.europa.eu.json` — European Commission (EMAS sites), CY2024
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | Environmental Statement 2025 (data 2024), doi:10.2774/3841514 |
+| Retrieved | 2026-10-01 |
+| Scope 1 / 2 / 3 | 24,085 / 6,110 / 131,832 tCO2e — read (Table 3.1, last column) |
+| `carbon-footprint` | 162,026 tCO2e — read ("Sum … 162 026"; also the 2024 total of Figure 3.1's table); the scopes add to 162,027 through the source's rounding |
+| Energy | 266,358 MWh — read (Table 4.1, "Commission", 2024) |
+
+Caveat: the headline table does not label the Scope 2 method (an annex shows both bases), so `carbon-accounting` is omitted.
+
+### `eca.europa.eu.json` — European Court of Auditors, CY2024
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | Environmental statement 2025 presenting results for 2024 |
+| Retrieved | 2026-10-01 |
+| `carbon-footprint` | 9,108 tCO2e — read ("Gross annual emissions Total emissions (tCO2e) 9 108") |
+| Energy | 5,912 MWh — read ("Total energy consumption (MWh) 5 912") |
+| Renewable | 94.4% — read ("Renewable energy share 94.4 %") |
+
+### `ema.europa.eu.json` — European Medicines Agency, CY2024
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | 2024 Environmental Statement, "Reporting on performance for 1 January to 31 December 2024" |
+| Retrieved | 2026-10-01 |
+| `carbon-footprint` | 2,480.2 tCO2e — read (Table 5, "Total Emissions of CO2, CH4, N2O, HFCs, PFCs, NF3 and SF6 … 2.480,2") |
+| Energy | 3,574.8 MWh — read ("Total energy (MWh) … 3.574.8") |
+| Renewable | 67% — read ("Share of energy from renewable source (%) … 67%") |
+
+### `eea.europa.eu.json` — European Environment Agency, CY2024
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | Environmental statement report 2024 (EEA corporate report 02/2025) |
+| Retrieved | 2026-10-01 |
+| `carbon-footprint` | 617 tCO2e — read (Table 5.1, "Carbon footprint of the EEA including scope 1, 2 and 3 of the Greenhouse Gas Protocol methodology, in particular staff business travel … 617 tCO2e") |
+| Energy | 1,165,784 kWh — read (Table 3.4, "Total direct", 2024) |
+
+Caveat: the 617 tCO2e equals the total of Table 3.14, "CO2 emissions from travel and meetings"; the document says so in band.
 
 ### `thegreenwebfoundation.org.json` — Green Web Foundation, CY2023 (digital estate)
 
@@ -692,6 +763,8 @@ operator to decide something the source does not say (rule 4):
 | Wholegrain Digital | 27.7 tonnes CO2e for "2022/23" | the year's dates are not stated |
 | Fairphone 5, Framework Laptop, Apple iPhone 17 | 42.1, 200 and 55 kg CO2e | life-cycle totals over three to five years of use, not emissions of a reporting period: `carbon-footprint` is defined as emissions "during the period" |
 | PlanetHoster | PUE and "100%" renewable per data centre | no dated period and no energy or carbon total |
+| World Bank | Scope 1 7,269, Scope 2 (LB) 28,548, Scope 3 162,280 tCO2e (FY24) | its terms allow reproduction "for noncommercial purposes" only, which this registry's open licences cannot carry |
+| European Central Bank | 2025 environmental statement | the statement says "Reproduction for educational and non-commercial purposes is permitted"; non-commercial only |
 
 **Live sourcing was considered and rejected.** Two of the subjects above publish
 machine-readable files of their own (`dist.json`, `tcs.json`) that a gateway
@@ -717,6 +790,12 @@ document is served only under rule 7. This record is not legal advice.
 | `torchbox.com.json` | "© Torchbox 2026"; no terms page found | **yes** — figures only |
 | `go.eco.json` | "© 2026 Big Room Inc."; no website terms found | **yes** — figures only |
 | `infomaniak.com.json` | each PDF page "© ecoLive" (the consultancy that prepared it); the report says it "peuvent être utilisés dans la communication de l'entreprise" and that part A "peut être transmise aux clients"; no prohibition on third parties found | **yes** — figures from part A only |
+| `hmrc.gov.uk.json` | the page: "This publication is licensed under the terms of the Open Government Licence v3.0 except where otherwise stated" | **yes** — OGL attribution statement in `provider` |
+| `home.cern.json` | the report: "CERN publishes this volume open access under the Creative Commons Attributions (CC BY) 4.0 licence … excepting the images" | **yes** — attribution in `provider`; no image used |
+| `commission.europa.eu.json` | the statement: reuse "authorised under a Creative Commons Attribution 4.0 International (CC BY 4.0) licence" (Commission Decision 2011/833/EU) | **yes** — attribution in `provider` |
+| `eca.europa.eu.json` | the statement: "the ECA's content owned by the EU is licensed under the Creative Commons Attribution 4.0 International (CC BY 4.0) licence" | **yes** — attribution in `provider` |
+| `ema.europa.eu.json` | the statement: "Reproduction is authorised provided the source is acknowledged" | **yes** — source acknowledged in `provider` |
+| `eea.europa.eu.json` | the report: "published under a Creative Commons Attribution 4.0 International (CC BY 4.0) licence" | **yes** — attribution in `provider` |
 | `withheld/scaleway.com.json` | legal notice: contents "(including data, information …)" — "Any reproduction … or quotation, in whole or in part … is strictly prohibited except as provided by law or expressly authorised" | **no** |
 | `withheld/microsoft.com.json` | terms of use: "You may not … copy, distribute … reproduce, publish … any information … obtained from the Services"; documents may be used only for "non-commercial or personal use" and "will not be copied or posted on any network computer" | **no** |
 | `withheld/ovhcloud.com.json` | website terms: "Any partial or full reproduction or representation of the website or its components … is prohibited without the express consent of OVH" | **no** |

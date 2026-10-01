@@ -34,6 +34,12 @@ export interface SelfReportConfig {
   period?: string;
   /** Modelled average power draw of the running container, watts. */
   watts: number;
+  /**
+   * Average power per calendar month ("YYYY-MM" -> watts) that the operator
+   * entered from the platform's own metrics (data/_self-measured.json). A
+   * month listed here uses its own figure; every other month uses `watts`.
+   */
+  wattsByMonth?: Record<string, number>;
   /** Grid carbon intensity, gCO2e/kWh (cited in METHODOLOGY.md). */
   gridIntensity: number;
   /** The instant the gateway went live (RFC 3339); hours before it never count. */
@@ -114,17 +120,33 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
   const liveSince = Date.parse(config.liveSince);
   if (Number.isNaN(liveSince)) throw new Error(`self-report: liveSince is not a date-time ("${config.liveSince}")`);
 
+  const byMonth = config.wattsByMonth ?? {};
+  const wattsFor = (month: string): number => byMonth[month] ?? config.watts;
+  /** The calendar months a slice touches: twelve for a year, its own month otherwise. */
+  const monthsOf = (slice: string): string[] =>
+    slice.length === 4 ? Array.from({ length: 12 }, (_, i) => `${slice}-${pad(i + 1)}`) : [slice.slice(0, 7)];
+  /** Watt-hours of a slice: each month's hours inside the live window at that month's power. */
+  const wattHours = (slice: string, now: number): number =>
+    slice.length === 10
+      ? liveHours(slice, liveSince, now) * wattsFor(slice.slice(0, 7))
+      : monthsOf(slice).reduce((sum, m) => sum + liveHours(m, liveSince, now) * wattsFor(m), 0);
+
   /** One report for one slice, via the published computed adapter. */
   const report = async (slice: string, now: number): Promise<RawMetrics | undefined> => {
     const hours = liveHours(slice, liveSince, now);
     if (hours <= 0) return undefined;
+    const measured = monthsOf(slice).filter((m) => byMonth[m] !== undefined && liveHours(m, liveSince, now) > 0);
+    const provider = measured.length === 0
+      ? config.provider
+      : `${config.provider}. Average power for ${measured.join(", ")} entered by the operator from the hosting ` +
+        `platform's own metrics${measured.length < monthsOf(slice).filter((m) => liveHours(m, liveSince, now) > 0).length ? `; other months: the ${config.watts} W assumption` : ""} (see methodology-uri)`;
     const complete = periodBounds(slice).end <= now;
     const inner = computedAdapter({
-      provider: config.provider,
+      provider,
       methodologyUri: config.methodologyUri,
       measurementMethod: "third-party-modeled",
       reportingPeriod: slice,
-      energy: { value: Number(((config.watts * hours) / 1000).toFixed(4)), unit: "kWh" },
+      energy: { value: Number((wattHours(slice, now) / 1000).toFixed(4)), unit: "kWh" },
       gridIntensity: config.gridIntensity,
       carbonAccounting: "location-based",
       capabilities: "extended",

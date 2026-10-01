@@ -1,0 +1,19 @@
+{
+  "comment": "Live deployments of /.well-known/sustainability-data known to this repository. 'operator' is 'author' for origins run by the draft's author and 'independent' for everyone else. Checked daily by .github/workflows/live-deployments.yml; see IMPLEMENTATIONS.md.",
+  "deployments": [
+    {
+      "origin": "https://sustainability.up.railway.app",
+      "name": "Reference gateway",
+      "operator": "author",
+      "software": "sustainability-data gateway (this repository, gateway/)",
+      "since": "2026-07"
+    },
+    {
+      "origin": "https://andreibesleaga.com",
+      "name": "Author's personal site (static file, signed offline)",
+      "operator": "author",
+      "software": "static file; signed with sustainability-sign (publisher/)",
+      "since": "2026-07"
+    }
+  ]
+}

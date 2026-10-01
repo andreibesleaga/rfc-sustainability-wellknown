@@ -9,9 +9,9 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 Well-Known URI* — the Datatracker document name is unchanged).
 Individual submission on the IETF **Independent Submission Stream** (Informational).
 
-- **`-07`** is **in preparation** in this directory (`draft-besleaga-sustainability-wellknown-07.{md,xml,txt}`)
-  and has **not been posted** to the Datatracker — do not cite it as posted or published; `-06`
-  remains the latest posted revision until `-07` is submitted. `-07` withdraws the companion
+- **`-07`** is the **latest posted** revision (posted 2026-09-17, under ISE review; sources in this
+  directory: `draft-besleaga-sustainability-wellknown-07.{md,xml,txt}`); `-06` is the prior posted
+  revision. `-07` withdraws the companion
   `/.well-known/sustainability-data.jws` resource and the detached signature entirely (no legacy
   support, no redirect, no fallback) and replaces it with an OPTIONAL `signed` member embedded in
   each declaration object itself (a JWS Compact Serialization over the object minus `signed`,
@@ -31,9 +31,9 @@ Individual submission on the IETF **Independent Submission Stream** (Information
   [`REVISION-07-RATIONALE.md`](REVISION-07-RATIONALE.md), which gives the reason for each
   change, what it costs an existing publisher or consumer, and what reversing it would involve.
 
-- **`-06`** is the **latest posted** revision — its sources live in this directory
-  (`draft-besleaga-sustainability-wellknown-06.{md,xml,txt}`) and it is under the ISE's
-  review. It carries the security package the ISE asked for ("security is not
+- **`-06`** is the prior posted revision (posted 2026-09-10) — its sources live in this directory
+  (`draft-besleaga-sustainability-wellknown-06.{md,xml,txt}`) and it was the revision under the ISE's
+  review before `-07`. It carries the security package the ISE asked for ("security is not
   optional"): HTTPS raised from SHOULD to MUST, a dedicated
   `application/sustainability-data+json` media type (registration requested with the full RFC 6838
   Section 5.6 template and the Section 4.6 security analysis) required as the response
@@ -81,7 +81,7 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 |---|---|
 | `build.sh` | Build-and-check script for any revision (see "Building the draft" below). |
 | `v3-postprocess.py` | Run by `build.sh` and CI on the generated XML: drops `<?line?>` PIs, un-nests the References sections, removes cited-reference abstracts and the BCP 14 no-break space, so idnits3 reports no nits in any mode. |
-| `draft-besleaga-sustainability-wellknown-07.md` | Markdown source of the **in-preparation, unposted** revision. Edit this one for any further change. |
+| `draft-besleaga-sustainability-wellknown-07.md` | Markdown source of the latest posted revision (posted 2026-09-17). Do not edit — it is a posted artifact; further changes go to a future `-08` file (does not exist yet). |
 | `draft-besleaga-sustainability-wellknown-07.xml` | xml2rfc v3 XML of `-07`. |
 | `draft-besleaga-sustainability-wellknown-07.txt` | Rendered plain-text form of `-07`. |
 | `draft-besleaga-sustainability-wellknown-06.md` | Markdown source of the latest **posted** revision (2026-09-10). Do not edit — it is a posted artifact. |
@@ -91,9 +91,8 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 | `draft-besleaga-sustainability-wellknown-05.xml` | xml2rfc v3 XML of `-05` — the authoritative submission form. |
 | `draft-besleaga-sustainability-wellknown-05.txt` | Rendered plain-text form of `-05`. |
 
-`-05` and `-06` are posted revisions kept as files for reference; `-07` is the current
-in-preparation revision, not yet posted. Once `-07` is posted, `-05` is expected to drop out of
-this directory in favor of the two-posted-plus-one-in-prep convention this repository follows.
+`-05`, `-06` and `-07` are posted revisions kept as files for reference; `-07` (posted
+2026-09-17) is the latest. `-05` is kept in this directory for now.
 Revisions `-00` through `-04` were removed once posted; they remain on the Datatracker and in
 this repository's git history.
 

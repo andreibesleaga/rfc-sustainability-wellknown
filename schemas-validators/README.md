@@ -11,6 +11,7 @@ Schemas and validators for the `/.well-known/sustainability-data` URI response f
 | `validator-json.py` | Validates a JSON response against `response-schema.json` using JTD |
 | `validator-cddl.py` | Validates a JSON response against `response-schema.cddl` using the `cddl` Ruby gem |
 | `validate-all.sh` | Runs both validators against all examples in `../example-responses/` |
+| `check-live.py` | Fetches every origin in `../implementations.json` (or `--origin <url>`) and checks the HTTP status, the media type and the JTD schema; `--csv` appends a dated row per origin. Run daily by the `live-deployments` workflow |
 | `requirements.txt` | Python dependencies |
 | `install.py` | Installs all dependencies (pip packages + `cddl` Ruby gem) |
 
@@ -85,6 +86,15 @@ python3 validator-cddl.py ../example-responses/example-response.json
 ```
 
 Both validators must be run from the `schemas-validators/` directory so they can locate the schema files.
+
+### Check the live deployments
+
+```bash
+python3 check-live.py                                   # every origin in ../implementations.json
+python3 check-live.py --origin https://example.org      # one origin
+```
+
+An origin that answers `200` with `text/html` for any path is reported as a failure.
 
 ## What the formal schemas do and do not enforce
 

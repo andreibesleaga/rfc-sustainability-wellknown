@@ -12,10 +12,9 @@ inline (Mermaid source) and as a pre-rendered image in [`images/`](images/); the
 sources live in [`diagrams/`](diagrams/).
 
 **Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-07.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-07.md)
-(the active draft under development in this repository — **`-07` is in
-preparation and not yet posted**; see [§3](#3-the-protocol-subsystem) for what
+(the latest posted draft — **`-07` was posted 2026-09-17**; see [§3](#3-the-protocol-subsystem) for what
 it changes), with [`internet-drafts/draft-besleaga-sustainability-wellknown-06.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-06.md)
-kept as the historical reference for the latest revision actually *posted*
+kept as the historical reference for the prior posted revision
 (2026-09-10, the "2.0"-labeled `sustainability-data` URI rename), [`../README.md`](../README.md),
 [`publisher/src/`](../publisher/src/), [`consumer/src/`](../consumer/src/),
 [`schemas-validators/`](../schemas-validators/),
@@ -219,8 +218,7 @@ flowchart TB
 ## 3. The protocol subsystem
 
 The normative artifact is the Internet-Draft (`internet-drafts/`). **`-07` is
-the active draft under development in this repository — in preparation, not
-yet posted to the Datatracker.** Since `-06` it: withdraws the companion
+the latest posted draft (posted 2026-09-17 to the Datatracker).** Since `-06` it: withdraws the companion
 `sustainability-data.jws` resource and its detached signature entirely, in
 favor of an OPTIONAL `signed` member embedded in each declaration object (a
 JWS Compact Serialization over the object itself, typed by `cty`); removes the
@@ -533,8 +531,8 @@ stateDiagram-v2
         state "-03 POSTED: schema 2.0 revision, posted 2026-07-23 (SUSTAIN RG presentation at IETF 126)" as POSTED
         state "-04 POSTED: URI suffix renamed to sustainability-data (ISE naming feedback), optional target-type member added" as POSTED4
         state "-05 POSTED: posted 2026-07-28 — disclosure-uri made format- and location-agnostic, Internationalization Considerations added; no wire change" as POSTED5
-        state "-06 LATEST POSTED: posted 2026-09-10, under ISE review — application/sustainability-data+json required, HTTPS raised to MUST, nosniff, OPTIONAL detached JWS, version fixed as a single label; no wire change" as POSTED6
-        state "-07 IN PREPARATION: current draft in this repository, not yet posted — withdraws the .jws companion resource for an embedded OPTIONAL signed member, removes version (7 mandatory members), closes the top-level member set, replaces reverse-domain extensions with a URI-keyed extensions object, adds upstream, drops nosniff and the server-side 366 cap, adds ABNF query-parameter processing" as POSTED7
+        state "-06 POSTED: posted 2026-09-10 — application/sustainability-data+json required, HTTPS raised to MUST, nosniff, OPTIONAL detached JWS, version fixed as a single label; no wire change" as POSTED6
+        state "-07 LATEST POSTED: posted 2026-09-17, under ISE review — withdraws the .jws companion resource for an embedded OPTIONAL signed member, removes version (7 mandatory members), closes the top-level member set, replaces reverse-domain extensions with a URI-keyed extensions object, adds upstream, drops nosniff and the server-side 366 cap, adds ABNF query-parameter processing" as POSTED7
         state "Informational RFC + IANA 'sustainability-data' well-known URI (provisional, promotable to permanent)" as RFC
 
         [*] --> GREEN
@@ -544,7 +542,7 @@ stateDiagram-v2
         POSTED --> POSTED4 : ISE naming feedback (RFC 8615 precision)
         POSTED4 --> POSTED5 : ISE review of -04
         POSTED5 --> POSTED6 : ISE security round + first commissioned review
-        POSTED6 --> POSTED7 : drafting in this repository, not yet posted
+        POSTED6 --> POSTED7 : posted 2026-09-17
         POSTED7 --> RFC : ISE approval + RFC Editor
         RFC --> [*]
     }
@@ -998,9 +996,9 @@ same JTD schema enforced, identically, at every layer.
 * Diagrams rendered with
   [`@mermaid-js/mermaid-cli`](https://github.com/mermaid-js/mermaid-cli)
   (`mmdc -s 2 -b white`).
-* **Repository ground truth** — the `-07` draft (in preparation; the active
+* **Repository ground truth** — the `-07` draft (latest posted; the active
   source for the protocol content in this document — see §3), with `-06` kept
-  as the historical latest-*posted* reference, root `README.md`,
+  as the historical prior-posted reference, root `README.md`,
   `publisher/src/`, `consumer/src/`, `schemas-validators/`,
   `server-configurations/`, `example-scripts/`, and `.github/workflows/` as
   cited throughout.

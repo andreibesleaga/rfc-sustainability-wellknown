@@ -8,11 +8,11 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-06** is the **latest posted** revision (posted 2026-09-10) and is **under ISE review** for publication as an Informational RFC; **-06 made no change to the wire format** relative to -05. Revision **-07** is being drafted in this repository — **not yet posted** to the Datatracker — and does make substantive wire-format changes (see [internet-drafts/](#internet-drafts) below and the `-07` draft's own Changelog appendix for the complete list). Revisions v02/v03 were discussed on the IRTF SUSTAIN mailing list and presented in the [SUSTAIN RG session at IETF 126](https://datatracker.ietf.org/meeting/126/session/sustain/) (Vienna); the research group has taken no position on the draft.
+**Status:** Individual Internet-Draft on the IETF **Independent Submission Stream**. Revision **-07** is the **latest posted** revision (posted 2026-09-17) and is **under ISE review** for publication as an Informational RFC; it does make substantive wire-format changes, whereas the prior posted revision **-06** (posted 2026-09-10) made no change to the wire format relative to -05 (see [internet-drafts/](#internet-drafts) below and the `-07` draft's own Changelog appendix for the complete list). Revisions v02/v03 were discussed on the IRTF SUSTAIN mailing list and presented in the [SUSTAIN RG session at IETF 126](https://datatracker.ietf.org/meeting/126/session/sustain/) (Vienna); the research group has taken no position on the draft.
 
 IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name).
 
-This repository contains initial drafts and supporting documents, examples, sources, tooling, etc. Previous drafts are on the Datatracker and in this repository's git history; the internet-drafts folder keeps `-05`, `-06`, and `-07` (drafted in this repository, **not yet posted** to the Datatracker); system architecture with diagrams in: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md).
+This repository contains initial drafts and supporting documents, examples, sources, tooling, etc. Previous drafts are on the Datatracker and in this repository's git history; the internet-drafts folder keeps `-05`, `-06`, and `-07` (`-07` posted 2026-09-17); system architecture with diagrams in: [architecture/](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/architecture/README.md).
 
 Reference testing gateway: https://sustainability.up.railway.app/ — one demonstration subject per publisher adapter (some fetch their upstream daily, the rest replay a recorded response), plus every example document from this repository; the gateway validates all of them with the published consumer library when it starts.
 
@@ -107,6 +107,7 @@ These are properties of the specification itself, not add-ons: any conformant do
 
 ### Adoption & publishing
 
+* [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md) — the software that implements the draft and the origins known to serve the document, checked daily ([`implementations.json`](implementations.json)); says who operates each one.
 * [ADOPTION.md](ADOPTION.md) — the multi-dimensional case (technical, regulatory, business, ecosystem, environmental) for adopting and approving this as an informational RFC and IANA registration.
 
 #### Why the name `sustainability-data`
@@ -120,7 +121,7 @@ The normative specification is the Internet‑Draft; this repo provides non‑no
 
 ```
 rfc-sustainability-wellknown/
-├── internet-drafts/            # Draft sources (-05, -06, -07 in preparation), build script, changelog, VC companion note
+├── internet-drafts/            # Draft sources (-05, -06, -07), build script, changelog, VC companion note
 ├── example-responses/          # Valid JSON response examples (all validators pass)
 ├── schemas-validators/         # Formal schemas (CDDL, JTD) and validation tooling
 ├── example-scripts/            # Server-side security middleware + reference request handler (Python, JS, PHP), with tests
@@ -133,6 +134,7 @@ rfc-sustainability-wellknown/
 ├── .github/                    # CI workflows (build, test, conformance battery, package publishing) and Dependabot policy
 ├── SIGNING-AND-ATTESTATION.md  # How to deploy the OPTIONAL signature and a Verifiable Credential (publisher, attester, consumer); covers -07's embedded `signed` member
 ├── ADOPTION.md                 # The case for RFC/IANA adoption (business, technical, regulatory benefits)
+├── IMPLEMENTATIONS.md          # Implementations and live deployments (RFC 7942 style); implementations.json is the checked list
 ├── CONTRIBUTING.md             # How to build, test and change the draft or the packages
 ├── SECURITY.md                 # Vulnerability reporting and supported versions
 ├── CITATION.cff                # How to cite the specification
@@ -148,9 +150,9 @@ Draft in multiple formats plus supplementary documents.
 
 | Revision (files kept: `-07`, `-06`, `-05`; earlier ones on the Datatracker) | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-07.md` | **In preparation — not yet posted** to the Datatracker; drafted in this repository, next after the latest posted revision (`-06`). Withdraws the companion `sustainability-data.jws` resource and its detached signature in favor of an OPTIONAL `signed` member embedded in each declaration object (a JWS over the object itself, typed by `cty`); removes the `version` member entirely (seven mandatory members remain); moves private extension data out of top-level reverse-domain names into a top-level `extensions` object keyed by absolute URI (RFC 3986; an `https` URI the definer controls, or a `urn:uuid:` name) and closes the top-level member set; adds an OPTIONAL `upstream` member chaining to the declarations of providers a subject's figures derive from (bounded consumer-side walk, depth at most 3); replaces the old condition that a metric-less document's `methodology-uri` be openly retrievable with a plain rule that a declaration MUST carry at least one numeric metric or one of `disclosure-uri`/`verifiable-attestation-uri`; gives Extended Query Parameters a formal ABNF grammar and a 7-step numbered processing procedure; removes the server-side 366-object cap in favor of a consumer-side bound; removes the `X-Content-Type-Options: nosniff` recommendation; and adds a worked-deployment appendix in which the attestation's `credentialSubject` carries the derivation model behind the figures — its constants and formulas — rather than a byte hash, an issuer attesting one period's figures carrying a copy of that declaration instead (the draft constrains no credential format). See the draft's own Changelog appendix for the complete list |
+| `draft-besleaga-sustainability-wellknown-07.md` | **Latest posted revision** (posted 2026-09-17, under ISE review); follows the prior posted revision (`-06`). Withdraws the companion `sustainability-data.jws` resource and its detached signature in favor of an OPTIONAL `signed` member embedded in each declaration object (a JWS over the object itself, typed by `cty`); removes the `version` member entirely (seven mandatory members remain); moves private extension data out of top-level reverse-domain names into a top-level `extensions` object keyed by absolute URI (RFC 3986; an `https` URI the definer controls, or a `urn:uuid:` name) and closes the top-level member set; adds an OPTIONAL `upstream` member chaining to the declarations of providers a subject's figures derive from (bounded consumer-side walk, depth at most 3); replaces the old condition that a metric-less document's `methodology-uri` be openly retrievable with a plain rule that a declaration MUST carry at least one numeric metric or one of `disclosure-uri`/`verifiable-attestation-uri`; gives Extended Query Parameters a formal ABNF grammar and a 7-step numbered processing procedure; removes the server-side 366-object cap in favor of a consumer-side bound; removes the `X-Content-Type-Options: nosniff` recommendation; and adds a worked-deployment appendix in which the attestation's `credentialSubject` carries the derivation model behind the figures — its constants and formulas — rather than a byte hash, an issuer attesting one period's figures carrying a copy of that declaration instead (the draft constrains no credential format). See the draft's own Changelog appendix for the complete list |
 | `draft-besleaga-sustainability-wellknown-07.xml` / `.txt` | xml2rfc v3 XML (authoritative submission form) and rendered text of `-07`, kept in this repository ahead of posting |
-| `draft-besleaga-sustainability-wellknown-06.md` | **Latest posted revision** (posted 2026-09-10, under ISE review) — responds to the ISE's second round (security designed in from the start) and to the first commissioned review: requests registration of, and requires, the `application/sustainability-data+json` media type, makes HTTPS a MUST, adds an OPTIONAL detached-JWS signature mechanism and a threat-model table, adds "Roles and Processing Model" and "Partial Knowledge and Incremental Adoption", and fixes the `version` label as a single value. No change to the wire format |
+| `draft-besleaga-sustainability-wellknown-06.md` | **Prior posted revision** (posted 2026-09-10) — responds to the ISE's second round (security designed in from the start) and to the first commissioned review: requests registration of, and requires, the `application/sustainability-data+json` media type, makes HTTPS a MUST, adds an OPTIONAL detached-JWS signature mechanism and a threat-model table, adds "Roles and Processing Model" and "Partial Knowledge and Incremental Adoption", and fixes the `version` label as a single value. No change to the wire format |
 | `draft-besleaga-sustainability-wellknown-06.xml` / `.txt` | xml2rfc v3 XML (authoritative submission form) and rendered text of `-06` |
 | `draft-besleaga-sustainability-wellknown-05.md` | Prior posted revision (posted 2026-07-28) — responds to the ISE's initial review of `-04`: removes the carbon.txt-path reference from `disclosure-uri` (now format- and location-agnostic), adds an Internationalization Considerations section, states the calendar-period rationale in-document, and recognizes the calendar year as the common Basic-service reporting cycle. No change to the wire format |
 | `draft-besleaga-sustainability-wellknown-05.xml` / `.txt` | xml2rfc v3 XML and rendered text of `-05` |
@@ -163,12 +165,12 @@ Draft in multiple formats plus supplementary documents.
 | `draft-besleaga-green-sustainability-wellknown-05/04/03/02/01/00.*` | Earlier revisions (previous name) |
 | `draft-verifiable-credential.md` | Supplementary: W3C Verifiable Credential structure for anti-greenwashing attestations |
 
-`-05`, `-06`, and `-07` are kept as files in this directory (`-07` **in preparation, not yet posted**);
+`-05`, `-06`, and `-07` are kept as files in this directory (`-07` posted 2026-09-17);
 the rows above `-05` are the revision history, whose sources were removed once posted and remain available on the
 [Datatracker](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/)
 and in this repository's git history.
 
-The current draft (`-07`, in preparation) defines the full data model, mandatory/optional fields, CDDL and JTD formal schemas, security, privacy, and internationalization considerations, and IANA registration request.
+The current draft (`-07`, posted 2026-09-17) defines the full data model, mandatory/optional fields, CDDL and JTD formal schemas, security, privacy, and internationalization considerations, and IANA registration request.
 
 ---
 
@@ -273,7 +275,7 @@ Both configurations implement:
 ## Key data model fields
 
 The data model is **7 mandatory and 19 optional members (26 total)** as of draft `-07`
-(in preparation, not yet posted). It was **8 mandatory and 16 optional (24 total)** from `-04`
+(posted 2026-09-17). It was **8 mandatory and 16 optional (24 total)** from `-04`
 through `-06` (`-06` changed no member at all); `-07` removes the `version` member, adds
 `upstream` and `extensions`, and turns the signature into an OPTIONAL `signed` member
 embedded on the declaration object itself (previously a separate detached-JWS resource, not
@@ -321,7 +323,7 @@ tree and requires it for successful responses, makes HTTPS a MUST for both publi
 and retrieval (including every redirect hop), and adds an OPTIONAL detached-JWS
 signature mechanism (see the `-06` draft's "Document Integrity and Signing" section).
 
-**`-07` (in preparation, not yet posted) is not wire-compatible with `-04`–`-06`.** It
+**`-07` (posted 2026-09-17) is not wire-compatible with `-04`–`-06`.** It
 removes the `version` member (seven mandatory members remain, not eight); withdraws the
 companion `sustainability-data.jws` resource and the detached-signature mechanism in favor
 of an OPTIONAL `signed` member embedded directly in each declaration object; replaces
@@ -382,7 +384,7 @@ How to deploy it — and the draft's other optional mechanism, a `signed` member
 
 ## Reference implementation (publisher/)
 
-Published on npm: **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)** (`npm install sustainability-wellknown-publisher`). The `0.1.0` release on the registry implements the historical `-02` / schema-`1.1` model; the `0.4.0` release implements the schema-`2.0` model then current (revision `-04`; neither `-05` nor `-06` made any schema change, and `-07` later retired the `"2.0"` label along with the `version` member — see below). `0.5.0` and `0.5.2` are version-only bumps keeping the two packages in lockstep — the publisher's code is unchanged from `0.4.0`. `0.6.0` implemented `-06` (dedicated media type, HTTPS, `nosniff`) while staying `-05` compatible via the `mediaType: "json"` option, `0.6.5` added the OPTIONAL detached JWS signature and the `vc+jwt` attestation, `0.6.6` completed the Extended selection rule (an array only for a granularity finer than the period; aggregation; calendar-checked periods), HEAD/GET header parity under Express, and the `https` check on URI members, and `0.6.7` exposed the validators to browser clients, bounded upstream bodies, and passed Climatiq's required data-version selector. **`0.7.0` implements draft `-07`** (in preparation, not yet posted) and **`0.7.1` is the current release**, differing from it only in that an unmatched `target` now receives the same 404 body as a period with no data, as the draft asks: it drops the `version` member and the companion `.jws` resource, embeds the OPTIONAL `signed` JWS directly in each declaration object, supports the OPTIONAL `upstream` member, and moves private extension data into the URI-keyed top-level `extensions` object.
+Published on npm: **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)** (`npm install sustainability-wellknown-publisher`). The `0.1.0` release on the registry implements the historical `-02` / schema-`1.1` model; the `0.4.0` release implements the schema-`2.0` model then current (revision `-04`; neither `-05` nor `-06` made any schema change, and `-07` later retired the `"2.0"` label along with the `version` member — see below). `0.5.0` and `0.5.2` are version-only bumps keeping the two packages in lockstep — the publisher's code is unchanged from `0.4.0`. `0.6.0` implemented `-06` (dedicated media type, HTTPS, `nosniff`) while staying `-05` compatible via the `mediaType: "json"` option, `0.6.5` added the OPTIONAL detached JWS signature and the `vc+jwt` attestation, `0.6.6` completed the Extended selection rule (an array only for a granularity finer than the period; aggregation; calendar-checked periods), HEAD/GET header parity under Express, and the `https` check on URI members, and `0.6.7` exposed the validators to browser clients, bounded upstream bodies, and passed Climatiq's required data-version selector. **`0.7.0` implements draft `-07`** (posted 2026-09-17) and **`0.7.1` is the current release**, differing from it only in that an unmatched `target` now receives the same 404 body as a period with no data, as the draft asks: it drops the `version` member and the companion `.jws` resource, embeds the OPTIONAL `signed` JWS directly in each declaration object, supports the OPTIONAL `upstream` member, and moves private extension data into the URI-keyed top-level `extensions` object.
 
 [publisher/](publisher/) is a reference TypeScript implementation that publishes a fully draft-conformant `/.well-known/sustainability-data` document. It ingests metrics from pluggable source adapters — static/computed values, Kepler/Prometheus energy telemetry, the Climatiq estimate API, **Green Web Foundation CO2.js (bytes → carbon)**, the **Green Web Foundation carbon.txt hosted API**, and enterprise suites (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) — normalizes them to the draft's field model, **validates every payload against this repo's JTD and CDDL schemas before serving** (publish-only-if-valid), and exposes the Basic and Extended service levels with the draft's mandated DoS/privacy safeguards. It can also **serve a bidirectional `carbon.txt`** that points back to the metrics document. It ships as Express and Fastify middleware plus a standalone server that any web server can reverse-proxy. See [publisher/README.md](publisher/README.md) and [publisher/USAGE.md](publisher/USAGE.md).
 

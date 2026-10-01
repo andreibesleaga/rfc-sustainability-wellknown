@@ -4,7 +4,7 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
-### **Version 06 to Version 07 (`draft-besleaga-sustainability-wellknown`) — in preparation, not yet posted**
+### **Version 06 to Version 07 (`draft-besleaga-sustainability-wellknown`) — posted 2026-09-17**
 
 Withdraws the companion signature resource entirely and moves signing inside the document itself;
 closes the top-level member set and gives private extensions a namespace that cannot collide;
@@ -184,8 +184,6 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
   they render as "Section N" in the text version.
 * A worked deployment example is added as an appendix, and an Implementations appendix, marked
   for removal before publication, records the three reference implementations.
-* `-07` is **not posted** to the Datatracker; `-06` remains the latest posted revision until `-07`
-  is submitted.
 
 **Repository, not draft changes**
 
@@ -199,7 +197,7 @@ what reversing it would involve: see [`REVISION-07-RATIONALE.md`](REVISION-07-RA
 
 ---
 
-### **Version 05 to Version 06 (`draft-besleaga-sustainability-wellknown`) — latest posted revision (posted 2026-09-10)**
+### **Version 05 to Version 06 (`draft-besleaga-sustainability-wellknown`) — posted 2026-09-10**
 
 Responds to two rounds of Independent-Stream feedback: the Editor's direction that security belong in the document from the beginning, and the first commissioned review, which asked that the protocol be separated cleanly from policy, that the consumer be defined, and that the incremental-adoption path be made explicit. Makes **no change to the wire format**: no member is added, removed, renamed, or retyped; the CDDL and JTD schemas are byte-for-byte unchanged; every document conformant to `-04` or `-05` remains conformant.
 

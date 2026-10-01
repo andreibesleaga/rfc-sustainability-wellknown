@@ -1,0 +1,41 @@
+name: live-deployments
+
+# Daily check that every deployment listed in implementations.json still serves a
+# schema-valid /.well-known/sustainability-data document with a JSON media type.
+# It reads public URLs only and needs no secret. The CSV artifact is a dated
+# record of each run.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - implementations.json
+      - schemas-validators/check-live.py
+      - schemas-validators/response-schema.json
+      - .github/workflows/live-deployments.yml
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python3 -m pip install -r schemas-validators/requirements.txt
+      - name: Check every listed deployment
+        run: |
+          set -o pipefail
+          cd schemas-validators
+          python3 check-live.py --csv live-deployments.csv | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-deployments
+          path: schemas-validators/live-deployments.csv
+          retention-days: 90

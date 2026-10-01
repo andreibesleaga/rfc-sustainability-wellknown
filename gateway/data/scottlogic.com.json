@@ -1,0 +1,19 @@
+{
+  "updated": "2026-10-01T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published Environmental Impact Report 2024 (GHG emissions calculated with the Plan A Carbon Manager platform); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: Market-based basis, as published (the report's total row is labelled market-based; no location-based total is printed). energy-consumption is the report's single stated figure, 226,110 kWh. No renewable share is published for 2024 (the report gives a target for 2025), so renewable-energy is omitted.",
+  "measurement-method": "hardware-estimated",
+  "methodology-uri": "https://scottlogic.cdn.prismic.io/scottlogic/aDbGeCdWJ-7kSnGL_ScottLogicEnvironmentalImpactReport2024.pdf",
+  "reporting-period": "2024",
+  "target": "Scott Logic Limited",
+  "energy-consumption": 226110,
+  "energy-unit": "kWh",
+  "carbon-footprint": 530,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 0,
+  "scope-2": 41,
+  "scope-3": 489,
+  "disclosure-uri": "https://www.scottlogic.com/who-we-are/sustainability",
+  "target-type": "organization"
+}

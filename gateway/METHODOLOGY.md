@@ -308,8 +308,8 @@ the per-subject detail is in
 
 ### `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041`
 
-Defined by this gateway's operator; carried by the `microsoft.com` and
-`ovhcloud.com` documents. Its value object carries one member:
+Defined by this gateway's operator; carried by the `go.eco` document (and by
+the withheld `microsoft.com` and `ovhcloud.com` documents, which are not served). Its value object carries one member:
 
 - **`reporting-period-basis`** (string) — the exact boundary of a fiscal
   reporting period, written `fiscal-year-ended-<YYYY-MM-DD>`. It exists because

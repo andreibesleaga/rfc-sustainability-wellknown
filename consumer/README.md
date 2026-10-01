@@ -172,7 +172,7 @@ job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad in
 > a bare `Invalid URL`); see "Verify a live deployment" below. **0.5.2 adds
 > path-prefixed base URLs**: `fetchSustainability` and the CLI accept a plain
 > origin (well-known at the root, the RFC 8615 case), a base URL with a path
-> prefix (`https://gateway.example/cloudflare.com` — the multi-subject
+> prefix (`https://gateway.example/wikimedia.org` — the multi-subject
 > gateway/mirror pattern, resolving the well-known path under the prefix), or
 > the full declaration URL pasted as-is. The earlier published **0.1.0**
 > implements the -02 (`"1.1"`) model.
@@ -260,7 +260,7 @@ Options may appear before or after the origin. A bare hostname is promoted to
 `https://`. The `<origin>` argument accepts three shapes (since 0.5.2): a plain
 origin (`https://example.org` — the well-known path is resolved at the root, the
 ordinary RFC 8615 case), a base URL with a path prefix
-(`https://gateway.example/cloudflare.com` — the multi-subject gateway/mirror
+(`https://gateway.example/wikimedia.org` — the multi-subject gateway/mirror
 pattern; the well-known path is resolved *under* the prefix), or the full
 document URL pasted as-is. `--strict` runs the conformance battery and prints
 one line per check, tagged with the strength of the requirement it tests: a

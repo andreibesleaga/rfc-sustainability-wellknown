@@ -64,7 +64,7 @@ describe("the withdrawn -06 signature resource", () => {
     // redirect and no 410 — the path is simply not one this gateway serves.
     for (const p of [
       WITHDRAWN_SIGNATURE_PATH,
-      `/cloudflare.com${WITHDRAWN_SIGNATURE_PATH}`,
+      `/wikimedia.org${WITHDRAWN_SIGNATURE_PATH}`,
       `/tenant-demo.example${WITHDRAWN_SIGNATURE_PATH}`,
     ]) {
       const r = await fetch(`${srv.base}${p}`);
@@ -157,7 +157,7 @@ describe("with a key and an attestation URI", () => {
     expect(c.detail).toContain("verified EdDSA");
     expect(report.allPassed).toBe(true);
     // A relayed declaration is not the gateway's to sign or to attest.
-    const third = await (await fetch(`${srv.base}/cloudflare.com${SELF}`)).json();
+    const third = await (await fetch(`${srv.base}/wikimedia.org${SELF}`)).json();
     expect(third.signed).toBeUndefined();
     expect(third["verifiable-attestation-uri"]).toBeUndefined();
   });

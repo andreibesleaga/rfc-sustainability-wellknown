@@ -35,7 +35,7 @@ export function isSyntheticDomain(domain: string): boolean {
 }
 
 export interface Subject {
-  /** Route key and data-file basename, e.g. "cloudflare.com". */
+  /** Route key and data-file basename, e.g. "wikimedia.org". */
   domain: string;
   /**
    * Where this document came from: an absolute file path for a curated

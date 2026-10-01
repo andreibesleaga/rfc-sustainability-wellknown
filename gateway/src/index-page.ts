@@ -3,6 +3,7 @@
  * of everything this gateway serves.
  */
 import type { GatewayConfig } from "./config";
+import { ISSUES_URL, LEGAL_PATH, OPERATOR_EMAIL, OPERATOR_NAME } from "./legal";
 import type { WireExample } from "./examples";
 import { escapeHtml } from "./http";
 import type { ManagedSubject } from "./live";
@@ -91,6 +92,10 @@ export interface IndexDocument {
   specification: string;
   about: string;
   notice: string;
+  /** Where the legal notice and the correction/removal procedure are published. */
+  legal: string;
+  /** Operator contact for corrections and removal requests. */
+  contact: { name: string; email: string; issues: string };
   /** Service level of the RELAYED subject documents (the self report is Extended, see `self`). */
   capabilities: "basic";
   self: {
@@ -339,6 +344,8 @@ export function buildIndex(
     specification: SPEC_URL,
     about: ABOUT,
     notice: THIRD_PARTY_NOTICE,
+    legal: LEGAL_PATH,
+    contact: { name: OPERATOR_NAME, email: OPERATOR_EMAIL, issues: ISSUES_URL },
     capabilities: "basic",
     self: {
       path: WELL_KNOWN_PATH,
@@ -730,12 +737,11 @@ definer without a domain. A key is an identifier compared as a string, never der
 there is no registry; a consumer that does not implement one ignores its value. The names this
 gateway uses are listed in its
 <a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology document</a>.
-Seven documents served here carry the member:
+Six documents served here carry the member:
 <a href="/tenant-demo.example${WELL_KNOWN_PATH}"><code>tenant-demo.example</code></a>,
 <a href="/device.example${WELL_KNOWN_PATH}"><code>device.example</code></a>,
 <a href="/extended.example${WELL_KNOWN_PATH}"><code>extended.example</code></a>,
-<a href="/microsoft.com${WELL_KNOWN_PATH}"><code>microsoft.com</code></a>,
-<a href="/ovhcloud.com${WELL_KNOWN_PATH}"><code>ovhcloud.com</code></a>,
+<a href="/go.eco${WELL_KNOWN_PATH}"><code>go.eco</code></a>,
 <a href="/sfc-network.example${WELL_KNOWN_PATH}"><code>sfc-network.example</code></a> and
 <a href="/sfc-operator.example${WELL_KNOWN_PATH}"><code>sfc-operator.example</code></a>.</li>
 </ul>
@@ -769,7 +775,7 @@ type, is reported but does not fail the battery
 
 <p>Any subject — curated, adapter demonstration or wire-format example — by its
 path-prefixed base URL; the consumer resolves the well-known path under the prefix:</p>
-<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/cloudflare.com --strict
+<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/wikimedia.org --strict
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/grid-intensity-demo.example --strict
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/yearly.example --strict
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/&lt;any-domain-above&gt; --strict</code></pre>
@@ -820,18 +826,30 @@ and the <a href="${escapeHtml(doc.specification)}" rel="noopener noreferrer">Int
 <footer>
 <p>A specification-demonstration service. Health check:
 <a href="/healthz"><code>/healthz</code></a>.</p>
-<p><strong>Operator &amp; contact:</strong> Andrei Nicolae Besleaga, andrei.besleaga@ieee.org.
-Not affiliated with, and not endorsed by, any reporting subject listed above; company names
-only identify whose published reports the documents are mapped from. Reporting subjects may
-request corrections or removal at the address above.</p>
+<p><strong>Operator &amp; contact:</strong> ${OPERATOR_NAME}, ${OPERATOR_EMAIL} — a private
+individual running a non-commercial demonstration. Not affiliated with, and not endorsed by, any
+reporting subject listed above. Company, product and service names and trademarks belong to their
+owners and are used only to identify whose published report a document is mapped from.</p>
+<p><strong>Corrections and removal:</strong> anyone may report an error, and a reporting subject
+may ask for its document to be changed or removed, at the address above or by opening an
+<a href="${ISSUES_URL}" rel="noopener noreferrer">issue</a>. A removal requested by the
+organization a document describes is carried out without it having to give a reason, normally
+within seven days.</p>
+<p><strong>Sources:</strong> a document about a third party contains only figures that
+organization has itself published, its name, the period and links to its own publication. No
+text, table, image or logo of a source is reproduced here; each source remains the property of
+its owner, under its owner's terms, and is the only authoritative record.</p>
 <p><strong>Disclaimer:</strong> This site is for informational and specification-demonstration
 purposes only and is provided &quot;as is&quot;, without warranty of any kind. Figures are
-traceable to the cited public source documents but may lag the subjects&#39; own publications;
-the cited sources remain the authoritative record. Nothing here is investment, ESG-rating or
-compliance advice.</p>
-<p><strong>Privacy:</strong> No cookies, analytics or tracking. The theme choice above is kept
-only in your browser's local storage. The hosting provider (Railway) may process IP addresses
+traceable to the cited public source documents but may lag the subjects&#39; own publications.
+Nothing here is investment, rating, audit, regulatory or compliance advice, and the documents
+must not be relied on for any such purpose. To the fullest extent the applicable law allows, the
+operator accepts no liability for use of, or reliance on, this service.</p>
+<p><strong>Privacy:</strong> No cookies, accounts, analytics or tracking. Requests are counted
+per client address in memory to limit abuse; the counts are not stored. The theme choice above is
+kept only in your browser's local storage. The hosting provider (Railway) may process IP addresses
 in standard server logs for operation and security.</p>
+<p><strong>Full text:</strong> <a href="${LEGAL_PATH}">legal notice and terms</a>.</p>
 <p>The repository's code and its own documents are published under the BSD 3-Clause License at
 <a href="https://github.com/andreibesleaga/rfc-sustainability-wellknown" rel="noopener noreferrer">github.com/andreibesleaga/rfc-sustainability-wellknown</a>.</p>
 </footer>

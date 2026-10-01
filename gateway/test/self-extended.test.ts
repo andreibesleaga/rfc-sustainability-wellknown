@@ -228,7 +228,7 @@ describe("period tolerance and cache lifetime of the self report", () => {
     expect(complete.headers.get("cache-control")).toBe("public, max-age=3600");
     const basic = await fetch(`${srv.base}${SELF}`);
     expect(basic.headers.get("cache-control")).toBe("public, max-age=3600");
-    const subject = await fetch(`${srv.base}/cloudflare.com${SELF}`);
+    const subject = await fetch(`${srv.base}/wikimedia.org${SELF}`);
     expect(subject.headers.get("cache-control")).toBe("public, max-age=86400");
     // A 304 freshens a cached copy with its own Cache-Control, so it carries the same hour.
     const revalidated = await fetch(`${srv.base}${SELF}`, { headers: { "if-none-match": basic.headers.get("etag")! } });

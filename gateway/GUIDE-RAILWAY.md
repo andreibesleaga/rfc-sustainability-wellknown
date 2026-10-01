@@ -20,7 +20,7 @@ npm install
 npm run build
 npm test          # 348 tests; everything must be green before you deploy
 node dist/index.js &
-curl -sSI http://127.0.0.1:8080/cloudflare.com/.well-known/sustainability-data
+curl -sSI http://127.0.0.1:8080/wikimedia.org/.well-known/sustainability-data
 kill %1
 ```
 
@@ -233,23 +233,23 @@ BASE=https://sustainability.example.org
 curl -sS "$BASE/healthz"
 
 # 2. Headers on a subject document — the ones a reviewer will check
-curl -sSI "$BASE/cloudflare.com/.well-known/sustainability-data"
+curl -sSI "$BASE/wikimedia.org/.well-known/sustainability-data"
 
 # 3. The document itself
-curl -sS "$BASE/cloudflare.com/.well-known/sustainability-data" | jq .
+curl -sS "$BASE/wikimedia.org/.well-known/sustainability-data" | jq .
 
 # 4. Conditional GET must yield 304
-ETAG=$(curl -sSI "$BASE/cloudflare.com/.well-known/sustainability-data" \
+ETAG=$(curl -sSI "$BASE/wikimedia.org/.well-known/sustainability-data" \
        | awk 'tolower($1)=="etag:"{print $2}' | tr -d '\r')
 curl -sS -o /dev/null -w '%{http_code}\n' \
      -H "If-None-Match: $ETAG" \
-     "$BASE/cloudflare.com/.well-known/sustainability-data"      # -> 304
+     "$BASE/wikimedia.org/.well-known/sustainability-data"      # -> 304
 
 # 5. HEAD must match GET
-curl -sSI -X HEAD "$BASE/cloudflare.com/.well-known/sustainability-data"
+curl -sSI -X HEAD "$BASE/wikimedia.org/.well-known/sustainability-data"
 
 # 6. A non-GET/HEAD method must be 405 with Allow
-curl -sSI -X POST "$BASE/cloudflare.com/.well-known/sustainability-data"
+curl -sSI -X POST "$BASE/wikimedia.org/.well-known/sustainability-data"
 
 # 7. Unknown subject must be 404
 curl -sS -o /dev/null -w '%{http_code}\n' \
@@ -257,7 +257,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 
 # 8. Unsupported query parameters must be IGNORED, not an error
 curl -sS -o /dev/null -w '%{http_code}\n' \
-     "$BASE/cloudflare.com/.well-known/sustainability-data?period=2019&granularity=hourly"
+     "$BASE/wikimedia.org/.well-known/sustainability-data?period=2019&granularity=hourly"
                                                                  # -> 200
 
 # 9. The gateway's own report

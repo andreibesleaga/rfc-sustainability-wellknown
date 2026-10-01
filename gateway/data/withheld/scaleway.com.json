@@ -1,0 +1,20 @@
+{
+  "updated": "2026-10-01T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published Impact Report 2025 (figures for calendar year 2024); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: Location-based basis, as published; carbon-footprint is the table's printed total (18,284 tCO2e) and equals the sum of the three scope members. The same report also prints 118,284 in a summary tile; the table's figure is used because its three scope figures add up to it. energy-consumption is the report's key figure for electricity consumption. renewable-energy is the report's 100% figure for data-centre energy, which the report bases on Guarantees of Origin.",
+  "measurement-method": "hardware-estimated",
+  "methodology-uri": "https://www-uploads.scaleway.com/Impact_Report2025_22ee3a8232.pdf",
+  "reporting-period": "2024",
+  "target": "Scaleway",
+  "energy-consumption": 132881,
+  "energy-unit": "MWh",
+  "carbon-footprint": 18284,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "location-based",
+  "scope-1": 63,
+  "scope-2": 3155,
+  "scope-3": 15066,
+  "renewable-energy": 100,
+  "disclosure-uri": "https://www.scaleway.com/en/environmental-leadership/",
+  "target-type": "organization"
+}

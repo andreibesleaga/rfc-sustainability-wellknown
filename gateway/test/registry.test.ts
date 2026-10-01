@@ -127,7 +127,7 @@ describe("loadRegistry", () => {
   it("loads every shipped data file", async () => {
     const reg = await loadRegistry(DATA_DIR);
     expect(reg.size).toBeGreaterThanOrEqual(3);
-    expect(reg.has("cloudflare.com")).toBe(true);
+    expect(reg.has("wikimedia.org")).toBe(true);
     for (const s of reg.values()) expect(s.document.capabilities).toBe("basic");
   });
 
@@ -179,7 +179,7 @@ describe("helpers", () => {
   it("treats reserved TLDs as synthetic", () => {
     expect(isSyntheticDomain("a.example")).toBe(true);
     expect(isSyntheticDomain("a.invalid")).toBe(true);
-    expect(isSyntheticDomain("cloudflare.com")).toBe(false);
+    expect(isSyntheticDomain("wikimedia.org")).toBe(false);
     expect(isSyntheticDomain("notexample.com")).toBe(false);
   });
 

@@ -15,7 +15,7 @@ import { loadConfig } from "../src/config";
 import { loadMediaTypeOverrides } from "../src/media-type";
 import { DATA_DIR, FIXED_NOW, startGateway, type TestServer } from "./helpers";
 
-const DOC = "/cloudflare.com/.well-known/sustainability-data";
+const DOC = "/wikimedia.org/.well-known/sustainability-data";
 const SELF = "/.well-known/sustainability-data";
 
 describe("dedicated media type (service default)", () => {
@@ -165,7 +165,7 @@ describe("per-subject override served end to end", () => {
     // type.
     dir = mkdtempSync(join(tmpdir(), "swk-mt-gw-"));
     cpSync(DATA_DIR, dir, { recursive: true });
-    writeFileSync(join(dir, "_media-type.json"), JSON.stringify({ "cloudflare.com": "json" }));
+    writeFileSync(join(dir, "_media-type.json"), JSON.stringify({ "wikimedia.org": "json" }));
 
     const config = loadConfig({ port: 0, host: "127.0.0.1", dataDir: dir, maxAge: 86_400 });
     config.self.period = "2025";
@@ -189,7 +189,7 @@ describe("per-subject override served end to end", () => {
   });
 
   it("leaves every other subject on the service default (dedicated type)", async () => {
-    const r = await route(overrideGw, "GET", "/akamai.com/.well-known/sustainability-data");
+    const r = await route(overrideGw, "GET", "/mozilla.org/.well-known/sustainability-data");
     expect(r.status).toBe(200);
     expect(r.headers["Content-Type"]).toBe(MEDIA_TYPE);
   });

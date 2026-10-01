@@ -13,6 +13,7 @@ GET  /.well-known/sustainability-data            the gateway's own report (Exten
 GET  /                                           human-readable index
 GET  /index.json                                 machine-readable index
 GET  /healthz                                    liveness
+GET  /legal                                      legal notice: what the third-party documents are, corrections and removal
 ```
 
 ## What it is
@@ -39,6 +40,30 @@ It reuses the published
 [`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)
 package for normalization, validation, ETags and caching; it adds multi-subject
 routing and the honesty machinery.
+
+## Legal notice, corrections and removal
+
+[`LEGAL.md`](LEGAL.md) is the notice the service publishes at `/legal`. In short:
+
+- a document about a real organization contains only figures that organization
+  has itself published, its name, the period and links to its own publication;
+  no text, table, image or logo of a source is reproduced, and no source is
+  redistributed;
+- names and trademarks belong to their owners and are used only to identify
+  whose report a document is mapped from;
+- **an organization can have its document corrected or removed** by writing to
+  the operator or opening an issue; a removal it asks for is carried out without
+  it having to give a reason, normally within seven days;
+- such documents are served with `X-Robots-Tag: noindex` and a
+  `Link: …; rel="terms-of-service"` header pointing at the notice, and are never
+  signed by the gateway;
+- the terms and licences of each source are recorded in
+  [`data/README.md`](data/README.md#rights-in-the-sources); a source whose
+  published terms forbid reuse of its content, or whose terms could not be
+  read, is kept in `data/withheld/` and not served; open-licence sources carry
+  the attribution their licence asks for.
+
+The notice is not legal advice and is not a substitute for it.
 
 ## What it is not
 

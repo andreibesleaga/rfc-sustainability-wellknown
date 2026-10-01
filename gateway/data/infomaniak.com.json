@@ -1,0 +1,13 @@
+{
+  "updated": "2026-10-01T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published Bilan des gaz a effet de serre 2024 for Infomaniak Group SA (prepared by ecoLive); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: carbon-footprint is the report's total EXCLUDING the construction of a data centre, which the report books separately to 2023 (1,961.9 tCO2e). Scopes are omitted: the report gives Scope 1 and 2 only as a combined figure (43.5 tCO2e) and Scope 3 only as a share (97.95%). No accounting basis is declared for the total, and no absolute energy figure is given in the text, so both are omitted.",
+  "measurement-method": "hardware-estimated",
+  "methodology-uri": "https://news.infomaniak.com/wp-content/uploads/2026/10/Bilan_gaz_a_effet_de_serre_2024.pdf",
+  "reporting-period": "2024",
+  "target": "Infomaniak Group SA",
+  "carbon-footprint": 2124.8,
+  "carbon-unit": "mtCO2e",
+  "disclosure-uri": "https://www.infomaniak.com/en/ecology",
+  "target-type": "organization"
+}

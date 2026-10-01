@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startGateway, type TestServer } from "./helpers";
 
 let srv: TestServer;
-const DOC = "/cloudflare.com/.well-known/sustainability-data";
+const DOC = "/wikimedia.org/.well-known/sustainability-data";
 const SELF = "/.well-known/sustainability-data";
 
 beforeAll(async () => {
@@ -37,7 +37,7 @@ describe("GET /{domain}/.well-known/sustainability-data", () => {
     expect(etag).toBeTruthy();
     expect(etag!.startsWith("W/")).toBe(false); // strong validator
     expect(etag!).toMatch(/^"[0-9a-f]{40}"$/);
-    expect(r.headers.get("last-modified")).toBe("Wed, 29 Jul 2026 00:00:00 GMT");
+    expect(r.headers.get("last-modified")).toBe("Thu, 01 Oct 2026 00:00:00 GMT");
     // Human-readable `provider` text is language-tagged at the HTTP layer.
     expect(r.headers.get("content-language")).toBe("en");
   });
@@ -57,7 +57,7 @@ describe("GET /{domain}/.well-known/sustainability-data", () => {
       expect(body[m], `missing mandatory member ${m}`).toBeDefined();
     }
     expect(body.capabilities).toBe("basic");
-    expect(body.target).toBe("Cloudflare, Inc.");
+    expect(body.target).toBe("Wikimedia Foundation");
     expect(body["reporting-period"]).toBe("2024");
   });
 
@@ -119,12 +119,12 @@ describe("GET /{domain}/.well-known/sustainability-data", () => {
   });
 
   it("matches the subject domain case-insensitively", async () => {
-    const r = await fetch(url("/CloudFlare.COM/.well-known/sustainability-data"));
+    const r = await fetch(url("/WikiMedia.ORG/.well-known/sustainability-data"));
     expect(r.status).toBe(200);
   });
 
   it("does not resolve a percent-encoded path separator", async () => {
-    const r = await fetch(url("/cloudflare.com%2F.well-known/sustainability-data"));
+    const r = await fetch(url("/wikimedia.org%2F.well-known/sustainability-data"));
     expect(r.status).toBe(404);
   });
 });
@@ -287,7 +287,7 @@ describe("index routes", () => {
 
 describe("unknown paths", () => {
   it("404s with a JSON body and CORS", async () => {
-    for (const p of ["/nope", "/favicon.ico", "/cloudflare.com", "/a/b/c", "/carbon.txt"]) {
+    for (const p of ["/nope", "/favicon.ico", "/wikimedia.org", "/a/b/c", "/carbon.txt"]) {
       const r = await fetch(url(p));
       expect(r.status, p).toBe(404);
       expect(r.headers.get("content-type"), p).toBe("application/json");

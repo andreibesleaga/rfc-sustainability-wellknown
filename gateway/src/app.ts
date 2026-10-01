@@ -35,6 +35,7 @@ import { LiveRegistry, type LiveSpec } from "./live";
 import { loadMediaTypeOverrides, MEDIA_TYPE_FILE } from "./media-type";
 import { clientKey, createRateLimiter, type RateLimiter } from "./rate-limit";
 import { loadRegistry, subjectFromAdapter, type Subject } from "./registry";
+import { LEGAL_PATH, LEGAL_TEXT } from "./legal";
 import { crossValidate, type CrossValidation } from "./verify";
 
 /** `/{domain}/.well-known/sustainability-data` — the primary route. */
@@ -147,6 +148,15 @@ async function serveDocument(
     ifNoneMatch,
   );
   const headers: Record<string, string> = { ...r.headers, "Last-Modified": subject.lastModified };
+  // A document about a real third party is an unendorsed mapping. Two headers
+  // say so outside the body as well: search engines are asked not to index it
+  // (it must never be found in place of the subject's own publication), and
+  // the legal notice is named as the terms the document is served under
+  // (RFC 6903, "terms-of-service"). They accompany 200 and 304 alike.
+  if (isThirdPartyMapping(subject)) {
+    headers["X-Robots-Tag"] = "noindex";
+    headers["Link"] = `<${(config.baseUrl || PUBLIC_BASE_URL).replace(/\/+$/, "")}${LEGAL_PATH}>; rel="terms-of-service"`;
+  }
   // A query variant describes a different period than the subject's own
   // document, so its `Last-Modified` comes from the variant's `updated`.
   if (r.status === 200 && Object.values(query).some((v) => v !== undefined)) {
@@ -173,6 +183,15 @@ async function serveDocument(
   return { status: r.status, headers, body: r.body };
 }
 
+/**
+ * A curated `data/*.json` document about a real organization: not synthetic
+ * (reserved names), and not produced by an adapter demonstration or by the
+ * gateway about itself.
+ */
+export function isThirdPartyMapping(subject: Subject): boolean {
+  return !subject.synthetic && !/^(adapter|example):/.test(subject.source);
+}
+
 /** Resolve one request to a fully-formed response. Exported for tests. */
 export async function route(
   gw: Pick<
@@ -192,6 +211,7 @@ export async function route(
     path === "/" ||
     path === "/index.json" ||
     path === "/healthz" ||
+    path === LEGAL_PATH ||
     path === WELL_KNOWN_PATH ||
     SUBJECT_ROUTE.test(path);
 
@@ -222,6 +242,19 @@ export async function route(
         "Cache-Control": selfCacheControl(gw.config),
       },
       gw.indexJson,
+    );
+  }
+
+  if (path === LEGAL_PATH) {
+    return withBody(
+      200,
+      {
+        ...corsHeaders(),
+        "Content-Type": "text/markdown; charset=utf-8",
+        "Content-Language": "en",
+        "Cache-Control": selfCacheControl(gw.config),
+      },
+      LEGAL_TEXT,
     );
   }
 

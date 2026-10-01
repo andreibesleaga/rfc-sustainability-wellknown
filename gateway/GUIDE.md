@@ -37,6 +37,7 @@ GET  /.well-known/sustainability-data            the gateway's own report
 GET  /                                           human-readable index
 GET  /index.json                                 machine-readable index
 GET  /healthz                                    liveness
+GET  /legal                                      legal notice: what the third-party documents are, corrections and removal
 ```
 
 It exists because the specification cannot be exercised at scale until
@@ -98,7 +99,7 @@ Then:
 
 ```bash
 curl -sS http://127.0.0.1:8080/index.json | jq '.count, .subjects[].domain'
-curl -sSI http://127.0.0.1:8080/cloudflare.com/.well-known/sustainability-data
+curl -sSI http://127.0.0.1:8080/wikimedia.org/.well-known/sustainability-data
 open http://127.0.0.1:8080/
 ```
 
@@ -275,8 +276,7 @@ The data layer is drop-in: **no code change is needed.**
    the `provider` caveats, and in a machine-readable member. Since -07 that
    member lives inside `extensions`, under this registry's extension name
    `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041`, as `reporting-period-basis`, e.g.
-   `"fiscal-year-ended-2025-06-30"`. See `microsoft.com.json` and
-   `ovhcloud.com.json`.
+   `"fiscal-year-ended-2025-06-30"`. See `go.eco.json`.
 
 5. **Naming an upstream provider.** A subject whose figures partly derive from
    what a provider delivered to it names that provider's declaration in
@@ -487,27 +487,27 @@ BASE=https://your-gateway.example.org
 curl -sS "$BASE/healthz"
 
 # a subject document, headers then body
-curl -sSI "$BASE/cloudflare.com/.well-known/sustainability-data"
-curl -sS  "$BASE/cloudflare.com/.well-known/sustainability-data" | jq .
+curl -sSI "$BASE/wikimedia.org/.well-known/sustainability-data"
+curl -sS  "$BASE/wikimedia.org/.well-known/sustainability-data" | jq .
 
 # conditional GET -> 304
-ETAG=$(curl -sSI "$BASE/cloudflare.com/.well-known/sustainability-data" \
+ETAG=$(curl -sSI "$BASE/wikimedia.org/.well-known/sustainability-data" \
        | awk 'tolower($1)=="etag:"{print $2}' | tr -d '\r')
 curl -sS -o /dev/null -w '%{http_code}\n' -H "If-None-Match: $ETAG" \
-     "$BASE/cloudflare.com/.well-known/sustainability-data"          # 304
+     "$BASE/wikimedia.org/.well-known/sustainability-data"          # 304
 
 # HEAD == GET headers, no body
-curl -sSI -X HEAD "$BASE/cloudflare.com/.well-known/sustainability-data"
+curl -sSI -X HEAD "$BASE/wikimedia.org/.well-known/sustainability-data"
 
 # 405 + Allow
-curl -sSI -X POST "$BASE/cloudflare.com/.well-known/sustainability-data"
+curl -sSI -X POST "$BASE/wikimedia.org/.well-known/sustainability-data"
 
 # unknown subject -> 404
 curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/nobody.example/.well-known/sustainability-data"
 
 # query parameters IGNORED, not an error
 curl -sS -o /dev/null -w '%{http_code}\n' \
-     "$BASE/cloudflare.com/.well-known/sustainability-data?period=2019&granularity=hourly"   # 200
+     "$BASE/wikimedia.org/.well-known/sustainability-data?period=2019&granularity=hourly"   # 200
 
 # the gateway's own report
 curl -sS "$BASE/.well-known/sustainability-data" | jq .

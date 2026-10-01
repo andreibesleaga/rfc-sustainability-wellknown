@@ -30,6 +30,14 @@ from that row to a public document, it does not belong in this directory.
 5. **If nothing can be verified, publish nothing.**
 6. **Record the source URL and the retrieval date here**, in this file, at the
    same time as adding the data file.
+7. **Serve only what the source's own terms allow.** A document about a real
+   organization is served only when that organization's published terms do not
+   prohibit reuse of the content it is taken from, or when the organization has
+   agreed in writing. Where the source carries an open licence, the document
+   gives the attribution that licence asks for. The terms of every source are
+   recorded under "Rights in the sources" at the end of this file; a document
+   whose source terms prohibit reuse, or could not be read, is kept in
+   `withheld/` and is not served.
 
 See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 
@@ -39,15 +47,15 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 
 | File | Subject | Period | Basis | Verified from | Principal caveat |
 |---|---|---|---|---|---|
-| `cloudflare.com.json` | Cloudflare, Inc. | 2024 (CY) | location-based | 2024 emissions inventory PDF | total is the sum of published scopes |
-| `akamai.com.json` | Akamai Technologies, Inc. | 2025 (CY) | market-based | FY2025 IFRS S2/TCFD report + FY25 Sustainability Report + metrics addendum | gross total from FY25 report |
-| `fastly.com.json` | Fastly, Inc. | 2024 (CY) | location-based | 2024 Sustainability Report | energy is PoP network + offices |
 | `mozilla.org.json` | Mozilla Foundation and Corporation | 2025 (CY) | market-based | 2026 Impact Fact Sheet | no energy figure published |
 | `wikimedia.org.json` | Wikimedia Foundation | 2024 (CY) | *omitted* | Environmental Sustainability Metrics 2024 | Scope 2 basis unlabeled in source |
-| `microsoft.com.json` | Microsoft Corporation | **FY25**, ended 2025-06-30 | market-based | 2026 Environmental Data Fact Sheet | **fiscal year, not calendar year** |
-| `ovhcloud.com.json` | OVH Groupe SA (OVHcloud) | **FY2025**, ended 2025-08-31 | market-based | 2025 Universal Registration Document | **fiscal year, not calendar year** |
 | `hetzner.com.json` | Hetzner Online GmbH | 2024 (CY) | market-based | EMAS Umwelterklärung 2025 | Germany only; Scope 1+2 combined |
 | `automattic.com.json` | Automattic Inc. (data centres) | **2020** (CY) | *omitted* | sustainability page + methodology post | **six years stale**; data centres only |
+| `thegreenwebfoundation.org.json` | Green Web Foundation (digital estate) | 2023 (CY) | *omitted* | its own `dist.json` (DIST v0.0.1) | total is the sum of the file's entries; one duplicated entry counted once |
+| `scottlogic.com.json` | Scott Logic Limited | 2024 (CY) | market-based | Environmental Impact Report 2024 | — |
+| `torchbox.com.json` | Torchbox | 2024 (CY) | location-based | 2024 impact report | Scope 3 total not published; scopes cover part of the total |
+| `infomaniak.com.json` | Infomaniak Group SA | 2024 (CY) | *omitted* | Bilan des gaz à effet de serre 2024 | total excludes a data-centre construction booked to 2023 |
+| `go.eco.json` | Big Room Inc. (.eco registry) | **FY2025**, ended 2025-09-30 | *omitted* | GHG Emissions Report FY2025 | **fiscal year, not calendar year** |
 | `retailer.example.json` | *synthetic* | 2025 | market-based | — invented — | reserved `.example` name |
 | `saas-platform.example.json` | *synthetic* | 2025 | location-based | — invented — | reserved `.example` name |
 | `cloud-demo.example.json` | *synthetic* upstream provider | 2025 | market-based | — invented — | tenant-scoped declaration; reserved `.example` name |
@@ -55,10 +63,21 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 | `sfc-network.example.json` | *synthetic* network-level system | 2025 | market-based | — invented — | one annual, system-wide figure set for a many-party network; reserved `.example` name |
 | `sfc-operator.example.json` | *synthetic* operator inside that network | 2025 | market-based | — invented — | names `sfc-network.example` through an extension; no `upstream` (it meters its own machines); reserved `.example` name |
 
+**Withheld — kept for the record, not served** (rule 7; see "Rights in the sources"):
+
+| File | Subject | Period | Basis | Verified from | Principal caveat |
+|---|---|---|---|---|---|
+| `withheld/cloudflare.com.json` | Cloudflare, Inc. | 2024 (CY) | location-based | 2024 emissions inventory PDF | total is the sum of published scopes |
+| `withheld/akamai.com.json` | Akamai Technologies, Inc. | 2025 (CY) | market-based | FY2025 IFRS S2/TCFD report + FY25 Sustainability Report + metrics addendum | gross total from FY25 report |
+| `withheld/fastly.com.json` | Fastly, Inc. | 2024 (CY) | location-based | 2024 Sustainability Report | energy is PoP network + offices |
+| `withheld/microsoft.com.json` | Microsoft Corporation | **FY25**, ended 2025-06-30 | market-based | 2026 Environmental Data Fact Sheet | **fiscal year, not calendar year** |
+| `withheld/ovhcloud.com.json` | OVH Groupe SA (OVHcloud) | **FY2025**, ended 2025-08-31 | market-based | 2025 Universal Registration Document | **fiscal year, not calendar year** |
+| `withheld/scaleway.com.json` | Scaleway | 2024 (CY) | location-based | Impact Report 2025 | the report prints two totals; the table's is used |
+
 Plus `kepler-demo.example`, which has no file: it is generated in code by a
 publisher adapter (see below).
 
-All primary sources were read on **2026-07-28 / 2026-07-29**. Each entry below
+The primary sources of the first nine real subjects were read on **2026-07-28 / 2026-07-29**; the six added afterwards (Green Web Foundation, Scott Logic, Torchbox, Scaleway, Infomaniak, .eco) were read on **2026-10-01**. Each entry below
 cites the source document and the figures read from it; the working verification
 logs are not carried in the repository.
 
@@ -78,7 +97,7 @@ and the same list appears in [`METHODOLOGY.md`](../METHODOLOGY.md).
 
 | Extension name | Used by | Members |
 |---|---|---|
-| `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041` | `microsoft.com.json`, `ovhcloud.com.json` | `reporting-period-basis` (string) — the exact boundary of a fiscal reporting period whose `reporting-period` can only carry the calendar year in which it ended, as `fiscal-year-ended-<YYYY-MM-DD>`. Defined by this gateway's operator. The `urn:uuid:` form is used because the definition is the operator's, not any one domain's. |
+| `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041` | `go.eco.json` (and the withheld `microsoft.com.json`, `ovhcloud.com.json`) | `reporting-period-basis` (string) — the exact boundary of a fiscal reporting period whose `reporting-period` can only carry the calendar year in which it ended, as `fiscal-year-ended-<YYYY-MM-DD>`. Defined by this gateway's operator. The `urn:uuid:` form is used because the definition is the operator's, not any one domain's. |
 | `https://acme.example/esg/extensions/water-and-waste` | `tenant-demo.example.json` | `water-consumption-m3` (number, cubic metres), `waste-generated-kg` (number, kilograms), `waste-recycled-percent` (number, 0–100). Defined, in the fiction of the specification's own worked example, by that example's publisher; reproduced here verbatim so the deployment serves the example as written. It demonstrates the `https` form of the key. `acme.example` is a reserved name (RFC 2606), so this particular URI documents nothing, where a real definer's would. |
 | `urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845` | `tenant-demo.example.json` | `packaging-recycled-percent` (number, 0–100). The other half of the specification's worked example: a name minted by a party that wants one independent of any domain. |
 | `urn:uuid:96a3b405-2151-4b00-842e-02a5260331c1` | `example-response-device.json`, `example-response-extended.json` (wire-format examples) | `pue` (number — power usage effectiveness, ISO/IEC 30134-2). An illustrative name for data defined outside the specification. It is deliberately NOT the draft's `urn:uuid:16c36135…` name above: that one means `packaging-recycled-percent`, and a name is compared octet for octet, so one name never carries two definitions. |
@@ -111,7 +130,10 @@ the specification defines.
 
 ## Real, sourced subjects
 
-### `cloudflare.com.json` — Cloudflare, Inc., CY2024
+The entries below marked WITHHELD are kept so that the record of what was read stays
+complete; those files are in `withheld/` and are not served.
+
+### `withheld/cloudflare.com.json` — Cloudflare, Inc., CY2024 — WITHHELD, not served
 
 | | |
 |---|---|
@@ -142,7 +164,7 @@ above. The canonical example set in `example-responses/` is entirely synthetic a
 names no real organization; real-organization documents live only here, where each
 figure's source and retrieval date are recorded.
 
-### `akamai.com.json` — Akamai Technologies, Inc., CY2025
+### `withheld/akamai.com.json` — Akamai Technologies, Inc., CY2025 — WITHHELD, not served
 
 | | |
 |---|---|
@@ -173,7 +195,7 @@ Caveats:
   to. The addendum's explicit 2025 row is used, and the ambiguity is recorded
   here.
 
-### `fastly.com.json` — Fastly, Inc., CY2024
+### `withheld/fastly.com.json` — Fastly, Inc., CY2024 — WITHHELD, not served
 
 | | |
 |---|---|
@@ -240,7 +262,7 @@ published, so `renewable-energy` is omitted. Scope 1 is published as 0.00 ("our
 new office space… does not burn natural gas onsite") and is carried as a
 reported zero, not an omission.
 
-### `microsoft.com.json` — Microsoft Corporation, **fiscal year FY25**
+### `withheld/microsoft.com.json` — Microsoft Corporation, **fiscal year FY25** — WITHHELD, not served
 
 | | |
 |---|---|
@@ -277,7 +299,7 @@ the nearest thousand, so the scopes sum to 21,121,315 against a published
 **GitHub, Inc.** is consolidated inside this operational-control boundary and
 publishes no inventory of its own, so no separate declaration is served for it.
 
-### `ovhcloud.com.json` — OVH Groupe SA (OVHcloud), **fiscal year FY2025**
+### `withheld/ovhcloud.com.json` — OVH Groupe SA (OVHcloud), **fiscal year FY2025** — WITHHELD, not served
 
 | | |
 |---|---|
@@ -343,6 +365,134 @@ by Automattic itself, not by a third party, so `third-party-modeled` would
 misattribute it. This
 document is kept deliberately: `reporting-period` and `updated` exist so a
 consumer can see staleness rather than have to guess at it.
+
+---
+
+### `thegreenwebfoundation.org.json` — Green Web Foundation, CY2023 (digital estate)
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | <https://www.thegreenwebfoundation.org/.well-known/dist.json> — the Foundation's own machine-readable file, in its Digital Impacts Schema and Taxonomy (DIST) v0.0.1, `verification: "self_reported"`, period 2023-01-01 to 2023-12-31 |
+| Cross-check | <https://www.techcarbonstandard.org/case-studies/green-web-foundation/overview>, the method pages that every entry of the file cites: "Total Emissions: 496 kgCO2e/year" |
+| Disclosure index | <https://www.thegreenwebfoundation.org/> |
+| Retrieved | 2026-10-01 |
+| Entries read (kgCO2e) | upstream employee hardware 186; operational employee devices 116, networking 40; cloud services 27; downstream end-user devices 117, network data transfer 10; all other entries 0; SaaS `null` |
+| `carbon-footprint` | 496 kgCO2e |
+
+Caveats:
+
+- **The total is a sum, not a printed row.** `dist.json` states no total. The
+  `upstream:employee_hardware` entry (186) appears **twice** in the file as
+  retrieved; counted once, the entries add to 496, which is the total the cited
+  method pages print. Counted twice they would add to 682, which no source
+  supports.
+- **Digital estate only.** The figure covers the organization's technology
+  footprint in Technology Carbon Standard categories, not a full GHG inventory.
+- GHG Protocol scopes, an accounting basis and energy are not in the source and
+  are omitted. The SaaS category has no value in the source ("Reliable data not
+  available") and contributes nothing.
+- This is a mapping of a document the subject already publishes in another
+  machine-readable format; the two are complementary (an organization's estate
+  per year there, one declaration at a fixed address here).
+
+### `scottlogic.com.json` — Scott Logic Limited, CY2024
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | <https://scottlogic.cdn.prismic.io/scottlogic/aDbGeCdWJ-7kSnGL_ScottLogicEnvironmentalImpactReport2024.pdf> (Environmental Impact Report 2024, pages 3–5) |
+| Disclosure index | <https://www.scottlogic.com/who-we-are/sustainability> |
+| Retrieved | 2026-10-01 |
+| Scope 1 / 2 / 3 | 0 / 41 / 489 mtCO2e — all read (page 3 and the table on page 4) |
+| `carbon-footprint` | 530 mtCO2e — read: "(Market-based) Total … 530" |
+| Energy | 226,110 kWh — read: "We consumed 226,110 kWh of energy" |
+
+Caveats:
+
+- Market-based basis as labelled in the report's total row; no location-based
+  total is printed.
+- The subject also publishes its technology estate in its own `tcs.json`
+  (Technology Carbon Standard); that breakdown (123 tCO2e in the report's table)
+  is a part of the organizational total and is not carried here.
+- `renewable-energy` is omitted: the report states a 2025 target, not a 2024
+  share.
+
+### `torchbox.com.json` — Torchbox, CY2024
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | <https://torchbox.com/about/impact-report-2024/> (sustainability section) |
+| Disclosure index | <https://torchbox.com/sustainability-policy/> |
+| Retrieved | 2026-10-01 |
+| `carbon-footprint` | 265.02 mtCO2e — read: "our total location-based emissions fell to 265.02 tCO₂e" |
+| Scope 1 / 2 (LB) | 8.59 / 2.4 mtCO2e — read |
+
+Caveats:
+
+- **`scope-3` is omitted.** The page gives Scope 3 as "95.8% of total emissions"
+  and as four category figures, never as a total; computing one would be the
+  operator's arithmetic, not the subject's figure. The two scope members carried
+  therefore account for only part of `carbon-footprint`, which the document's
+  `provider` says in band.
+- Market-based Scope 2 is 0 (renewable tariff); the location-based basis is
+  declared and used.
+
+### `withheld/scaleway.com.json` — Scaleway, CY2024 — WITHHELD, not served
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | <https://www-uploads.scaleway.com/Impact_Report2025_22ee3a8232.pdf> (Impact Report 2025, pages 22–25) |
+| Disclosure index | <https://www.scaleway.com/en/environmental-leadership/> |
+| Retrieved | 2026-10-01 |
+| Scope 1 / 2 (LB) / 3 (LB) | 63 / 3,155 / 15,066 tCO2e — all read ("Carbon footprint in 2024 (tons of CO2e)") |
+| `carbon-footprint` | 18,284 tCO2e — read, the table's total, equal to the sum of the scopes |
+| Energy | 132,881 MWh — read (key figures: electricity consumption) |
+| Renewable | 100% — read (data-centre energy from renewable sources, Guarantee of Origin) |
+
+Caveats:
+
+- **The report prints two totals.** The key-figures tile shows "118,284 Tonne of
+  Co2e"; the table shows 18,284, which is what its three scopes add up to. The
+  table's figure is used for that reason; which of the two the subject intends
+  is for the subject to say.
+- `renewable-energy` rests on Guarantees of Origin, as the report states.
+
+### `infomaniak.com.json` — Infomaniak Group SA, CY2024
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | <https://news.infomaniak.com/wp-content/uploads/2026/10/Bilan_gaz_a_effet_de_serre_2024.pdf> (prepared by ecoLive; linked from <https://news.infomaniak.com/en/co2-report-2024/>) |
+| Disclosure index | <https://www.infomaniak.com/en/ecology> |
+| Retrieved | 2026-10-01 |
+| `carbon-footprint` | 2,124.8 tCO2e — read: "Émissions totales (hors datacenter) … 2 124,8" (page 5, column 2024) |
+
+Caveats:
+
+- **The total excludes the construction of a data centre**, which the report
+  books separately to 2023 (1,961.9 tCO2e).
+- Scopes are omitted: Scope 1 and 2 are given only together ("43,5 tCO2e sur ses
+  scopes 1 et 2") and Scope 3 only as a share (97,95%).
+- No accounting basis is declared for the total, and the electricity quantity
+  appears only in a chart, so `carbon-accounting` and `energy-consumption` are
+  omitted.
+
+### `go.eco.json` — Big Room Inc. (.eco registry), **fiscal year FY2025**
+
+| | |
+|---|---|
+| Source (`methodology-uri`) | <https://go.eco/impact/ghg-report-2025/> (ISO 14064 inventory; "validated by Inhabit") |
+| Disclosure index | <https://go.eco/impact/> |
+| Retrieved | 2026-10-01 |
+| Period | "October 1, 2024 to September 30, 2025" |
+| Scope 1 / 2 / 3 | 0 / 0 / 3.96 t CO2e — all read ("Total emissions by scope") |
+| `carbon-footprint` | 3.96 t CO2e — read, the table's total |
+
+Caveats:
+
+- **Fiscal year, not calendar year.** `reporting-period` carries 2025, the
+  calendar year in which the fiscal year ended, and `reporting-period-basis`
+  (`fiscal-year-ended-2025-09-30`) states the boundary.
+- No accounting basis is named and no energy total is published; both are
+  omitted.
 
 ---
 
@@ -523,8 +673,57 @@ publisher adapter rather than written by hand.
 ## Still unverified
 
 Not published, because no primary-source read has been done by the operator:
-Google, Amazon Web Services, Equinix, Digital Realty, Scaleway, and any subject
-whose figures exist only in a news article or an aggregator database.
+Google, Amazon Web Services, Equinix, Digital Realty, and any subject whose
+figures exist only in a news article or an aggregator database.
 
 **Do not** fill these in from memory, from a news article, or from an aggregator
 site. Read the primary document, quote it into a row here, then publish.
+
+## Read, and deliberately not published
+
+Read on 2026-10-01 and left out, because publishing them would need the
+operator to decide something the source does not say (rule 4):
+
+| Subject | Figure in its own source | Why it is not here |
+|---|---|---|
+| Wagtail (websites built with it, 2024) | "6,326.87 tons" of CO2 per year for 4,889 sampled sites | the unit is written as "tons of CO2"; metric tonnes of CO2e is an assumption until the subject confirms it |
+| Mightybytes (2024) | "22.08 metric tons" | the gas basis is not named |
+| Low-tech Magazine, solar server | 9.53 kWh, 3 December 2018 to 24 November 2019 | the period is not a calendar year, month or day |
+| Wholegrain Digital | 27.7 tonnes CO2e for "2022/23" | the year's dates are not stated |
+| Fairphone 5, Framework Laptop, Apple iPhone 17 | 42.1, 200 and 55 kg CO2e | life-cycle totals over three to five years of use, not emissions of a reporting period: `carbon-footprint` is defined as emissions "during the period" |
+| PlanetHoster | PUE and "100%" renewable per data centre | no dated period and no energy or carbon total |
+
+**Live sourcing was considered and rejected.** Two of the subjects above publish
+machine-readable files of their own (`dist.json`, `tcs.json`) that a gateway
+could fetch at request time. It does not: a live fetch would publish figures
+nobody has read, and the first file contains a duplicated entry that a
+mechanical sum would turn into a wrong total. Every real document here is a
+dated transcription with its source and caveats recorded above.
+
+## Rights in the sources
+
+What each source's own published terms say about reusing its content, as read on
+2026-10-01 (the quotations are short extracts; the pages are the authority). A
+document is served only under rule 7. This record is not legal advice.
+
+| File | Source terms found | Served? |
+|---|---|---|
+| `wikimedia.org.json` | the source PDF's Wikimedia Commons page: "licensed under the Creative Commons Attribution-Share Alike 4.0 International license" | **yes** — attribution, licence link, "reformatted" and no-endorsement statement in `provider`; the document is offered under CC BY-SA 4.0 |
+| `thegreenwebfoundation.org.json` | how-to-cite page: website content "published under the same Creative Commons Attribution License" (CC BY 4.0), "please attribute your use to the Green Web Foundation, linking back to our website"; `dist.json` itself states no licence | **yes** — attribution and link in `provider` and `disclosure-uri` |
+| `mozilla.org.json` | mozilla.org: text "available under the Creative Commons Attribution Share-Alike 3.0 Unported license, or any later version"; the fact-sheet PDF states no licence; trademarks may be used "in text to truthfully refer to" Mozilla | **yes** — attribution in `provider`; offered under CC BY-SA 4.0 |
+| `scottlogic.com.json` | the report PDF and scottlogic.com state a copyright line only; no reuse terms found (the Technology Carbon Standard site is CC BY-SA 4.0, but no figure here comes from it) | **yes** — figures only, with the notice and the removal procedure |
+| `hetzner.com.json` | "© 2026 Hetzner Online GmbH. All Rights Reserved."; no reuse clause found except for press images | **yes** — figures only |
+| `automattic.com.json` | copyright line only; the terms restrict trademarks ("doesn't grant you any right or license to reproduce or otherwise use any Automattic or third-party trademarks"), not the blog's content | **yes** — figures only; the name is used only to identify the source |
+| `torchbox.com.json` | "© Torchbox 2026"; no terms page found | **yes** — figures only |
+| `go.eco.json` | "© 2026 Big Room Inc."; no website terms found | **yes** — figures only |
+| `infomaniak.com.json` | each PDF page "© ecoLive" (the consultancy that prepared it); the report says it "peuvent être utilisés dans la communication de l'entreprise" and that part A "peut être transmise aux clients"; no prohibition on third parties found | **yes** — figures from part A only |
+| `withheld/scaleway.com.json` | legal notice: contents "(including data, information …)" — "Any reproduction … or quotation, in whole or in part … is strictly prohibited except as provided by law or expressly authorised" | **no** |
+| `withheld/microsoft.com.json` | terms of use: "You may not … copy, distribute … reproduce, publish … any information … obtained from the Services"; documents may be used only for "non-commercial or personal use" and "will not be copied or posted on any network computer" | **no** |
+| `withheld/ovhcloud.com.json` | website terms: "Any partial or full reproduction or representation of the website or its components … is prohibited without the express consent of OVH" | **no** |
+| `withheld/cloudflare.com.json` | website terms: "Except as expressly authorized by Cloudflare you may not make use of the Materials" (Materials include "information, data"); the PDF "is the property of Cloudflare" | **no** |
+| `withheld/akamai.com.json` | "All rights reserved"; the only grant found allows copying "without modification" with the copyright notice, and is worded for www.akamai.com | **no** |
+| `withheld/fastly.com.json` | the investor site refuses automated reading, so its terms could not be read | **no**, until a person has read them |
+
+A withheld document goes back into service only when the organization agrees in
+writing, or when its terms are found to allow it; record which here, with the date.
+

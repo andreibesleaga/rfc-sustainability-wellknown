@@ -14,6 +14,7 @@ jobs:
     # Build the latest Internet-Draft from Markdown to XML and text, and run
     # idnits-style checks. Fails the build if kramdown-rfc or xml2rfc error.
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: ruby/setup-ruby@v1

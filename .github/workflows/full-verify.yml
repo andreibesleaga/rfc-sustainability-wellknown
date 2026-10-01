@@ -14,6 +14,7 @@ on:
 jobs:
   draft:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: ruby/setup-ruby@v1
@@ -40,6 +41,7 @@ jobs:
 
   schemas:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
@@ -60,6 +62,7 @@ jobs:
 
   publisher:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: publisher
@@ -75,6 +78,7 @@ jobs:
 
   consumer:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v7
@@ -95,6 +99,7 @@ jobs:
 
   example-scripts-and-server-configs:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
@@ -115,7 +120,13 @@ jobs:
           php test_security.php
           python3 test_request_handler.py
       - name: Install nginx and apache2
-        run: sudo apt-get update -qq && sudo apt-get install -y nginx apache2
+        # A stalled package mirror once held this step (and every deploy waiting on CI) for 38 minutes.
+        timeout-minutes: 5
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo -E apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update -qq
+          sudo -E apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Dpkg::Options::=--force-confold install -y nginx apache2
       - name: Live server-configuration check (see server-configurations/README.md)
         run: |
           set -e
@@ -172,6 +183,7 @@ jobs:
   summary:
     needs: [draft, schemas, publisher, consumer, example-scripts-and-server-configs]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - run: |
           echo "All areas verified green: draft, schemas, publisher, consumer, example-scripts, server-configurations."

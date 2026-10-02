@@ -58,7 +58,7 @@ describe("wire-format example serving", () => {
       const r = await fetch(url(`/${domain}/.well-known/sustainability-data`));
       expect(r.status, domain).toBe(200);
       const doc = await r.json();
-      expect(Array.isArray(doc), `${domain} Basic response must be a single object`).toBe(false);
+      expect(Array.isArray(doc), `${domain}: this deployment answers a parameterless request with one object`).toBe(false);
       expect(doc.target, domain).toBe(ex.subject.document.target);
       expect(validateDocument(doc).valid, domain).toBe(true);
     }
@@ -91,6 +91,24 @@ describe("wire-format example serving", () => {
     expect(Array.isArray(short)).toBe(true);
     expect(short).toHaveLength(2);
     expect(srv.gw.examples.get("yearly.example")).toMatchObject({ period: "2025", granularity: "monthly" });
+  });
+
+  it("object-shaped examples declaring capabilities:extended enter the query procedure too", async () => {
+    for (const domain of ["extended.example", "aggregate.example", "upstream-tenant.example"]) {
+      const base = `/${domain}/.well-known/sustainability-data`;
+      const doc = await (await fetch(url(base))).json();
+      expect(doc.capabilities, domain).toBe("extended");
+      // Step 1: a repeated parameter is 400. Step 2: a malformed period is 400.
+      expect((await fetch(url(`${base}?period=2025&period=2024`))).status, domain).toBe(400);
+      expect((await fetch(url(`${base}?period=2026-02-31`))).status, domain).toBe(400);
+      // Step 4: no published prefix set, so every target is 404.
+      expect((await fetch(url(`${base}?target=/anything`))).status, domain).toBe(404);
+      // Step 5: the document's own period answers it; another period is no data.
+      const own = await fetch(url(`${base}?period=${doc["reporting-period"]}`));
+      expect(own.status, domain).toBe(200);
+      expect((await own.json())["reporting-period"], domain).toBe(doc["reporting-period"]);
+      expect((await fetch(url(`${base}?period=1999`))).status, domain).toBe(404);
+    }
   });
 
   it("granularity alone applies to the default period, which monthly is not finer than: one object", async () => {

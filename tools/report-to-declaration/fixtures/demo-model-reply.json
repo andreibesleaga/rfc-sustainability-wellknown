@@ -1,0 +1,20 @@
+{
+  "meta": { "model": "recorded: google/gemini-2.5-flash, 2026-10-02", "note": "A real reply, kept so the demonstration runs offline and deterministically. Three of the figures are deliberately wrong, to show what the verifier does with them." },
+  "reply": {
+    "figures": [
+      { "member": "reporting-period", "value": "2025", "page": 1, "quote": "In 2025 Example Hosting Ltd consumed 12,480 MWh of electricity across its data centres." },
+      { "member": "energy-consumption", "value": 12480, "page": 1, "quote": "In 2025 Example Hosting Ltd consumed 12,480 MWh of electricity across its data centres." },
+      { "member": "energy-unit", "value": "MWh", "page": 1, "quote": "In 2025 Example Hosting Ltd consumed 12,480 MWh of electricity across its data centres." },
+      { "member": "carbon-footprint", "value": 3120, "page": 1, "note": "reported as tCO2e, which is the same unit as mtCO2e", "quote": "Our gross market-based emissions for 2025 were 3,120 tCO2e" },
+      { "member": "carbon-unit", "value": "mtCO2e", "page": 1, "quote": "Our gross market-based emissions for 2025 were 3,120 tCO2e" },
+      { "member": "carbon-accounting", "value": "market-based", "page": 1, "quote": "Our gross market-based emissions for 2025 were 3,120 tCO2e" },
+      { "member": "scope-1", "value": 120, "page": 1, "quote": "comprising Scope 1 of 120 tCO2e" },
+      { "member": "scope-2", "value": 1400, "page": 1, "quote": "Scope 2 (market-based) of 1,400 tCO2e" },
+      { "member": "scope-3", "value": 1600, "page": 1, "quote": "Scope 3 of 1,600 tCO2e" },
+      { "member": "renewable-energy", "value": 78, "page": 1, "quote": "Renewable electricity accounted for 78% of our consumption." },
+      { "member": "carbon-intensity-gCO2e-per-kWh", "value": 250, "page": 1, "quote": "Renewable electricity accounted for 78% of our consumption." },
+      { "member": "energy-consumption", "value": 11900, "page": 1, "quote": "In 2024 the figure was 11,900 MWh." },
+      { "member": "measurement-method", "value": "hardware-metered", "page": 2, "quote": "All figures are metered at the rack by our facilities team." }
+    ]
+  }
+}

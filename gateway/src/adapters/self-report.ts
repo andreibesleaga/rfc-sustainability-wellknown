@@ -14,14 +14,14 @@
  *
  * Service level: EXTENDED. The model is closed-form (watts x hours), so any
  * period the gateway has been live for can be reported, and a year or a month
- * can be sliced into months or days (draft §Optional Extended Query
- * Parameters). Only the hours inside `[liveSince, now)` count: a period wholly
+ * can be sliced into months or days (draft §Extended Query Parameters). Only the hours inside `[liveSince, now)` count: a period wholly
  * before go-live has no data (the draft's no-data rule, 404), a period in
  * progress reports the completed portion to date. The `target` parameter is
  * ignored: the gateway is one process with no path prefixes to scope to, and
  * METHODOLOGY.md publishes that (empty) prefix set. The PARAMETERLESS document
- * is the most recently completed month, exactly as before — it is the
- * representation the detached signature covers.
+ * is the most recently completed month. When the deployment holds a key, every
+ * object it serves carries its own embedded `signed` member (-07 has no
+ * separate signature resource).
  */
 import { NotFoundError, computedAdapter, isCalendarPeriod, lastFullMonth, type RawMetrics, type ServiceQuery, type SourceAdapter } from "sustainability-wellknown-publisher";
 
@@ -51,6 +51,15 @@ export interface SelfReportConfig {
 }
 
 const HOUR_MS = 3_600_000;
+/**
+ * Four significant figures. A fixed number of decimals would distort the small
+ * figures this model produces: a measured month of 0.0149 W gives 0.3576 Wh a
+ * day, and the days of a month must still add up to the month.
+ */
+export function significant(x: number, digits = 4): number {
+  return x === 0 ? 0 : Number(x.toPrecision(digits));
+}
+
 /** Capture groups over the publisher's own period shape. */
 const PERIOD_PARTS = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/;
 
@@ -121,6 +130,16 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
   if (Number.isNaN(liveSince)) throw new Error(`self-report: liveSince is not a date-time ("${config.liveSince}")`);
 
   const byMonth = config.wattsByMonth ?? {};
+  const measuredMonths = Object.keys(byMonth).sort();
+  // One provider text for every period and granularity, so that the objects of
+  // a trend agree and a year names the same publisher and method as its months
+  // (draft step 5 requires the contributing entries' `provider` to agree).
+  const providerText =
+    measuredMonths.length === 0
+      ? config.provider
+      : `${config.provider}. Average power for ${measuredMonths.join(", ")} was entered by the operator from ` +
+        `the hosting platform's own metrics; every other month uses the ${config.watts} W assumption ` +
+        `(see methodology-uri)`;
   const wattsFor = (month: string): number => byMonth[month] ?? config.watts;
   /** The calendar months a slice touches: twelve for a year, its own month otherwise. */
   const monthsOf = (slice: string): string[] =>
@@ -135,18 +154,17 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
   const report = async (slice: string, now: number): Promise<RawMetrics | undefined> => {
     const hours = liveHours(slice, liveSince, now);
     if (hours <= 0) return undefined;
-    const measured = monthsOf(slice).filter((m) => byMonth[m] !== undefined && liveHours(m, liveSince, now) > 0);
-    const provider = measured.length === 0
-      ? config.provider
-      : `${config.provider}. Average power for ${measured.join(", ")} entered by the operator from the hosting ` +
-        `platform's own metrics${measured.length < monthsOf(slice).filter((m) => liveHours(m, liveSince, now) > 0).length ? `; other months: the ${config.watts} W assumption` : ""} (see methodology-uri)`;
+    const provider = providerText;
     const complete = periodBounds(slice).end <= now;
     const inner = computedAdapter({
       provider,
       methodologyUri: config.methodologyUri,
       measurementMethod: "third-party-modeled",
       reportingPeriod: slice,
-      energy: { value: Number((wattHours(slice, now) / 1000).toFixed(4)), unit: "kWh" },
+      // Watt-hours, not kWh: the publisher library rounds every member to four
+      // decimal places, and a measured day at a fraction of a watt is ~0.0004 kWh,
+      // so in kWh a day would be published 12% high. In Wh it is 0.3576.
+      energy: { value: significant(wattHours(slice, now)), unit: "Wh" },
       gridIntensity: config.gridIntensity,
       carbonAccounting: "location-based",
       capabilities: "extended",
@@ -155,10 +173,10 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
     return {
       ...raw,
       // A complete period is stamped with its close; a period in progress with
-      // the current hour, so its ETag is stable within the hour.
+      // the hour its figures were evaluated at (`now` is already on the hour).
       updated: complete
         ? periodClose(slice)
-        : new Date(Math.floor(now / HOUR_MS) * HOUR_MS).toISOString().replace(/\.\d{3}Z$/, "Z"),
+        : new Date(now).toISOString().replace(/\.\d{3}Z$/, "Z"),
       target: config.target,
       targetType: "service",
       disclosureUri: config.disclosureUri,
@@ -170,7 +188,10 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
     name: "gateway-self-report",
     capabilities: "extended",
     async fetch(query: ServiceQuery): Promise<RawMetrics | RawMetrics[]> {
-      const now = clock().getTime();
+      // Evaluated at the top of the current hour: the figures of a period in
+      // progress then change once an hour, together with `updated`, so the
+      // representation, its ETag and its Last-Modified move in step.
+      const now = Math.floor(clock().getTime() / HOUR_MS) * HOUR_MS;
       // `query.target` is deliberately ignored (see the module comment).
       const period = query.period ?? config.period ?? lastCompletedMonth(new Date(now));
       const parts = slices(period, query.granularity);

@@ -1,0 +1,19 @@
+                     EXAMPLE HOSTING LTD
+          Environmental report for the year 2025
+                  (synthetic document, for demonstration only)
+
+1. Energy
+
+In 2025 Example Hosting Ltd consumed 12,480 MWh of electricity across its data centres.
+In 2024 the figure was 11,900 MWh. Renewable electricity accounted for 78% of our consumption.
+We aim to reach 100% renewable by 2030.
+
+2. Greenhouse gas emissions
+
+Our gross market-based emissions for 2025 were 3,120 tCO2e, comprising Scope 1 of 120 tCO2e,
+Scope 2 (market-based) of 1,400 tCO2e and Scope 3 of 1,600 tCO2e. Emissions were calculated
+in accordance with the GHG Protocol Corporate Standard and assured to a limited level.
+
+3. Looking ahead
+
+We have set a target to halve our Scope 1 and 2 emissions by 2030 against a 2019 baseline.

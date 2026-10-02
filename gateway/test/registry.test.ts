@@ -60,7 +60,7 @@ describe("loadSubjectFile", () => {
   it("rejects an array document (the Basic response is a single object)", async () => {
     const dir = scratch();
     await expect(loadSubjectFile(write(dir, "arr.example.json", [VALID, VALID]))).rejects.toThrow(
-      /single JSON object/,
+      /one declaration object/,
     );
   });
 

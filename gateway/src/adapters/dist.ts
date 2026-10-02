@@ -153,12 +153,37 @@ const ATTRIBUTION =
   "published under CC BY 4.0; the figures are its own, self-reported, and were extracted and reformatted. " +
   "Not published, reviewed or endorsed by the Green Web Foundation.";
 
-/** Fetch and parse the live file; the caller's timeout bounds the call. */
+/** Read a body, stopping as soon as it exceeds `max` bytes rather than buffering all of it. */
+async function readCapped(res: Response, max: number): Promise<string> {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel();
+      throw new Error("dist: the file is larger than expected");
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+/** Fetch and parse the live file, bounded in time and in bytes read. */
 export async function fetchGwfDist(fetchImpl: typeof fetch): Promise<DistDocument> {
-  const res = await fetchImpl(GWF_DIST_URL, { headers: { accept: "application/json" } });
+  const res = await fetchImpl(GWF_DIST_URL, {
+    headers: { accept: "application/json" },
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!res.ok) throw new Error(`dist: ${GWF_DIST_URL} returned HTTP ${res.status}`);
-  const text = await res.text();
-  if (text.length > MAX_DIST_BYTES) throw new Error("dist: the file is larger than expected");
+  const declared = Number(res.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_DIST_BYTES) {
+    throw new Error("dist: the file is larger than expected");
+  }
+  const text = await readCapped(res, MAX_DIST_BYTES);
   const doc = JSON.parse(text) as DistDocument;
   summarizeDist(doc); // refuse a file the rules cannot sum, so the fixture is served instead
   return doc;

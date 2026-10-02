@@ -2,7 +2,7 @@
   "updated": "2026-10-01T00:00:00Z",
   "capabilities": "basic",
   "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published 2024 impact report, sustainability section (inventory prepared with Zevero); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: Location-based basis, as published. scope-2 is the location-based figure (2.4 mtCO2e; the market-based figure is 0). scope-3 is OMITTED: the source gives Scope 3 only as a share (95.8% of the total) and as four category figures, not as a total, so the scope members carried here account for only part of carbon-footprint. No energy figure is published.",
-  "measurement-method": "hardware-estimated",
+  "measurement-method": "third-party-modeled",
   "methodology-uri": "https://torchbox.com/about/impact-report-2024/",
   "reporting-period": "2024",
   "target": "Torchbox",

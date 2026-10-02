@@ -2,7 +2,7 @@
   "updated": "2026-10-01T00:00:00Z",
   "capabilities": "basic",
   "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published Environmental Statement 2025 (data 2024), EMAS, doi:10.2774/3841514; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: Calendar year 2024, the Commission's EMAS-registered sites (Brussels, Luxembourg, the JRC sites Petten, Geel, Seville, Karlsruhe and Ispra, Grange, the Houses of Europe) plus staff missions from other sites. carbon-footprint is the table's printed sum (162,026 tCO2e); the three scope figures are as printed and add to 162,027 because of rounding in the source. Scope 3 includes embodied emissions of buildings, IT and furniture, teleworking and experts' travel. The headline table does not label the Scope 2 method, so carbon-accounting is omitted. energy-consumption is the Commission's final energy consumption at the EMAS sites (Table 4.1). Attribution: European Union, reuse authorised under Commission Decision 2011/833/EU and licensed CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); the figures were extracted and reformatted into this format. The European Commission does not endorse this service or this use.",
-  "measurement-method": "hardware-estimated",
+  "measurement-method": "third-party-modeled",
   "methodology-uri": "https://green-forum.ec.europa.eu/publications/environmental-statement-2025-data-2024_en",
   "reporting-period": "2024",
   "target": "European Commission",

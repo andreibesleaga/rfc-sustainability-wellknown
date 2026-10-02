@@ -60,8 +60,8 @@ figure. Publishing `hardware-metered` here would be false.
 ### Derivation
 
 ```
-energy-consumption (kWh) = watts x hours(reporting-period) / 1000
-carbon-footprint  (gCO2e) = energy-consumption (kWh) x carbon-intensity-gCO2e-per-kWh
+energy-consumption (Wh)   = watts x hours(reporting-period), four significant figures
+carbon-footprint  (gCO2e) = energy-consumption (Wh) / 1000 x carbon-intensity-gCO2e-per-kWh
 ```
 
 `hours(reporting-period)` is the number of hours of the named calendar period,
@@ -100,8 +100,16 @@ are accumulated per minute over the billing period, and divides them by the mont
 **Read the result for what it is.** These coefficients count only the CPU and memory the service actually
 used. They count no share of the idle power of the machine it runs on, and for a service as small as this
 one that share is most of the real energy. The measured figure is therefore a lower bound and the 3 W
-assumption a generous upper bound; the true figure lies between them. For September 2026 the measured
-figure is about 0.015 W (0.011 kWh), against 2.16 kWh under the assumption.
+assumption a generous upper bound; the true figure lies between them. For September 2026 the entered
+figure is 0.0149 W (10.73 Wh, 4.00 gCO2e at the factor below), against 2,160 Wh under the assumption.
+
+The self report states its energy in **watt-hours**. At a fraction of a watt a
+day is about 0.36 Wh, and the publisher library rounds every member to four
+decimal places, so in kWh a day would be published as 0.0004 (+12%) and the
+days of a month would no longer add up to the month. In Wh they do, to within
+0.1%. Every period carries the same `provider` text, naming the months whose
+power was entered, so the objects of a trend agree and a year names the same
+publisher and method as its months.
 
 On Railway: project → service → Metrics, with the range set to the month; read
 the average CPU (vCPU), the average memory (GB) and the total network egress
@@ -130,8 +138,9 @@ draft's three Extended parameters:
   hours of that period inside the live window;
 - `granularity` — `monthly` or `daily`; when finer than the period, one object
   per slice with data, in ascending order (a year of daily slices is at most
-  366 objects, the calendar bound the draft notes; -07 puts the binding limit on
-  the consumer, and this deployment keeps 366 as a defensive cap of its own). A
+  366 objects, the calendar bound the draft notes and the bound the model cannot
+  exceed; -07 puts the binding limit on the consumer, and this deployment keeps
+  the same 366 as an explicit cap on the array source files it loads). A
   granularity that is not finer than the period, or any other value, is ignored.
 
 **The set of path prefixes this publisher honours for the `target` parameter is
@@ -227,12 +236,12 @@ badges them `synthetic`.
 ## 4. The adapter demonstrations
 
 Nine further `.example` subjects — with `kepler-demo.example` above, the
-index's "Adapter demonstrations" section — run every adapter shipped by the published publisher package end to
+index's "Adapter demonstrations" section — run every upstream-backed adapter shipped by the published publisher package end to
 end, plus two adapters that live in this gateway (described at the end of this section). Two of them point their `methodology-uri` at this document:
 
-- **`grid-intensity-demo.example`** (`computed` adapter) reuses the energy
-  model of §2 verbatim — the same modelled container wattage over the same
-  calendar period — but takes its grid intensity from the **NESO (GB) Carbon
+- **`grid-intensity-demo.example`** (`computed` adapter) uses the gateway's own
+  monthly energy exactly as §2 states it — the entered figure for a measured
+  month, the assumption otherwise — but takes its grid intensity from the **NESO (GB) Carbon
   Intensity API** (keyless, CC BY 4.0), fetched at boot and refreshed daily.
   When the live API is unreachable it serves a recorded value (103 gCO2/kWh,
   retrieved 2026-07-30) and says so in band. Applying a GB grid factor to a
@@ -316,9 +325,14 @@ the same holder signed the earlier declaration — and not of identity.
 
 `verifiable-attestation-uri` points at a W3C Verifiable Credential (Data Model
 2.0) secured as `vc+jwt`, issued with `scripts/issue-attestation.mjs` and hosted
-by the issuer. It attests the **model** of §2 — the two constants, the live
-window and the formula — for five years, so every declaration derived from the
-model is covered and nothing is re-issued monthly. The issuer's public key is
+by the issuer. It attests the **model** of §2 — the grid intensity, the 3 W
+power assumption, the live window and the formula — for five years, so every
+declaration derived from the assumption is covered and nothing is re-issued
+monthly. It does **not** cover a month whose power was entered from the
+platform's metrics: the credential states the assumption and the declaration's
+`provider` names the entered months, so a verifier recomputing such a month from
+the credential's constants will find they differ. Re-issuing the credential with
+the entered months in its model closes that gap. The issuer's public key is
 hosted at the URL the credential's `kid` names. Under -07 a credential can also
 bind to one declaration by carrying a copy of that object (without `signed`) at
 `credentialSubject.declaration`; the issuing tool does that on
@@ -373,8 +387,9 @@ the per-subject detail is in
 
 ### `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041`
 
-Defined by this gateway's operator; carried by the `go.eco` document (and by
-the withheld `microsoft.com` and `ovhcloud.com` documents, which are not served). Its value object carries one member:
+Defined by this gateway's operator; carried by the `go.eco` and `hmrc.gov.uk`
+documents (and by the withheld `microsoft.com` and `ovhcloud.com` documents,
+which are not served). Its value object carries one member:
 
 - **`reporting-period-basis`** (string) — the exact boundary of a fiscal
   reporting period, written `fiscal-year-ended-<YYYY-MM-DD>`. It exists because
@@ -434,7 +449,9 @@ document; what each document here actually carries is listed in
   `node-count-validation-method`, `per-transaction-energy-Wh` (watt-hours),
   `nakamoto-coefficient`, `geographic-regions`; and, at operator level, the
   membership members `member-of-network` and `network-declaration`, which
-  `upstream` cannot express because a network is not a supplier.
+  `upstream` cannot express because a network is not a supplier
+  (`network-declaration` is defined by the profile but carried by neither
+  document here).
 
 ### The six `https://greenhost.example/esg/extensions/…` names
 
@@ -450,8 +467,9 @@ whole of its sustainability data — everything the specification does not defin
 
 - **`…/facility-efficiency`** — the ISO/IEC 30134 KPI family for one site,
   annualized: `pue`, `ref`, `iteu`, `erf`, `cer`, `wue-L-per-kWh`, plus The Green
-  Grid's `cue-kgCO2e-per-kWh`, with `site-total-energy-MWh` and
-  `heat-reuse-delivered-MWh` as the quantities the ratios are taken over.
+  Grid's `cue-kgCO2e-per-kWh`, with `reporting-basis`, `measurement-boundary`,
+  `site-identifier`, `site-total-energy-MWh` and `heat-reuse-delivered-MWh` as
+  the frame and the quantities the ratios are taken over.
 - **`…/water`** — withdrawal, consumption and discharge in cubic metres, the
   split of withdrawal by source, and the basin's water-stress band.
 - **`…/waste`** — waste generated, hazardous and e-waste in kilograms, with the

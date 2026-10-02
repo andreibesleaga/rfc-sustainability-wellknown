@@ -68,8 +68,9 @@ describe("issue-attestation", () => {
     expect(copy.signed).toBeUndefined();
     const { signed: _s, ...plain } = SERVED;
     expect(copy).toEqual(plain);
-    // The consumer finds the copy where the draft says it is, and the binding
-    // is a comparison of objects — there is no digest to trust.
+    // The consumer finds the copy where this tool's profile puts it (the draft
+    // leaves the credential format open), and the binding is a comparison of
+    // objects — there is no digest to trust.
     expect(declarationCopyOf(c)).toEqual(plain);
     expect(checkBinding(c, SERVED)).toEqual({ status: "match" });
     expect(checkBinding(c, { ...SERVED, "carbon-footprint": 1 })).toEqual({

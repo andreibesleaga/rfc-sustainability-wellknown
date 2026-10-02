@@ -1,5 +1,5 @@
 /**
- * Per-client rate limiting (draft Operational Considerations: servers SHOULD
+ * Per-client rate limiting (draft -07 Security Considerations, Denial of Service: servers SHOULD
  * rate-limit requests to the well-known URI). The limiter is
  * `rate-limiter-flexible`; these tests cover the gateway's policy around it.
  */

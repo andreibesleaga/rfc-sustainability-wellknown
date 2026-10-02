@@ -2,7 +2,7 @@
   "updated": "2026-10-01T00:00:00Z",
   "capabilities": "basic",
   "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published Environmental statement 2025 presenting results for 2024 (EMAS LU-000004, verified by Vinçotte); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: Calendar year 2024, the Court's three buildings in Luxembourg-Kirchberg. carbon-footprint is the printed gross annual total (Bilan Carbone method); no scope split is published, so no scope member is carried, and no accounting basis is stated (electricity emissions use green certificates, which the report says gives a figure 78% higher than the location-based factor would). energy-consumption is the printed total energy consumption; renewable-energy is the printed renewable energy share. Attribution: European Union, reuse under ECA Decision No 6-2019 and licensed CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); the figures were extracted and reformatted into this format. The European Court of Auditors does not endorse this service or this use.",
-  "measurement-method": "hardware-estimated",
+  "measurement-method": "third-party-modeled",
   "methodology-uri": "https://www.eca.europa.eu/ContentPagesDocuments/Environmental-management/Documents/ECA_Environmental_Statement_2025_EN.PDF",
   "reporting-period": "2024",
   "target": "European Court of Auditors",

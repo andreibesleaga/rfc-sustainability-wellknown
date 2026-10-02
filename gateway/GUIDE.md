@@ -51,7 +51,7 @@ distinction is the whole design.
 
 The gateway does not reimplement the format. It depends on the published
 [`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)
-package (0.7.0) for normalization, the JTD validation gate, ETag generation,
+package (0.7.1) for normalization, the JTD validation gate, ETag generation,
 caching and the per-document HTTP semantics; the gateway adds multi-subject
 routing, `Last-Modified`, the index, and the honesty machinery.
 
@@ -91,7 +91,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 cd gateway
 npm install
 npm run build
-npm test                       # 348 tests
+npm test                       # 478 tests
 node dist/index.js             # binds 0.0.0.0:8080
 ```
 
@@ -198,10 +198,13 @@ Notes on each of those, and on the rules behind them:
   }
   ```
 
-- **No `carbon.txt` path is served or referenced anywhere.** The Independent
-  Submission Editor's review asked that unregistered well-known paths not be
-  advertised; a test asserts the string does not appear in the data files or the
-  index page.
+- **No `carbon.txt` path is served or advertised.** The Independent Submission
+  Editor's review asked that unregistered well-known paths not be advertised;
+  `/carbon.txt` and `/.well-known/carbon.txt` both answer `404`, a test asserts
+  the string `/.well-known/carbon.txt` appears nowhere in the index page, and
+  another that `carbon.txt` appears in no data file. The `carbontxt-api` adapter
+  demonstration does *describe* the Green Web Foundation's own carbon.txt, which
+  is a description of an upstream, not an advertised path here.
 
 ## Adding a subject
 
@@ -297,6 +300,7 @@ The data layer is drop-in: **no code change is needed.**
    ```bash
    npm test
    npm run build && node dist/index.js &
+   until curl -sf http://127.0.0.1:8080/healthz >/dev/null; do sleep 1; done   # boot fetches live upstreams first
    curl -sS http://127.0.0.1:8080/<domain>/.well-known/sustainability-data | jq .
    ```
 
@@ -324,18 +328,20 @@ fail-fast-at-boot treatment as every other data problem.
 ## Wiring an adapter
 
 Curated files answer "what do organizations publish today?". Adapters answer
-"how would an organization generate this itself?". **Every adapter shipped by
-the published publisher package runs end to end in this gateway** — one
-demonstration subject per upstream-backed adapter, under reserved `.example`
-names, listed in the index's "Adapter demonstrations" section, while the two
-static adapters are exercised by every curated data file:
+"how would an organization generate this itself?". **Every upstream-backed
+adapter shipped by the published publisher package runs end to end in this
+gateway** — one demonstration subject each, under reserved `.example` names,
+listed in the index's "Adapter demonstrations" section with the recorded input
+it transforms (served at `/{domain}/input`), while `staticAdapter` is exercised
+by every curated data file and every wire-format example (`staticFileAdapter`,
+which reads the same data from a file, is not used here):
 
 | Subject | Adapter | Mode |
 |---|---|---|
 | `grid-intensity-demo.example` | `computed` | **live** — grid intensity fetched daily from the NESO (GB) Carbon Intensity API (keyless, CC BY 4.0) |
 | `co2js-demo.example` | `co2js` | **live** when `BASE_URL` is set — CO2.js computes locally over the gateway's own measured crawl bytes; green-hosting via keyless GWF Greencheck (ODbL) |
 | `carbontxt-demo.example` | `carbontxt-api` | live when `GWF_API_KEY` is set (free key); otherwise replay of the real, retrieved `thegreenwebfoundation.org/carbon.txt` |
-| `climatiq-demo.example` | `climatiq` | replay by default (Climatiq's 2026 terms/pricing; live only if the operator sets `CLIMATIQ_API_KEY` under their own license) |
+| `climatiq-demo.example` | `climatiq` | replay only: a synthetic response in Climatiq's documented shape. Climatiq's terms restrict redistribution, so this deployment relays nothing Climatiq computes, even with a key set |
 | `kepler-demo.example` | `kepler-prometheus` | replay (no publicly queryable Prometheus with Kepler metrics exists) |
 | `salesforce-nzc-demo.example` | `salesforce-nzc` | replay (documented `AnnualEmssnInventory` SOQL shape; NZC needs a tenant — 30-day trials exist) |
 | `ms-sustainability-demo.example` | `ms-sustainability` | replay (the preview API this adapter targeted was retired 2025-05-30) |
@@ -467,15 +473,16 @@ for f in ../gateway/data/*.json; do
 done
 ```
 
-Every registry document passes both validators (also enforced continuously by `.github/workflows/gateway.yml`, which boots the server and runs the conformance battery on every push touching `gateway/` or the schemas).
+Every registry document passes both validators (verified by hand; the loop above is the check). What runs continuously is `.github/workflows/gateway.yml`, which on every push touching `gateway/` or the schemas builds, runs the test suite, boots the server and runs the conformance battery — the publisher's JTD gate and the consumer library, not these two standalone validators. `full-verify.yml` runs both validators over `example-responses/`, which the gateway serves byte-identically.
 
 **3. Against a running server**, including the documents produced by adapters
 rather than files:
 
 ```bash
 curl -sS http://127.0.0.1:8080/.well-known/sustainability-data > /tmp/self.json
-python3 ../schemas-validators/validator-json.py /tmp/self.json
-python3 ../schemas-validators/validator-cddl.py /tmp/self.json
+cd ../schemas-validators    # both validators read their schema from the current directory
+python3 validator-json.py /tmp/self.json
+python3 validator-cddl.py /tmp/self.json
 ```
 
 ## Verifying a deployment
@@ -599,7 +606,7 @@ injects.
 | `EXAMPLES_DIR` | `<app>/examples` | Where the canonical wire-format example documents are read from. |
 | `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` declaration response media type, service-wide. `sustainability-data+json` (default) serves the dedicated `application/sustainability-data+json` type -07 requires; `json` serves the generic `application/json` type (a consumer MAY process it, but publishing it is not conformant). Per-subject overrides live in [`data/_media-type.json`](#pinning-a-subject-to-the-legacy-media-type). |
 | `GWF_API_KEY` | *(unset)* | Free Green Web Foundation API key; when set, the carbontxt demonstration runs live against the carbon.txt validator API. |
-| `CLIMATIQ_API_KEY` | *(unset)* | Sets the climatiq demonstration live. Only set this under your own Climatiq license — their terms restrict redistribution; replay is the default for a public gateway. |
+| `CLIMATIQ_API_KEY` | *(unset)* | Not read by this deployment: the climatiq demonstration is replay-only because Climatiq's terms restrict redistribution. The publisher package's `climatiqAdapter` takes a key for an operator whose own licence allows publishing the result. |
 | `SELF_TARGET` | `sustainability-data-gateway` | `target` of the gateway's own report. |
 | `SELF_PROVIDER` | operator contact | `provider` of the gateway's own report; prefer a role address. |
 | `SELF_METHODOLOGY_URI` | `gateway/METHODOLOGY.md` on GitHub | Must resolve publicly. |
@@ -611,7 +618,7 @@ injects.
 | `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report — the URL of a signed third-party statement (the reference deployment: a `vc+jwt` credential issued with `scripts/issue-attestation.mjs`). |
 | `SELF_SIGNING_KEY_URL` | *(unset)* | Where the PUBLIC signing key is hosted; shown on the index so verifiers can pin it. The key itself travels in the JWS header. |
 | `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | The PRIVATE JWK (JSON) that signs the self report: every declaration object it emits then carries a `signed` member. Unset, the member is simply absent, which the draft says means only that the publisher did not sign. Generate with `npx -p sustainability-wellknown-publisher sustainability-publisher keygen --out <file>` and paste the file's contents; never commit it. |
-| `RATE_LIMIT_PER_MINUTE` | `600` | Requests per client per minute on every path but `/healthz`; `0` disables. 600 leaves room for the repository's own conformance script, which fires ~340 requests from one client in well under a minute. |
+| `RATE_LIMIT_PER_MINUTE` | `600` | Requests per client per minute on every path but `/healthz`; `0` disables. 600 leaves room for the repository's own conformance script, which fires ~435 requests from one client in well under a minute (it grows with the subject count; re-measure when adding subjects). |
 | `TRUST_PROXY` | `1` | Trusted proxies in front of the process (the client is the last `X-Forwarded-For` entry); `0` when exposed directly. |
 
 Bounds enforced by the loader (specification, Security Considerations), in
@@ -619,8 +626,8 @@ Bounds enforced by the loader (specification, Security Considerations), in
 
 | Bound | Value |
 |---|---|
-| Largest source document, and largest body served | 256 KiB |
-| Array-entry cap | 366 — a defensive default of this deployment, not a specification requirement: -07 removes the server-side cap and puts the binding bound on the consumer. Curated `data/` files must be single objects (the Basic response is a single object); the wire-format example trend files are the one sanctioned array path, served per the draft's collapse/granularity rule |
+| Largest source document, and largest parameterless body served | 256 KiB (Extended variant bodies are bounded by the calendar instead: the largest today, a year sliced daily, is about 52 KB) |
+| Array-entry cap | 366 — a defensive default of this deployment, not a specification requirement: -07 removes the server-side cap and puts the binding bound on the consumer. Curated `data/` files must be single objects (this registry relays one transcription of one period per subject); the wire-format example trend files are the one sanctioned array path, served collapsed to their newest entry unless a finer granularity is requested |
 | Longest domain accepted on a request line | 253 characters |
 
 ## Design notes

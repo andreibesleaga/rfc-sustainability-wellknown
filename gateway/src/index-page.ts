@@ -26,13 +26,10 @@ export const ABOUT =
  * and restated IN BAND in the `provider` member of every third-party document.
  */
 export const THIRD_PARTY_NOTICE =
-  "The declarations about third parties are ILLUSTRATIVE MAPPINGS, prepared by the gateway " +
-  "operator from those organizations' own published reports. They are NOT published, " +
-  "reviewed, authorized or endorsed by their reporting subjects, and this gateway is not an " +
-  "authoritative source for them. Every figure is read from, or is the stated sum of figures " +
-  "read from, the public source document named in the declaration's methodology-uri member; " +
-  "nothing is estimated or apportioned on a subject's behalf. Subjects with a reserved " +
-  ".example name are synthetic and describe nothing real.";
+  "Declarations about third parties are ILLUSTRATIVE MAPPINGS the gateway operator read from " +
+  "each organization's own published report, named in methodology-uri; no figure is estimated. " +
+  "They are not reviewed, authorized or endorsed by those organizations, and this gateway is " +
+  "not an authoritative source for them. Names ending .example are synthetic.";
 
 export interface IndexEntry {
   domain: string;
@@ -50,6 +47,8 @@ export interface IndexEntry {
   synthetic: boolean;
   /** "curated file" or the adapter that generated the document. */
   source: string;
+  /** The repository file this declaration is served from, for a curated data file. */
+  "source-file"?: string;
 }
 
 /** One adapter-demonstration subject (live or replay). */
@@ -68,6 +67,8 @@ export interface DemoEntry {
   "reporting-period": string;
   /** Present when the last live refresh failed and older data is being served. */
   "upstream-error"?: string;
+  /** The recorded input the adapter transforms, served at `path`. */
+  input?: { path: string; note: string; "live-url"?: string; license?: string };
 }
 
 /** One wire-format example case. */
@@ -82,6 +83,8 @@ export interface ExampleEntry {
   /** Honored granularity parameter, for the declared-extended array cases. */
   granularity?: string;
   file: string;
+  /** The canonical file in the repository, which the served document reproduces. */
+  "source-file": string;
   note: string;
   target: string;
   "reporting-period": string;
@@ -131,6 +134,11 @@ export interface IndexDocument {
     count: number;
     entries: DemoEntry[];
   };
+  /**
+   * Every served subject whose document carries the OPTIONAL `extensions`
+   * member, computed from the documents themselves so the list cannot drift.
+   */
+  "extension-carriers": string[];
   /** Every case from the repository's canonical example-responses set. */
   "wire-format-examples": {
     note: string;
@@ -140,19 +148,20 @@ export interface IndexDocument {
 }
 
 export const DEMO_NOTE =
-  "One subject per upstream-backed adapter of the published sustainability-wellknown-publisher " +
-  "package, so every adapter runs end to end here. Live subjects fetch a real upstream daily " +
+  "One subject per upstream-backed adapter: the eight of the published " +
+  "sustainability-wellknown-publisher package and two that live in this gateway (DIST and the " +
+  "IETF GREEN power-and-energy YANG model), so every adapter runs end to end here. Live subjects fetch a real upstream daily " +
   "(only where the license permits attributed republication; the attribution is in the " +
   "document). Replay subjects run the same adapter code against a recorded response, because " +
   "no free legal live access exists; their figures are synthetic and say so in the document. " +
   "All use reserved .example names and describe no real organization.";
 
 export const EXAMPLES_NOTE =
-  "Every case of the specification's canonical example-responses set, served live. Trend " +
-  "cases follow the draft's rule: the parameterless request answers the most recent entry, " +
-  "and the sorted array is returned only for a period sliced by a finer granularity, on " +
-  "documents that declare capabilities:extended. All figures are synthetic; the subjects " +
-  "are reserved .example names.";
+  "Every case of the specification's canonical example-responses set, served live. For the " +
+  "trend cases, the parameterless request answers the most recent entry: -07 allows either an " +
+  "object or an array there, and this deployment serves the object. The sorted array is " +
+  "returned for a period sliced by a finer granularity, on documents that declare " +
+  "capabilities:extended. All figures are synthetic; the subjects are reserved .example names.";
 
 export const CROSS_VALIDATION_NOTE =
   "At start-up, every document served here is produced by the published publisher library " +
@@ -183,6 +192,7 @@ function entry(s: Subject, kind: "file" | "adapter"): IndexEntry {
   if (d["target-type"]) e["target-type"] = d["target-type"];
   if (d["disclosure-uri"]) e["disclosure-uri"] = d["disclosure-uri"];
   if (d.upstream) e.upstream = d.upstream;
+  if (kind === "file") e["source-file"] = `${REPO}/blob/main/gateway/data/${s.domain}.json`;
   return e;
 }
 
@@ -221,6 +231,12 @@ function demoEntry(m: ManagedSubject): DemoEntry {
     "reporting-period": d["reporting-period"],
   };
   if (m.upstreamError) e["upstream-error"] = m.upstreamError;
+  const input = m.spec.input;
+  if (input) {
+    e.input = { path: `/${m.spec.domain}/input`, note: input.note };
+    if (input.liveUrl) e.input["live-url"] = input.liveUrl;
+    if (input.license) e.input.license = input.license.name;
+  }
   return e;
 }
 
@@ -233,6 +249,7 @@ function exampleEntry(x: WireExample): ExampleEntry {
     shape: x.shape,
     entries: x.entries,
     file: x.file,
+    "source-file": `${REPO}/blob/main/example-responses/${x.file}`,
     note: x.note,
     target: d.target,
     "reporting-period": d["reporting-period"],
@@ -275,8 +292,8 @@ export function liveRequests(doc: IndexDocument): LiveRequest[] {
   const out: LiveRequest[] = [
     { href: self.path, what: "the gateway's own report, parameterless", expect: "200, the most recently completed month" },
     { href: monthly, what: "Extended: one month since go-live", expect: "200, that month's figures" },
-    { href: monthlyTrend, what: "Extended: a year sliced monthly", expect: "200, a sorted array, one entry per month" },
-    { href: daily, what: "Extended: a month sliced daily", expect: "200, a sorted array, one entry per day" },
+    { href: monthlyTrend, what: "Extended: a year sliced monthly", expect: "200, a sorted array, one entry per month since go-live" },
+    { href: daily, what: "Extended: a month sliced daily", expect: "200, a sorted array, one entry per day since go-live" },
     { href: `${self.path}?period=${Number(year) - 1}`, what: "Extended: a period before go-live", expect: "404, the draft's no-data rule" },
     { href: `${self.path}?period=${year}&granularity=weekly`, what: "Extended: an unknown granularity value", expect: "200, the parameter is ignored" },
     { href: `${self.path}?period=${year}&period=${Number(year) - 1}`, what: "Extended: a parameter given twice", expect: "400, the request is ambiguous" },
@@ -331,7 +348,16 @@ export function buildIndex(
 ): IndexDocument {
   const demoDomains = new Set((extras?.demos ?? []).map((m) => m.spec.domain));
   const exampleDomains = new Set((extras?.examples ?? []).map((x) => x.domain));
-  const list = [...subjects]
+  // Materialized once: `subjects` may be a single-pass iterator.
+  const all = [...subjects];
+  const extensionCarriers = all
+    .filter((s) => {
+      const ext = (s.document as { extensions?: unknown }).extensions;
+      return typeof ext === "object" && ext !== null && Object.keys(ext).length > 0;
+    })
+    .map((s) => s.domain)
+    .sort((a, b) => a.localeCompare(b));
+  const list = all
     .filter((s) => !demoDomains.has(s.domain) && !exampleDomains.has(s.domain))
     .map((s) => entry(s, s.source.startsWith("adapter:") ? "adapter" : "file"))
     .sort((a, b) => a.domain.localeCompare(b.domain));
@@ -381,12 +407,24 @@ export function buildIndex(
       count: demos.length,
       entries: demos,
     },
+    "extension-carriers": extensionCarriers,
     "wire-format-examples": {
       note: EXAMPLES_NOTE,
       count: examples.length,
       entries: examples,
     },
   };
+}
+
+/** "N documents served here carry the member: a, b and c." — from the served documents. */
+function carriersSentence(domains: string[]): string {
+  if (domains.length === 0) return "No document served here carries the member.";
+  const links = domains.map(
+    (d) => `<a href="/${escapeHtml(d)}${WELL_KNOWN_PATH}"><code>${escapeHtml(d)}</code></a>`,
+  );
+  const joined = links.length === 1 ? links[0] : `${links.slice(0, -1).join(",\n")} and\n${links[links.length - 1]}`;
+  const n = domains.length === 1 ? "One document served here carries" : `${domains.length} documents served here carry`;
+  return `${n} the member:\n${joined}.`;
 }
 
 function row(e: IndexEntry): string {
@@ -398,7 +436,7 @@ function row(e: IndexEntry): string {
   <td>${bdi(e.target)}${e["target-type"] ? ` <span class="dim">(${escapeHtml(e["target-type"])})</span>` : ""}</td>
   <td><code>${escapeHtml(e["reporting-period"])}</code></td>
   <td><code>${escapeHtml(e["measurement-method"])}</code></td>
-  <td><a href="${escapeHtml(e["methodology-uri"])}" rel="noopener noreferrer nofollow" aria-label="${escapeHtml(e.domain)}: source document">source document</a></td>
+  <td><a href="${escapeHtml(e["methodology-uri"])}" rel="noopener noreferrer nofollow" aria-label="${escapeHtml(e.domain)}: ${e.synthetic ? "methodology" : "source document"}">${e.synthetic ? "methodology" : "source document"}</a>${e["source-file"] ? `<br><a href="${escapeHtml(e["source-file"])}" rel="noopener noreferrer" class="dim" aria-label="${escapeHtml(e.domain)}: data file">data file</a>` : ""}</td>
 </tr>`;
 }
 
@@ -413,19 +451,33 @@ function demoRow(e: DemoEntry): string {
   return `<tr>
   <td><a href="${escapeHtml(e.path)}"><code>${escapeHtml(e.domain)}</code></a> ${badge}</td>
   <td><code>${escapeHtml(e.adapter.replace(/^adapter:/, ""))}</code></td>
+  <td>${inputCell(e)}</td>
   <td>${bdi(e.upstream)}<br><span class="dim">${bdi(e.attribution)}</span>${err}</td>
   <td><code>${escapeHtml(e["reporting-period"])}</code></td>
 </tr>`;
 }
 
+/** Input → declaration, so the transformation can be read from one row. */
+function inputCell(e: DemoEntry): string {
+  if (!e.input) return '<span class="dim">none: computed</span>';
+  const live = e.input["live-url"]
+    ? ` · <a href="${escapeHtml(e.input["live-url"])}" rel="noopener noreferrer nofollow">live upstream</a>`
+    : "";
+  const licence = e.input.license ? ` <span class="dim">(${escapeHtml(e.input.license)})</span>` : "";
+  return `<a href="${escapeHtml(e.input.path)}">input</a> → <a href="${escapeHtml(e.path)}">declaration</a>${live}${licence}` +
+    `<br><span class="dim">${bdi(e.input.note)}</span>`;
+}
+
 function exampleRow(e: ExampleEntry): string {
   const shape =
     e.shape === "array"
-      ? `array (${e.entries})${e.granularity ? ` <span class="dim">?period=${escapeHtml(e.period ?? "")}&amp;granularity=${escapeHtml(e.granularity)}</span>` : ""}`
+      ? e.granularity
+        ? `array (${e.entries}) <span class="dim">?period=${escapeHtml(e.period ?? "")}&amp;granularity=${escapeHtml(e.granularity)}</span>`
+        : `object <span class="dim">(the file holds ${e.entries}; the newest is served)</span>`
       : "object";
   return `<tr>
   <td><a href="${escapeHtml(e.path)}"><code>${escapeHtml(e.domain)}</code></a> <span class="badge example">example</span></td>
-  <td>${bdi(e.case)}</td>
+  <td>${bdi(e.case)}<br><a href="${escapeHtml(e["source-file"])}" rel="noopener noreferrer" class="dim">source file</a></td>
   <td>${shape}</td>
   <td>${bdi(e.note)}</td>
 </tr>`;
@@ -459,6 +511,7 @@ for (const el of document.querySelectorAll(".host")) el.textContent = location.o
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sustainability Data Reference Gateway</title>
+<meta name="description" content="A live reference deployment of the /.well-known/sustainability-data well-known URI (draft-besleaga-sustainability-wellknown): machine-readable energy and carbon declarations, worked examples of every case in the draft, and an open-source publisher and consumer.">
 <style>
 :root { color-scheme: light; --fg:#111; --dim:#555; --bg:#fff; --line:#d8d8d8; --accent:#087f4b; --warn:#8a4b00; --warnbg:#fff6e6; --tint:8%; }
 @media (prefers-color-scheme: dark) {
@@ -515,6 +568,8 @@ th { font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var
 .badge.replay { border-color:var(--warn); color:var(--warn); }
 .badge.example { border-color:var(--line); color:var(--dim); }
 .dim { color:var(--dim); }
+.visually-hidden { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
+  clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0; }
 pre.cmd { overflow-x:auto; border:1px solid var(--line); border-radius:4px; padding:.75rem .9rem;
   background:var(--warnbg); background:color-mix(in srgb, var(--bg) 92%, var(--fg) 8%); }
 pre.cmd code { font-size:.82em; white-space:pre; }
@@ -524,7 +579,7 @@ footer { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); co
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<div class="top">
+<header class="top">
 <div>
 <h1>Sustainability Data Reference Gateway</h1>
 <p class="sub">A reference deployment of <code>/.well-known/sustainability-data</code>
@@ -533,7 +588,7 @@ footer { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); co
 <label class="theme">Theme <select id="theme">
 <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
 </select></label>
-</div>
+</header>
 <main id="main">
 
 <p>${escapeHtml(doc.about)}</p>
@@ -593,9 +648,10 @@ requirement are those of draft revision -07; a deployment kept on the generic
 </figure>
 
 <h2>Subjects served (${doc.count})</h2>
-<div class="scroll">
+<div class="scroll" role="region" tabindex="0" aria-label="Subjects served by this gateway, scrollable">
 <table>
-<thead><tr><th>Endpoint</th><th>Reporting subject</th><th>Period</th><th>Method</th><th>Provenance</th></tr></thead>
+<caption class="visually-hidden">Subjects served by this gateway</caption>
+<thead><tr><th scope="col">Endpoint</th><th scope="col">Reporting subject</th><th scope="col">Period</th><th scope="col">Method</th><th scope="col">Provenance</th></tr></thead>
 <tbody>
 ${rows}
 </tbody>
@@ -604,9 +660,10 @@ ${rows}
 
 <h2>Adapter demonstrations (${doc["adapter-demonstrations"].count})</h2>
 <p>${escapeHtml(doc["adapter-demonstrations"].note)}</p>
-<div class="scroll">
+<div class="scroll" role="region" tabindex="0" aria-label="Adapter demonstrations, scrollable">
 <table>
-<thead><tr><th>Endpoint</th><th>Adapter</th><th>Upstream &amp; attribution</th><th>Period</th></tr></thead>
+<caption class="visually-hidden">Adapter demonstrations</caption>
+<thead><tr><th scope="col">Endpoint</th><th scope="col">Adapter</th><th scope="col">Input → declaration</th><th scope="col">Upstream &amp; attribution</th><th scope="col">Period</th></tr></thead>
 <tbody>
 ${doc["adapter-demonstrations"].entries.map(demoRow).join("\n")}
 </tbody>
@@ -615,9 +672,10 @@ ${doc["adapter-demonstrations"].entries.map(demoRow).join("\n")}
 
 <h2>Wire-format examples (${doc["wire-format-examples"].count})</h2>
 <p>${escapeHtml(doc["wire-format-examples"].note)}</p>
-<div class="scroll">
+<div class="scroll" role="region" tabindex="0" aria-label="Wire-format examples, scrollable">
 <table>
-<thead><tr><th>Endpoint</th><th>Case</th><th>Shape</th><th>Demonstrates</th></tr></thead>
+<caption class="visually-hidden">Wire-format examples</caption>
+<thead><tr><th scope="col">Endpoint</th><th scope="col">Case</th><th scope="col">Shape</th><th scope="col">Demonstrates</th></tr></thead>
 <tbody>
 ${doc["wire-format-examples"].entries.map(exampleRow).join("\n")}
 </tbody>
@@ -628,8 +686,10 @@ ${doc["wire-format-examples"].entries.map(exampleRow).join("\n")}
 <p>The gateway also reports on itself, as a service, at
 <a href="${escapeHtml(doc.self.path)}"><code>${escapeHtml(doc.self.path)}</code></a>
 (<code>target</code>: <code>${bdi(doc.self.target)}</code>). The figures are a <strong>model,
-not a measurement</strong>: a constant container power draw, times the hours the gateway has
-been live, times a cited grid intensity. The document says so
+not a measurement</strong>: an average power draw, times the hours the gateway has been live,
+times a cited grid intensity. The power is a constant assumption, except for months whose
+average the operator entered from the hosting platform's own usage metrics; the document's
+<code>provider</code> names those months. It says so
 (<code>measurement-method: third-party-modeled</code>) and every constant is in the
 <a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology</a> it links.</p>
 
@@ -674,7 +734,9 @@ ${
 <a href="${escapeHtml(doc.self.attestation.uri)}" rel="noopener noreferrer"><code>${escapeHtml(doc.self.attestation.uri)}</code></a>:
 a W3C Verifiable Credential (Data Model 2.0) secured as <code>vc+jwt</code>, valid five years,
 in which the issuer attests the <em>model</em> behind the report — its constants and formula — so
-every month's document is covered without re-issuing. This is the draft's only mechanism that
+every month the model covers needs no new credential. A month whose power was entered from the
+platform's metrics is outside what the current credential states; the declaration names those
+months, and a consumer recomputing them from the credential's constants will find they differ. This is the draft's only mechanism that
 speaks to authenticity. <strong>The operator of this gateway and the issuer of that credential are the
 same person.</strong> The credential demonstrates the mechanism — a second key, a second identity,
 a statement verifiable against a published key — and is not independent assurance of the figures
@@ -737,22 +799,17 @@ definer without a domain. A key is an identifier compared as a string, never der
 there is no registry; a consumer that does not implement one ignores its value. The names this
 gateway uses are listed in its
 <a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology document</a>.
-Six documents served here carry the member:
-<a href="/tenant-demo.example${WELL_KNOWN_PATH}"><code>tenant-demo.example</code></a>,
-<a href="/device.example${WELL_KNOWN_PATH}"><code>device.example</code></a>,
-<a href="/extended.example${WELL_KNOWN_PATH}"><code>extended.example</code></a>,
-<a href="/go.eco${WELL_KNOWN_PATH}"><code>go.eco</code></a>,
-<a href="/sfc-network.example${WELL_KNOWN_PATH}"><code>sfc-network.example</code></a> and
-<a href="/sfc-operator.example${WELL_KNOWN_PATH}"><code>sfc-operator.example</code></a>.</li>
+${carriersSentence(doc["extension-carriers"])}</li>
 </ul>
 
 <p>Check any of this with a click. Each link is a working <code>GET</code> on this deployment
 (or on the operator's site, for a hosted key or credential); the right-hand column is the
 expected response. Headers, conditional requests and the <code>405</code> case need a client
 that shows them — the commands in the next section do.</p>
-<div class="scroll">
+<div class="scroll" role="region" tabindex="0" aria-label="Live requests you can run against this deployment, scrollable">
 <table>
-<thead><tr><th>Request</th><th>Demonstrates</th><th>Expected</th></tr></thead>
+<caption class="visually-hidden">Live requests you can run against this deployment</caption>
+<thead><tr><th scope="col">Request</th><th scope="col">Demonstrates</th><th scope="col">Expected</th></tr></thead>
 <tbody>
 ${liveRequests(doc).map(liveRow).join("\n")}
 </tbody>

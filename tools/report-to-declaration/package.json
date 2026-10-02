@@ -1,0 +1,13 @@
+{
+  "name": "report-to-declaration",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Demonstration: a published sustainability report in, a candidate sustainability-data declaration out, with a verbatim quote behind every figure and a mandatory human approval step.",
+  "license": "BSD-3-Clause",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "demo": "node extract.mjs --source fixtures/demo-report.txt --replay fixtures/demo-model-reply.json --target 'Example Hosting Ltd' --methodology-uri https://hosting.example/reports/2025.pdf --target-type organization --out ./out",
+    "test": "node --test test/*.test.mjs"
+  }
+}

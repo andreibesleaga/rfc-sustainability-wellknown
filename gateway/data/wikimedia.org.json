@@ -2,7 +2,7 @@
   "updated": "2026-10-01T00:00:00Z",
   "capabilities": "basic",
   "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published Environmental Sustainability Metrics 2024; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: carbon-accounting is omitted because the source does not label the Scope 2 basis, although since 2021 the Foundation states it uses grid emission factors rather than vendor procurement decisions. No renewable-energy share is published, so that member is omitted. Attribution: the source document is by the Wikimedia Foundation and is licensed CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); the figures were extracted and reformatted into this format, and this document is offered under the same licence. The licensor does not endorse this service or this use.",
-  "measurement-method": "hardware-estimated",
+  "measurement-method": "third-party-modeled",
   "methodology-uri": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Wikimedia_Foundation_Environmental_Sustainability_Metrics_2024.pdf",
   "reporting-period": "2024",
   "target": "Wikimedia Foundation",

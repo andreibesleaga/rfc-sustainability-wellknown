@@ -55,10 +55,24 @@ export function jsonError(
  * A 304 carries only what a cache needs to freshen its stored response — the
  * validators, the cache lifetime and CORS — never the representation headers
  * of a body that is not being sent (RFC 9110 §15.4.5).
+ *
+ * `Access-Control-Expose-Headers` is kept because the validators are not
+ * CORS-safelisted: without it a browser client cannot read the `ETag` it just
+ * revalidated. `X-Robots-Tag` and the terms-of-service `Link` are kept because
+ * they are statements about the resource that must not disappear on the
+ * revalidation path a crawler takes.
  */
 export function notModified(headers: Record<string, string>): Result {
   const kept: Record<string, string> = {};
-  for (const name of ["Cache-Control", "Access-Control-Allow-Origin", "ETag", "Last-Modified"]) {
+  for (const name of [
+    "Cache-Control",
+    "Access-Control-Allow-Origin",
+    "Access-Control-Expose-Headers",
+    "ETag",
+    "Last-Modified",
+    "X-Robots-Tag",
+    "Link",
+  ]) {
     if (headers[name] !== undefined) kept[name] = headers[name];
   }
   return { status: 304, headers: kept, body: "" };

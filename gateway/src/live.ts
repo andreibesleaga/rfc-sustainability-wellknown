@@ -51,6 +51,24 @@ export interface LiveSpec {
   upstream: string;
   /** Attribution line surfaced on the index for the upstream data license. */
   attribution: string;
+  /**
+   * The input this demonstration's adapter transforms, exactly as the adapter
+   * receives it in replay mode, so a visitor can put it next to the declaration
+   * it becomes. Served verbatim at `/{domain}/input`.
+   */
+  input?: DemoInput;
+}
+
+/** A demonstration's recorded input and what a reader needs to know about it. */
+export interface DemoInput {
+  /** The input document, served as JSON exactly as the adapter receives it. */
+  body: unknown;
+  /** One sentence: what this file is, where it came from, and whether its figures are real. */
+  note: string;
+  /** Licence of the input's content, when it is someone else's published data. */
+  license?: { name: string; url: string };
+  /** The live upstream the recorded input stands in for, when one is publicly reachable. */
+  liveUrl?: string;
 }
 
 export type LiveMode = "live" | "replay";
@@ -86,16 +104,21 @@ async function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<
 /** Attempt the live build alone. Returns null when prerequisites are missing. */
 async function tryLive(spec: LiveSpec, deps: LiveDeps): Promise<Subject | null> {
   if (!spec.live || deps.fetchImpl === null) return null;
-  const adapter = await spec.live(deps);
-  if (!adapter) return null;
+  const live = spec.live;
+  // One bound over the whole live build: two specs fetch while their adapter is
+  // being built, so a timeout around the adapter alone would not cover them.
   return withTimeout(
-    subjectFromAdapter({
-      domain: spec.domain,
-      adapter,
-      target: spec.target,
-      targetType: spec.targetType,
-      label: spec.labelLive,
-    }),
+    (async () => {
+      const adapter = await live(deps);
+      if (!adapter) return null;
+      return subjectFromAdapter({
+        domain: spec.domain,
+        adapter,
+        target: spec.target,
+        targetType: spec.targetType,
+        label: spec.labelLive,
+      });
+    })(),
     LIVE_BUILD_TIMEOUT_MS,
     `live:${spec.domain}`,
   );

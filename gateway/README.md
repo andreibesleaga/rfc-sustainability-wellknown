@@ -80,12 +80,16 @@ The notice is not legal advice and is not a substitute for it.
 - **Not a replacement** for an organization publishing at its own origin, which
   is what the specification actually describes. A gateway is what you do while
   waiting.
-- **Not an Extended-service relay.** Relayed declarations declare
-  `capabilities: "basic"` and ignore query parameters, as the specification
-  requires of a server that supports none of them; only the gateway's *own*
-  report is Extended, because only its figures come from a model the gateway can
-  evaluate for any period. Nor does it sign or attest anything on a third
-  party's behalf: a relayed declaration carries no `signed` member, on purpose.
+- **Not an Extended-service relay.** Relayed declarations taken from real
+  organizations declare `capabilities: "basic"` and ignore query parameters, as
+  the specification requires of a server that supports none of them. Two
+  exceptions are deliberate: the gateway's *own* report is Extended, because only
+  its figures come from a model the gateway can evaluate for any period, and the
+  wire-format examples whose documents declare `capabilities: "extended"` honour
+  `period` and `granularity`. Nor does it sign or attest anything on a third
+  party's behalf: no declaration it relays is signed *by the gateway*, on
+  purpose — the one pre-signed example carries the signature its own file
+  arrived with.
   The gateway's own declaration carries no `upstream` member either — the
   hosting platform publishes no declaration, so naming one would be false.
 
@@ -99,7 +103,7 @@ Anything invented lives under a reserved `.example` name (RFC 2606), says
 ```bash
 npm install
 npm run build
-npm test                       # 348 tests
+npm test                       # 478 tests
 node dist/index.js             # 0.0.0.0:8080
 curl -sS http://127.0.0.1:8080/index.json | jq '.subjects[].domain'
 ```

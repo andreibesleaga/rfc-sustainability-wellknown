@@ -18,8 +18,9 @@ is [GUIDE.md](GUIDE.md).
 cd gateway
 npm install
 npm run build
-npm test          # 348 tests; everything must be green before you deploy
+npm test          # 478 tests; everything must be green before you deploy
 node dist/index.js &
+until curl -sf http://127.0.0.1:8080/healthz >/dev/null; do sleep 1; done   # boot fetches live upstreams first
 curl -sSI http://127.0.0.1:8080/wikimedia.org/.well-known/sustainability-data
 kill %1
 ```
@@ -87,7 +88,8 @@ railway redeploy              # after changing data/ and pushing
    - **Builder**: `Dockerfile` (Railway detects `gateway/Dockerfile`; the
      committed `railway.json` also pins this)
    - **Healthcheck Path**: `/healthz` (also set in `railway.json`)
-   - **Start Command**: leave empty — the Dockerfile `CMD` is correct
+   - **Start Command**: leave empty — the committed `railway.json` pins
+     `node dist/index.js`, which is the Dockerfile `CMD`
 4. **Settings → Networking → Generate Domain**. Railway assigns a
    `*.up.railway.app` hostname and injects `PORT`; the service binds
    `0.0.0.0:$PORT`.

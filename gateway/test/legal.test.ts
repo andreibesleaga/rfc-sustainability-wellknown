@@ -26,7 +26,8 @@ describe("GET /legal", () => {
   it("serves the notice as text, cacheable, with CORS", async () => {
     const r = await fetch(url(LEGAL_PATH));
     expect(r.status).toBe(200);
-    expect(r.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
+    // Plain text: a browser displays it; text/markdown with nosniff is downloaded instead.
+    expect(r.headers.get("content-type")).toBe("text/plain; charset=utf-8");
     expect(r.headers.get("access-control-allow-origin")).toBe("*");
     expect(await r.text()).toBe(LEGAL_TEXT);
   });
@@ -68,9 +69,15 @@ describe("documents about real third parties", () => {
       expect(r.headers.get("link"), s.domain).toMatch(/^<https:\/\/[^>]+\/legal>; rel="terms-of-service"$/);
       const etag = r.headers.get("etag")!;
       await r.text();
-      const again = await fetch(url(`/${s.domain}${WK}`), { headers: { "If-None-Match": etag } });
-      expect(again.status, s.domain).toBe(304);
-      expect(again.headers.get("x-robots-tag"), s.domain).toBe("noindex");
+      const lastModified = r.headers.get("last-modified")!;
+      // Both revalidation paths keep the two signals and what a browser needs to read the validators.
+      for (const conditional of [{ "If-None-Match": etag }, { "If-Modified-Since": lastModified }]) {
+        const again = await fetch(url(`/${s.domain}${WK}`), { headers: conditional });
+        expect(again.status, `${s.domain} ${Object.keys(conditional)[0]}`).toBe(304);
+        expect(again.headers.get("x-robots-tag"), s.domain).toBe("noindex");
+        expect(again.headers.get("link"), s.domain).toMatch(/rel="terms-of-service"$/);
+        expect(again.headers.get("access-control-expose-headers"), s.domain).toContain("ETag");
+      }
     }
   });
 

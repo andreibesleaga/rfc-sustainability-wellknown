@@ -1,7 +1,8 @@
 /**
  * HTTP conformance battery. Every assertion here maps to a normative statement
- * in draft-besleaga-sustainability-wellknown, Mandatory Minimum Supported
- * Service / Operational Considerations, or to the gateway's own route contract.
+ * in draft-besleaga-sustainability-wellknown-07 (Mandatory Minimum Supported
+ * Service, Operational Considerations, Security Considerations), or to the
+ * gateway's own route contract, which the comment beside it says.
  */
 import { MEDIA_TYPE } from "sustainability-wellknown-publisher";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -24,9 +25,10 @@ describe("GET /{domain}/.well-known/sustainability-data", () => {
   it("returns 200 with the dedicated media type and the full required header set", async () => {
     const r = await fetch(url(DOC));
     expect(r.status).toBe(200);
-    // MUST use the -06 dedicated media type (draft §Mandatory Minimum Supported Service).
+    // MUST use the dedicated media type (draft -07 §Mandatory Minimum Supported Service).
     expect(r.headers.get("content-type")).toBe(MEDIA_TYPE);
-    // SHOULD send X-Content-Type-Options: nosniff (draft, same section).
+    // nosniff is this gateway's contract: -07 withdrew the recommendation, and
+    // the gateway keeps sending it because it costs nothing and does no harm.
     expect(r.headers.get("x-content-type-options")).toBe("nosniff");
     // SHOULD include appropriate caching directives.
     expect(r.headers.get("cache-control")).toBe("public, max-age=86400");
@@ -202,14 +204,25 @@ describe("index routes", () => {
       expect(html, domain).toContain(`/${domain}/.well-known/sustainability-data`);
     }
     expect(html).toContain("ILLUSTRATIVE MAPPINGS");
-    expect(html).toContain("NOT");
-    expect(html).toContain("endorsed by their reporting subjects");
+    expect(html).toContain("not reviewed, authorized or endorsed by those organizations");
+    expect(html).toContain("not an authoritative source");
+    expect(html).toContain("Names ending .example are synthetic");
     // The ISE reviewer asked that unregistered well-known paths not be
     // advertised: carbon.txt may be described (the carbontxt-api adapter
     // demonstration relays it as a complementary format) but never as a
     // .well-known path of this service.
     expect(html).not.toContain("/.well-known/carbon.txt");
     // The new sections are present.
+    // Accessibility: landmarks, a page description, and tables whose columns are
+    // announced, captioned, and whose horizontal scroller can be reached by keyboard.
+    expect(html).toContain('<meta name="description"');
+    expect(html).toContain("<header class=\"top\">");
+    expect(html).toContain("<main id=\"main\">");
+    expect(html).toContain('<a class="skip" href="#main">');
+    const tables = html.match(/<table>/g) ?? [];
+    expect(html.match(/<caption class="visually-hidden">/g) ?? []).toHaveLength(tables.length);
+    expect(html.match(/role="region" tabindex="0" aria-label="[^"]+, scrollable"/g) ?? []).toHaveLength(tables.length);
+    expect(html).not.toMatch(/<th>(?!<)/); // every header cell carries scope="col"
     expect(html).toContain("Adapter demonstrations (10)");
     expect(html).toContain("Wire-format examples (22)");
     expect(html).toContain("Consumer cross-validation");
@@ -361,7 +374,7 @@ describe("If-Modified-Since (RFC 9110 §13.1.3)", () => {
   });
 });
 
-describe("self-report month rollover (draft: most recently completed period)", () => {
+describe("self-report month rollover (this deployment: most recently completed month)", () => {
   it("regenerates the unpinned self report when the month rolls over", async () => {
     const { loadConfig } = await import("../src/config");
     const { createGateway, route } = await import("../src/app");

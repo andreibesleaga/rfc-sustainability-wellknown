@@ -118,9 +118,10 @@ describe("GET /.well-known/sustainability-data with Extended parameters", () => 
     expect(r.status).toBe(200);
     const doc = await r.json();
     expect(Array.isArray(doc)).toBe(false);
-    // 3 W × 12 h = 0.036 kWh (the day is in progress: hours to `now`).
+    // 3 W × 12 h = 36 Wh (the day is in progress: hours to `now`).
     expect(doc["reporting-period"]).toBe("2026-09-14");
-    expect(doc["energy-consumption"]).toBe(0.036);
+    expect(doc["energy-consumption"]).toBe(36);
+    expect(doc["energy-unit"]).toBe("Wh");
     expect(doc.updated).toBe("2026-09-14T12:00:00Z");
     expect(r.headers.get("last-modified")).toBe("Mon, 14 Sep 2026 12:00:00 GMT");
     expect(r.headers.get("etag")).not.toBe((await get()).headers.get("etag"));
@@ -149,7 +150,7 @@ describe("GET /.well-known/sustainability-data with Extended parameters", () => 
     const r = await get("?period=2026-08&granularity=daily");
     const arr = await r.json();
     expect(arr).toHaveLength(31);
-    expect(arr[0]["energy-consumption"]).toBe(0.072); // 3 W × 24 h
+    expect(arr[0]["energy-consumption"]).toBe(72); // 3 W × 24 h, Wh
     expect(validateDocument(arr).valid).toBe(true);
     const year = await (await get("?period=2026&granularity=daily")).json();
     expect(year.length).toBeLessThanOrEqual(366);
@@ -159,12 +160,36 @@ describe("GET /.well-known/sustainability-data with Extended parameters", () => 
   it("conditional requests work per variant", async () => {
     const first = await get("?period=2026-08");
     const etag = first.headers.get("etag")!;
+    const lastModified = first.headers.get("last-modified")!;
     const second = await fetch(`${srv.base}${SELF}?period=2026-08`, { headers: { "if-none-match": etag } });
     expect(second.status).toBe(304);
+    // A 304 carries the validators the 200 would have carried (RFC 9110
+    // §15.4.5) — the variant's own Last-Modified, not the subject's — and no
+    // Content-Length, which on a 304 could only misstate the 200's length.
+    expect(second.headers.get("last-modified")).toBe(lastModified);
+    expect(second.headers.get("content-length")).toBeNull();
     const since = await fetch(`${srv.base}${SELF}?period=2026-08`, {
-      headers: { "if-modified-since": first.headers.get("last-modified")! },
+      headers: { "if-modified-since": lastModified },
     });
     expect(since.status).toBe(304);
+    expect(since.headers.get("last-modified")).toBe(lastModified);
+  });
+
+  it("granularity without a period slices the Basic response's own period (draft step 2)", async () => {
+    const basic = await (await get("")).json();
+    const p = basic["reporting-period"];
+    const days = await (await get("?granularity=daily")).json();
+    expect(Array.isArray(days)).toBe(true);
+    expect(days.every((d: { "reporting-period": string }) => d["reporting-period"].startsWith(p))).toBe(true);
+    expect(days).toEqual(await (await get(`?period=${p}&granularity=daily`)).json());
+  });
+
+  it("the no-data 404 carries nosniff and its Content-Length, like every other error", async () => {
+    const r = await get("?period=1990");
+    expect(r.status).toBe(404);
+    expect(r.headers.get("x-content-type-options")).toBe("nosniff");
+    const body = await r.text();
+    expect(r.headers.get("content-length")).toBe(String(Buffer.byteLength(body)));
   });
 
   it("index.json describes the self report's Extended service and go-live", async () => {
@@ -197,7 +222,7 @@ describe("go-live clamp with the real default (2026-07-30)", () => {
     const gw = await createGateway({ config, log: () => undefined, now: NOW, clock: () => NOW, fetchImpl: null, env: {} });
     const july = await route(gw, "GET", `${SELF}?period=2026-07`);
     expect(july.status).toBe(200);
-    expect(JSON.parse(july.body)["energy-consumption"]).toBe(0.144); // 3 W × 48 h
+    expect(JSON.parse(july.body)["energy-consumption"]).toBe(144); // 3 W × 48 h, Wh
     expect((await route(gw, "GET", `${SELF}?period=2026-06`)).status).toBe(404);
     const months = JSON.parse((await route(gw, "GET", `${SELF}?period=2026&granularity=monthly`)).body);
     expect(months.map((e: { "reporting-period": string }) => e["reporting-period"])).toEqual(["2026-07", "2026-08", "2026-09"]);
@@ -240,3 +265,4 @@ describe("period tolerance and cache lifetime of the self report", () => {
     await Promise.all([inProgress.text(), complete.text(), basic.text()]);
   });
 });
+

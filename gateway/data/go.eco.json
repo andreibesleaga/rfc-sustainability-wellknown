@@ -2,7 +2,7 @@
   "updated": "2026-10-01T00:00:00Z",
   "capabilities": "basic",
   "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published Greenhouse Gas Emissions Report for fiscal year 2025 (ISO 14064 inventory, validated by Inhabit); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: The figures are for Big Room Inc.'s FISCAL year 2025 (1 October 2024 - 30 September 2025), NOT the 2025 calendar year; reporting-period carries the fiscal year's ending calendar year and the machine-readable member reporting-period-basis, published under the extension name urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041, states the exact boundary. Scope 1 and Scope 2 are 0 as published (no owned or leased facilities or vehicles). No accounting basis is named in the source and no energy total is published, so both are omitted.",
-  "measurement-method": "hardware-estimated",
+  "measurement-method": "third-party-modeled",
   "methodology-uri": "https://go.eco/impact/ghg-report-2025/",
   "reporting-period": "2025",
   "target": "Big Room Inc. (.eco registry)",

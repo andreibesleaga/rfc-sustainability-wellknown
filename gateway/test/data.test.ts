@@ -103,7 +103,7 @@ describe.each(files)("%s", (file) => {
     expect(domain.length).toBeLessThanOrEqual(253);
   });
 
-  it("is a single JSON object (the Basic service never returns an array)", () => {
+  it("is a single JSON object (this registry relays one object per subject file)", () => {
     expect(Array.isArray(doc)).toBe(false);
     expect(typeof doc).toBe("object");
   });

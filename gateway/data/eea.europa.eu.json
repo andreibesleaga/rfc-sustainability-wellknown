@@ -2,7 +2,7 @@
   "updated": "2026-10-01T00:00:00Z",
   "capabilities": "basic",
   "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published Environmental statement report 2024 (EEA corporate report 02/2025); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: Calendar year 2024, the Copenhagen headquarters. carbon-footprint is the figure the report gives as the 'Carbon footprint of the EEA including scope 1, 2 and 3 of the Greenhouse Gas Protocol methodology, in particular staff business travel' (617 tCO2e); it equals the report's total of CO2 emissions from travel and meetings, so read it as that boundary. energy-consumption is the printed total direct energy consumption (1,165,784 kWh). The report states that the EEA's electricity is 100% renewable, which covers electricity only, so renewable-energy is omitted. No scope split or accounting basis is published. Attribution: European Environment Agency, licensed CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); the figures were extracted and reformatted into this format. The EEA does not endorse this service or this use.",
-  "measurement-method": "hardware-estimated",
+  "measurement-method": "third-party-modeled",
   "methodology-uri": "https://www.eea.europa.eu/en/analysis/publications/environmental-statement-report-2024",
   "reporting-period": "2024",
   "target": "European Environment Agency",

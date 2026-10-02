@@ -38,6 +38,16 @@ from that row to a public document, it does not belong in this directory.
    recorded under "Rights in the sources" at the end of this file; a document
    whose source terms prohibit reuse, or could not be read, is kept in
    `withheld/` and is not served.
+8. **`measurement-method` names how the source produced its figures.** An
+   organizational inventory built from activity data (metered or billed energy,
+   travel, purchases) multiplied by published emission factors is
+   `third-party-modeled`, whoever compiled it: the carbon comes from someone
+   else's factors. `hardware-estimated` is kept for a figure the organization
+   estimated from its own equipment, and `hardware-metered` for one read from a
+   meter in the power path of the declared subject. Only `automattic.com` is
+   `hardware-estimated` (its reasoning is in its section below); every other real
+   subject is `third-party-modeled`. Until 2026-10-02 fourteen of them carried
+   `hardware-estimated`, copied from Automattic's case without that reasoning.
 
 See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 
@@ -83,7 +93,7 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 Plus `kepler-demo.example`, which has no file: it is generated in code by a
 publisher adapter (see below).
 
-The primary sources of the first nine real subjects were read on **2026-07-28 / 2026-07-29**; the six added afterwards (Green Web Foundation, Scott Logic, Torchbox, Scaleway, Infomaniak, .eco) were read on **2026-10-01**. Each entry below
+The primary sources of the first nine real subjects were read on **2026-07-28 / 2026-07-29**; the twelve added afterwards (HMRC, CERN, European Commission, European Court of Auditors, EMA, EEA, Green Web Foundation, Scott Logic, Torchbox, Scaleway, Infomaniak, .eco) were read on **2026-10-01**. Each entry below
 cites the source document and the figures read from it; the working verification
 logs are not carried in the repository.
 
@@ -357,12 +367,14 @@ page is an avoided-emissions claim, not an inventory figure, and is excluded.
 | Retrieved | 2026-07-28/29 |
 | `carbon-footprint` | 1,850 mtCO2e — read ("an overall figure of 1,850 tonnes of CO2e for 2020") |
 | Renewable | ~50% — read ("As of 2020, about 50% of our data center energy needs come from renewables") |
+| `scope-3` | 1,850 mtCO2e — read: the source classifies the figure ("we treat the emissions from data center power use as being in Scope 3") |
 
 Caveats: **data-centre operations only** — it excludes travel and everything
 else, and Automattic has never published a scoped inventory. **The figure is
 2020-vintage, six years old at the time of mapping, and is the most recent one
 Automattic publishes.** `carbon-accounting` is omitted because the source never
-states a basis; `scope-1/2/3` are omitted because none is published.
+states a basis; `scope-3` carries the whole figure because the source classifies
+it as Scope 3, and `scope-1/2` are omitted because neither is published.
 `measurement-method` is `hardware-estimated` because the source's method is an
 estimate built from the operator's own hardware inventory — server power draw
 multiplied by 1.5 as a PUE proxy ("multiply that by 1.5 to obtain a
@@ -587,7 +599,7 @@ Until -07 it also carried a reverse-domain extension member
 publisher MUST NOT add a member of its own — so that member was removed rather
 than re-homed: the `extensions` mechanism that replaces it is demonstrated on
 `tenant-demo.example.json` below, with the draft's own worked extension name,
-and on the two fiscal-year subjects above with this registry's.
+and on the four fiscal-year subjects above (two of them withheld) with this registry's.
 
 Internally consistent by construction: 4,310 + 9,888 + 114,260 = 128,458 mtCO2e,
 and 41,200 MWh × 240 gCO2e/kWh = 9,888 mtCO2e (the Scope 2 figure). Source: none

@@ -61,9 +61,9 @@ describe("self-report adapter (computedAdapter)", () => {
       targetType: "service",
     });
     const d = s.document;
-    // 3 W x 8760 h = 26.28 kWh
-    expect(d["energy-consumption"]).toBe(26.28);
-    expect(d["energy-unit"]).toBe("kWh");
+    // 3 W x 8760 h = 26,280 Wh (watt-hours, so a small day keeps its digits)
+    expect(d["energy-consumption"]).toBe(26280);
+    expect(d["energy-unit"]).toBe("Wh");
     // 26.28 kWh x 373 gCO2e/kWh = 9802.44 gCO2e
     expect(d["carbon-footprint"]).toBeCloseTo(9802.44, 2);
     expect(d["carbon-unit"]).toBe("gCO2e");

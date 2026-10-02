@@ -92,7 +92,7 @@ export interface GatewayConfig {
   dataDir: string;
   /** Directory holding the canonical wire-format example documents. */
   examplesDir: string;
-  /** Cache-Control max-age, seconds. Draft Operational Considerations RECOMMENDS 86400. */
+  /** Cache-Control max-age, seconds. Draft Operational Considerations: a server SHOULD send cache directives, with max-age=86400 as its example. */
   maxAge: number;
   /** Public base URL, used only for absolute links in the HTML/JSON index. */
   baseUrl: string;

@@ -6,15 +6,15 @@
  * `example-responses/` (a test enforces the identity when the sibling
  * directory is present). Each file becomes a served subject through the SAME
  * published publisher pipeline as every other subject — nothing is special-
- * cased except the draft's own array rule:
+ * cased except how a trend file is served:
  *
- *  - a file holding a single object is served as a Basic document;
- *  - a file holding a trend ARRAY is served per the draft's Basic rule — the
- *    parameterless response collapses to the most recent entry, and the full
- *    sorted array is returned only for `?granularity=` requests, and only when
- *    the document itself declares `capabilities: "extended"`. A trend file
- *    declaring "basic" (the organization-trend example) is deliberately served
- *    collapsed: that IS the draft behaviour it demonstrates.
+ *  - a file holding a single object is served as that object;
+ *  - a file holding a trend ARRAY is served collapsed to its most recent entry
+ *    on a parameterless request (-07 allows an object or an array there; this
+ *    deployment's choice is the object), and the full sorted array is returned
+ *    for a period sliced by a finer `granularity`, only when the document itself
+ *    declares `capabilities: "extended"`. A trend file declaring "basic" (the
+ *    organization-trend example) is therefore always served collapsed.
  *
  * Every one of these subjects is synthetic by construction (reserved names,
  * RFC 2606/6761) and is labelled as an example everywhere it is surfaced.
@@ -115,7 +115,9 @@ export const WIRE_CASES: CaseDef[] = [
     note:
       "The embedded signed member: an EdDSA JWS over the object without signed, cty " +
       "sustainability-data+json, public key in the header as jwk. It verifies, and proves " +
-      "only integrity: a key carried in the header is as self-asserted as the figures. The " +
+      "only integrity: a key carried in the header is as self-asserted as the figures. It was " +
+      "signed once with a throw-away key, not the operator's published one, so it verifies from " +
+      "its header and fails against a pinned key, as it should. The " +
       "origin is an internationalized host, so target and every URI carry its A-label, while " +
       "provider is UTF-8 text.",
   },
@@ -130,8 +132,9 @@ export const WIRE_CASES: CaseDef[] = [
     domain: "organization-trend.example",
     caseName: "Yearly trend, Basic service",
     note:
-      "A multi-year trend file whose document declares capabilities:basic — the Basic " +
-      "response therefore collapses to the most recent year, exactly as the draft requires.",
+      "A multi-year trend file whose document declares capabilities:basic. The parameterless " +
+      "response is the most recent year: -07 allows an object or an array there, and this " +
+      "deployment serves the object; the full trend is in the file.",
   },
   {
     file: "example-response-comprehensive.json",
@@ -151,8 +154,8 @@ export const WIRE_CASES: CaseDef[] = [
     note:
       "A scope member MAY be negative where the accounting method nets removals; carbon-footprint " +
       "stays gross, so the scopes no longer sum to it and the methodology document explains why. " +
-      "Also shows a free-text measurement-method, an omitted energy-unit (kWh applies) and an " +
-      "attestation link for the removals claim.",
+      "Also shows a free-text measurement-method and an attestation link for the removals claim; " +
+      "the source file omits energy-unit, and the served document carries the materialized kWh.",
   },
   {
     file: "example-response-product.json",
@@ -381,7 +384,7 @@ async function loadArrayCase(def: CaseDef, docs: SustainabilityMetrics[]): Promi
     },
   );
 
-  // Basic response: the draft's collapse-to-most-recent rule.
+  // Parameterless response: this deployment collapses a trend to its newest entry.
   const { body } = await publisher.getSerialized({});
   const collapsed = JSON.parse(body) as SustainabilityMetrics;
   const newest = withDefaultUnits(byPeriod(docs)[docs.length - 1]);

@@ -47,9 +47,14 @@ import {
 import type { RawMetrics } from "sustainability-wellknown-publisher";
 import type { GatewayConfig } from "../config";
 import type { LiveDeps, LiveSpec } from "../live";
-import { keplerReplayAdapter } from "./kepler-replay";
-import { distLiveAdapter, distReplayAdapter, fetchGwfDist } from "./dist";
-import { yangPowerEnergyReplayAdapter } from "./yang-power-energy";
+import { KEPLER_FIXTURE_2025, keplerReplayAdapter } from "./kepler-replay";
+import { GWF_DIST_FIXTURE, GWF_DIST_URL, distLiveAdapter, distReplayAdapter, fetchGwfDist } from "./dist";
+import {
+  YANG_FIXTURE_END,
+  YANG_FIXTURE_OBJECTS,
+  YANG_FIXTURE_START,
+  yangPowerEnergyReplayAdapter,
+} from "./yang-power-energy";
 import { lastCompletedMonth, periodClose, periodHours } from "./self-report";
 
 /**
@@ -65,6 +70,23 @@ function withUpdated(adapter: SourceAdapter, updatedIso: string): SourceAdapter 
       const raw = await adapter.fetch(query);
       const stamp = (r: RawMetrics): RawMetrics => ({ ...r, updated: r.updated ?? updatedIso });
       return Array.isArray(raw) ? raw.map(stamp) : stamp(raw);
+    },
+  };
+}
+
+/**
+ * Re-express a kWh energy figure in Wh before the publisher normalizes it. The
+ * library rounds every member to four decimal places, which turns the energy of
+ * one crawl (a fraction of a watt-hour) into 0 kWh beside a non-zero carbon.
+ */
+function energyInWh(adapter: SourceAdapter): SourceAdapter {
+  return {
+    ...adapter,
+    async fetch(query) {
+      const raw = await adapter.fetch(query);
+      const toWh = (r: RawMetrics): RawMetrics =>
+        r.energy && r.energy.unit === "kWh" ? { ...r, energy: { value: r.energy.value * 1000, unit: "Wh" } } : r;
+      return Array.isArray(raw) ? raw.map(toWh) : toWh(raw);
     },
   };
 }
@@ -90,6 +112,7 @@ interface NesoIntensityResponse {
 export async function fetchGbIntensity(fetchImpl: typeof fetch): Promise<number> {
   const res = await fetchImpl(NESO_INTENSITY_URL, {
     headers: { accept: "application/json" },
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`NESO intensity API returned HTTP ${res.status}`);
   const parsed = (await res.json()) as NesoIntensityResponse;
@@ -106,15 +129,16 @@ function gridDemoAdapter(
   deps: LiveDeps,
   intensity: number,
   sourceNote: string,
+  wattsByMonth: Record<string, number> = {},
 ): SourceAdapter {
   const period = lastCompletedMonth(deps.now());
-  const kwh = (config.self.watts * periodHours(period)) / 1000;
+  const kwh = gatewayMonthKwh(config, wattsByMonth, period);
   return withUpdated(
     computedAdapter({
     provider:
       "Demonstration by the gateway operator of the publisher package's `computed` adapter " +
-      "(energy x grid intensity -> carbon). Energy is this gateway's own modelled monthly " +
-      `consumption (${config.self.watts} W container, see methodology-uri). Grid intensity: ` +
+      "(energy x grid intensity -> carbon). Energy is this gateway's own monthly consumption, " +
+      "the same figure its self report states for the month (see methodology-uri). Grid intensity: " +
       sourceNote +
       " Applying the GB grid factor to a container that does not run in Great Britain is " +
       "deliberate and ILLUSTRATIVE: the subject demonstrates the computation, it does not " +
@@ -122,7 +146,7 @@ function gridDemoAdapter(
     methodologyUri: config.self.methodologyUri,
     measurementMethod: "third-party-modeled",
     reportingPeriod: period,
-      energy: { value: Number(kwh.toFixed(4)), unit: "kWh" },
+      energy: { value: kwh, unit: "kWh" },
       gridIntensity: intensity,
       carbonAccounting: "location-based",
     }),
@@ -141,7 +165,7 @@ function co2jsDemoAdapter(
 ): SourceAdapter {
   const period = lastCompletedMonth(deps.now());
   return withUpdated(
-    co2jsAdapter({
+    energyInWh(co2jsAdapter({
     provider:
       "Demonstration by the gateway operator of the publisher package's `co2js` adapter " +
       "(Green Web Foundation CO2.js, Apache-2.0, Sustainable Web Design model). The byte " +
@@ -163,7 +187,7 @@ function co2jsDemoAdapter(
         ? { greencheckDomain: greencheck.domain }
         : { green: greencheck.green ?? false }),
       measurementMethod: "third-party-modeled",
-    }),
+    })),
     periodClose(period),
   );
 }
@@ -400,10 +424,19 @@ export interface DemoSpecOptions {
   config: GatewayConfig;
   /** Measured byte size of one full crawl of every served document. */
   crawlBytes: number;
+  /** Operator-entered average power per month (data/_self-measured.json), as the self report uses it. */
+  wattsByMonth?: Record<string, number>;
+}
+
+/** This gateway's energy for a calendar month, by the same rule as its self report. */
+function gatewayMonthKwh(config: GatewayConfig, wattsByMonth: Record<string, number>, period: string): number {
+  const watts = wattsByMonth[period] ?? config.self.watts;
+  return Number(((watts * periodHours(period)) / 1000).toPrecision(4));
 }
 
 export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
   const { config, crawlBytes } = opts;
+  const wattsByMonth = opts.wattsByMonth ?? {};
   const greencheckDomain = config.baseUrl ? new URL(config.baseUrl).hostname : undefined;
 
   return [
@@ -424,6 +457,13 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       labelLive: "adapter:kepler-prometheus",
       upstream: "Kepler energy counters via Prometheus (no public instance; replay)",
       attribution: "synthetic figures; recorded Prometheus query response",
+      input: {
+        body: KEPLER_FIXTURE_2025,
+        note:
+          "A Prometheus instant-query response for Kepler's energy counters, in the shape the " +
+          "Prometheus HTTP API returns. The figures are synthetic: no public Prometheus with " +
+          "Kepler metrics exists to record from.",
+      },
     },
     {
       domain: "grid-intensity-demo.example",
@@ -439,6 +479,7 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
           `LIVE from the National Energy System Operator (NESO) Carbon Intensity API, ` +
             `${intensity} gCO2/kWh for the current GB half-hour at refresh time, refreshed ` +
             "daily and cached. Data: NESO Carbon Intensity API, CC BY 4.0.",
+          wattsByMonth,
         );
       },
       fixture: (deps) =>
@@ -450,11 +491,27 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
             `(${NESO_FIXTURE_INTENSITY} gCO2/kWh, retrieved ${NESO_FIXTURE_RETRIEVED}); the ` +
             "live API was unavailable at the last refresh. Data: NESO Carbon Intensity API, " +
             "CC BY 4.0.",
+          wattsByMonth,
         ),
       labelLive: "adapter:computed (LIVE NESO grid intensity, daily)",
       labelFixture: "adapter:computed (recorded NESO grid intensity)",
       upstream: "NESO Carbon Intensity API (api.carbonintensity.org.uk)",
       attribution: "NESO Carbon Intensity API, CC BY 4.0",
+      input: {
+        body: {
+          source: NESO_INTENSITY_URL,
+          retrieved: NESO_FIXTURE_RETRIEVED,
+          "data[0].intensity.actual": NESO_FIXTURE_INTENSITY,
+          unit: "gCO2/kWh",
+          attribution: "National Energy System Operator (NESO) Carbon Intensity API, CC BY 4.0",
+        },
+        note:
+          "The one value this demonstration reads from the NESO response, as recorded on " +
+          `${NESO_FIXTURE_RETRIEVED}. The full response is not stored; the live link returns the ` +
+          "current one, which is what the live mode reads.",
+        license: { name: "CC BY 4.0", url: "https://creativecommons.org/licenses/by/4.0/" },
+        liveUrl: NESO_INTENSITY_URL,
+      },
     },
     {
       domain: "co2js-demo.example",
@@ -472,6 +529,17 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       labelFixture: "adapter:co2js (local SWD model, no live Greencheck)",
       upstream: "CO2.js locally (Ember data) + GWF Greencheck",
       attribution: "CO2.js Apache-2.0; Ember CC BY 4.0; GWF Green Domains ODbL",
+      input: {
+        body: {
+          "bytes-transferred": crawlBytes,
+          measured: "the serialized size of one crawl of every document this gateway serves, at start-up",
+          model: "Sustainable Web Design model, version 4, as implemented by CO2.js",
+          "green-hosting": "looked up at start-up with the Green Web Foundation Greencheck API when a public base URL is set",
+        },
+        note:
+          "The only input CO2.js needs is a byte count. This one is real: the gateway measures it " +
+          "by serializing every document it serves when it starts.",
+      },
     },
     {
       domain: "carbontxt-demo.example",
@@ -486,20 +554,34 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       labelFixture: "adapter:carbontxt-api (recorded real carbon.txt, replay)",
       upstream: "GWF carbon.txt validator API (free key) / recorded carbon.txt",
       attribution: "carbon.txt self-published by its organization; validator by GWF",
+      input: {
+        body: CARBONTXT_FIXTURE,
+        note:
+          "The Green Web Foundation carbon.txt validator API's response for the Foundation's own " +
+          "carbon.txt, as recorded on 2026-07-30: the parsed file with its real disclosure links.",
+        license: { name: "CC BY 4.0", url: "https://creativecommons.org/licenses/by/4.0/" },
+        liveUrl: "https://www.thegreenwebfoundation.org/carbon.txt",
+      },
     },
     {
       domain: "climatiq-demo.example",
       target: "climatiq-demo.example",
       targetType: "service",
-      live: (deps) => {
-        const key = deps.env.CLIMATIQ_API_KEY;
-        return key ? climatiqDemoAdapter(config, deps, key) : null;
-      },
+      // Replay only, even when CLIMATIQ_API_KEY is set: Climatiq's terms restrict
+      // redistribution, and this deployment publishes only what a licence lets
+      // it republish. The adapter itself runs live for a licensed operator.
       fixture: (deps) => climatiqDemoAdapter(config, deps),
-      labelLive: "adapter:climatiq (LIVE under operator key)",
-      labelFixture: "adapter:climatiq (recorded response shape, replay)",
-      upstream: "Climatiq estimate API (replay by default; see terms note)",
-      attribution: "replay default: Climatiq 2026 terms restrict redistribution",
+      labelLive: "adapter:climatiq",
+      labelFixture: "adapter:climatiq (synthetic response in Climatiq's documented shape, replay)",
+      upstream: "Climatiq estimate API (replay only here: its terms restrict redistribution)",
+      attribution: "synthetic figures; no Climatiq data is relayed",
+      input: {
+        body: CLIMATIQ_FIXTURE,
+        note:
+          "An estimate response in the shape of Climatiq's published API reference. The numbers " +
+          "are synthetic and none of it is Climatiq data: Climatiq's terms restrict redistribution, " +
+          "so nothing it returns is relayed here.",
+      },
     },
     {
       domain: "salesforce-nzc-demo.example",
@@ -510,6 +592,12 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       labelLive: "adapter:salesforce-nzc",
       upstream: "Salesforce Net Zero Cloud (30-day trial orgs exist; replay here)",
       attribution: "synthetic figures; field names per NZC developer guide",
+      input: {
+        body: SALESFORCE_FIXTURE,
+        note:
+          "A SOQL query result over Net Zero Cloud's annual emissions inventory object, with the " +
+          "field names of the Net Zero Cloud developer guide. The figures are synthetic.",
+      },
     },
     {
       domain: "ms-sustainability-demo.example",
@@ -520,6 +608,12 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       labelLive: "adapter:ms-sustainability",
       upstream: "MS Cloud for Sustainability (preview API retired 2025-05-30; replay)",
       attribution: "synthetic figures; shape per the retired tenantemissions API",
+      input: {
+        body: MS_FIXTURE_PAGES,
+        note:
+          "Two pages of a Microsoft emissions API response, in the shape of the retired " +
+          "tenantemissions endpoint. The figures are synthetic.",
+      },
     },
     {
       domain: "watershed-demo.example",
@@ -530,6 +624,12 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       labelLive: "adapter:watershed",
       upstream: "Watershed API (customer-only keys, no sandbox; replay)",
       attribution: "synthetic figures; shape per api-docs.watershed.com",
+      input: {
+        body: WATERSHED_FIXTURE,
+        note:
+          "A footprint summary in the shape of Watershed's API documentation, which is open to " +
+          "customer keys only. The figures are synthetic.",
+      },
     },
     {
       // Gateway-local adapter for the IETF GREEN working group's Power and
@@ -547,6 +647,17 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       labelLive: "adapter:yang-power-energy",
       upstream: "ietf-power-and-energy over RESTCONF (IETF GREEN WG draft; no public device; replay)",
       attribution: "synthetic figures; data model per draft-ietf-green-power-and-energy-yang-04",
+      input: {
+        body: {
+          "object-ids": YANG_FIXTURE_OBJECTS,
+          "period-start": YANG_FIXTURE_START,
+          "period-end": YANG_FIXTURE_END,
+        },
+        note:
+          "Two RFC 7951 JSON snapshots of the ietf-power-and-energy data model, read over RESTCONF " +
+          "at the start and end of the period; the energy is the difference of the counters. The " +
+          "figures are synthetic: no public device implements the working-group draft.",
+      },
     },
     {
       // Gateway-local adapter for DIST. Live: the Green Web Foundation's own
@@ -563,6 +674,14 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       labelFixture: "adapter:dist (recorded dist.json, replay)",
       upstream: "Green Web Foundation dist.json (DIST v0.0.1)",
       attribution: "Green Web Foundation, CC BY 4.0",
+      input: {
+        body: GWF_DIST_FIXTURE,
+        note:
+          "The Green Web Foundation's own dist.json, as recorded. In live mode the gateway reads " +
+          "the current file daily; the live link shows it.",
+        license: { name: "CC BY 4.0", url: "https://creativecommons.org/licenses/by/4.0/" },
+        liveUrl: GWF_DIST_URL,
+      },
     },
   ];
 }

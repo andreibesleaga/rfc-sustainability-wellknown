@@ -41,6 +41,8 @@ import { loadSelfMeasured } from "./self-measured";
 
 /** `/{domain}/.well-known/sustainability-data` — the primary route. */
 const SUBJECT_ROUTE = new RegExp(`^/([^/]{1,${LIMITS.maxDomainLength}})/\\.well-known/sustainability-data$`);
+/** The recorded input an adapter demonstration transforms, shown next to its declaration. */
+const INPUT_ROUTE = new RegExp(`^/([^/]{1,${LIMITS.maxDomainLength}})/input$`);
 /** The self report's variant cache: in-progress periods change hourly. */
 const SELF_CACHE_TTL_MS = 60 * 60 * 1000;
 const SELF_CACHE_ENTRIES = 64;
@@ -64,10 +66,11 @@ export interface Gateway {
   /** The gateway's own report (`target-type: "service"`). */
   self: Subject;
   /**
-   * Returns the self subject for the CURRENT reporting period. The draft's
-   * Basic service requires the most recently completed period, so when the
-   * month rolls over (and no fixed SELF_PERIOD is pinned) the self report is
-   * regenerated instead of freezing at whatever month the process booted in.
+   * Returns the self subject for the CURRENT reporting period. This
+   * deployment's parameterless report is the most recently completed month
+   * (-07 leaves the choice to the publisher), so when the month rolls over (and
+   * no fixed SELF_PERIOD is pinned) the self report is regenerated instead of
+   * freezing at whatever month the process booted in.
    */
   refreshSelf?: () => Promise<Subject>;
   /**
@@ -159,9 +162,21 @@ async function serveDocument(
     headers["Link"] = `<${(config.baseUrl || PUBLIC_BASE_URL).replace(/\/+$/, "")}${LEGAL_PATH}>; rel="terms-of-service"`;
   }
   // A query variant describes a different period than the subject's own
-  // document, so its `Last-Modified` comes from the variant's `updated`.
-  if (r.status === 200 && Object.values(query).some((v) => v !== undefined)) {
-    const variantUpdated = lastUpdatedIn(r.body);
+  // document, so its `Last-Modified` comes from the variant's `updated` — on a
+  // 304 as on a 200, since a 304 must carry the validators the 200 would have
+  // (RFC 9110 §15.4.5). The 304 has no body, so the variant is read from the
+  // publisher's cache, which the request just populated.
+  if ((r.status === 200 || r.status === 304) && Object.values(query).some((v) => v !== undefined)) {
+    let variantUpdated: string | undefined;
+    if (r.status === 200) {
+      variantUpdated = lastUpdatedIn(r.body);
+    } else {
+      try {
+        variantUpdated = lastUpdatedIn(JSON.stringify(await subject.publisher.getDocument(query)));
+      } catch {
+        variantUpdated = undefined;
+      }
+    }
     if (variantUpdated) headers["Last-Modified"] = variantUpdated;
   }
   if (r.status === 200) {
@@ -181,7 +196,11 @@ async function serveDocument(
     headers["Content-Language"] = "en";
     return withBody(200, headers, r.body);
   }
-  return { status: r.status, headers, body: r.body };
+  // A 304 keeps only what a cache needs and carries no Content-Length (RFC 9110
+  // §8.6: a 304 must not claim a length other than the 200's). 404 and 503
+  // leave through the same seam as 200, so they carry nosniff and a length.
+  if (r.status === 304) return notModified(headers);
+  return withBody(r.status, headers, r.body);
 }
 
 /**
@@ -199,7 +218,7 @@ export async function route(
     Gateway,
     "config" | "subjects" | "self" | "mediaTypeOverrides" | "index" | "indexHtml" | "indexJson"
   > &
-    Partial<Pick<Gateway, "refreshSelf" | "examples" | "signingKey">>,
+    Partial<Pick<Gateway, "refreshSelf" | "examples" | "signingKey" | "live">>,
   method: string,
   rawUrl: string,
   headers: { "if-none-match"?: string; "if-modified-since"?: string } = {},
@@ -214,7 +233,8 @@ export async function route(
     path === "/healthz" ||
     path === LEGAL_PATH ||
     path === WELL_KNOWN_PATH ||
-    SUBJECT_ROUTE.test(path);
+    SUBJECT_ROUTE.test(path) ||
+    INPUT_ROUTE.test(path);
 
   if (isKnown && method !== "GET" && method !== "HEAD") return methodNotAllowed();
 
@@ -251,7 +271,8 @@ export async function route(
       200,
       {
         ...corsHeaders(),
-        "Content-Type": "text/markdown; charset=utf-8",
+        // Markdown source, served as plain text so a browser shows it instead of downloading it.
+        "Content-Type": "text/plain; charset=utf-8",
         "Content-Language": "en",
         "Cache-Control": selfCacheControl(gw.config),
       },
@@ -276,7 +297,15 @@ export async function route(
     // one process with no path prefixes is empty, so any value is 404.
     const parsed = extendedQuery(search, { maxAge: selfMaxAge(gw.config), lastModified: self.lastModified });
     if (!parsed.ok) return parsed.result;
-    return serveDocument(self, { ...gw.config, maxAge: selfMaxAge(gw.config) }, ifNoneMatch, ifModifiedSince, gw.config.mediaType, parsed.query);
+    // Draft step 2: with no `period`, P is the Basic response's own
+    // `reporting-period`. The self adapter shapes its output to the query, so
+    // P is named explicitly here rather than inferred from that output — which
+    // for `?granularity=daily` alone would be the last day, not the month.
+    const query =
+      parsed.query.granularity !== undefined && parsed.query.period === undefined
+        ? { ...parsed.query, period: self.document["reporting-period"] }
+        : parsed.query;
+    return serveDocument(self, { ...gw.config, maxAge: selfMaxAge(gw.config) }, ifNoneMatch, ifModifiedSince, gw.config.mediaType, query);
   }
 
   const m = SUBJECT_ROUTE.exec(path);
@@ -301,12 +330,30 @@ export async function route(
     // it MUST ignore them and return the Basic response, never an error.
     const mediaType = gw.mediaTypeOverrides.get(domain) ?? gw.config.mediaType;
     let query: ServiceQuery = {};
-    if (gw.examples?.get(domain)?.granularity) {
+    // Gate on what the served document declares, not on its shape: an object
+    // example that says `capabilities: "extended"` honours the parameters too
+    // (a period other than its own is no data; any target is 404).
+    if (gw.examples?.get(domain)?.subject.document.capabilities === "extended") {
       const parsed = extendedQuery(search, { maxAge: gw.config.maxAge, lastModified: subject.lastModified });
       if (!parsed.ok) return parsed.result;
       query = parsed.query;
     }
     return serveDocument(subject, gw.config, ifNoneMatch, ifModifiedSince, mediaType, query);
+  }
+
+  const inputMatch = INPUT_ROUTE.exec(path);
+  if (inputMatch) {
+    const input = gw.live?.managed.get(inputMatch[1].toLowerCase())?.spec.input;
+    if (!input) return jsonError(404, "no recorded input is published for that subject");
+    const headers: Record<string, string> = {
+      ...corsHeaders(),
+      "Content-Type": "application/json",
+      "Cache-Control": `public, max-age=${gw.config.maxAge}`,
+      // An input is a demonstration fixture, not a declaration: keep it out of search results.
+      "X-Robots-Tag": "noindex",
+    };
+    if (input.license) headers["Link"] = `<${input.license.url}>; rel="license"`;
+    return withBody(200, headers, JSON.stringify(input.body, null, 2) + "\n");
   }
 
   return jsonError(404, "not found");
@@ -373,17 +420,17 @@ function extendedQuery(
  * no-data wording, taken from the library so the two cannot drift apart.
  */
 function noDataResult(maxAge: number, lastModified: string): Result {
-  return {
-    status: 404,
-    headers: {
+  return withBody(
+    404,
+    {
       "Cache-Control": `public, max-age=${maxAge}`,
       "Access-Control-Allow-Origin": CORS_ORIGIN,
       "Access-Control-Expose-Headers": "ETag, Last-Modified",
       "Content-Type": "application/json",
       "Last-Modified": lastModified,
     },
-    body: JSON.stringify({ error: new NotFoundError().message.toLowerCase() }),
-  };
+    JSON.stringify({ error: new NotFoundError().message.toLowerCase() }),
+  );
 }
 
 /**
@@ -494,7 +541,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     env: opts.env ?? process.env,
     now: () => opts.now ?? clock(),
   });
-  const specs: LiveSpec[] = demoSpecs({ config, crawlBytes });
+  const specs: LiveSpec[] = demoSpecs({ config, crawlBytes, wattsByMonth: selfMeasured });
   for (const spec of specs) {
     if (subjects.has(spec.domain)) {
       throw new Error(`gateway: ${spec.domain} is both a data file and an adapter demo`);

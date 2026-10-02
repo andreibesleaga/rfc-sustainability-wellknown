@@ -6,7 +6,7 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { validateDocument, type RawMetrics } from "sustainability-wellknown-publisher";
+import { Publisher, validateDocument, type RawMetrics, type SustainabilityMetrics } from "sustainability-wellknown-publisher";
 import { describe, expect, it } from "vitest";
 import { GWF_DIST_FIXTURE, distReplayAdapter, summarizeDist, type DistDocument } from "../src/adapters/dist";
 import { selfReportAdapter } from "../src/adapters/self-report";
@@ -132,25 +132,41 @@ describe("operator-entered monthly power for the self report", () => {
   const kwh = async (wattsByMonth: Record<string, number>, period: string, granularity?: "monthly" | "daily") =>
     (await selfReportAdapter({ ...cfg, wattsByMonth }).fetch({ period, granularity })) as RawMetrics | RawMetrics[];
 
-  it("uses the entered figure for its month only, and says so", async () => {
+  it("uses the entered figure for its month only, and says so in one text shared by every period", async () => {
     const sep = (await kwh({ "2026-09": 0.5 }, "2026-09")) as RawMetrics;
-    expect(sep.energy).toEqual({ value: 0.36, unit: "kWh" }); // 0.5 W x 720 h
-    expect(sep.provider).toMatch(/Average power for 2026-09 entered by the operator/);
+    expect(sep.energy).toEqual({ value: 360, unit: "Wh" }); // 0.5 W x 720 h
+    expect(sep.provider).toMatch(/Average power for 2026-09 was entered by the operator/);
+    expect(sep.provider).toMatch(/every other month uses the 3 W assumption/);
     const oct = (await kwh({ "2026-09": 0.5 }, "2026-10")) as RawMetrics;
-    expect(oct.energy).toEqual({ value: 2.232, unit: "kWh" }); // 3 W x 744 h, unchanged
-    expect(oct.provider).toBe("op");
+    expect(oct.energy).toEqual({ value: 2232, unit: "Wh" }); // 3 W x 744 h, unchanged
+    // The same text for every period, so a trend is uniform and a year agrees with its months.
+    expect(oct.provider).toBe(sep.provider);
   });
 
   it("adds month by month for a year, and a day takes its month's figure", async () => {
     const year = (await kwh({ "2026-09": 0.5 }, "2026")) as RawMetrics;
     // Jul 48 h + Aug 744 h + Oct 744 h + Nov to the 15th 336 h at 3 W, Sep 720 h at 0.5 W
-    expect(year.energy!.value).toBeCloseTo((3 * (48 + 744 + 744 + 336) + 0.5 * 720) / 1000, 4);
-    expect(year.provider).toMatch(/other months: the 3 W assumption/);
+    expect(year.energy!.value).toBeCloseTo(3 * (48 + 744 + 744 + 336) + 0.5 * 720, 0); // Wh
+    expect(year.provider).toBe(((await kwh({ "2026-09": 0.5 }, "2026-09")) as RawMetrics).provider);
     const day = (await kwh({ "2026-09": 0.5 }, "2026-09-10")) as RawMetrics;
-    expect(day.energy).toEqual({ value: 0.012, unit: "kWh" });
+    expect(day.energy).toEqual({ value: 12, unit: "Wh" });
     const monthly = (await kwh({ "2026-09": 0.5 }, "2026", "monthly")) as RawMetrics[];
     const total = monthly.reduce((s, r) => s + r.energy!.value, 0);
     expect(total).toBeCloseTo(year.energy!.value, 3);
+  });
+
+  it("the days of a small measured month add up to the month, as SERVED", async () => {
+    // 0.0149 W: a day is 0.3576 Wh. In kWh the library's four-decimal rounding
+    // would publish 0.0004 (+12%); in Wh the served days sum to the served month.
+    const adapter = selfReportAdapter({ ...cfg, wattsByMonth: { "2026-09": 0.0149 } });
+    const pub = new Publisher(adapter, { normalize: { target: "gw" }, now: cfg.clock });
+    const month = (await pub.getDocument({ period: "2026-09" })) as SustainabilityMetrics;
+    const days = (await pub.getDocument({ period: "2026-09", granularity: "daily" })) as SustainabilityMetrics[];
+    expect(days).toHaveLength(30);
+    expect(days[0]["energy-unit"]).toBe("Wh");
+    expect(days[0]["energy-consumption"]).toBe(0.3576);
+    const sum = days.reduce((s, d) => s + d["energy-consumption"]!, 0);
+    expect(Math.abs(sum - month["energy-consumption"]!) / month["energy-consumption"]!).toBeLessThan(0.001);
   });
 
   it("refuses a malformed file at boot", () => {

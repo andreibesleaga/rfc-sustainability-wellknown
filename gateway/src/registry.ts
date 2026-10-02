@@ -159,12 +159,12 @@ export async function loadSubjectFile(file: string, baseUrl: string = PUBLIC_BAS
   const parsed = JSON.parse(readFileSync(file, "utf8")) as unknown;
 
   if (Array.isArray(parsed)) {
-    // Draft Mandatory Minimum Supported Service, "Format": the response to a
-    // parameterless (Basic) request MUST be a single JSON object. Relayed
-    // subjects are Basic-only, so a trend file has no way to be served.
+    // This registry's rule, not the draft's: -07 lets a body be one object or
+    // an array, but a relayed subject here is Basic-only and is one dated
+    // transcription of one period, so a trend file has no way to be served.
     throw new Error(
-      `registry: ${basename(file)} is an array. This gateway serves the Basic service, whose ` +
-        `response MUST be a single JSON object; publish one object per subject file.`,
+      `registry: ${basename(file)} is an array. This gateway relays one declaration object ` +
+        `per subject file (one period, one transcription); publish one object per file.`,
     );
   }
   if (!parsed || typeof parsed !== "object") {

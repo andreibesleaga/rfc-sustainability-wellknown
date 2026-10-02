@@ -83,7 +83,10 @@ export function keplerPrometheusAdapter(config: KeplerPrometheusConfig): SourceA
       const joules = sumPromValues(resp, query);
       return {
         provider: config.provider,
-        measurementMethod: config.measurementMethod ?? "hardware-metered",
+        // Kepler attributes energy from RAPL and models, which cover only part of a
+        // machine; a figure built from its counters is an estimate, not a reading
+        // of a meter in the power path, so `hardware-estimated` is the honest default.
+        measurementMethod: config.measurementMethod ?? "hardware-estimated",
         methodologyUri: config.methodologyUri,
         reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
         energyJoules: joules,

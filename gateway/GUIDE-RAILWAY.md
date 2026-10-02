@@ -18,7 +18,7 @@ is [GUIDE.md](GUIDE.md).
 cd gateway
 npm install
 npm run build
-npm test          # 478 tests; everything must be green before you deploy
+npm test          # 464 tests; everything must be green before you deploy
 node dist/index.js &
 until curl -sf http://127.0.0.1:8080/healthz >/dev/null; do sleep 1; done   # boot fetches live upstreams first
 curl -sSI http://127.0.0.1:8080/wikimedia.org/.well-known/sustainability-data
@@ -121,7 +121,7 @@ default; set them under **Variables** (dashboard) or with
 | `SELF_DISCLOSURE_URI` | this repo's `gateway/` on GitHub | Disclosure index for the gateway. |
 | `SELF_PERIOD` | last completed calendar month | Pin the gateway's own reporting period (`YYYY` or `YYYY-MM`). |
 | `SELF_WATTS` | `3` | Modelled average container power draw. |
-| `SELF_GRID_INTENSITY` | `373` | gCO2e/kWh. Cited in `METHODOLOGY.md`. |
+| `SELF_GRID_INTENSITY` | `245` | gCO2e/kWh: the Netherlands, 2024 (EEA). Set your service's region. Cited in `METHODOLOGY.md`. |
 | `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When this gateway went live; the self model counts no hours before it. |
 | `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | Private JWK (JSON) signing the gateway's own report: every declaration object it emits then carries a `signed` member (-07 defines no separate signature resource). See [Signing and attestation](#signing-and-attestation). |
 | `SELF_SIGNING_KEY_URL` | *(unset)* | Public URL of the signing key's public half (index display). |
@@ -292,7 +292,7 @@ npx -y -p sustainability-wellknown-consumer sustainability-fetch "$BASE/tenant-d
 for i in $(seq 1 650); do curl -sS -o /dev/null -w '%{http_code}\n' -I "$BASE/healthz-not/"; done | sort | uniq -c
 
 # 15. In a browser: open $BASE and click every link in the table at the end of
-#     "Service level". Each row names the status and media type a click should show.
+#     "HTTP behaviour". Each row names the status and media type a click should show.
 ```
 
 ---

@@ -29,15 +29,39 @@ jobs:
           cd internet-drafts
           md=$(ls draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
           base="${md%.md}"
-          kramdown-rfc "$md" > "$base.xml"
+          # The same pipeline as build.sh: RFCXML v3 vocabulary, then the idnits3 clean-up.
+          kramdown-rfc -3 "$md" > "$base.v2.xml"
+          xml2rfc --v2v3 --strict "$base.v2.xml" -o "$base.xml"
+          python3 v3-postprocess.py "$base.xml"
           xml2rfc --strict --text "$base.xml" -o "$base.txt"
-      - name: idnits (0 errors required)
+      - name: idnits3, normal mode (no nit at all)
         run: |
           cd internet-drafts
           md=$(ls draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
           base="${md%.md}"
-          npx --yes @ietf-tools/idnits "$base.xml" | tee /tmp/idnits.out
-          ! grep -qE '^ *ERROR' /tmp/idnits.out
+          npx --yes @ietf-tools/idnits -m normal --no-progress --no-color "$base.xml" | tee /tmp/idnits.out
+          n=$(npx --yes @ietf-tools/idnits -m normal -o count --no-progress "$base.xml" | tail -1)
+          if [ "$n" != "0" ]; then echo "::error::idnits3 reports $n nit(s)"; exit 1; fi
+  tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with: { node-version: "22" }
+      - name: report-to-declaration tests
+        working-directory: tools/report-to-declaration
+        run: node --test test/*.test.mjs
+      - name: report-to-declaration demonstration (writes a candidate, never a declaration, without a reviewer)
+        working-directory: tools/report-to-declaration
+        run: |
+          set +e
+          node extract.mjs --source fixtures/demo-report.txt --replay fixtures/demo-model-reply.json \
+            --target "Example Hosting Ltd" --methodology-uri https://hosting.example/reports/2025.pdf \
+            --target-type organization --source-differs --out out
+          code=$?
+          set -e
+          [ "$code" -eq 3 ] && test -f out/candidate.json && ! test -f out/declaration.json
 
   schemas:
     runs-on: ubuntu-latest

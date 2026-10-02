@@ -2,7 +2,7 @@
   "updated": "2026-09-16T07:20:17Z",
   "capabilities": "basic",
   "provider": "Platform SRE (sre@example.com)",
-  "measurement-method": "hardware-metered",
+  "measurement-method": "hardware-estimated",
   "methodology-uri": "https://example.com/methodology/kepler",
   "reporting-period": "2026-05",
   "target": "example.com",

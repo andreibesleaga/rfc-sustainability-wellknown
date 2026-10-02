@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { isThirdPartyMapping } from "../src/app";
-import { ISSUES_URL, LEGAL_PATH, LEGAL_TEXT, LEGAL_VERSION, OPERATOR_EMAIL, OPERATOR_NAME } from "../src/legal";
+import { ISSUES_URL, LEGAL_PATH, LEGAL_TEXT, LEGAL_VERSION, OPERATOR_CONTACT_URL, OPERATOR_NAME } from "../src/legal";
 import { DATA_DIR, startGateway, type TestServer } from "./helpers";
 
 let srv: TestServer;
@@ -41,7 +41,8 @@ describe("GET /legal", () => {
   it("says what a reporting subject needs to know", () => {
     expect(LEGAL_TEXT).toContain(LEGAL_VERSION);
     expect(LEGAL_TEXT).toContain(OPERATOR_NAME);
-    expect(LEGAL_TEXT).toContain(OPERATOR_EMAIL);
+    expect(LEGAL_TEXT).toContain(OPERATOR_CONTACT_URL);
+    expect(LEGAL_TEXT).not.toMatch(/@[a-z0-9.-]+\.[a-z]{2,}/i); // no e-mail address is published
     expect(LEGAL_TEXT).toContain(ISSUES_URL);
     expect(LEGAL_TEXT).toMatch(/NOT published, reviewed, authorized or endorsed/);
     expect(LEGAL_TEXT).toMatch(/removal requested by the organization[^.]*without the organization having to give a reason/);
@@ -113,7 +114,7 @@ describe("index", () => {
   it("publishes the legal path and the contact in index.json and links the notice on the page", async () => {
     const idx = await (await fetch(url("/index.json"))).json();
     expect(idx.legal).toBe(LEGAL_PATH);
-    expect(idx.contact).toEqual({ name: OPERATOR_NAME, email: OPERATOR_EMAIL, issues: ISSUES_URL });
+    expect(idx.contact).toEqual({ name: OPERATOR_NAME, website: OPERATOR_CONTACT_URL, issues: ISSUES_URL });
     const html = await (await fetch(url("/"))).text();
     expect(html).toContain(`href="${LEGAL_PATH}"`);
     expect(html).toMatch(/trademarks belong to their\s+owners/);

@@ -194,7 +194,8 @@ export class Publisher {
     // Draft §Extended Query Parameters, step 4: an unmatched `target` is 404,
     // and a matched one becomes the `target` member of every returned object.
     // Honoured only by an Extended publisher that publishes a prefix set.
-    const { honored, unmatchedTarget } = this.honor(query);
+    const { honored: firstHonored, unmatchedTarget } = this.honor(query);
+    let honored = firstHonored;
     if (unmatchedTarget) {
       // The value is deliberately not echoed, and the response is the ORDINARY
       // no-data one, message included. Draft §Privacy Considerations: a server
@@ -207,6 +208,22 @@ export class Publisher {
       throw new NotFoundError();
     }
     const matchedPrefix = honored.target;
+
+    // Draft step 2: with no `period`, P is the Basic response's own
+    // `reporting-period` (its last object's, for an array). An adapter may shape
+    // its output to the query, so P is read from the Basic response itself and
+    // passed on explicitly; inferring it from granularity-shaped output would
+    // make `?granularity=daily` alone answer the last day instead of the days.
+    if (honored.granularity !== undefined && honored.period === undefined) {
+      const basic = await this.build(query.target !== undefined ? { target: query.target } : {});
+      const last = Array.isArray(basic) ? basic[basic.length - 1] : basic;
+      if (last && typeof last["reporting-period"] === "string") {
+        const period = last["reporting-period"];
+        honored = isFiner(granularityPrecision(honored.granularity), periodPrecision(period))
+          ? { ...honored, period }
+          : { ...honored, period, granularity: undefined };
+      }
+    }
 
     // The adapter sees only the honored parameters, so its output cannot vary
     // on one this publisher ignores — which is what makes the canonical cache

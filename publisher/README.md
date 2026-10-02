@@ -424,9 +424,10 @@ Set `server.carbonTxt` (or the `carbonTxt` option on the middleware) to also ser
 [carbon.txt](https://carbontxt.org/) file at the locations that project's own specification
 defines for it, whose first disclosure points back to this origin's
 `/.well-known/sustainability-data` — a two-way link with the Green Web Foundation
-disclosure ecosystem. (Those paths are carbon.txt's convention, defined and registered by
-that project, not by this specification, which neither defines nor recommends any path
-for a disclosure index.) `sustainability-publisher --config c.json
+disclosure ecosystem. The declaration is listed as `doc_type = "other"`, carbon.txt's type for
+something that is not a page or a report. (Those paths are carbon.txt's convention, defined by
+that project and not in the IANA well-known registry; this specification neither defines nor
+recommends any path for a disclosure index.) `sustainability-publisher --config c.json
 --emit-carbon-txt` prints the file. The `co2js` and `carbontxt-api` adapters and the
 carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@iarna/toml`
 (ISC); see [`NOTICE`](NOTICE) for the CO2.js grid-data attribution.

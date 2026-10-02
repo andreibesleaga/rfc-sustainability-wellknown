@@ -11,7 +11,7 @@
  *                             `/.well-known/sustainability-data` document (bidirectional
  *                             discovery). Hand-written TOML; no dependency needed.
  *   - `parseCarbonTxt()`    — parse a carbon.txt with the TOML parser.
- *   - `discoverCarbonTxt()` — HTTP lookup precedence (root → well-known → header).
+ *   - `discoverCarbonTxt()` — HTTP lookup precedence (root → well-known → header → www/non-www).
  *
  * Spec: https://carbontxt.org/  ·  v0.5 syntax.
  */
@@ -44,7 +44,11 @@ export interface EmitCarbonTxtOptions {
   version?: string;
   /** ISO date (YYYY-MM-DD) for `last_updated`. */
   lastUpdated?: string;
-  /** doc_type for the sustainability disclosure entry. Default "sustainability-page". */
+  /**
+   * doc_type for the sustainability disclosure entry. Default "other": the
+   * declaration is a machine-readable data file, and carbon.txt's other types
+   * (web-page, sustainability-page, annual-report, ...) describe documents.
+   */
   docType?: string;
   /** Title for the sustainability disclosure entry. */
   title?: string;
@@ -81,7 +85,7 @@ export function emitCarbonTxt(opts: EmitCarbonTxtOptions): string {
   const version = opts.version ?? "0.5";
   const disclosures: CarbonTxtDisclosure[] = [
     {
-      doc_type: opts.docType ?? "sustainability-page",
+      doc_type: opts.docType ?? "other",
       url: opts.sustainabilityUrl,
       ...(opts.domain ? { domain: opts.domain } : {}),
       ...(opts.title ? { title: opts.title } : { title: "Machine-readable sustainability metrics" }),
@@ -157,11 +161,13 @@ const CARBON_TXT_ROOT = "/carbon.txt";
 const CARBON_TXT_WELL_KNOWN = "/.well-known/carbon.txt";
 
 /**
- * Discover and parse an origin's carbon.txt following GWF lookup precedence
- * (the subset implementable over HTTP):
+ * Discover and parse an origin's carbon.txt following the Green Web
+ * Foundation's lookup order (https://carbontxt.org/faq), the part that can be
+ * done over HTTP:
  *   1. root `/carbon.txt`
  *   2. `/.well-known/carbon.txt`
- *   3. a `CarbonTxt-Location` response header pointing elsewhere
+ *   3. a `CarbonTxt-Location` header on the origin's home page, pointing elsewhere
+ *   4. the same three on the www / non-www variant of the host
  * DNS-TXT (`carbon-txt-location=`) delegation is out of scope here.
  */
 export async function discoverCarbonTxt(
@@ -172,30 +178,48 @@ export async function discoverCarbonTxt(
   if (!doFetch) throw new Error("discoverCarbonTxt: no fetch implementation available");
   const base = origin.replace(/\/$/, "");
 
-  // 1. root
-  const rootUrl = `${base}${CARBON_TXT_ROOT}`;
-  const rootRes = await doFetch(rootUrl);
-  if (rootRes.ok) {
-    const text = await rootRes.text();
-    return { url: rootUrl, text, document: parseCarbonTxt(text), via: "root" };
-  }
-  // 3. delegation header on the root response (checked before well-known per spec note)
-  const delegated = rootRes.headers.get("CarbonTxt-Location") ?? rootRes.headers.get("carbontxt-location");
-  if (delegated) {
-    const res = await doFetch(delegated);
-    if (res.ok) {
-      const text = await res.text();
-      return { url: delegated, text, document: parseCarbonTxt(text), via: "header" };
+  const tryOrigin = async (o: string): Promise<DiscoverResult | null> => {
+    // 1. root
+    const rootUrl = `${o}${CARBON_TXT_ROOT}`;
+    const rootRes = await doFetch(rootUrl);
+    if (rootRes.ok) {
+      const text = await rootRes.text();
+      return { url: rootUrl, text, document: parseCarbonTxt(text), via: "root" };
     }
+    // 2. well-known
+    const wkUrl = `${o}${CARBON_TXT_WELL_KNOWN}`;
+    const wkRes = await doFetch(wkUrl);
+    if (wkRes.ok) {
+      const text = await wkRes.text();
+      return { url: wkUrl, text, document: parseCarbonTxt(text), via: "well-known" };
+    }
+    // 3. delegation header on the home page
+    const home = await doFetch(`${o}/`, { method: "HEAD" });
+    const header = home.headers.get("CarbonTxt-Location") ?? home.headers.get("carbontxt-location");
+    const delegated = header ? new URL(header, `${o}/`).href : null;
+    if (delegated) {
+      const res = await doFetch(delegated);
+      if (res.ok) {
+        const text = await res.text();
+        return { url: delegated, text, document: parseCarbonTxt(text), via: "header" };
+      }
+    }
+    return null;
+  };
+
+  const found = await tryOrigin(base);
+  if (found) return found;
+  // 4. the www / non-www variant: only for a registered name, and a failure there is "not found"
+  const u = new URL(base);
+  const h = u.hostname;
+  if (h === "localhost" || !h.includes(".") || /^[\d.]+$/.test(h) || h.startsWith("[")) return null;
+  u.hostname = h.startsWith("www.") ? h.slice(4) : `www.${h}`;
+  if (u.origin === new URL(base).origin) return null;
+  try {
+    return await tryOrigin(u.origin);
+  } catch {
+    return null;
   }
-  // 2. well-known
-  const wkUrl = `${base}${CARBON_TXT_WELL_KNOWN}`;
-  const wkRes = await doFetch(wkUrl);
-  if (wkRes.ok) {
-    const text = await wkRes.text();
-    return { url: wkUrl, text, document: parseCarbonTxt(text), via: "well-known" };
-  }
-  return null;
 }
 
 export { CARBON_TXT_ROOT, CARBON_TXT_WELL_KNOWN };

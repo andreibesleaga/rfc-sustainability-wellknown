@@ -36,10 +36,20 @@ export async function fetchJson(
   }
 }
 
-/** Round to a sensible precision to avoid float noise in payloads. */
+/**
+ * Round to `dp` decimal places to avoid float noise in payloads, but never to
+ * fewer than four significant figures: a fixed number of decimals turns a small
+ * value into zero or a large relative error (0.000358 kWh would become 0.0004,
+ * +12%; 0.0000144 kWh would become 0 next to a non-zero carbon figure).
+ */
 export function round(n: number, dp = 4): number {
-  const f = 10 ** dp;
-  return Math.round(n * f) / f;
+  if (n === 0 || !Number.isFinite(n)) return n;
+  const magnitude = Math.floor(Math.log10(Math.abs(n)));
+  if (dp + magnitude + 1 >= 4) {
+    const f = 10 ** dp;
+    return Math.round(n * f) / f;
+  }
+  return Number(n.toPrecision(4));
 }
 
 /**

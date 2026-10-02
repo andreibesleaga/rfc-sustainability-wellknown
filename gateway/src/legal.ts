@@ -12,11 +12,12 @@ export const LEGAL_PATH = "/legal";
 
 /** Operator contact, in one place so the page, the index and the notice agree. */
 export const OPERATOR_NAME = "Andrei Nicolae Besleaga";
-export const OPERATOR_EMAIL = "andrei.besleaga@ieee.org";
+/** The operator's published contact routes (no e-mail address is published). */
+export const OPERATOR_CONTACT_URL = "https://andreibesleaga.com/contact/";
 export const ISSUES_URL = "https://github.com/andreibesleaga/rfc-sustainability-wellknown/issues";
 
 /** Date of the current text (bump when the text changes). */
-export const LEGAL_VERSION = "2026-10-01";
+export const LEGAL_VERSION = "2026-10-02";
 
 export const LEGAL_TEXT = `# Legal notice and terms — Sustainability Data Reference Gateway
 
@@ -27,7 +28,8 @@ Version of ${LEGAL_VERSION}.
 This service is run by ${OPERATOR_NAME}, a private individual, as a
 non-commercial demonstration of the Internet-Draft
 draft-besleaga-sustainability-wellknown. It charges nothing, carries no
-advertising and does no tracking. Contact: ${OPERATOR_EMAIL}.
+advertising and does no tracking. Contact: an issue at ${ISSUES_URL}, or any
+route listed at ${OPERATOR_CONTACT_URL}.
 
 ## 2. What the documents about third parties are
 
@@ -83,14 +85,14 @@ They are used here only to identify whose published report a document is mapped
 from. Their use implies no affiliation with, sponsorship by or endorsement from
 any of those owners.
 
-## 5. Accuracy, and what these documents must not be used for
+## 5. Accuracy, and what these documents are not for
 
 Figures were transcribed on the date recorded for each document and may since
 have been restated, corrected or superseded by the organization. Transcription
 errors are possible. Where this service and a source differ, the source is
 right.
 
-The documents exist to exercise a data format. They must not be relied on for
+The documents exist to exercise a data format. They are not intended for, and should not be relied on for,
 investment decisions, ratings, audits, assurance, regulatory or statutory
 reporting, procurement decisions or any compliance purpose, and nothing here is
 professional advice of any kind.
@@ -100,7 +102,8 @@ professional advice of any kind.
 Anyone may report an error. A reporting subject may also ask for its document
 to be changed or removed.
 
-- Write to ${OPERATOR_EMAIL}, or open an issue at ${ISSUES_URL}.
+- Open an issue at ${ISSUES_URL}, or, for a request you would rather not make in
+  public, use any route listed at ${OPERATOR_CONTACT_URL}.
 - A correction is made once it has been checked against the source.
 - A removal requested by the organization a document describes is carried out
   without the organization having to give a reason.
@@ -124,7 +127,8 @@ To limit abuse it counts requests per client address in memory; those counts
 are not written to storage and disappear when the process restarts. The hosting
 provider may process IP addresses in standard server logs for operation and
 security. The index page keeps a theme preference in your browser's local
-storage and nowhere else. Questions about personal data: ${OPERATOR_EMAIL}.
+storage and nowhere else. Questions about personal data: any route listed at
+${OPERATOR_CONTACT_URL}.
 
 ## 9. Licence
 

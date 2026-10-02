@@ -109,7 +109,7 @@ export function carbonTxtResult(
   if (hostDerived && host !== undefined && !HOST_RE.test(host)) {
     return {
       status: 400,
-      headers: { ...headers, "Cache-Control": "no-store", "Content-Type": "application/json" },
+      headers: { ...headers, "Cache-Control": "no-store", "Content-Type": "application/json", "X-Content-Type-Options": "nosniff" },
       body: JSON.stringify({ error: "invalid Host header" }),
     };
   }
@@ -238,6 +238,7 @@ export function ifNoneMatchMatches(headerValue: string, etag: string): boolean {
 function baseHeaders(opts: HandlerOptions): Record<string, string> {
   const headers: Record<string, string> = {
     "Cache-Control": `public, max-age=${opts.maxAge ?? 86_400}`,
+    "X-Content-Type-Options": "nosniff",
   };
   if (opts.cors !== false) {
     headers["Access-Control-Allow-Origin"] = opts.cors ?? "*";
@@ -268,7 +269,7 @@ export function badRequestResult(detail: string, opts: HandlerOptions = {}): Han
 function noDataResult(headers: Record<string, string>, message: string): HandlerResult {
   return {
     status: 404,
-    headers: { ...headers, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json", "X-Content-Type-Options": "nosniff" },
     body: JSON.stringify({ error: message.toLowerCase() }),
   };
 }

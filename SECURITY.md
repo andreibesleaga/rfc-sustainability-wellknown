@@ -18,7 +18,9 @@ License with no warranty. They are maintained on a best-effort basis by one auth
 
 ## Reporting a vulnerability
 
-Email **andrei.besleaga@ieee.org** with "SECURITY" in the subject. Please include the affected
+Report it privately through GitHub:
+**[Report a vulnerability](https://github.com/andreibesleaga/rfc-sustainability-wellknown/security/advisories/new)**
+(the repository's Security tab → "Report a vulnerability"). Please include the affected
 package and version, what an attacker gains, and the smallest reproduction you have.
 
 Please do **not** open a public GitHub issue for a vulnerability that is not yet fixed.

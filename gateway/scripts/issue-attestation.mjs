@@ -58,7 +58,11 @@ export const DEFAULTS = {
   methodologyUri:
     "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/METHODOLOGY.md",
   watts: 3,
-  gridIntensity: 373,
+  // Netherlands 2024, European Environment Agency ENER038 (CC BY 4.0); see METHODOLOGY.md.
+  gridIntensity: 245,
+  // Average power per month entered from the host's usage metrics; read from
+  // data/_self-measured.json by main() so the credential states what the gateway runs.
+  wattsByMonth: {},
   liveSince: "2026-07-30T00:00:00Z",
   validYears: 5,
 };
@@ -111,12 +115,16 @@ export function buildCredential(opts = {}) {
       ...(o.declaration ? { declaration: declarationCopy(o.declaration) } : {}),
       model: {
         "constant-draw-watts": o.watts,
+        // Months whose average power the operator entered from the host's metrics;
+        // every other month uses constant-draw-watts.
+        "entered-watts-by-month": o.wattsByMonth ?? {},
         "grid-intensity-gCO2e-per-kWh": o.gridIntensity,
         "carbon-accounting": "location-based",
         "reporting-period": "the most recently completed calendar month (parameterless); any period since live-since on request",
         "hours": "hours of the period inside [live-since, now)",
-        "energy-kWh": "constant-draw-watts × hours / 1000",
-        "carbon-gCO2e": "energy-kWh × grid-intensity-gCO2e-per-kWh",
+        "watts(month)": "entered-watts-by-month[month] when present, else constant-draw-watts",
+        "energy-Wh": "sum over the period's months of watts(month) × that month's hours, to four significant figures",
+        "carbon-gCO2e": "energy-Wh / 1000 × grid-intensity-gCO2e-per-kWh",
       },
     },
   };
@@ -160,6 +168,7 @@ function parseArgs(argv) {
     else if (a === "--target") out.target = take();
     else if (a === "--methodology-uri") out.methodologyUri = take();
     else if (a === "--watts") out.watts = takeNumber();
+    else if (a === "--measured") out.measuredFile = take();
     else if (a === "--grid-intensity") out.gridIntensity = takeNumber();
     else if (a === "--live-since") out.liveSince = take();
     else if (a === "--valid-years") out.validYears = takeNumber();
@@ -170,8 +179,23 @@ function parseArgs(argv) {
   return out;
 }
 
+/** The entered monthly figures, exactly as the gateway loads them (data/_self-measured.json). */
+export function readMeasured(file) {
+  const doc = JSON.parse(readFileSync(file, "utf8"));
+  const out = {};
+  for (const [month, entry] of Object.entries(doc.months ?? {})) out[month] = entry.watts;
+  return out;
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
+  // Default: the gateway's own file, so the credential and the served figures agree.
+  const measuredFile = opts.measuredFile ?? new URL("../data/_self-measured.json", import.meta.url);
+  try {
+    opts.wattsByMonth = readMeasured(measuredFile);
+  } catch (e) {
+    if (opts.measuredFile) throw e;
+  }
   const keyFile = opts.keyFile ?? DEFAULTS.keyFile;
   const privateJwk = readFileSync(keyFile, "utf8");
   const { jwt, credential, publicJwk } = await issueCredential(privateJwk, opts);

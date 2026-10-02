@@ -1,5 +1,5 @@
 /**
- * The front page's "Service level" table lists every working GET on the
+ * The front page's "HTTP behaviour" table lists every working GET on the
  * deployment as a hyperlink with its expected outcome. This suite clicks each
  * same-origin link and checks the status it promises, on an unsigned and on a
  * signed deployment.
@@ -33,9 +33,9 @@ describe("front-page live requests", () => {
     }
   });
 
-  it("renders the table in the Service level section with one hyperlink per request", async () => {
+  it("renders the table in the HTTP behaviour section with one hyperlink per request", async () => {
     const html = await (await fetch(`${srv.base}/`)).text();
-    const section = html.slice(html.indexOf("<h2>Service level</h2>"), html.indexOf("<h2>Verify these declarations yourself</h2>"));
+    const section = html.slice(html.indexOf("<h2>HTTP behaviour</h2>"), html.indexOf("<h2>Verify it yourself</h2>"));
     for (const r of liveRequests(srv.gw.index)) {
       expect(section).toContain(`<a href="${r.href.replace(/&/g, "&amp;")}"`);
     }

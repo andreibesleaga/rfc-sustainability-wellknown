@@ -176,9 +176,7 @@ describe("with a key and an attestation URI", () => {
     expect(html).toContain("Integrity and attestation");
     expect(html).toContain("signed <em>in place</em>");
     expect(html).toContain("rfc8414"); // the precedent for a signature inside the object
-    expect(html).toContain(
-      "The operator of this gateway and the issuer of that credential are the\nsame person.",
-    );
+    expect(html).toMatch(/Operator and issuer are the same\s+person/);
     expect(html).toContain("--strict --verify-attestation");
     expect(html).not.toContain(".jws");
   });

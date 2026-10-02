@@ -62,11 +62,10 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 | `hetzner.com.json` | Hetzner Online GmbH | 2024 (CY) | market-based | EMAS Umwelterklärung 2025 | Germany only; Scope 1+2 combined |
 | `automattic.com.json` | Automattic Inc. (data centres) | **2020** (CY) | *omitted* | sustainability page + methodology post | **six years stale**; data centres only |
 | `thegreenwebfoundation.org.json` | Green Web Foundation (digital estate) | 2023 (CY) | *omitted* | its own `dist.json` (DIST v0.0.1) | total is the sum of the file's entries; one duplicated entry counted once |
-| `scottlogic.com.json` | Scott Logic Limited | 2024 (CY) | market-based | Environmental Impact Report 2024 | — |
-| `torchbox.com.json` | Torchbox | 2024 (CY) | location-based | 2024 impact report | Scope 3 total not published; scopes cover part of the total |
-| `infomaniak.com.json` | Infomaniak Group SA | 2024 (CY) | *omitted* | Bilan des gaz à effet de serre 2024 | total excludes a data-centre construction booked to 2023 |
+| `scottlogic.com.json` | Scott Logic Limited | 2025 (CY) | market-based | Environmental Impact Report 2025 | — |
+| `infomaniak.com.json` | Infomaniak Group SA | 2024 (CY) | *omitted* | Bilan de gaz à effet de serre 2024 | total excludes a data-centre construction booked to 2023 |
 | `go.eco.json` | Big Room Inc. (.eco registry) | **FY2025**, ended 2025-09-30 | *omitted* | GHG Emissions Report FY2025 | **fiscal year, not calendar year** |
-| `hmrc.gov.uk.json` | HM Revenue and Customs | **FY 2024-25**, ended 2025-03-31 | *omitted* | Annual Report and Accounts 2024-25, Annex 3 | **financial year**; energy is the sum of the table's rows |
+| `hmrc.gov.uk.json` | HM Revenue and Customs | **FY 2025-26**, ended 2026-03-31 | *omitted* | Annual Report and Accounts 2025-26, Annex 3 | **financial year**; energy is the sum of the table's rows |
 | `home.cern.json` | CERN | 2024 (CY) | location-based | Environment Report 2023-2024 | total and Scope 3 are sums of printed figures |
 | `commission.europa.eu.json` | European Commission (EMAS sites) | 2024 (CY) | *omitted* | Environmental Statement 2025 | Scope 2 method not labelled |
 | `eca.europa.eu.json` | European Court of Auditors | 2024 (CY) | *omitted* | Environmental statement 2025 | no scope split |
@@ -89,6 +88,7 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 | `withheld/microsoft.com.json` | Microsoft Corporation | **FY25**, ended 2025-06-30 | market-based | 2026 Environmental Data Fact Sheet | **fiscal year, not calendar year** |
 | `withheld/ovhcloud.com.json` | OVH Groupe SA (OVHcloud) | **FY2025**, ended 2025-08-31 | market-based | 2025 Universal Registration Document | **fiscal year, not calendar year** |
 | `withheld/scaleway.com.json` | Scaleway | 2024 (CY) | location-based | Impact Report 2025 | the report prints two totals; the table's is used |
+| `withheld/torchbox.com.json` | Torchbox | 2024 (CY) | location-based | 2024 impact report | the site's terms prohibit reuse (withheld 2026-10-02) |
 
 Plus `kepler-demo.example`, which has no file: it is generated in code by a
 publisher adapter (see below).
@@ -386,16 +386,16 @@ consumer can see staleness rather than have to guess at it.
 
 ---
 
-### `hmrc.gov.uk.json` — HM Revenue and Customs, **financial year 2024-25**
+### `hmrc.gov.uk.json` — HM Revenue and Customs, **financial year 2025-26**
 
 | | |
 |---|---|
-| Source (`methodology-uri`) | HMRC Annual Report and Accounts 2024 to 2025, "Our accounts and annexes", Annex 3 sustainability data tables (gov.uk, published 17 July 2025) |
-| Retrieved | 2026-10-01 |
-| `carbon-footprint` | 33,160 tCO2e — read: "Total gross emissions … 33.16" in a table headed "tCO2e, 000s", column 2024-25 |
-| Energy | 120,160 MWh — the SUM of the five rows filled for 2024-25 under "Energy consumption (kWh, 000s)": electricity non-renewable 2,323, electricity renewable 54,969, gas 57,432, oil 300, Stratford district heating 5,136 |
+| Source (`methodology-uri`) | <https://assets.publishing.service.gov.uk/media/6a4f66c406e7256c331df8a2/HMRC_annual_report_and_accounts_2025_to_2026.pdf> (Annual Report and Accounts 2025 to 2026, published 9 July 2026; Annex 3, PDF page 282) |
+| Retrieved | 2026-10-02 (read by two independent readers and checked by a third against the PDF) |
+| `carbon-footprint` | 30,310 tCO2e — read: "Total gross emissions … 30.31" in a table headed "tCO2e, 000s", column 2025-26 |
+| Energy | 115,351 MWh — the SUM of the five rows filled for 2025-26 under "Energy consumption (kWh, 000s)": electricity non-renewable 2,692, electricity renewable 54,871, gas 52,170, oil 290, Stratford district heating 5,328 |
 
-Caveats: financial year, carried as 2025 with `reporting-period-basis`; Scope 1 and 2 are published only combined (25.41 thousand tCO2e) and Scope 3 only for business travel (7.75 thousand), so no scope member is carried; no accounting basis stated.
+Caveats: financial year, carried as 2026 (the year in which it ended) with `reporting-period-basis` `fiscal-year-ended-2026-03-31`; Scope 1 and 2 are published only combined (21.60 thousand tCO2e) and Scope 3 only for business travel (7.48 thousand), so no scope member is carried; no accounting basis stated. The 2024-25 column of the new report matches the figures previously served (33.16 / 120,160), so nothing was restated.
 
 ### `home.cern.json` — CERN, CY2024
 
@@ -478,16 +478,16 @@ Caveats:
   machine-readable format; the two are complementary (an organization's estate
   per year there, one declaration at a fixed address here).
 
-### `scottlogic.com.json` — Scott Logic Limited, CY2024
+### `scottlogic.com.json` — Scott Logic Limited, CY2025
 
 | | |
 |---|---|
-| Source (`methodology-uri`) | <https://scottlogic.cdn.prismic.io/scottlogic/aDbGeCdWJ-7kSnGL_ScottLogicEnvironmentalImpactReport2024.pdf> (Environmental Impact Report 2024, pages 3–5) |
+| Source (`methodology-uri`) | <https://scottlogic.cdn.prismic.io/scottlogic/kZE3OZhZL4ljNWHy_EnvironmentalImpactReport2025.pdf> (Environmental Impact Report 2025, pages 4–5) |
 | Disclosure index | <https://www.scottlogic.com/who-we-are/sustainability> |
-| Retrieved | 2026-10-01 |
-| Scope 1 / 2 / 3 | 0 / 41 / 489 mtCO2e — all read (page 3 and the table on page 4) |
-| `carbon-footprint` | 530 mtCO2e — read: "(Market-based) Total … 530" |
-| Energy | 226,110 kWh — read: "We consumed 226,110 kWh of energy" |
+| Retrieved | 2026-10-02 (read by two independent readers and checked by a third against the PDF); the CY2024 emissions served until then (0 / 41 / 489, total 530) are restated unchanged in the 2025 report; the CY2024 energy figure (226,110 kWh) is not restated there |
+| Scope 1 / 2 / 3 | 0 / 39 / 431 mtCO2e — all read (page 4, "Scope 2 – 39 tCO2e (8.2%)" etc., and the table on page 5) |
+| `carbon-footprint` | 470 mtCO2e — read: "(Market-based) Total … 470" |
+| Energy | 214,219 kWh — read: "We consumed 214,219 kWh of energy" |
 
 Caveats:
 
@@ -496,10 +496,21 @@ Caveats:
 - The subject also publishes its technology estate in its own `tcs.json`
   (Technology Carbon Standard); that breakdown (123 tCO2e in the report's table)
   is a part of the organizational total and is not carried here.
-- `renewable-energy` is omitted: the report states a 2025 target, not a 2024
+- `renewable-energy` is omitted: the report says only that it was ahead of its
+  2025 target to procure 100% renewable or low-carbon electricity, and gives no
   share.
 
-### `torchbox.com.json` — Torchbox, CY2024
+### `withheld/torchbox.com.json` — Torchbox, CY2024 — WITHHELD, not served
+
+**Withheld on 2026-10-02.** The "Copyright" section of <https://torchbox.com/privacy/>
+reads: "No material, graphics, sounds, text, animation, design, interactive ideas, or
+conceptual ideas from this site may be copied, uploaded, posted, modified or distributed in
+any way … The use of any such material on any other website or computer environment is
+prohibited unless agreed otherwise by the company." That is a prohibition, so rule 7 applies.
+It had been served since 2026-10-01 under the earlier finding "no terms page found"; the terms
+sit on the privacy page, which that check missed. The 2025 figures were also read (238.4
+tCO2e location-based; Scope 1 / 2 / 3 = 7.7 / 2.1 / 228.6) and are not served either. The file
+can return if Torchbox agrees in writing.
 
 | | |
 |---|---|
@@ -794,14 +805,14 @@ document is served only under rule 7. This record is not legal advice.
 | File | Source terms found | Served? |
 |---|---|---|
 | `wikimedia.org.json` | the source PDF's Wikimedia Commons page: "licensed under the Creative Commons Attribution-Share Alike 4.0 International license" | **yes** — attribution, licence link, "reformatted" and no-endorsement statement in `provider`; the document is offered under CC BY-SA 4.0 |
-| `thegreenwebfoundation.org.json` | how-to-cite page: website content "published under the same Creative Commons Attribution License" (CC BY 4.0), "please attribute your use to the Green Web Foundation, linking back to our website"; `dist.json` itself states no licence | **yes** — attribution and link in `provider` and `disclosure-uri` |
+| `thegreenwebfoundation.org.json` | how-to-cite page: website content "published under the same Creative Commons Attribution License" (CC BY 4.0), "please attribute your use to the Green Web Foundation, linking back to our website"; `dist.json` itself states no licence; the Foundation's how-to-cite page adds "For data we publish, we use the permissive Open Database License", which `provider` now names | **yes** — attribution and link in `provider` and `disclosure-uri` |
 | `mozilla.org.json` | mozilla.org: text "available under the Creative Commons Attribution Share-Alike 3.0 Unported license, or any later version"; the fact-sheet PDF states no licence; trademarks may be used "in text to truthfully refer to" Mozilla | **yes** — attribution in `provider`; offered under CC BY-SA 4.0 |
 | `scottlogic.com.json` | the report PDF and scottlogic.com state a copyright line only; no reuse terms found (the Technology Carbon Standard site is CC BY-SA 4.0, but no figure here comes from it) | **yes** — figures only, with the notice and the removal procedure |
 | `hetzner.com.json` | "© 2026 Hetzner Online GmbH. All Rights Reserved."; no reuse clause found except for press images | **yes** — figures only |
 | `automattic.com.json` | copyright line only; the terms restrict trademarks ("doesn't grant you any right or license to reproduce or otherwise use any Automattic or third-party trademarks"), not the blog's content | **yes** — figures only; the name is used only to identify the source |
-| `torchbox.com.json` | "© Torchbox 2026"; no terms page found | **yes** — figures only |
+| `withheld/torchbox.com.json` | torchbox.com/privacy/, "Copyright": "The use of any such material on any other website or computer environment is prohibited unless agreed otherwise by the company" | **no** — withheld |
 | `go.eco.json` | "© 2026 Big Room Inc."; no website terms found | **yes** — figures only |
-| `infomaniak.com.json` | each PDF page "© ecoLive" (the consultancy that prepared it); the report says it "peuvent être utilisés dans la communication de l'entreprise" and that part A "peut être transmise aux clients"; no prohibition on third parties found | **yes** — figures from part A only |
+| `infomaniak.com.json` | each PDF page "© ecoLive" (the consultancy that prepared it); the report says it "peuvent être utilisés dans la communication de l'entreprise" and that "Les parties A (Bilan climatique) et C (Annexes) peuvent être transmises aux clients"; no prohibition on third parties found | **yes** — figures from part A only |
 | `hmrc.gov.uk.json` | the page: "This publication is licensed under the terms of the Open Government Licence v3.0 except where otherwise stated" | **yes** — OGL attribution statement in `provider` |
 | `home.cern.json` | the report: "CERN publishes this volume open access under the Creative Commons Attributions (CC BY) 4.0 licence … excepting the images" | **yes** — attribution in `provider`; no image used |
 | `commission.europa.eu.json` | the statement: reuse "authorised under a Creative Commons Attribution 4.0 International (CC BY 4.0) licence" (Commission Decision 2011/833/EU) | **yes** — attribution in `provider` |

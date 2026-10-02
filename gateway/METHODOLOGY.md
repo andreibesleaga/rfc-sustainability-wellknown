@@ -77,7 +77,7 @@ the live window, and the two constants below.
 | Input | Default | Environment variable | Basis |
 |---|---|---|---|
 | Average power draw | 3 W | `SELF_WATTS` | Assumption. A single always-on Node.js process serving small cached JSON documents, on a shared vCPU slice. Set this to your platform's figure if you have one. |
-| Grid carbon intensity | 373 gCO2e/kWh | `SELF_GRID_INTENSITY` | US national average output emission rate, 823.1 lb CO2/MWh (eGRID2022), as published by the US EPA — see below. |
+| Grid carbon intensity | 245 gCO2e/kWh | `SELF_GRID_INTENSITY` | Netherlands, 2024: the European Environment Agency's greenhouse-gas emission intensity of electricity generation (CC BY 4.0) — see below. The gateway runs in Railway's Netherlands region. |
 | Reporting period | most recently completed calendar month | `SELF_PERIOD` | The draft's Basic default for a publisher reporting more frequently than annually; any other period since go-live is available through the Extended parameters below. |
 | Live since | 2026-07-30T00:00:00Z | `SELF_LIVE_SINCE` | The earliest surviving deployment record of the reference gateway. No hours before it are counted. |
 
@@ -101,7 +101,7 @@ are accumulated per minute over the billing period, and divides them by the mont
 used. They count no share of the idle power of the machine it runs on, and for a service as small as this
 one that share is most of the real energy. The measured figure is therefore a lower bound and the 3 W
 assumption a generous upper bound; the true figure lies between them. For September 2026 the entered
-figure is 0.0149 W (10.73 Wh, 4.00 gCO2e at the factor below), against 2,160 Wh under the assumption.
+figure is 0.0149 W (10.73 Wh, 2.63 gCO2e at the factor below), against 2,160 Wh under the assumption.
 
 The self report states its energy in **watt-hours**. At a fraction of a watt a
 day is about 0.36 Wh, and the publisher library rounds every member to four
@@ -161,30 +161,43 @@ aggregation and evaluation coincide and there is nothing to sum.
 
 ### The grid intensity factor, and its limits
 
-The default 373 gCO2e/kWh is the US national average electricity output emission
-rate, converted from the figure the US EPA publishes in *Greenhouse Gas
-Equivalencies Calculator — Calculations and References*:
+The default **245 gCO2e/kWh** is the Netherlands' 2024 greenhouse-gas emission
+intensity of electricity generation, from the European Environment Agency's
+indicator *Greenhouse gas emission intensity of electricity generation in Europe*
+(ENER038, published 10 July 2026, temporal coverage 1990–2024):
+<https://www.eea.europa.eu/en/analysis/indicators/greenhouse-gas-emission-intensity-of-1>.
+The value is the 2024 column of the Netherlands row in the indicator's
+country-level chart data (`data.csv`; 2023 was 255), retrieved 2026-10-02 and
+checked by two independent readers and a third against the source.
 
-> "The national average carbon dioxide output rate for electricity generated in
-> 2022 was 823.1 lbs CO2 per megawatt-hour (EPA 2024a)"
+> Source: European Environment Agency (EEA), "Greenhouse gas emission intensity of
+> electricity generation in Europe" (ENER038), CC BY 4.0. The figure is reproduced
+> unchanged; the EEA does not endorse this use.
 
-<https://www.epa.gov/energy/greenhouse-gas-equivalencies-calculator-calculations-and-references>
-(retrieved 2026-07-28). Converting: 823.1 lb/MWh x 0.45359237 kg/lb = 373.4
-kg/MWh = **373 gCO2e/kWh** (rounded).
+The EEA's legal notice permits re-use "for commercial or non-commercial purposes,
+provided that the EEA is always acknowledged as the original source of the
+material" (<https://www.eea.europa.eu/en/legal-notice>).
 
-Four honest caveats:
+The gateway runs in **Railway's Netherlands region** (confirmed by the operator),
+which is why a Dutch factor applies. Electricity Maps, WattTime and cloud
+providers' region figures were not used: their terms do not allow republication.
 
-- The EPA rate is a **CO2** rate, not a full CO2-equivalent rate. Non-CO2
-  greenhouse gases from generation are therefore **not** included, and the
-  figure published in `carbon-intensity-gCO2e-per-kWh` is a small
-  **under**statement on that account.
-- It is a **national annual average**, not the intensity of the specific grid
-  region the container runs in, and not time-matched to when it ran. A
-  region-specific or hourly factor would be more accurate; set
-  `SELF_GRID_INTENSITY` if you have one.
-- It excludes transmission and distribution losses. (The EPA's own
-  3.94 x 10^-4 metric tons CO2/kWh figure includes them; the value used here
-  does not.)
+**Restatement.** Until 2026-10-02 the default was 373 gCO2e/kWh, the US national
+average output rate (EPA eGRID2022, 823.1 lb CO2/MWh), which matched neither the
+region nor the current year. The model is evaluated on demand, so every period
+the gateway reports — including July to September 2026 — is now computed with
+245. Figures fetched before that date used 373 and differ by that ratio.
+
+Honest caveats:
+
+- It is a **national annual average for 2024**, which the EEA labels an *early
+  estimate*. It is not the intensity of the grid at the times the container ran.
+- It is **generation-based and direct-combustion**: the CO2-equivalent emitted
+  per kWh generated in the Netherlands, with nuclear and renewables at zero,
+  biomass combustion and upstream (life-cycle) emissions excluded, and imports and
+  transmission and distribution losses not counted.
+- The indicator's one-line definition says "CO2", while its unit and method say
+  CO2e; the figure is published as gCO2e/kWh, as its unit states.
 - The accounting basis declared is `location-based`, which is what an
   average-grid factor supports. No market-based instruments are claimed.
 
@@ -328,11 +341,11 @@ the same holder signed the earlier declaration — and not of identity.
 by the issuer. It attests the **model** of §2 — the grid intensity, the 3 W
 power assumption, the live window and the formula — for five years, so every
 declaration derived from the assumption is covered and nothing is re-issued
-monthly. It does **not** cover a month whose power was entered from the
-platform's metrics: the credential states the assumption and the declaration's
-`provider` names the entered months, so a verifier recomputing such a month from
-the credential's constants will find they differ. Re-issuing the credential with
-the entered months in its model closes that gap. The issuer's public key is
+monthly. Months whose power was entered from the platform's metrics are named in
+the model (`entered-watts-by-month`), so a verifier recomputing any month from
+the credential's constants gets the served figure. The credential is re-issued
+whenever an entered month or a constant changes; the current one was issued on
+2026-10-02 with the September 2026 entry and the 245 gCO2e/kWh grid intensity. The issuer's public key is
 hosted at the URL the credential's `kid` names. Under -07 a credential can also
 bind to one declaration by carrying a copy of that object (without `signed`) at
 `credentialSubject.declaration`; the issuing tool does that on

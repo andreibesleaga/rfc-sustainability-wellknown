@@ -406,5 +406,5 @@ describe("self-report month rollover (this deployment: most recently completed m
     expect(r3.headers.ETag ?? r3.headers.etag).not.toBe(r1.headers.ETag ?? r1.headers.etag);
 
     gw.server.close();
-  });
+  }, 15_000); // boots a whole gateway twice; 0.75 s normally, but CI runners can be slow
 });

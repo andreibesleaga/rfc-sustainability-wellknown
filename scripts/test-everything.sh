@@ -16,8 +16,11 @@
 #   5. sfc-compliance  npm install (no lockfile by design), test, both reference declarations
 #   6. example-scripts the Python, JavaScript and PHP safeguard tests and the request-handler
 #                      end-to-end test
-#   7. draft           builds the latest draft into a temporary directory (the files in
-#                      internet-drafts/ are never rewritten), strict xml2rfc, idnits
+#   7. tools           tools/report-to-declaration: its tests and the offline demonstration
+#   8. draft           builds the latest draft into a temporary directory (the files in
+#                      internet-drafts/ are never rewritten) the way build.sh does: RFCXML v3
+#                      vocabulary, v3-postprocess.py, strict xml2rfc, then idnits3 in normal
+#                      mode, which must report no nit at all
 #
 # Not run here: the nginx and Apache configuration checks. They need both web servers
 # installed system-wide and run in CI (full-verify.yml, example-scripts.yml).
@@ -160,8 +163,19 @@ do_example_scripts() {
   python3 test_request_handler.py
 }
 
+do_tools() {
+  cd "$ROOT/tools/report-to-declaration"
+  node --test test/*.test.mjs
+  # The demonstration exits 3 by design: it writes a candidate and waits for a reviewer.
+  local out="$LOG_DIR/r2d"
+  node extract.mjs --source fixtures/demo-report.txt --replay fixtures/demo-model-reply.json \
+    --target "Example Hosting Ltd" --methodology-uri https://hosting.example/reports/2025.pdf \
+    --target-type organization --source-differs --out "$out" || [ $? -eq 3 ]
+  test -f "$out/candidate.json" && ! test -f "$out/declaration.json"
+}
+
 do_draft() {
-  local md base out
+  local md base out n
   cd "$ROOT/internet-drafts"
   md=$(ls draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
   base="${md%.md}"
@@ -169,10 +183,14 @@ do_draft() {
   mkdir -p "$out"
   cp "$md" "$out/"
   cd "$out"
-  kramdown-rfc "$md" > "$base.xml"
+  # The same pipeline as build.sh: v3 vocabulary, then the idnits3 clean-up.
+  kramdown-rfc -3 "$md" > "$base.v2.xml"
+  xml2rfc --v2v3 --strict "$base.v2.xml" -o "$base.xml"
+  python3 "$ROOT/internet-drafts/v3-postprocess.py" "$base.xml"
   xml2rfc --strict --text "$base.xml" -o "$base.txt"
-  npx --yes @ietf-tools/idnits "$base.xml" | tee idnits.out
-  ! grep -qE '^ *ERROR' idnits.out
+  npx --yes @ietf-tools/idnits -m normal --no-progress --no-color "$base.xml" | tee idnits.out
+  n=$(npx --yes @ietf-tools/idnits -m normal -o count --no-progress "$base.xml" | tail -1)
+  [ "$n" = "0" ]
 }
 
 echo "Testing $(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo 'working tree') with Node $(node -v); logs in $LOG_DIR"
@@ -182,6 +200,7 @@ step consumer        do_consumer
 step gateway         do_gateway
 step sfc-compliance  do_sfc
 step example-scripts do_example_scripts
+step tools           do_tools
 if [ "$RUN_DRAFT" = 1 ]; then step draft do_draft; fi
 
 echo

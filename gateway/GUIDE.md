@@ -91,7 +91,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 cd gateway
 npm install
 npm run build
-npm test                       # 478 tests
+npm test                       # 464 tests
 node dist/index.js             # binds 0.0.0.0:8080
 ```
 
@@ -538,7 +538,7 @@ unchanged. It is also part of `npm test`.
 Expected result: **every check PASS, for the root and for every subject served.**
 
 The front page repeats the essentials as hyperlinks: the table at the end of its
-"Service level" section lists every working `GET` on the deployment (the self
+"HTTP behaviour" section lists every working `GET` on the deployment (the self
 report at each service level, the signature and attestation resources, one
 document of each relayed kind, the `404` cases) with the outcome a click should
 show. It is built from the same index as `/index.json`, and a test clicks every
@@ -613,7 +613,7 @@ injects.
 | `SELF_DISCLOSURE_URI` | `gateway/` on GitHub | Disclosure index for the gateway. |
 | `SELF_PERIOD` | last completed calendar month | Pin the gateway's own period (`YYYY` or `YYYY-MM`). |
 | `SELF_WATTS` | `3` | Modelled average container power draw. |
-| `SELF_GRID_INTENSITY` | `373` | gCO2e/kWh; sourced and caveated in METHODOLOGY.md. |
+| `SELF_GRID_INTENSITY` | `245` | gCO2e/kWh: the Netherlands, 2024 (EEA, CC BY 4.0), where this deployment runs; sourced and caveated in METHODOLOGY.md. Set it to your own region's figure. |
 | `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When the gateway went live (RFC 3339). The self model counts no hours before it; a period wholly before it is `404`. |
 | `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report — the URL of a signed third-party statement (the reference deployment: a `vc+jwt` credential issued with `scripts/issue-attestation.mjs`). |
 | `SELF_SIGNING_KEY_URL` | *(unset)* | Where the PUBLIC signing key is hosted; shown on the index so verifiers can pin it. The key itself travels in the JWS header. |

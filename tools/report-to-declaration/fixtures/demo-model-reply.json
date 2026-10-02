@@ -1,5 +1,5 @@
 {
-  "meta": { "model": "recorded: google/gemini-2.5-flash, 2026-10-02", "note": "A real reply, kept so the demonstration runs offline and deterministically. Three of the figures are deliberately wrong, to show what the verifier does with them." },
+  "meta": { "model": "recorded: google/gemini-2.5-flash, 2026-10-02", "note": "Edited from a recorded reply, kept so the demonstration runs offline and deterministically. Three of the figures are deliberately wrong, to show what the verifier does with them." },
   "reply": {
     "figures": [
       { "member": "reporting-period", "value": "2025", "page": 1, "quote": "In 2025 Example Hosting Ltd consumed 12,480 MWh of electricity across its data centres." },

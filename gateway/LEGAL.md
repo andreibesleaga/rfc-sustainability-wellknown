@@ -1,13 +1,14 @@
 # Legal notice and terms — Sustainability Data Reference Gateway
 
-Version of 2026-10-01.
+Version of 2026-10-02.
 
 ## 1. Who runs this service, and why
 
 This service is run by Andrei Nicolae Besleaga, a private individual, as a
 non-commercial demonstration of the Internet-Draft
 draft-besleaga-sustainability-wellknown. It charges nothing, carries no
-advertising and does no tracking. Contact: andrei.besleaga@ieee.org.
+advertising and does no tracking. Contact: an issue at https://github.com/andreibesleaga/rfc-sustainability-wellknown/issues, or any
+route listed at https://andreibesleaga.com/contact/.
 
 ## 2. What the documents about third parties are
 
@@ -63,14 +64,14 @@ They are used here only to identify whose published report a document is mapped
 from. Their use implies no affiliation with, sponsorship by or endorsement from
 any of those owners.
 
-## 5. Accuracy, and what these documents must not be used for
+## 5. Accuracy, and what these documents are not for
 
 Figures were transcribed on the date recorded for each document and may since
 have been restated, corrected or superseded by the organization. Transcription
 errors are possible. Where this service and a source differ, the source is
 right.
 
-The documents exist to exercise a data format. They must not be relied on for
+The documents exist to exercise a data format. They are not intended for, and should not be relied on for,
 investment decisions, ratings, audits, assurance, regulatory or statutory
 reporting, procurement decisions or any compliance purpose, and nothing here is
 professional advice of any kind.
@@ -80,7 +81,8 @@ professional advice of any kind.
 Anyone may report an error. A reporting subject may also ask for its document
 to be changed or removed.
 
-- Write to andrei.besleaga@ieee.org, or open an issue at https://github.com/andreibesleaga/rfc-sustainability-wellknown/issues.
+- Open an issue at https://github.com/andreibesleaga/rfc-sustainability-wellknown/issues, or, for a request you would rather not make in
+  public, use any route listed at https://andreibesleaga.com/contact/.
 - A correction is made once it has been checked against the source.
 - A removal requested by the organization a document describes is carried out
   without the organization having to give a reason.
@@ -104,7 +106,8 @@ To limit abuse it counts requests per client address in memory; those counts
 are not written to storage and disappear when the process restarts. The hosting
 provider may process IP addresses in standard server logs for operation and
 security. The index page keeps a theme preference in your browser's local
-storage and nowhere else. Questions about personal data: andrei.besleaga@ieee.org.
+storage and nowhere else. Questions about personal data: any route listed at
+https://andreibesleaga.com/contact/.
 
 ## 9. Licence
 

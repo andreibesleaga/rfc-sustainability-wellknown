@@ -3,7 +3,7 @@
  * of everything this gateway serves.
  */
 import type { GatewayConfig } from "./config";
-import { ISSUES_URL, LEGAL_PATH, OPERATOR_EMAIL, OPERATOR_NAME } from "./legal";
+import { ISSUES_URL, LEGAL_PATH, OPERATOR_CONTACT_URL, OPERATOR_NAME } from "./legal";
 import type { WireExample } from "./examples";
 import { escapeHtml } from "./http";
 import type { ManagedSubject } from "./live";
@@ -98,7 +98,7 @@ export interface IndexDocument {
   /** Where the legal notice and the correction/removal procedure are published. */
   legal: string;
   /** Operator contact for corrections and removal requests. */
-  contact: { name: string; email: string; issues: string };
+  contact: { name: string; website: string; issues: string };
   /** Service level of the RELAYED subject documents (the self report is Extended, see `self`). */
   capabilities: "basic";
   self: {
@@ -157,11 +157,10 @@ export const DEMO_NOTE =
   "All use reserved .example names and describe no real organization.";
 
 export const EXAMPLES_NOTE =
-  "Every case of the specification's canonical example-responses set, served live. For the " +
-  "trend cases, the parameterless request answers the most recent entry: -07 allows either an " +
-  "object or an array there, and this deployment serves the object. The sorted array is " +
-  "returned for a period sliced by a finer granularity, on documents that declare " +
-  "capabilities:extended. All figures are synthetic; the subjects are reserved .example names.";
+  "Every case in the specification's example set, served live, with synthetic figures under " +
+  "reserved .example names. A trend example (one that declares capabilities: extended) answers " +
+  "a request without parameters with its newest entry as one object (-07 allows an object or an " +
+  "array), and a request for a finer granularity with the sorted array of entries.";
 
 export const CROSS_VALIDATION_NOTE =
   "At start-up, every document served here is produced by the published publisher library " +
@@ -310,7 +309,7 @@ export function liveRequests(doc: IndexDocument): LiveRequest[] {
     }
   }
   if (self.attestation) {
-    out.push({ href: self.attestation.uri, what: "the third-party attestation the self document links to", expect: "200, application/vc+jwt" });
+    out.push({ href: self.attestation.uri, what: "the attestation credential the self report links to", expect: "200, application/vc+jwt" });
   }
   if (subject) {
     out.push(
@@ -371,7 +370,7 @@ export function buildIndex(
     about: ABOUT,
     notice: THIRD_PARTY_NOTICE,
     legal: LEGAL_PATH,
-    contact: { name: OPERATOR_NAME, email: OPERATOR_EMAIL, issues: ISSUES_URL },
+    contact: { name: OPERATOR_NAME, website: OPERATOR_CONTACT_URL, issues: ISSUES_URL },
     capabilities: "basic",
     self: {
       path: WELL_KNOWN_PATH,
@@ -683,129 +682,93 @@ ${doc["wire-format-examples"].entries.map(exampleRow).join("\n")}
 </div>
 
 <h2>This gateway's own report</h2>
-<p>The gateway also reports on itself, as a service, at
-<a href="${escapeHtml(doc.self.path)}"><code>${escapeHtml(doc.self.path)}</code></a>
-(<code>target</code>: <code>${bdi(doc.self.target)}</code>). The figures are a <strong>model,
-not a measurement</strong>: an average power draw, times the hours the gateway has been live,
-times a cited grid intensity. The power is a constant assumption, except for months whose
-average the operator entered from the hosting platform's own usage metrics; the document's
-<code>provider</code> names those months. It says so
-(<code>measurement-method: third-party-modeled</code>) and every constant is in the
-<a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology</a> it links.</p>
-
-<p>This one document offers the draft's <strong>Extended</strong> service. Any period since
-go-live (<code>${escapeHtml(doc.self["live-since"])}</code>) can be requested with
-<code>period</code> (<code>YYYY</code>, <code>YYYY-MM</code> or <code>YYYY-MM-DD</code>) and
-sliced with <code>granularity</code> (<code>monthly</code> or <code>daily</code>). A period
-before go-live returns <code>404</code>; a period in progress reports the completed part so far;
-a parameter given twice, or a <code>period</code> that is not a real calendar date, returns
-<code>400</code>; a <code>target</code> returns <code>404</code>, because one process has no path
-prefixes and the published prefix set is therefore empty. Without parameters the answer is the
-most recently completed month.</p>
+<p>At <a href="${escapeHtml(doc.self.path)}"><code>${escapeHtml(doc.self.path)}</code></a>
+(<code>target</code> <code>${bdi(doc.self.target)}</code>). <strong>A model, not a measurement</strong>
+(<code>third-party-modeled</code>): average power × hours live × a cited grid intensity. Power is
+a fixed assumption, except months the operator entered from the host's usage metrics, which the
+report's <code>provider</code> field lists. Every constant is in the
+<a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology</a>.</p>
+<ul>
+<li><strong>Queries (Extended service).</strong> <code>period</code> = <code>YYYY</code>,
+<code>YYYY-MM</code> or <code>YYYY-MM-DD</code>, any time since go-live
+(<code>${escapeHtml(doc.self["live-since"])}</code>); <code>granularity</code> = <code>monthly</code>
+or <code>daily</code>. No parameters: the last complete month.</li>
+<li><strong>Errors and limits.</strong> A period before go-live: <code>404</code>. A period
+still in progress: the part so far. A repeated parameter or an impossible date: <code>400</code>.
+Any <code>target</code>: <code>404</code> (one process, no path prefixes to publish).</li>
+</ul>
 <pre class="cmd"><code>${doc.self["extended-examples"].map((p) => `curl -s "<span class="host">${BASE_TOKEN}</span>${escapeHtml(p)}"`).join("\n")}</code></pre>
 
 <h2>Integrity and attestation</h2>
+<ul>
 ${
   doc.self.signature
-    ? `<p><strong>Signature.</strong> The gateway's own declaration is signed <em>in place</em>:
-each object carries a <code>signed</code> member (<code>${escapeHtml(doc.self.signature.alg)}</code>,
-key id <code>${bdi(doc.self.signature.kid)}</code>), a JWS Compact Serialization (RFC 7515 &#167;7.1,
-<code>cty: sustainability-data+json</code>) whose payload is that same object without
-<code>signed</code>. There is no separate signature resource: the signature travels inside the
-body, so a cache that serves a re-encoded copy cannot separate the two, and each object of an
-Extended trend array carries its own. The public key is in the signature's header${
+    ? `<li><strong>Signature.</strong> The report is signed <em>in place</em>: each object carries a
+<code>signed</code> member (<code>${escapeHtml(doc.self.signature.alg)}</code>, key id
+<code>${bdi(doc.self.signature.kid)}</code>), a JWS over the same object without it
+(<code>cty: sustainability-data+json</code>); each object of a trend array carries its own. The
+public key is in the signature's header${
         doc.self.signature["public-key-url"]
-          ? ` and also published at <a href="${escapeHtml(doc.self.signature["public-key-url"])}" rel="noopener noreferrer"><code>${escapeHtml(doc.self.signature["public-key-url"])}</code></a>, so a verifier can pin it`
+          ? ` and at <a href="${escapeHtml(doc.self.signature["public-key-url"])}" rel="noopener noreferrer"><code>${escapeHtml(doc.self.signature["public-key-url"])}</code></a> to pin`
           : ""
-      }. A signature proves that the object you hold is the object this key signed, and that
-successive declarations came from the same key. It does not prove who holds the key, and says
-nothing about whether the figures are accurate: a correctly signed estimate is still an
-estimate. The precedent for carrying a signature as a member of the object it secures is the
-<code>signed_metadata</code> parameter of
-<a href="https://www.rfc-editor.org/rfc/rfc8414" rel="noopener noreferrer">RFC 8414</a>.</p>`
-    : `<p><strong>Signature.</strong> This deployment does not sign its own report: its
-declaration carries no <code>signed</code> member, which the draft defines as meaning only that
-the publisher does not sign — not evidence of anything.</p>`
+      }. It proves the signed copy is intact and comes from the same key as before — not who holds
+the key, and not that the figures are right. Precedent:
+<a href="https://www.rfc-editor.org/rfc/rfc8414" rel="noopener noreferrer">RFC 8414</a>
+<code>signed_metadata</code>.</li>`
+    : `<li><strong>Signature.</strong> This deployment does not sign its own report: no
+<code>signed</code> member, which the draft says means only that the publisher does not sign.</li>`
 }
 ${
   doc.self.attestation
-    ? `<p><strong>Attestation.</strong> The self document links, through
-<code>verifiable-attestation-uri</code>, to
-<a href="${escapeHtml(doc.self.attestation.uri)}" rel="noopener noreferrer"><code>${escapeHtml(doc.self.attestation.uri)}</code></a>:
-a W3C Verifiable Credential (Data Model 2.0) secured as <code>vc+jwt</code>, valid five years,
-in which the issuer attests the <em>model</em> behind the report — its constants and formula — so
-every month the model covers needs no new credential. A month whose power was entered from the
-platform's metrics is outside what the current credential states; the declaration names those
-months, and a consumer recomputing them from the credential's constants will find they differ. This is the draft's only mechanism that
-speaks to authenticity. <strong>The operator of this gateway and the issuer of that credential are the
-same person.</strong> The credential demonstrates the mechanism — a second key, a second identity,
-a statement verifiable against a published key — and is not independent assurance of the figures
-(<a href="${REPO_DOCS}/SIGNING-AND-ATTESTATION.md" rel="noopener noreferrer">how signing and attestation are deployed</a>).</p>`
-    : `<p><strong>Attestation.</strong> The self document carries no
-<code>verifiable-attestation-uri</code>: no third-party statement about it exists.</p>`
+    ? `<li><strong>Attestation.</strong>
+<a href="${escapeHtml(doc.self.attestation.uri)}" rel="noopener noreferrer"><code>${escapeHtml(doc.self.attestation.uri)}</code></a>
+(<code>verifiable-attestation-uri</code>): a W3C Verifiable Credential 2.0 (<code>vc+jwt</code>,
+five years) attesting the <em>model</em>: its constants and the months with entered power, by
+name. A new month on the assumed power needs no new credential; the credential is re-issued
+whenever an entered month or a constant changes. <strong>Operator and issuer are the same
+person</strong>: it shows the mechanism, it is not independent assurance (<a href="${REPO_DOCS}/SIGNING-AND-ATTESTATION.md" rel="noopener noreferrer">how</a>).</li>`
+    : `<li><strong>Attestation.</strong> None: no third-party statement about this report exists.</li>`
 }
-<p>The gateway's own declaration carries no <code>upstream</code> member: the hosting platform
-publishes no declaration of its own, so naming one would be false.</p>
-
-<p>The third-party declarations are deliberately <em>not</em> signed or attested: this gateway can
-vouch for its own bytes, never for another organization's figures, and a <code>signed</code> member
-on a relayed declaration would suggest otherwise. The reference consumer reports a signature as
-<em>verified</em>, <em>unsigned</em> or <em>unverified</em> — never the data as
-"true" or "false":</p>
-<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --strict --verify-attestation
-npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --verify --verify-attestation</code></pre>
+<li><strong>Not done, on purpose.</strong> No <code>upstream</code> (the host publishes no
+declaration to name). Third-party declarations are never signed or attested here: the gateway
+can vouch for its own bytes, not for another organization's figures.</li>
+</ul>
 
 <h2>Consumer cross-validation</h2>
 <p>${escapeHtml(doc["consumer-cross-validation"].note)}
-This deployment: <code>${escapeHtml(doc["consumer-cross-validation"].validator)}</code>
-validated <strong>${doc["consumer-cross-validation"]["documents-validated"]}</strong>
-documents at start-up (every subject listed above, the gateway's own report, and the
-Extended variants it checks).</p>
+Here: <code>${escapeHtml(doc["consumer-cross-validation"].validator)}</code>,
+<strong>${doc["consumer-cross-validation"]["documents-validated"]}</strong> documents (every
+subject, this report and its Extended variants, and the trend arrays of the Extended examples).</p>
 
-<h2>Service level</h2>
-<p>The third-party declarations offer the <strong>Basic</strong> service: this gateway supports
-none of the query parameters for them, so it ignores them and returns the Basic response, never
-an error. Two exceptions: the gateway's own report is Extended (above), and the wire-format
-examples that declare <code>capabilities: "extended"</code> honour <code>period</code> and
-<code>granularity</code>, answering a sorted trend array only for a granularity finer than the
-period, as the draft defines.</p>
+<h2>HTTP behaviour</h2>
 <ul>
-<li><strong>Media type.</strong> Successful responses use
-<code>application/sustainability-data+json</code>, the type draft -07 requires, with
-<code>X-Content-Type-Options: nosniff</code>. Error responses (<code>400</code>,
-<code>404</code>, <code>405</code>, <code>503</code>) use <code>application/json</code>, also
-with <code>nosniff</code>.</li>
-<li><strong>Caching.</strong> <code>Cache-Control: public, max-age=86400</code> for the relayed
-subjects and <code>max-age=3600</code> for the gateway's own report and this page;
-a strong <code>ETag</code> and <code>Last-Modified</code>; <code>If-None-Match</code> answers
-<code>304</code>. Responses carry <code>Access-Control-Allow-Origin: *</code>. The signature is
-inside the body, so there is no second resource whose cache entry could drift out of step with
-the declaration's.</li>
-<li><strong>Methods.</strong> <code>GET</code> and <code>HEAD</code> only; any other method
-answers <code>405</code> with <code>Allow: GET, HEAD</code>. An unknown subject answers
-<code>404</code>.</li>
-<li><strong>Generic media type.</strong> The service-wide default can be switched to the
-generic <code>application/json</code> type (not conformant publishing, but a type a consumer
-MAY still process) with the <code>SUSTAINABILITY_MEDIA_TYPE</code> variable, and one subject can
-be pinned to it regardless of the default, to show such a subject next to conformant ones; this
-deployment pins none (<a href="${REPO_DOCS}/gateway/GUIDE.md" rel="noopener noreferrer">operator guide</a>).</li>
-<li><strong>Extensions.</strong> The top-level member set is closed, so data this specification
-does not define travels inside the OPTIONAL <code>extensions</code> member, an object whose keys
-are absolute URIs (<a href="https://www.rfc-editor.org/rfc/rfc3986" rel="noopener noreferrer">RFC 3986</a>,
-ASCII, scheme in lowercase, no fragment): either an <code>https</code> URI under the definer's control, which should identify documentation
-of the extension, or <code>urn:uuid:</code> plus a lowercase hyphenated UUID
-(<a href="https://www.rfc-editor.org/rfc/rfc9562" rel="noopener noreferrer">RFC 9562</a>) for a
-definer without a domain. A key is an identifier compared as a string, never dereferenced, and
-there is no registry; a consumer that does not implement one ignores its value. The names this
-gateway uses are listed in its
-<a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology document</a>.
+<li><strong>Service level.</strong> Third-party declarations are Basic: query parameters are
+ignored, never an error. Extended: this gateway's report, and the examples that declare
+<code>capabilities: "extended"</code> (an array only for a granularity finer than the period).</li>
+<li><strong>Media type.</strong> <code>application/sustainability-data+json</code>; errors (<code>400</code>,
+<code>404</code>, <code>405</code>, <code>503</code>) <code>application/json</code>; all with
+<code>nosniff</code>. A switch to the generic JSON type (<code>SUSTAINABILITY_MEDIA_TYPE</code>,
+service-wide or per subject) shows that a consumer MAY still process it; none is set here
+(<a href="${REPO_DOCS}/gateway/GUIDE.md" rel="noopener noreferrer">guide</a>).</li>
+<li><strong>Caching.</strong> <code>Cache-Control: public, max-age=86400</code> for subjects, <code>3600</code> for this report
+and page; strong <code>ETag</code> and <code>Last-Modified</code>, <code>304</code> on revalidation;
+<code>Access-Control-Allow-Origin: *</code>.</li>
+<li><strong>Methods.</strong> <code>GET</code> and <code>HEAD</code>; anything else
+<code>405</code> with <code>Allow: GET, HEAD</code>. Unknown subject <code>404</code>.</li>
+<li><strong>Extensions.</strong> Data the format does not define goes in <code>extensions</code>,
+keyed by an absolute URI (<a href="https://www.rfc-editor.org/rfc/rfc3986" rel="noopener noreferrer">RFC 3986</a>),
+ASCII, lowercase scheme, no fragment: an <code>https</code> URI the definer controls, or
+<code>urn:uuid:</code> + a lowercase hyphenated UUID
+(<a href="https://www.rfc-editor.org/rfc/rfc9562" rel="noopener noreferrer">RFC 9562</a>).
+Compared as text, never fetched, no registry; unknown ones are ignored; the set of top-level
+members stays closed. Names used here:
+<a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology</a>.
 ${carriersSentence(doc["extension-carriers"])}</li>
 </ul>
 
-<p>Check any of this with a click. Each link is a working <code>GET</code> on this deployment
-(or on the operator's site, for a hosted key or credential); the right-hand column is the
-expected response. Headers, conditional requests and the <code>405</code> case need a client
-that shows them — the commands in the next section do.</p>
+<p>Every link below is a working <code>GET</code> (a few go off-site, to the documents a report
+links to); the right column is the expected answer.
+Headers, <code>304</code> and <code>405</code> need a client that shows them (next section).</p>
 <div class="scroll" role="region" tabindex="0" aria-label="Live requests you can run against this deployment, scrollable">
 <table>
 <caption class="visually-hidden">Live requests you can run against this deployment</caption>
@@ -816,74 +779,62 @@ ${liveRequests(doc).map(liveRow).join("\n")}
 </table>
 </div>
 
-<h2>Verify these declarations yourself</h2>
-<p>Every declaration here can be fetched and validated with the specification's reference
-consumer
-(<a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer"><code>sustainability-wellknown-consumer</code></a>,
-0.7.0 or later — the revision that implements -07). <code>--strict</code> runs the conformance
-battery — schema, media type, caching, conditional requests, methods, the optional embedded
-signature — and labels each check with the strength of the requirement: a failed
-<code>MUST</code> is a conformance failure; an unmet <code>SHOULD</code>, or the generic media
-type, is reported but does not fail the battery
-(<a href="${REPO_DOCS}/consumer/README.md" rel="noopener noreferrer">consumer documentation</a>).</p>
-
-<p>The gateway's own report, at this origin's true well-known location:</p>
-<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --strict</code></pre>
-
-<p>Any subject — curated, adapter demonstration or wire-format example — by its
-path-prefixed base URL; the consumer resolves the well-known path under the prefix:</p>
-<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/wikimedia.org --strict
-npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/grid-intensity-demo.example --strict
-npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/yearly.example --strict
-npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/&lt;any-domain-above&gt; --strict</code></pre>
-
-<p>An Extended trend array, by the full declaration URL with a <code>period</code> and a finer
-<code>granularity</code>:</p>
-<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch "<span class="host">${BASE_TOKEN}</span>/yearly.example${WELL_KNOWN_PATH}?period=2025&amp;granularity=monthly"</code></pre>
-
-<p>The embedded signature, the upstream chain and the attestation, on the declarations that
-carry them:</p>
-<pre class="cmd"><code>npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --verify
-npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/tenant-demo.example --upstream</code></pre>
-
-<p>To just fetch and read a declaration (or pipe it into your own tooling):</p>
-<pre class="cmd"><code>curl -s <span class="host">${BASE_TOKEN}</span>/wikimedia.org${WELL_KNOWN_PATH} | python3 -m json.tool</code></pre>
-
-<p>Independently of this project's tooling, the JSON validates against the specification's
-<a href="${REPO}/tree/main/schemas-validators" rel="noopener noreferrer">JTD and CDDL schemas</a>.</p>
-
-<h2>Machine-readable index and documentation</h2>
-<p><a href="/index.json"><code>/index.json</code></a> carries the same list, notices included.
-Full detail: the
-<a href="${REPO_DOCS}/gateway/README.md" rel="noopener noreferrer">gateway README</a>,
-<a href="${REPO_DOCS}/gateway/GUIDE.md" rel="noopener noreferrer">operator guide</a>,
-<a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology and provenance rules</a>,
-<a href="${REPO_DOCS}/gateway/data/README.md" rel="noopener noreferrer">per-subject sources</a>,
-<a href="${REPO_DOCS}/SIGNING-AND-ATTESTATION.md" rel="noopener noreferrer">signing and attestation</a>,
-and the <a href="${escapeHtml(doc.specification)}" rel="noopener noreferrer">Internet-Draft</a>.</p>
+<h2>Verify it yourself</h2>
+<p>With the reference consumer
+(<a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer"><code>sustainability-wellknown-consumer</code></a>
+0.7.0+). <code>--strict</code> runs the conformance battery: a failed <code>MUST</code> fails it,
+an unmet <code>SHOULD</code> is reported. Signatures come back <em>verified</em>,
+<em>unsigned</em> or <em>unverified</em> — never the data as "true"
+(<a href="${REPO_DOCS}/consumer/README.md" rel="noopener noreferrer">docs</a>).</p>
+<pre class="cmd"><code><span class="dim"># this gateway's own report, full battery, plus its attestation</span>
+npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --strict --verify-attestation
+<span class="dim"># any subject, by its path prefix</span>
+npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/wikimedia.org --strict
+<span class="dim"># a trend array</span>
+npx -y -p sustainability-wellknown-consumer sustainability-fetch "<span class="host">${BASE_TOKEN}</span>/yearly.example${WELL_KNOWN_PATH}?period=2025&amp;granularity=monthly"
+<span class="dim"># the signature, and an upstream chain</span>
+npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --verify
+npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/tenant-demo.example --upstream
+<span class="dim"># just read one</span>
+curl -s <span class="host">${BASE_TOKEN}</span>/wikimedia.org${WELL_KNOWN_PATH} | python3 -m json.tool</code></pre>
+<p>Without this project's tools: the JSON validates against the
+<a href="${REPO}/tree/main/schemas-validators" rel="noopener noreferrer">JTD and CDDL schemas</a>.
+Machine-readable list: <a href="/index.json"><code>/index.json</code></a>. More:
+<a href="${REPO_DOCS}/gateway/README.md" rel="noopener noreferrer">README</a>,
+<a href="${REPO_DOCS}/gateway/GUIDE.md" rel="noopener noreferrer">guide</a>,
+<a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology</a>,
+<a href="${REPO_DOCS}/gateway/data/README.md" rel="noopener noreferrer">sources</a>,
+<a href="${REPO_DOCS}/SIGNING-AND-ATTESTATION.md" rel="noopener noreferrer">signing</a>.</p>
 
 <h2>References</h2>
 <ul class="refs">
-<li><a href="${escapeHtml(doc.specification)}" rel="noopener noreferrer">draft-besleaga-sustainability-wellknown</a> — the Internet-Draft this gateway implements (IETF Datatracker).</li>
-<li><a href="https://andreibesleaga.substack.com/p/the-digital-sustainability-data-protocol" rel="noopener noreferrer">The Digital Sustainability Data Protocol</a> — the author's article introducing the idea and its motivation (an earlier name for this convention).</li>
-<li><a href="${REPO}" rel="noopener noreferrer">Specification repository</a> — draft sources, schemas, reference publisher and consumer, this gateway, and its documentation.</li>
-<li><a href="https://www.npmjs.com/package/sustainability-wellknown-publisher" rel="noopener noreferrer">sustainability-wellknown-publisher</a> and <a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer">sustainability-wellknown-consumer</a> — the reference implementations on npm.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc8615" rel="noopener noreferrer">RFC 8615</a> — Well-Known URIs, the registry the path belongs to (<a href="https://www.iana.org/assignments/well-known-uris/" rel="noopener noreferrer">IANA registry</a>).</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc9110" rel="noopener noreferrer">RFC 9110</a> — HTTP Semantics (methods, conditional requests, caching headers used here).</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc8927" rel="noopener noreferrer">RFC 8927</a> (JSON Type Definition) and <a href="https://www.rfc-editor.org/rfc/rfc8610" rel="noopener noreferrer">RFC 8610</a> (CDDL) — the two schema languages the declaration is defined in.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc3986" rel="noopener noreferrer">RFC 3986</a> — URI Generic Syntax; the keys of the <code>extensions</code> member are absolute URIs, compared as strings and never dereferenced.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc9562" rel="noopener noreferrer">RFC 9562</a> — UUIDs; the lowercase, hyphenated text form an <code>extensions</code> key takes after <code>urn:uuid:</code>, for a definer without a domain.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc7515" rel="noopener noreferrer">RFC 7515</a> — JSON Web Signature; &#167;7.1 defines the Compact Serialization the <code>signed</code> member carries, and &#167;4.1.10 the <code>cty</code> that types its payload.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc8414" rel="noopener noreferrer">RFC 8414</a> — OAuth 2.0 Authorization Server Metadata; its <code>signed_metadata</code> parameter is the precedent for a signature embedded in the object it secures, whose payload takes precedence over the members around it where the verifier trusts the key independently of the declaration.</li>
-<li><a href="https://www.w3.org/TR/vc-data-model-2.0/" rel="noopener noreferrer">W3C Verifiable Credentials Data Model 2.0</a> and <a href="https://www.w3.org/TR/vc-jose-cose/" rel="noopener noreferrer">Securing Verifiable Credentials using JOSE and COSE</a> — the shape of the attestation.</li>
-<li><a href="https://ghgprotocol.org/" rel="noopener noreferrer">GHG Protocol</a> — the scope and accounting definitions the carbon members follow; <a href="https://sci.greensoftware.foundation/" rel="noopener noreferrer">Software Carbon Intensity</a> — the <code>sci-score</code> member.</li>
+<li><a href="${escapeHtml(doc.specification)}" rel="noopener noreferrer">draft-besleaga-sustainability-wellknown</a>, the Internet-Draft.</li>
+<li><a href="${REPO}" rel="noopener noreferrer">Repository</a>; the
+<a href="https://www.npmjs.com/package/sustainability-wellknown-publisher" rel="noopener noreferrer">publisher</a> and
+<a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer">consumer</a> libraries on npm.</li>
+<li><a href="https://andreibesleaga.substack.com/p/the-digital-sustainability-data-protocol" rel="noopener noreferrer">Introductory article</a>.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8615" rel="noopener noreferrer">RFC 8615</a>, well-known URIs, and the
+<a href="https://www.iana.org/assignments/well-known-uris/" rel="noopener noreferrer">IANA registry</a>.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110" rel="noopener noreferrer">RFC 9110</a>, HTTP semantics.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8927" rel="noopener noreferrer">RFC 8927</a> (JTD) and
+<a href="https://www.rfc-editor.org/rfc/rfc8610" rel="noopener noreferrer">RFC 8610</a> (CDDL), the schemas.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc7515" rel="noopener noreferrer">RFC 7515</a>, JWS (§7.1 compact form, §4.1.10 <code>cty</code>).</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8414" rel="noopener noreferrer">RFC 8414</a>, the <code>signed_metadata</code> precedent.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc3986" rel="noopener noreferrer">RFC 3986</a>, URIs, and
+<a href="https://www.rfc-editor.org/rfc/rfc9562" rel="noopener noreferrer">RFC 9562</a>, UUIDs (extension keys).</li>
+<li><a href="https://www.w3.org/TR/vc-data-model-2.0/" rel="noopener noreferrer">VC Data Model 2.0</a> and
+<a href="https://www.w3.org/TR/vc-jose-cose/" rel="noopener noreferrer">VC-JOSE-COSE</a>, the attestation.</li>
+<li><a href="https://ghgprotocol.org/" rel="noopener noreferrer">GHG Protocol</a>, scopes and accounting bases.</li>
+<li><a href="https://sci.greensoftware.foundation/" rel="noopener noreferrer">Software Carbon Intensity</a>, <code>sci-score</code>.</li>
 </ul>
 </main>
 
 <footer>
 <p>A specification-demonstration service. Health check:
 <a href="/healthz"><code>/healthz</code></a>.</p>
-<p><strong>Operator &amp; contact:</strong> ${OPERATOR_NAME}, ${OPERATOR_EMAIL} — a private
+<p><strong>Operator &amp; contact:</strong> ${OPERATOR_NAME}
+(<a href="${OPERATOR_CONTACT_URL}" rel="noopener noreferrer">contact routes</a>,
+<a href="${ISSUES_URL}" rel="noopener noreferrer">issues</a>) — a private
 individual running a non-commercial demonstration. Not affiliated with, and not endorsed by, any
 reporting subject listed above. Company, product and service names and trademarks belong to their
 owners and are used only to identify whose published report a document is mapped from.</p>
@@ -900,7 +851,7 @@ its owner, under its owner's terms, and is the only authoritative record.</p>
 purposes only and is provided &quot;as is&quot;, without warranty of any kind. Figures are
 traceable to the cited public source documents but may lag the subjects&#39; own publications.
 Nothing here is investment, rating, audit, regulatory or compliance advice, and the documents
-must not be relied on for any such purpose. To the fullest extent the applicable law allows, the
+are not intended for, and should not be relied on for, any such purpose. To the fullest extent the applicable law allows, the
 operator accepts no liability for use of, or reliance on, this service.</p>
 <p><strong>Privacy:</strong> No cookies, accounts, analytics or tracking. Requests are counted
 per client address in memory to limit abuse; the counts are not stored. The theme choice above is

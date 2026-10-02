@@ -38,7 +38,10 @@ describe("issue-attestation", () => {
     expect(c.validUntil).toBe("2031-09-15T10:00:00Z");
     expect(c.credentialSubject.id).toBe(`${DEFAULTS.gateway}/.well-known/sustainability-data`);
     expect(c.credentialSubject.model["constant-draw-watts"]).toBe(3);
-    expect(c.credentialSubject.model["grid-intensity-gCO2e-per-kWh"]).toBe(373);
+    expect(c.credentialSubject.model["grid-intensity-gCO2e-per-kWh"]).toBe(245); // NL 2024, EEA
+    // The months whose power was entered are part of the attested model.
+    expect(buildCredential({ now: NOW, wattsByMonth: { "2026-09": 0.0149 } }).credentialSubject.model["entered-watts-by-month"])
+      .toEqual({ "2026-09": 0.0149 });
     expect(c.credentialSubject["live-since"]).toBe("2026-07-30T00:00:00Z");
     expect(c.description).toContain("the same person");
   });

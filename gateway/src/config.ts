@@ -224,7 +224,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
       period: process.env.SELF_PERIOD || undefined,
       watts: envNum("SELF_WATTS", 3),
       measured: true,
-      gridIntensity: envNum("SELF_GRID_INTENSITY", 373),
+      gridIntensity: envNum("SELF_GRID_INTENSITY", 245),
       liveSince: envInstant("SELF_LIVE_SINCE", "2026-07-30T00:00:00Z"),
       verifiableAttestationUri: process.env.SELF_ATTESTATION_URI || undefined,
       signingKeyUrl: process.env.SELF_SIGNING_KEY_URL ? envUrl("SELF_SIGNING_KEY_URL", "") : undefined,

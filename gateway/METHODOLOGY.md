@@ -244,7 +244,9 @@ badges them `synthetic`.
   joule counters, Prometheus stores them, the adapter sums them, the normalizer
   converts J to kWh and applies a grid factor — with the network call replaced
   by a fixture. The recorded counters are invented: two nodes at roughly 125 W
-  average across the 2025 calendar year.
+  average across the 2025 calendar year. Its `measurement-method` is
+  `hardware-estimated` (the publisher library's Kepler default since 0.7.2):
+  Kepler attributes power from hardware counters and models; it is not a meter.
 
 ## 4. The adapter demonstrations
 

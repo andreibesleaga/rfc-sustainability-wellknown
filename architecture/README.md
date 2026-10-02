@@ -247,7 +247,7 @@ revisions **-05** (posted 2026-07-28), **-04** (URI suffix renamed to
 (posted 2026-07-23) are prior history; the schema label was `2.0` from `-03`
 through `-06` and is removed entirely in `-07`. The diagrams and prose below
 describe the `-07` wire protocol throughout, and the reference codebase
-(`publisher/` 0.7.1 and `consumer/` 0.7.0, `schemas-validators/`, the gateway)
+(`publisher/` 0.7.2 and `consumer/` 0.7.0, `schemas-validators/`, the gateway)
 implements it. Two habits of the implementations are not `-07` requirements
 and are labelled as such where they appear: the publisher keeps a defensive
 366-object cap, and the servers still send `X-Content-Type-Options: nosniff`.

@@ -126,7 +126,8 @@ describe("kepler-prometheus adapter in replay mode", () => {
     expect(d["energy-consumption"]).toBe(2190);
     expect(d["energy-unit"]).toBe("kWh");
     expect(d["carbon-footprint"]).toBeCloseTo(2190 * 373, 2);
-    expect(d["measurement-method"]).toBe("hardware-metered");
+    // Kepler models power from hardware counters; it is not a meter (publisher 0.7.2).
+    expect(d["measurement-method"]).toBe("hardware-estimated");
     expect(d["reporting-period"]).toBe("2025");
     expect(s.synthetic).toBe(true);
     expect(d.provider).toContain("SYNTHETIC");

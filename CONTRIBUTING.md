@@ -105,3 +105,40 @@ welcome.
 
 Contributions are accepted under the Revised BSD License (see [LICENSE](LICENSE)). The
 Internet-Draft text is subject to BCP 78 and the IETF Trust's Legal Provisions.
+
+## Support and governance
+
+**Getting help.** Ask questions in a GitHub issue (use the `question` label) or in the
+repository's Discussions. Please ask in public rather than by private e-mail, so the answer
+can help the next person and the history stays visible.
+
+**Reporting a problem.** Open an issue with the package and version, what you ran, what you
+expected and what happened. Security vulnerabilities are the one exception: report them
+privately as described in [SECURITY.md](SECURITY.md). Comments on the Internet-Draft
+**text** belong in the IETF process (see the draft's Datatracker page); comments on the code,
+the schemas, the examples or the documentation belong here.
+
+**Who decides.** The project has one maintainer, the draft's author, who reviews and merges
+every change and decides what goes into a release. Decisions are made in the open: the
+reasoning for a change is written in its issue or pull request, and changes to the
+specification are recorded in [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md).
+The specification itself is not decided here: the Internet-Draft follows the IETF process,
+and the code follows the draft (see "The schema identity rule" above).
+
+**What to expect from a single maintainer.** This is maintained on a best-effort basis, with
+no paid support. The aim is to acknowledge new issues and pull requests within **7 days** and
+to give a decision or a next step within **30 days**. If a report has had no answer after 7
+days, a short follow-up comment on it is welcome. Security reports follow the times in
+[SECURITY.md](SECURITY.md).
+
+**How outside contributions are reviewed.** Every pull request, including the maintainer's
+own, must pass `full-verify.yml` (and `gateway.yml` or `sfc-compliance.yml` when it touches
+those areas). It is then read against the draft: a change that alters what a conforming
+document or response looks like needs a draft revision first (see above). Review comments
+are given on the pull request; if a contribution is declined, the reason is stated there.
+Contributors are credited in the release notes unless they ask not to be. To run every
+check on your machine before you open a pull request, use
+`bash scripts/test-everything.sh` (it lists what it needs and what it runs).
+
+**Conduct.** Everyone taking part is expected to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md).

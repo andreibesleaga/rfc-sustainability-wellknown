@@ -135,7 +135,9 @@ rfc-sustainability-wellknown/
 ├── SIGNING-AND-ATTESTATION.md  # How to deploy the OPTIONAL signature and a Verifiable Credential (publisher, attester, consumer); covers -07's embedded `signed` member
 ├── ADOPTION.md                 # The case for RFC/IANA adoption (business, technical, regulatory benefits)
 ├── IMPLEMENTATIONS.md          # Implementations and live deployments (RFC 7942 style); implementations.json is the checked list
-├── CONTRIBUTING.md             # How to build, test and change the draft or the packages
+├── scripts/test-everything.sh  # Builds and tests every area in one run, from a clean clone
+├── CONTRIBUTING.md             # How to build, test and change the draft or the packages; support and governance
+├── CODE_OF_CONDUCT.md          # Contributor Covenant 2.1
 ├── SECURITY.md                 # Vulnerability reporting and supported versions
 ├── CITATION.cff                # How to cite the specification
 └── llms.txt                    # Machine-readable summary of the repository for AI assistants

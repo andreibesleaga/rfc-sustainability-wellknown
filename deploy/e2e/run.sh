@@ -85,14 +85,15 @@ run_go() {
   start go env SD_FILE="$DOC" PORT="$PORT" "$HERE/.go-bin"
 }
 run_caddy() {
-  ln -sfn "$KIT/www" "$KIT/proxies/caddy/www"
   if command -v caddy >/dev/null; then
-    start caddy bash -c "cd '$KIT/proxies/caddy' && exec caddy run --config Caddyfile --adapter caddyfile"
+    # The recipe as shipped, with only its port and document root pointed at this run.
+    sed "s/:8080/:$PORT/; s#root \\* www#root * $KIT/www#" "$KIT/proxies/caddy/Caddyfile" > "$HERE/.Caddyfile"
+    start caddy caddy run --config "$HERE/.Caddyfile" --adapter caddyfile
+    rm -f "$HERE/.Caddyfile"
   else
     start caddy docker run --rm --network host -v "$KIT/proxies/caddy/Caddyfile:/etc/caddy/Caddyfile:ro" -v "$KIT/www:/srv/www:ro" -w /srv caddy:2-alpine \
       sh -c "sed 's/:8080/:$PORT/; s#root \\* www#root * /srv/www#' /etc/caddy/Caddyfile > /tmp/Caddyfile && exec caddy run --config /tmp/Caddyfile --adapter caddyfile"
   fi
-  rm -f "$KIT/proxies/caddy/www"
 }
 run_nginx() {
   local prefix="$HERE/.nginx" conf

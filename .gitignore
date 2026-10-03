@@ -23,6 +23,7 @@ sfc-compliance/package-lock.json
 
 # deploy/e2e/run.sh scratch files
 deploy/e2e/.go-bin
+deploy/e2e/.Caddyfile
 deploy/e2e/.nginx/
 deploy/e2e/.apache/
 deploy/proxies/caddy/www

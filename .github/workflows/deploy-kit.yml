@@ -70,6 +70,7 @@ jobs:
         working-directory: deploy/wordpress/sustainability-data-wellknown
         run: |
           dir="$RUNNER_TEMP/phpcs"; mkdir -p "$dir"
+          echo '{}' > "$dir/composer.json" # composer config needs a project file to write to
           (cd "$dir" && composer config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true \
             && composer require --dev --no-interaction --quiet wp-coding-standards/wpcs:"^3.1" phpcompatibility/phpcompatibility-wp:"*" dealerdirect/phpcodesniffer-composer-installer)
           "$dir/vendor/bin/phpcs" --standard=WordPress-Extra sustainability-data-wellknown.php uninstall.php includes/

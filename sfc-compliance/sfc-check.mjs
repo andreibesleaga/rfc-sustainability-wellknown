@@ -201,7 +201,7 @@ function checkC3(rows, obj) {
     const status = nz["net-zero-status"];
     const known = ["achieved", "partial", "not-achieved"].includes(status);
     const via = isString(nz["renewable-procurement"]) ? ` via ${nz["renewable-procurement"]}` : "";
-    const retired = isNumber(nz["offsets-retired-tCO2e"]) ? `, ${nz["offsets-retired-tCO2e"]} tCO2e retired` : "";
+    const retired = isNumber(nz["offsets-retired-tCO2e"]) ? `, ${nz["offsets-retired-tCO2e"]} tCO2e retired and allocated to the period` : "";
     rows.push(
       known
         ? row("DECLARED", "C3-net-zero", `net-zero-status=${status}${via}${retired}. This is the publisher's own claim`)

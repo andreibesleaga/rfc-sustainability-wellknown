@@ -207,6 +207,7 @@ describe("adapter demonstrations", () => {
       "watershed",
       "yang-power-energy",
       "dist",
+      "sfc-ledger-bridge",
     ]) {
       expect(covered, name).toContain(name);
     }

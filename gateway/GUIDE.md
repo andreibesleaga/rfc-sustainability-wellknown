@@ -348,6 +348,7 @@ which reads the same data from a file, is not used here):
 | `watershed-demo.example` | `watershed` | replay (customer-only API keys, no sandbox) |
 | `yang-energy-demo.example` | `yang-power-energy` (this gateway's own, `src/adapters/yang-power-energy.ts`) | **replay** — two recorded RFC 7951 snapshots of the IETF GREEN `ietf-power-and-energy` module; invented figures; no public RESTCONF server implements the draft |
 | `dist-demo.example` | `dist` (this gateway's own, `src/adapters/dist.ts`) | **live** — the Green Web Foundation's own `dist.json`, fetched daily and summed under strict rules (CC BY 4.0, attributed in band); replay of a recorded copy when unreachable |
+| `sfc-ledger-demo.example` | `sfc-ledger-bridge` (this gateway's own, `src/adapters/sfc-ledger-bridge.ts`), EXPERIMENTAL | **replay** — a recorded synthetic ledger excerpt (one operator, January–April 2026) signed with the public RFC 8032 test key; the declaration is signed with the same key and carries the `ledger-evidence` extension of disclosure profile 1.1; both bridge checks run on it at boot |
 
 The mode contract lives in `src/live.ts`: a live build failure at boot falls
 back to the recorded fixture (the gateway never refuses to start because
@@ -688,7 +689,9 @@ service. It exercises every optional part of the draft:
   gateway verifies the signed self declaration once with the consumer library
   and refuses to start if that fails; a key that cannot be imported also stops
   the boot. Relayed declarations are never signed: the gateway can vouch for its
-  own bytes, never for a third party's figures.
+  own bytes, never for a third party's figures. (The synthetic
+  `sfc-ledger-demo.example` is the stated exception: it is signed with the public
+  RFC 8032 test key, which is nobody's statement.)
 - **Upstream.** The gateway's own declaration carries **no** `upstream` member.
   The hosting platform publishes no declaration, so naming one would be false —
   an honest illustration of the mechanism's limit, stated on the front page. The

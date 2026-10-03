@@ -223,7 +223,7 @@ describe("index routes", () => {
     expect(html.match(/<caption class="visually-hidden">/g) ?? []).toHaveLength(tables.length);
     expect(html.match(/role="region" tabindex="0" aria-label="[^"]+, scrollable"/g) ?? []).toHaveLength(tables.length);
     expect(html).not.toMatch(/<th>(?!<)/); // every header cell carries scope="col"
-    expect(html).toContain("Adapter demonstrations (10)");
+    expect(html).toContain(`Adapter demonstrations (${srv.gw.live.managed.size})`);
     expect(html).toContain("Wire-format examples (22)");
     expect(html).toContain("Consumer cross-validation");
   });

@@ -25,7 +25,10 @@ itself published. These documents:
   be mistaken for a statement made or vouched for by the organization.
 
 Documents under a reserved name ending in .example are synthetic. Their figures
-are invented and describe nothing real.
+are invented and describe nothing real. One of them, sfc-ledger-demo.example,
+carries a signature made with a publicly known test key (RFC 8032); that
+signature shows how verification works and is not a statement by the operator
+or by anyone else.
 
 ## 3. What is taken from the sources, and what is not
 

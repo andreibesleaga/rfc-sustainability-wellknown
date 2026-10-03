@@ -17,7 +17,7 @@
  * Nothing here bypasses the publisher pipeline: every mode ends in
  * `subjectFromAdapter`, i.e. the published validation gate.
  */
-import type { SourceAdapter, SustainabilityMetrics } from "sustainability-wellknown-publisher";
+import { importSigningKey, type SourceAdapter, type SustainabilityMetrics } from "sustainability-wellknown-publisher";
 import { subjectFromAdapter, type Subject } from "./registry";
 
 /** Dependencies injected into adapter builders (all overridable in tests). */
@@ -57,6 +57,20 @@ export interface LiveSpec {
    * it becomes. Served verbatim at `/{domain}/input`.
    */
   input?: DemoInput;
+  /**
+   * Private JWK that signs this demonstration's declaration (draft -07
+   * §Signing). Only for a synthetic subject whose key is a published test
+   * vector; never the gateway's own key, which signs the self report alone.
+   */
+  signingJwk?: string | Record<string, unknown>;
+  /**
+   * Run on the built subject before it is served; throw to refuse it. At boot,
+   * a throw on the fixture stops the boot like any other fixture defect, and a
+   * throw on a live build counts as a live failure (the fixture is served
+   * instead). On a refresh every failure is recorded as `upstreamError` and the
+   * last good subject stays served.
+   */
+  selfCheck?: (subject: Subject) => Promise<void> | void;
 }
 
 /** A demonstration's recorded input and what a reader needs to know about it. */
@@ -101,6 +115,17 @@ async function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<
   }
 }
 
+/** The publisher's signing option for a spec that signs its own demonstration. */
+async function signingFor(spec: LiveSpec): Promise<{ signing: { key: Awaited<ReturnType<typeof importSigningKey>> } } | Record<string, never>> {
+  return spec.signingJwk ? { signing: { key: await importSigningKey(spec.signingJwk) } } : {};
+}
+
+/** Build, then let the spec refuse the result. */
+async function checked(spec: LiveSpec, subject: Subject): Promise<Subject> {
+  if (spec.selfCheck) await spec.selfCheck(subject);
+  return subject;
+}
+
 /** Attempt the live build alone. Returns null when prerequisites are missing. */
 async function tryLive(spec: LiveSpec, deps: LiveDeps): Promise<Subject | null> {
   if (!spec.live || deps.fetchImpl === null) return null;
@@ -111,13 +136,17 @@ async function tryLive(spec: LiveSpec, deps: LiveDeps): Promise<Subject | null> 
     (async () => {
       const adapter = await live(deps);
       if (!adapter) return null;
-      return subjectFromAdapter({
-        domain: spec.domain,
-        adapter,
-        target: spec.target,
-        targetType: spec.targetType,
-        label: spec.labelLive,
-      });
+      return checked(
+        spec,
+        await subjectFromAdapter({
+          domain: spec.domain,
+          adapter,
+          target: spec.target,
+          targetType: spec.targetType,
+          label: spec.labelLive,
+          ...(await signingFor(spec)),
+        }),
+      );
     })(),
     LIVE_BUILD_TIMEOUT_MS,
     `live:${spec.domain}`,
@@ -125,13 +154,17 @@ async function tryLive(spec: LiveSpec, deps: LiveDeps): Promise<Subject | null> 
 }
 
 async function buildFixture(spec: LiveSpec, deps: LiveDeps): Promise<Subject> {
-  return subjectFromAdapter({
-    domain: spec.domain,
-    adapter: spec.fixture(deps),
-    target: spec.target,
-    targetType: spec.targetType,
-    label: spec.labelFixture,
-  });
+  return checked(
+    spec,
+    await subjectFromAdapter({
+      domain: spec.domain,
+      adapter: spec.fixture(deps),
+      target: spec.target,
+      targetType: spec.targetType,
+      label: spec.labelFixture,
+      ...(await signingFor(spec)),
+    }),
+  );
 }
 
 export class LiveRegistry {

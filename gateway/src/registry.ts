@@ -224,7 +224,9 @@ export async function subjectFromAdapter(opts: {
    * Draft -07 §Signing: when set, the publisher embeds a `signed` member in
    * every declaration object it builds — including each object of an Extended
    * trend array. Only the gateway's own report is ever signed here: a relayed
-   * document is not the gateway's to vouch for.
+   * document is not the gateway's to vouch for. The one exception is the
+   * synthetic `sfc-ledger-demo.example`, signed with the public RFC 8032 test
+   * key, never with the gateway's key.
    */
   signing?: SigningOptions;
 }): Promise<Subject> {

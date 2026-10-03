@@ -250,9 +250,9 @@ badges them `synthetic`.
 
 ## 4. The adapter demonstrations
 
-Nine further `.example` subjects — with `kepler-demo.example` above, the
+Ten further `.example` subjects — with `kepler-demo.example` above, the
 index's "Adapter demonstrations" section — run every upstream-backed adapter shipped by the published publisher package end to
-end, plus two adapters that live in this gateway (described at the end of this section). Two of them point their `methodology-uri` at this document:
+end, plus three adapters that live in this gateway (described at the end of this section). Three of them point their `methodology-uri` at this document (the third, `sfc-ledger-demo.example`, is described with the gateway's own adapters below):
 
 - **`grid-intensity-demo.example`** (`computed` adapter) uses the gateway's own
   monthly energy exactly as §2 states it — the entered figure for a measured
@@ -278,7 +278,7 @@ and run in the modes documented in GUIDE.md, "Wiring an adapter": live where
 an upstream's license permits attributed republication, replay of a recorded
 response otherwise, always saying which in band.
 
-Two adapters are this gateway's own (`src/adapters/`), not the publisher package's:
+Three adapters are this gateway's own (`src/adapters/`), not the publisher package's:
 
 - **`yang-energy-demo.example`** (`yang-power-energy`) reads the IETF GREEN
   working group's Power and Energy YANG module (`ietf-power-and-energy`,
@@ -302,6 +302,33 @@ Two adapters are this gateway's own (`src/adapters/`), not the publisher package
   says how many of each it met. The file as retrieved on 2026-10-01 holds one
   repeated entry; summed this way it gives 496 kgCO2e, the total the method
   pages it cites print.
+
+- **`sfc-ledger-demo.example`** (`sfc-ledger-bridge`, EXPERIMENTAL) implements
+  the SFC ledger bridge of SFC ledger profile 1.2: from one operator's
+  signed monthly `EnergyAttested` and `CarbonAttested` events and the Registry's
+  keys to one signed declaration. Energy and the two scopes are the sums of the
+  month's effective attestations; `carbon-footprint` is their gross sum, never
+  reduced by credits; the retired credits allocated to the month go, in tonnes,
+  into `carbon-neutrality`, and the chain heads, event counts, sums and the
+  offset-coverage result into the `ledger-evidence` extension (SFC disclosure
+  profile 1.1 §5.5). It
+  refuses to publish when a hash, signature, `prev` link, timestamp, allocation
+  or `netZero` flag fails its own check, and publishes a failed or silent month
+  with `offset-coverage-every-period: false` (a silent month also drops the
+  top-level figure it leaves unknown). The rules it enforces are listed in the
+  module comment of `src/adapters/sfc-ledger-bridge.ts`, and every name and
+  bound it uses comes from one descriptor, `src/adapters/sfc-ledger-profile.ts`,
+  so a later profile version is a second descriptor. Replay only, from a recorded
+  synthetic excerpt (the worked example of operator 7, April 2026); every
+  signature in it, the declaration's included, uses the public RFC 8032 test
+  key, so it demonstrates the checks and nothing about who signed. The excerpt
+  is served at `/sfc-ledger-demo.example/input`, which is also the declaration's
+  `ledger-access-uri`, so the deep check can be run by anyone
+  (`node scripts/sfc-ledger-check.mjs <url>`); the gateway runs both checks on
+  the served document at boot and refuses to start if either fails. The
+  disclosure profile 1.1 defines the extension and lets a publisher emit it;
+  the bridge is labelled experimental because it is one synthetic operator in
+  replay, and no public ledger exists. The document is `target-type: "origin"`.
 
 ## 5. Signature and attestation
 
@@ -365,7 +392,9 @@ in its own words, on its index page and in the credential's description.
 ### Third parties
 
 The relayed declarations are not signed and carry no attestation: the gateway
-can vouch for its own bytes, never for another organization's figures. -07
+can vouch for its own bytes, never for another organization's figures. (The
+synthetic `sfc-ledger-demo.example` is the stated exception: it is signed with
+the public RFC 8032 test key, which is nobody's statement.) -07
 defines one resource and no signature path, so a request for the withdrawn
 `.jws` path is an ordinary `404`, at the root and under a subject alike.
 
@@ -437,10 +466,10 @@ minted for these two files so that the draft's own `urn:uuid:16c36135…` name
 above keeps its one meaning (`packaging-recycled-percent`): a name is compared
 octet for octet, and one name never carries two definitions.
 
-### `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle`, `.../carbon-neutrality` and `.../network-topology`
+### `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle`, `.../carbon-neutrality`, `.../network-topology` and `.../ledger-evidence`
 
-Three names minted under a domain the gateway operator controls and carried by
-the synthetic `sfc-network.example` and `sfc-operator.example` documents. Their
+Four names minted under a domain the gateway operator controls and carried by
+the synthetic `sfc-network.example`, `sfc-operator.example` and `sfc-ledger-demo.example` documents. Their
 normative definitions are in
 [`sfc-compliance/PROFILE.md`](../sfc-compliance/PROFILE.md), not in this
 document; what each document here actually carries is listed in
@@ -467,6 +496,15 @@ document; what each document here actually carries is listed in
   `upstream` cannot express because a network is not a supplier
   (`network-declaration` is defined by the profile but carried by neither
   document here).
+- **`.../ledger-evidence`** (new in disclosure profile 1.1; its members are those
+  of SFC ledger profile 1.2) — where to read the ledger and what the declaration rests on:
+  `profile-version`, `ledger-access-uri`, `hash-algorithm`, `event-encoding`,
+  `period-start`, `period-end`, and per operator `operator`, `energy-head`,
+  `carbon-head` (64-hex SHA-256 of the RFC 8785 form of the latest event),
+  `energy-events`, `carbon-events`, `kwh` (kWh), `scope2-kgco2e`,
+  `scope3-kgco2e`, `offsets-kgco2e` (kgCO2e), `offset-coverage-every-period`
+  (boolean); at network level also `network-offset-coverage`. Carried only by
+  `sfc-ledger-demo.example`, generated in code (§4).
 
 ### The six `https://greenhost.example/esg/extensions/…` names
 

@@ -1,7 +1,7 @@
 /**
- * The two gateway-local adapters (IETF GREEN power-and-energy YANG module;
- * Green Web Foundation DIST) and the operator's monthly figures for the self
- * report.
+ * Two of the gateway-local adapters (IETF GREEN power-and-energy YANG module;
+ * Green Web Foundation DIST; the SFC ledger bridge has its own test file) and
+ * the operator's monthly figures for the self report.
  */
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

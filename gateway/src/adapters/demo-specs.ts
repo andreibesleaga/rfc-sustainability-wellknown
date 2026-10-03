@@ -45,8 +45,10 @@ import {
   type SourceAdapter,
 } from "sustainability-wellknown-publisher";
 import type { RawMetrics } from "sustainability-wellknown-publisher";
-import type { GatewayConfig } from "../config";
+import { PUBLIC_BASE_URL, type GatewayConfig } from "../config";
 import type { LiveDeps, LiveSpec } from "../live";
+import { SFC_LEDGER_DEMO_DOMAIN, deepCheck, sfcLedgerBridgeAdapter, shallowCheck } from "./sfc-ledger-bridge";
+import { SFC_LEDGER_FIXTURE, SFC_LEDGER_PROVIDER, SFC_LEDGER_TEST_PRIVATE_JWK, SFC_LEDGER_TEST_PUBLIC_JWK } from "./sfc-ledger-fixture";
 import { KEPLER_FIXTURE_2025, keplerReplayAdapter } from "./kepler-replay";
 import { GWF_DIST_FIXTURE, GWF_DIST_URL, distLiveAdapter, distReplayAdapter, fetchGwfDist } from "./dist";
 import {
@@ -681,6 +683,47 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
           "the current file daily; the live link shows it.",
         license: { name: "CC BY 4.0", url: "https://creativecommons.org/licenses/by/4.0/" },
         liveUrl: GWF_DIST_URL,
+      },
+    },
+    {
+      // EXPERIMENTAL. Gateway-local adapter for the SFC ledger bridge (SFC ledger
+      // profile 1.2): a recorded, synthetic ledger excerpt signed with the
+      // public RFC 8032 test key, turned into a signed operator declaration that
+      // carries the ledger-evidence extension of disclosure profile 1.1. Replay only: no public
+      // SFC ledger exists. The declaration is signed with the same test key,
+      // never with the gateway's own, and both checks of the bridge run on the
+      // served document at boot (a failure stops the boot, like a bad fixture).
+      domain: SFC_LEDGER_DEMO_DOMAIN,
+      target: SFC_LEDGER_FIXTURE.publication.target,
+      targetType: "origin",
+      fixture: () =>
+        sfcLedgerBridgeAdapter({
+          excerpt: SFC_LEDGER_FIXTURE,
+          mode: "operator",
+          provider: SFC_LEDGER_PROVIDER,
+          methodologyUri: config.self.methodologyUri,
+          // ledger-access-uri must be an https URI (profile §A.9.2): a local http BASE_URL
+          // would make the served document point at the reference deployment instead.
+          ledgerAccessUri: `${(/^https:/.test(config.baseUrl) ? config.baseUrl : PUBLIC_BASE_URL).replace(/\/+$/, "")}/${SFC_LEDGER_DEMO_DOMAIN}/input`,
+        }),
+      signingJwk: SFC_LEDGER_TEST_PRIVATE_JWK,
+      selfCheck: async (subject) => {
+        const shallow = await shallowCheck(subject.document, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK] });
+        const deep = deepCheck(subject.document, SFC_LEDGER_FIXTURE);
+        const bad = [...shallow.rows, ...deep.rows].filter((r) => r.status === "FAIL").map((r) => `${r.id}: ${r.detail}`);
+        if (bad.length > 0) throw new Error(`sfc-ledger-bridge self-check failed:\n  ${bad.join("\n  ")}`);
+      },
+      labelFixture: "adapter:sfc-ledger-bridge (recorded ledger excerpt, replay, experimental)",
+      labelLive: "adapter:sfc-ledger-bridge",
+      upstream: "SFC ledger profile 1.2 attestation events (recorded synthetic excerpt; no public ledger; replay)",
+      attribution: "synthetic figures; events and declaration signed with the public RFC 8032 test key",
+      input: {
+        body: SFC_LEDGER_FIXTURE,
+        note:
+          "A recorded excerpt of a synthetic ledger: one operator's signed monthly EnergyAttested and " +
+          "CarbonAttested events for January to April 2026, its Registry key and its signed allocation of one " +
+          "retired tonne. Every figure is invented; every signature uses the public RFC 8032 test key. The " +
+          "declaration's ledger-evidence extension points here, so a reader can run the deep check.",
       },
     },
   ];

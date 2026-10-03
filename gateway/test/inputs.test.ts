@@ -19,7 +19,7 @@ afterAll(async () => {
 describe("recorded inputs of the adapter demonstrations", () => {
   it("every demonstration publishes one, served verbatim as JSON", async () => {
     const demos = [...srv.gw.live.managed.values()];
-    expect(demos.length).toBe(10);
+    expect(demos.length).toBe(11);
     for (const m of demos) {
       const input = m.spec.input;
       expect(input, m.spec.domain).toBeDefined();

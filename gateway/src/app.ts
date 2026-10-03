@@ -609,6 +609,9 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   await live.init(specs);
   for (const m of live.managed.values()) {
     subjects.set(m.spec.domain, m.subject);
+    // A spec with its own self-check (the SFC ledger bridge runs both of its
+    // depths on the served document) has passed it, or init() would have thrown.
+    if (m.spec.selfCheck) log({ ts: clock().toISOString(), level: "info", event: "demo-self-check", domain: m.spec.domain, mode: m.mode, result: "pass" });
   }
 
   // ---- Consumer cross-validation: every served document must satisfy the

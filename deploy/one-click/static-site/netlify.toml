@@ -1,0 +1,7 @@
+[[headers]]
+  for = "/.well-known/sustainability-data"
+  [headers.values]
+    Content-Type = "application/sustainability-data+json"
+    X-Content-Type-Options = "nosniff"
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=86400"

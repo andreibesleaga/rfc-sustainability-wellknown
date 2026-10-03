@@ -91,7 +91,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 cd gateway
 npm install
 npm run build
-npm test                       # 464 tests
+npm test                       # 473 tests
 node dist/index.js             # binds 0.0.0.0:8080
 ```
 

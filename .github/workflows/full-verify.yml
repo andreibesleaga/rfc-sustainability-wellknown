@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.2" }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - run: gem install kramdown-rfc2629
       - run: python3 -m pip install xml2rfc
@@ -62,13 +62,41 @@ jobs:
           code=$?
           set -e
           [ "$code" -eq 3 ] && test -f out/candidate.json && ! test -f out/declaration.json
+      - name: create-sustainability-data tests
+        working-directory: tools/create-sustainability-data
+        run: node --test test/*.test.mjs
+
+  bdd-and-fitness:
+    # The scenarios and the fitness functions run against the SOURCE builds of the
+    # three packages, so a regression is caught before a release, not after.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with: { node-version: "22" }
+      - name: Build publisher and consumer, then the gateway against those source builds
+        run: |
+          (cd publisher && npm ci --no-audit --no-fund && npm run build)
+          (cd consumer  && npm ci --no-audit --no-fund && npm run build)
+          (cd gateway   && npm ci --no-audit --no-fund)
+          bash scripts/overlay-source-libs.sh
+      - name: Traceability (every normative sentence of the draft has a scenario)
+        working-directory: bdd
+        run: npm ci --no-audit --no-fund && npm run trace
+      - name: Behaviour scenarios
+        working-directory: bdd
+        run: npm test
+      - name: Architecture fitness functions
+        working-directory: fitness
+        run: npm test
 
   schemas:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.2" }
@@ -126,7 +154,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - uses: actions/setup-node@v7
         with: { node-version: "22" }
@@ -205,9 +233,9 @@ jobs:
           apache2 -f /tmp/apache-fv/httpd.conf -k stop
 
   summary:
-    needs: [draft, schemas, publisher, consumer, example-scripts-and-server-configs]
+    needs: [draft, tools, bdd-and-fitness, schemas, publisher, consumer, example-scripts-and-server-configs]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - run: |
-          echo "All areas verified green: draft, schemas, publisher, consumer, example-scripts, server-configurations."
+          echo "All areas verified green: draft, tools, bdd-and-fitness, schemas, publisher, consumer, example-scripts, server-configurations."

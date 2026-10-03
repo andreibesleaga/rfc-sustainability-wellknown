@@ -3,7 +3,7 @@
  * Each test fails on 0.7.1.
  */
 import { describe, expect, it } from "vitest";
-import { Publisher, handleRequest, keplerPrometheusAdapter, type RawMetrics, type ServiceQuery, type SourceAdapter } from "../src";
+import { NotFoundError, Publisher, handleRequest, keplerPrometheusAdapter, type RawMetrics, type ServiceQuery, type SourceAdapter } from "../src";
 import { round } from "../src/util";
 
 const base = (period: string, wh: number): RawMetrics => ({
@@ -88,5 +88,29 @@ describe("every error response carries nosniff", () => {
     const r = await handleRequest(new Publisher(failing, { cacheTtlMs: 0 }), {}, { onError: () => {} });
     expect(r.status).toBe(503);
     expect(r.headers["X-Content-Type-Options"]).toBe("nosniff");
+  });
+});
+
+describe("0.7.3: human-readable text is emitted in Normalization Form C", () => {
+  it("normalizes a decomposed provider name and leaves target untouched", async () => {
+    const nfd = "Café Org";
+    const adapter: SourceAdapter = { name: "nfd", capabilities: "basic", fetch: async () => base("2026-01", 1000) } as SourceAdapter;
+    const pub = new Publisher({ ...adapter, fetch: async () => ({ ...base("2026-01", 1000), provider: nfd, target: nfd }) }, { cacheTtlMs: 0 });
+    const doc = (await pub.build({})) as Record<string, unknown>;
+    expect(doc.provider).toBe("Café Org");
+    expect(doc.target).toBe(nfd);
+  });
+});
+
+describe("0.7.3: error bodies are English and say so", () => {
+  it("adds Content-Language: en to a 404 and a 503", async () => {
+    const empty = new Publisher({ name: "empty", capabilities: "basic", fetch: async () => { throw new NotFoundError(); } } as unknown as SourceAdapter, { cacheTtlMs: 0 });
+    const notFound = await handleRequest(empty, {}, { onError: () => {} });
+    expect(notFound.status).toBe(404);
+    expect(notFound.headers["Content-Language"]).toBe("en");
+    const failing = new Publisher({ name: "failing", capabilities: "basic", fetch: async () => { throw new Error("down"); } } as unknown as SourceAdapter, { cacheTtlMs: 0 });
+    const unavailable = await handleRequest(failing, {}, { onError: () => {} });
+    expect(unavailable.status).toBe(503);
+    expect(unavailable.headers["Content-Language"]).toBe("en");
   });
 });

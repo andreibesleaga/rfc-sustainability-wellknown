@@ -1,0 +1,3 @@
+# Not shipped in the WordPress.org zip
+/tests
+/.distignore

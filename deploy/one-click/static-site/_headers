@@ -1,0 +1,5 @@
+/.well-known/sustainability-data
+  Content-Type: application/sustainability-data+json
+  X-Content-Type-Options: nosniff
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=86400

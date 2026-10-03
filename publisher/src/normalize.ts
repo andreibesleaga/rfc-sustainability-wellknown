@@ -253,7 +253,9 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   const out: SustainabilityMetrics = {
     updated: raw.updated ?? nowIso(),
     capabilities: raw.capabilities ?? "basic",
-    provider: raw.provider,
+    // Human-readable text goes out in Normalization Form C (draft §Internationalization
+    // Considerations); `target` is opaque and is never normalized.
+    provider: raw.provider.normalize("NFC"),
     "measurement-method": raw.measurementMethod,
     "methodology-uri": raw.methodologyUri,
     "reporting-period": raw.reportingPeriod,

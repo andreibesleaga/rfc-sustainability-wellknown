@@ -88,7 +88,7 @@ See [GUIDE.md](../GUIDE.md#adding-a-subject) for the mechanical steps.
 | `withheld/microsoft.com.json` | Microsoft Corporation | **FY25**, ended 2025-06-30 | market-based | 2026 Environmental Data Fact Sheet | **fiscal year, not calendar year** |
 | `withheld/ovhcloud.com.json` | OVH Groupe SA (OVHcloud) | **FY2025**, ended 2025-08-31 | market-based | 2025 Universal Registration Document | **fiscal year, not calendar year** |
 | `withheld/scaleway.com.json` | Scaleway | 2024 (CY) | location-based | Impact Report 2025 | the report prints two totals; the table's is used |
-| `withheld/torchbox.com.json` | Torchbox | 2024 (CY) | location-based | 2024 impact report | the site's terms prohibit reuse (withheld 2026-10-02) |
+| `withheld/torchbox.com.json` | Torchbox | 2024 (CY) | location-based | 2024 impact report | the site's terms prohibit reuse (removed from the origin 2026-10-02; the hosting provider's edge cache kept serving the last copy for its 24-hour lifetime, still cached at 2026-10-03 08:38 UTC; no purge exists on the plan in use) |
 
 Plus `kepler-demo.example`, which has no file: it is generated in code by a
 publisher adapter (see below).

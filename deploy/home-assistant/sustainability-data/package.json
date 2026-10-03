@@ -1,0 +1,20 @@
+{
+  "name": "sustainability-data-home-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "BSD-3-Clause",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "sustainability-wellknown-publisher": "^0.7.2"
+  },
+  "devDependencies": {
+    "sustainability-wellknown-consumer": "^0.7.0"
+  }
+}

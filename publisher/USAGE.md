@@ -356,9 +356,9 @@ pipeline produced.
 
 ## 4. Writing a custom adapter (extensibility)
 
-The package ships ten adapters (`static`, `static-file`, `computed`, `kepler-prometheus`,
+The package ships twelve adapters (`static`, `static-file`, `computed`, `kepler-prometheus`,
 `climatiq`, `co2js`, `carbontxt-api`, `salesforce-nzc`, `ms-sustainability`,
-`watershed`), but any data source can plug in by implementing one interface:
+`watershed`, `csv`, `slurm-sacct`), but any data source can plug in by implementing one interface:
 
 ```ts
 export interface SourceAdapter {

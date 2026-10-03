@@ -1,0 +1,27 @@
+# Envoy: direct_response for the declaration with the four headers (edit the file path).
+static_resources:
+  listeners:
+    - address: { socket_address: { address: 0.0.0.0, port_value: 8080 } }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: www
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config: { "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router }
+                route_config:
+                  virtual_hosts:
+                    - name: www
+                      domains: ["*"]
+                      routes:
+                        - match: { path: "/.well-known/sustainability-data" }
+                          direct_response:
+                            status: 200
+                            body: { filename: /etc/envoy/sustainability-data }
+                          response_headers_to_add:
+                            - header: { key: Content-Type, value: application/sustainability-data+json }
+                            - header: { key: X-Content-Type-Options, value: nosniff }
+                            - header: { key: Access-Control-Allow-Origin, value: "*" }
+                            - header: { key: Cache-Control, value: "public, max-age=86400" }

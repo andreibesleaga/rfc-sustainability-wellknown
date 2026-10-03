@@ -9,6 +9,7 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 Well-Known URI* — the Datatracker document name is unchanged).
 Individual submission on the IETF **Independent Submission Stream** (Informational).
 
+- **`-08`** is **in preparation and not posted** (editorial: an RFC 7942 Implementation Status appendix, the worked example aligned with the live deployment, a mention of DIST, the contact address; no change to the format). It is built and checked by CI like every revision; it is posted only on the author's decision.
 - **`-07`** is the **latest posted** revision (posted 2026-09-17, under ISE review; sources in this
   directory: `draft-besleaga-sustainability-wellknown-07.{md,xml,txt}`); `-06` is the prior posted
   revision. `-07` withdraws the companion

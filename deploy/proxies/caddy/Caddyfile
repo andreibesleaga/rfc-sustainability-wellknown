@@ -1,0 +1,23 @@
+# Caddy: serves the document from ./www with the four headers; other methods get 405.
+:8080 {
+	root * www
+	@decl path /.well-known/sustainability-data
+	@other {
+		path /.well-known/sustainability-data
+		not method GET HEAD
+	}
+	handle @other {
+		header Allow "GET, HEAD"
+		respond 405
+	}
+	handle @decl {
+		header Content-Type application/sustainability-data+json
+		header X-Content-Type-Options nosniff
+		header Access-Control-Allow-Origin *
+		header Cache-Control "public, max-age=86400"
+		file_server
+	}
+	handle {
+		file_server
+	}
+}

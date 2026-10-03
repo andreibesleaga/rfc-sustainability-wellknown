@@ -1,0 +1,23 @@
+{
+  "routes": [
+    {
+      "route": "/.well-known/sustainability-data",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "headers": {
+        "Content-Type": "application/sustainability-data+json",
+        "X-Content-Type-Options": "nosniff",
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, max-age=86400"
+      }
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/.well-known/*"
+    ]
+  }
+}

@@ -4,6 +4,8 @@ export * from "./kepler-prometheus";
 export * from "./climatiq";
 export * from "./co2js";
 export * from "./carbontxt-api";
+export * from "./csv";
+export * from "./slurm-sacct";
 export * from "./enterprise/salesforce-nzc";
 export * from "./enterprise/ms-sustainability";
 export * from "./enterprise/watershed";

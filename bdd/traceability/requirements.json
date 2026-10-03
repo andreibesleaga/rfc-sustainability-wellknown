@@ -1,0 +1,797 @@
+{
+  "source": "draft-besleaga-sustainability-wellknown-07.md",
+  "count": 97,
+  "requirements": [
+    {
+      "id": "req-e38d33df",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ],
+      "text": "The declaration MUST be published and retrieved over HTTPS, and a consumer MUST NOT accept a declaration retrieved over unauthenticated HTTP."
+    },
+    {
+      "id": "req-addcb130",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A `GET` request without query parameters MUST be answered with `200 OK` and the declaration as the body, absent redirection or cache revalidation; responses to requests carrying query parameters are as {{extended-query-parameters}} specifies."
+    },
+    {
+      "id": "req-130b8253",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A `HEAD` request MUST receive the same status and header fields with no body."
+    },
+    {
+      "id": "req-aeecb2eb",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "When nothing is published, the server SHOULD respond `404 Not Found`."
+    },
+    {
+      "id": "req-5d25d3af",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "MAY"
+      ],
+      "text": "Access control is outside the scope of this document; a server MAY restrict access to the declaration, and a server that restricts or rate-limits a request responds as {{RFC9110}} defines (for example `401`, `403`, or `429`)."
+    },
+    {
+      "id": "req-b2e98433",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "Any other method SHOULD receive `405 Method Not Allowed` with `Allow: GET, HEAD`."
+    },
+    {
+      "id": "req-1947d932",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "MUST",
+        "MUST NOT",
+        "SHOULD"
+      ],
+      "text": "A `200 OK` response MUST carry the `Content-Type` `application/sustainability-data+json` and MUST NOT carry any other media type; the body SHOULD follow I-JSON {{RFC7493}}."
+    },
+    {
+      "id": "req-e73cf54b",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A consumer SHOULD send an `Accept` header field whose value is `application/sustainability-data+json, application/json;q=0.9`."
+    },
+    {
+      "id": "req-49ec34e8",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "MUST",
+        "MAY"
+      ],
+      "text": "A consumer MUST process a `200 OK` response whose `Content-Type` is `application/sustainability-data+json` as a declaration, and MAY so process one whose `Content-Type` is `application/json`, under which declarations published before the registration of the dedicated type exist."
+    },
+    {
+      "id": "req-b781809b",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "Because the declaration is public and intended for browser-based consumers as well, a `200 OK` response SHOULD include `Access-Control-Allow-Origin: *`, following WebFinger ({{?RFC7033}})."
+    },
+    {
+      "id": "req-d86c92e6",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "MAY"
+      ],
+      "text": "A server MAY redirect the well-known URI."
+    },
+    {
+      "id": "req-faf38e5f",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ],
+      "text": "A consumer that follows a redirect MUST require HTTPS on every hop and attributes the declaration to the origin of the final response; where that origin differs from the one it queried, the declaration is a claim by that other origin, and the consumer MUST NOT record it as a declaration of the origin it queried unless the object's `target` names the origin it queried."
+    },
+    {
+      "id": "req-50b85e9d",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
+        "SHOULD NOT"
+      ],
+      "text": "A publisher SHOULD NOT redirect to a different origin."
+    },
+    {
+      "id": "req-61a943cf",
+      "section": "Partial Knowledge and Incremental Adoption",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "A publisher MUST NOT present figures covering part of the declared subject as though they covered the whole of it."
+    },
+    {
+      "id": "req-684991a9",
+      "section": "Extended Query Parameters",
+      "keywords": [
+        "MAY"
+      ],
+      "text": "A server MAY support the query parameters `target`, `period`, and `granularity` on the well-known URI."
+    },
+    {
+      "id": "req-be7708da",
+      "section": "Extended Query Parameters",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A server that honors the `target` parameter MUST publish the set of prefixes it honors in the document identified by `methodology-uri`; this document defines no in-band list, since one would disclose the path information that {{privacy-considerations}} protects."
+    },
+    {
+      "id": "req-cc35f9b8",
+      "section": "Extended Query Parameters",
+      "keywords": [
+        "MUST NOT",
+        "MUST"
+      ],
+      "text": "They MUST NOT overlap, since a server that summed a month and a day inside it would count that day twice, and they MUST cover P, or, where P has not yet completed, the completed portion of it that step 6 provides for: a server holding figures for only part of a finished period cannot present their sum as a figure for the whole of it."
+    },
+    {
+      "id": "req-bbd432b1",
+      "section": "Extended Query Parameters",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ],
+      "text": "`provider`, `measurement-method`, `methodology-uri`, `target` and `target-type` are those of the contributing entries, which MUST agree; where they do not, the server MUST NOT serve an aggregate, since it could only misdescribe what the figures are about, and responds as it does when it has no data."
+    },
+    {
+      "id": "req-5152df1a",
+      "section": "Extended Query Parameters",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "A server MUST NOT return an array unless G is in effect."
+    },
+    {
+      "id": "req-ae51fdec",
+      "section": "Extended Query Parameters",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ],
+      "text": "Because a server ignores a parameter it does not support, a consumer MUST compare the `reporting-period` and `target` of every object it receives against what it requested, and MUST NOT record a response as covering a period or a subject it does not name."
+    },
+    {
+      "id": "req-6aacb550",
+      "section": "Payload Format (JSON Data Model)",
+      "keywords": [
+        "MUST",
+        "MUST NOT",
+        "SHOULD"
+      ],
+      "text": "An array conveys a trend: its objects MUST be in ascending order of `reporting-period`, MUST NOT overlap, and MUST share the same period precision and the same `target`; `target-type` MUST be present in every object with the same value or absent from all; units SHOULD be the same across objects."
+    },
+    {
+      "id": "req-87cef521",
+      "section": "Payload Format (JSON Data Model)",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A single object is equivalent to a one-object array, and a consumer MUST accept both forms, determined by the JSON top-level type; a body whose top-level value is neither an object nor an array is not a declaration."
+    },
+    {
+      "id": "req-f030d448",
+      "section": "Payload Format (JSON Data Model)",
+      "keywords": [
+        "MUST",
+        "SHOULD"
+      ],
+      "text": "An array MUST contain at least one object; a consumer receiving an empty array SHOULD treat it as conveying no report."
+    },
+    {
+      "id": "req-6eecc6c6",
+      "section": "Payload Format (JSON Data Model)",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "A declaration object contains the seven mandatory members, any of the optional members, and nothing else: a publisher MUST NOT add other top-level members ({{extensions}} defines where other data goes)."
+    },
+    {
+      "id": "req-c57ca753",
+      "section": "Payload Format (JSON Data Model)",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A consumer MUST ignore a top-level member it does not recognize, since a revision of this document may define one."
+    },
+    {
+      "id": "req-92070927",
+      "section": "Mandatory Members",
+      "keywords": [
+        "RECOMMENDED"
+      ],
+      "text": "The tokens `hardware-metered`, `hardware-estimated`, `cloud-billing`, and `third-party-modeled` are RECOMMENDED and are compared as protocol elements ({{internationalization-considerations}}); any other value is a brief human-readable description."
+    },
+    {
+      "id": "req-01be5ef2",
+      "section": "Mandatory Members",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "It is an opaque protocol element that MUST NOT be translated or transliterated, compared octet-for-octet except where `target-type` is `origin` or the value is otherwise a host name, in which case the host-name comparison rules of {{internationalization-considerations}} apply."
+    },
+    {
+      "id": "req-9e0f6688",
+      "section": "Mandatory Members",
+      "keywords": [
+        "RECOMMENDED"
+      ],
+      "text": "For an origin-wide report the origin's host (for example `\"example.com\"`) is RECOMMENDED; other subjects are a path prefix (`\"/api/v1\"`), an organization, a tenant, a product or data source, or a device, as `target-type` can classify."
+    },
+    {
+      "id": "req-6484e85c",
+      "section": "Optional Members",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "Unless stated otherwise, a numeric member MUST NOT be negative."
+    },
+    {
+      "id": "req-c2a4d2a8",
+      "section": "Optional Members",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "Without an `energy-consumption` member it has no effect and SHOULD be omitted."
+    },
+    {
+      "id": "req-fe0fc6eb",
+      "section": "Optional Members",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "Where an object carries `carbon-footprint` and one or more scope members for the same period, the scope members SHOULD account for the figure in `carbon-footprint`, and a publisher whose scopes cover only part of that figure says so in the methodology document."
+    },
+    {
+      "id": "req-3764274e",
+      "section": "Optional Members",
+      "keywords": [
+        "MAY",
+        "SHOULD"
+      ],
+      "text": "These MAY be negative where the declared accounting method conveys removals or net figures; a publisher reporting a negative value SHOULD explain the basis in the methodology document."
+    },
+    {
+      "id": "req-67891ef0",
+      "section": "Optional Members",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "**sci-score** (number): Software Carbon Intensity {{GSF-SCI}}, in grams of CO2e per `functional-unit`, which MUST then be present, regardless of `carbon-unit`."
+    },
+    {
+      "id": "req-4c666180",
+      "section": "Optional Members",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "**target-type** (string): Classifies the subject named by `target` as one of `origin` (the publishing origin; `target` SHOULD then be its host), `path`, `organization`, `service`, `product`, `device`, `tenant`, or `data-source`."
+    },
+    {
+      "id": "req-f9c117c6",
+      "section": "Optional Members",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ],
+      "text": "The URI-valued members (`methodology-uri`, `verifiable-attestation-uri`, `disclosure-uri`, and `upstream[].declaration`) MUST be absolute URIs {{RFC3986}} with the \"https\" scheme; a consumer MUST NOT automatically dereference any other scheme, and one that dereferences them applies the protections of {{consumer-considerations}}."
+    },
+    {
+      "id": "req-73d9560a",
+      "section": "Value Constraints and Omitted Metrics",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A declaration object MUST carry at least one numeric metric member or at least one of `disclosure-uri` and `verifiable-attestation-uri`; an object with none is not conformant."
+    },
+    {
+      "id": "req-de740e5c",
+      "section": "Value Constraints and Omitted Metrics",
+      "keywords": [
+        "MAY",
+        "MUST NOT"
+      ],
+      "text": "A consumer that receives an object carrying neither a metric member nor an evidence link MAY read its mandatory members but MUST NOT record it as reporting anything."
+    },
+    {
+      "id": "req-bfd65f4c",
+      "section": "Value Constraints and Omitted Metrics",
+      "keywords": [
+        "MAY",
+        "MUST NOT"
+      ],
+      "text": "An object that omits a mandatory member is not conformant; a consumer MAY read the members it does carry but MUST NOT treat it as a declaration."
+    },
+    {
+      "id": "req-fd873813",
+      "section": "Value Constraints and Omitted Metrics",
+      "keywords": [
+        "SHOULD NOT"
+      ],
+      "text": "A consumer encountering a defective optional member SHOULD NOT reject the object; instead:"
+    },
+    {
+      "id": "req-dbe0ecf9",
+      "section": "Value Constraints and Omitted Metrics",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "A publisher MUST NOT emit one."
+    },
+    {
+      "id": "req-3ff5b63d",
+      "section": "Value Constraints and Omitted Metrics",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A validating consumer whose check fails only on such a value, or only on a top-level member it does not recognize, SHOULD apply the rules above rather than reject the object, on the assumption that the schemas, like the member set, will be extended over time."
+    },
+    {
+      "id": "req-2a41a04d",
+      "section": "Extensions",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "The first is an \"https\" URI under the definer's control when the name was minted, which SHOULD identify human-readable documentation of the extension."
+    },
+    {
+      "id": "req-b11204bf",
+      "section": "Extensions",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "The second is a UUID URN, `urn:uuid:` followed by the hyphenated text form of a UUID ({{RFC9562}}, Section 4) in lowercase, which that section permits in either case and which this document fixes as lowercase so that names compare octet for octet, for a definer that has no domain or that wants a name independent of any domain; the Nil and Max UUIDs ({{RFC9562}}, Sections 5.9 and 5.10) MUST NOT be used, since they are guaranteed collisions."
+    },
+    {
+      "id": "req-cd1ce13b",
+      "section": "Extensions",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "Nothing is ever fetched from a name: a consumer MUST NOT dereference a name, and MUST NOT automatically dereference or execute anything within a value it does not implement."
+    },
+    {
+      "id": "req-a2519ec9",
+      "section": "Extensions",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A consumer that implements a name's definition processes its value; a consumer that does not MUST ignore the value."
+    },
+    {
+      "id": "req-470fc872",
+      "section": "Extensions",
+      "keywords": [
+        "MAY"
+      ],
+      "text": "A publisher MAY use a name defined by another party when it implements that party's definition."
+    },
+    {
+      "id": "req-a151d441",
+      "section": "Extensions",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "The methodology document SHOULD list the extension names a publisher uses, each with its definition or a pointer to it."
+    },
+    {
+      "id": "req-a6ff4c06",
+      "section": "Upstream Declarations",
+      "keywords": [
+        "OPTIONAL"
+      ],
+      "text": "The `upstream` member is an array of at least one object, each with a `declaration` member, the absolute \"https\" URI of that provider's declaration, and an OPTIONAL `role` member, a token such as `hosting`, `cloud`, `cdn`, `network`, or `electricity`."
+    },
+    {
+      "id": "req-51128dfd",
+      "section": "Upstream Declarations",
+      "keywords": [
+        "MAY"
+      ],
+      "text": "A consumer MAY retrieve upstream declarations and compare the figures for the same `reporting-period`."
+    },
+    {
+      "id": "req-38419866",
+      "section": "Upstream Declarations",
+      "keywords": [
+        "MUST NOT",
+        "MUST"
+      ],
+      "text": "A consumer that does so MUST NOT follow a chain deeper than three declarations below the one it started from, MUST refuse any URI it has already retrieved during the walk, MUST bound the total number of retrievals it performs for one starting declaration, and applies the fetch limits of {{consumer-considerations}} to each."
+    },
+    {
+      "id": "req-76f7d871",
+      "section": "Operational Considerations",
+      "keywords": [
+        "SHOULD",
+        "MAY"
+      ],
+      "text": "A server SHOULD send cache directives (for example `Cache-Control: max-age=86400`), SHOULD send `ETag` or `Last-Modified` so that consumers can revalidate, and, for a `period` naming a completed past period, MAY use a long `max-age`."
+    },
+    {
+      "id": "req-7c267492",
+      "section": "Operational Considerations",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A server that computes responses to Extended Query Parameters on demand SHOULD precompute or cache them."
+    },
+    {
+      "id": "req-26659a8e",
+      "section": "Operational Considerations",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A publisher behind a content delivery network or reverse proxy MUST ensure that the well-known path is served with the authoritative declaration, without rewriting or reformatting the body."
+    },
+    {
+      "id": "req-5c792780",
+      "section": "Signing",
+      "keywords": [
+        "OPTIONAL"
+      ],
+      "text": "It is OPTIONAL, and a consumer checks it only when it is present."
+    },
+    {
+      "id": "req-168cf6a4",
+      "section": "The signed Member",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "The payload MUST NOT itself contain a `signed` member."
+    },
+    {
+      "id": "req-cbe48a93",
+      "section": "The signed Member",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "MUST contain `alg` naming an asymmetric digital-signature algorithm."
+    },
+    {
+      "id": "req-35cfba2b",
+      "section": "The signed Member",
+      "keywords": [
+        "RECOMMENDED",
+        "SHOULD"
+      ],
+      "text": "`EdDSA` with Ed25519 {{RFC8037}} and `ES256` ({{RFC7518}}, Section 3.4) are RECOMMENDED, and a verifier SHOULD implement both."
+    },
+    {
+      "id": "req-26a25d5a",
+      "section": "The signed Member",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "`none` and MAC algorithms such as `HS256` MUST NOT be used, since verifiers hold no secret shared with the publisher."
+    },
+    {
+      "id": "req-c427596c",
+      "section": "The signed Member",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "MUST contain `cty` ({{RFC7515}}, Section 4.1.10) identifying the payload as this media type, which keeps the signature from being confused with a JWS produced for another purpose."
+    },
+    {
+      "id": "req-1bbed76b",
+      "section": "The signed Member",
+      "keywords": [
+        "SHOULD",
+        "MAY"
+      ],
+      "text": "SHOULD carry the verification key as `jwk` ({{RFC7515}}, Section 4.1.3) or `x5c` ({{RFC7515}}, Section 4.1.6), so that verification needs nothing but the declaration; a publisher that distributes its key out of band MAY instead identify it with `kid`."
+    },
+    {
+      "id": "req-7b2bab02",
+      "section": "The signed Member",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "A publisher MUST NOT serve an object whose `signed` payload differs from the object it accompanies, so a publisher regenerating an object regenerates its signature in the same step."
+    },
+    {
+      "id": "req-66f13b96",
+      "section": "Verification",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A consumer that verifies the member MUST reject it when `alg` is `none` or a MAC algorithm, when `cty` is absent or identifies any other media type, or when it carries a `crit` parameter the consumer does not understand; it determines the acceptable algorithm from the key and its own policy, never from `alg` alone ({{RFC8725}}, Sections 3.1 and 3.2)."
+    },
+    {
+      "id": "req-fa97b1c8",
+      "section": "Verification",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "On success it parses the payload as a JSON object and validates it as a declaration object; a payload that is not one leaves the object unverified, and the consumer MUST NOT let such a payload take precedence over the members around it."
+    },
+    {
+      "id": "req-be2768a0",
+      "section": "Verification",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A consumer MUST also treat the object as unverified when the payload's `target` or `reporting-period` differs from the object's, since the two then describe different things."
+    },
+    {
+      "id": "req-5ba598aa",
+      "section": "Verification",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A consumer that promotes an `x5c`-validated key MUST also require that the certificate identify the publisher, where the anchor is a general-purpose one by an acceptable match between the origin serving the declaration and the certificate's identity ({{RFC9110}}, Section 4.3.4), since a chain to a widely trusted anchor otherwise establishes only that some party holds a certificate."
+    },
+    {
+      "id": "req-398e290f",
+      "section": "Verification",
+      "keywords": [
+        "MAY"
+      ],
+      "text": "In either case a consumer MAY report a difference between the payload and the surrounding members as evidence that the object was modified after signing, which is not a verification failure."
+    },
+    {
+      "id": "req-68ff48e7",
+      "section": "Verification",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "An absent `signed` member means only that the publisher did not sign; it MUST NOT be treated as evidence about the declaration."
+    },
+    {
+      "id": "req-73d31e3d",
+      "section": "Verification",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ],
+      "text": "A member that fails to verify MUST cause the consumer to treat the object as unverified, never as false: a consumer that distinguishes verified from unverified data records it as unverified and MUST NOT present it downstream as verified."
+    },
+    {
+      "id": "req-366595ae",
+      "section": "What a Signature Proves",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "It establishes integrity and key continuity, not identity, and it establishes nothing about accuracy: correctly signed false data is still false, and a consumer MUST NOT treat signature validity as evidence that a metric is accurate."
+    },
+    {
+      "id": "req-9cf32c70",
+      "section": "Transport and Media Type",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "A consumer MUST verify that the service identity is an acceptable match for the origin, as {{RFC9110}}, Section 4.3.4, requires, on every hop of a followed redirect and on every URI it dereferences from the declaration."
+    },
+    {
+      "id": "req-a86d502c",
+      "section": "Trust and Spoofing",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "A consumer MUST NOT treat the presence of a declaration, or of any member in it, as verification of a claim, and one that presents, stores, or forwards the data MUST NOT represent it as verified; these are processing rules on conforming consumers, not statements about what any party may conclude by other means."
+    },
+    {
+      "id": "req-5ec85632",
+      "section": "Trust and Spoofing",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A declaration that is correctly served, typed and signed can still be untrue: publishers SHOULD link authoritative reports and third-party attestations through `disclosure-uri` and `verifiable-attestation-uri`, and consumers SHOULD treat the declaration as a discovery mechanism and check claims against external sources when it matters."
+    },
+    {
+      "id": "req-4f1a55c9",
+      "section": "Denial of Service",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A server SHOULD rate-limit requests to the well-known URI and SHOULD precompute or cache responses, since {{extended-query-parameters}} can otherwise force on-demand aggregation; honoring `target` only for a published prefix set bounds the cache-key space."
+    },
+    {
+      "id": "req-0eb0422b",
+      "section": "Denial of Service",
+      "keywords": [
+        "MUST NOT",
+        "MUST"
+      ],
+      "text": "A response to a request naming a granularity is bounded by the calendar (at most 366 objects for daily granularity over a year), and nothing bounds the size of a Basic response; a consumer MUST NOT rely on any server bound: it MUST limit the bytes and objects it accepts and treat an excess as an error."
+    },
+    {
+      "id": "req-4f5fc3f6",
+      "section": "Consumer Considerations",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A consumer SHOULD bound the time, size, and redirects of every fetch, including those of upstream declarations, and SHOULD refuse URIs that resolve to private or link-local addresses, since dereferencing URIs from an untrusted document exposes it to server-side request forgery."
+    },
+    {
+      "id": "req-6ff5a712",
+      "section": "Consumer Considerations",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A consumer SHOULD parse with a JSON parser hardened against untrusted input ({{RFC8259}}, Section 12), validate before use, and treat every value as data: the format has no active content, and a consumer that evaluates a value has introduced a hazard the format does not contain."
+    },
+    {
+      "id": "req-d4a7c458",
+      "section": "Consumer Considerations",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "Duplicate member names make JSON interoperability unpredictable; a consumer whose parser exposes them SHOULD reject an object containing them, and one whose parser does not applies that parser's documented resolution consistently and states which it is."
+    },
+    {
+      "id": "req-794f2d51",
+      "section": "Consumer Considerations",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "A consumer MUST NOT dereference an `extensions` name, which is an identifier and not a locator, and MUST NOT automatically dereference or execute anything within an `extensions` value it does not implement."
+    },
+    {
+      "id": "req-c9b266f1",
+      "section": "Privacy Considerations",
+      "keywords": [
+        "SHOULD NOT",
+        "NOT RECOMMENDED"
+      ],
+      "text": "A server SHOULD NOT report at a granularity finer than 24 hours, and real-time telemetry is NOT RECOMMENDED, since either lets an observer correlate energy with individual user actions."
+    },
+    {
+      "id": "req-0def9c52",
+      "section": "Privacy Considerations",
+      "keywords": [
+        "MAY"
+      ],
+      "text": "A server MAY apply multiplicative noise within 1% of the true values to blunt hardware fingerprinting."
+    },
+    {
+      "id": "req-0fa7bcb6",
+      "section": "Privacy Considerations",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "Noise MUST be applied once, at generation time, deterministically per period and consistently across arithmetically related members, including any annualized or otherwise derived member, so that ratios are preserved and no unperturbed member discloses a perturbed one; bounded members MUST remain within their range; the noised values are the published values for caching purposes; and the methodology document MUST state that noise is applied and bound its magnitude."
+    },
+    {
+      "id": "req-7b4a80ac",
+      "section": "Privacy Considerations",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A publisher for whom ratio-based fingerprinting is a concern SHOULD omit the derived members instead."
+    },
+    {
+      "id": "req-515afd88",
+      "section": "Privacy Considerations",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A server SHOULD make those two responses indistinguishable in body and in timing as well."
+    },
+    {
+      "id": "req-23ad5bde",
+      "section": "Privacy Considerations",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A publisher SHOULD aggregate or omit any metric that could be linked to individual users or small groups, and SHOULD use a role rather than a personal contact address in `provider`."
+    },
+    {
+      "id": "req-bd666000",
+      "section": "Privacy Considerations",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "An aggregator publishing derived datasets SHOULD use privacy-preserving aggregation."
+    },
+    {
+      "id": "req-3bd371e9",
+      "section": "Well-Known URI Registration",
+      "keywords": [
+        "OPTIONAL"
+      ],
+      "text": "The resource is an `application/sustainability-data+json` document, defined by CDDL {{RFC8610}} and JTD {{RFC8927}} schemas in the specification, and accepts the OPTIONAL query parameters `target`, `period`, and `granularity`, whose syntax the specification defines."
+    },
+    {
+      "id": "req-c9d470af",
+      "section": "Media Type Registration",
+      "keywords": [
+        "OPTIONAL"
+      ],
+      "text": "An OPTIONAL embedded JWS {{RFC7515}} provides integrity outside the TLS session, with this media type as its `cty`; it does not establish accuracy."
+    },
+    {
+      "id": "req-fcd911f3",
+      "section": "Internationalization Considerations",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A declaration is JSON and therefore UTF-8 ({{RFC8259}}, Section 8.1); a publisher SHOULD emit human-readable strings in Unicode Normalization Form C ({{?RFC5198}}, Section 3)."
+    },
+    {
+      "id": "req-cc373117",
+      "section": "Internationalization Considerations",
+      "keywords": [
+        "RECOMMENDED"
+      ],
+      "text": "Member names, the values of the enumerated members, the RECOMMENDED `measurement-method` tokens, the `role` tokens, the extension names that key `extensions`, which are ASCII URIs and never IRIs, `functional-unit`, the date members, the URI members, and `signed` are ASCII protocol elements; where this document compares them it does so octet-for-octet, never case-folded, normalized, translated, or localized."
+    },
+    {
+      "id": "req-4bd0beb7",
+      "section": "Internationalization Considerations",
+      "keywords": [
+        "MUST NOT"
+      ],
+      "text": "`target` is an opaque identifier and MUST NOT be translated or transliterated."
+    },
+    {
+      "id": "req-5bd052de",
+      "section": "Internationalization Considerations",
+      "keywords": [
+        "RECOMMENDED"
+      ],
+      "text": "`provider`, a `measurement-method` value outside the RECOMMENDED set, and human-readable values within `extensions` are text."
+    },
+    {
+      "id": "req-0a7e7dc0",
+      "section": "Internationalization Considerations",
+      "keywords": [
+        "SHOULD",
+        "MUST"
+      ],
+      "text": "Language is conveyed at the HTTP layer, as problem details do ({{?RFC9457}}, Section 3.1.3): a server publishing such text in a known language SHOULD send `Content-Language`, and one that negotiates on `Accept-Language` MUST send `Vary: Accept-Language` and, if it signs, signs each language variant separately."
+    },
+    {
+      "id": "req-24b4e556",
+      "section": "Internationalization Considerations",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "A consumer that displays such text SHOULD render it under the Unicode Bidirectional Algorithm {{UAX9}} and isolate it from surrounding text."
+    },
+    {
+      "id": "req-8fe518ba",
+      "section": "keyword-less requirement",
+      "keywords": [],
+      "text": "If one of the three appears more than once, respond `400 Bad Request`; a server that has entered this procedure does so whether or not it supports the repeated parameter."
+    },
+    {
+      "id": "req-8ee496d1",
+      "section": "keyword-less requirement",
+      "keywords": [],
+      "text": "If `period` is present and its value does not match the `period-value` rule above or does not name a real calendar date, respond `400 Bad Request`."
+    },
+    {
+      "id": "req-d5507448",
+      "section": "keyword-less requirement",
+      "keywords": [],
+      "text": "The tolerance rules above are exhaustive: a defect they do not name, such as an `extensions` key that is not an absolute URI or whose value is not an object, an `upstream` member that is an array of no entries, or a mandatory member other than `capabilities` whose value is malformed rather than absent, leaves the object non-conformant, and a consumer that validates reports it as such rather than disregarding the member."
+    },
+    {
+      "id": "req-86e23e83",
+      "section": "keyword-less requirement",
+      "keywords": [],
+      "text": "A defective value of a mandatory member is a different matter, since disregarding it would leave the object without a member this document requires: a defective `capabilities` value, whether an unrecognized string or a value of the wrong JSON type, is read as `basic`, and a defective value of any other mandatory member leaves the object non-conformant."
+    }
+  ]
+}

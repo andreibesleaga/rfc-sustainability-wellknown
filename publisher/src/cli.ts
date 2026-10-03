@@ -18,9 +18,11 @@ import {
   climatiqAdapter,
   co2jsAdapter,
   computedAdapter,
+  csvAdapter,
   keplerPrometheusAdapter,
   msSustainabilityAdapter,
   salesforceNzcAdapter,
+  slurmSacctAdapter,
   staticAdapter,
   staticFileAdapter,
   watershedAdapter,
@@ -55,6 +57,8 @@ const ADAPTER_FACTORIES: Record<string, (opts: any) => SourceAdapter> = {
   "salesforce-nzc": salesforceNzcAdapter,
   "ms-sustainability": msSustainabilityAdapter,
   watershed: watershedAdapter,
+  csv: csvAdapter,
+  "slurm-sacct": slurmSacctAdapter,
 };
 
 export interface PublisherConfig {

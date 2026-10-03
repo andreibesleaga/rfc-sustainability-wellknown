@@ -122,6 +122,11 @@ export interface GatewayConfig {
    */
   rateLimit: { perMinute: number; trustProxy: number };
   /**
+   * Host names whose operators asked not to be fetched by the public validator
+   * (`VALIDATOR_EXCLUDE`, comma-separated, lower-cased, trailing dot stripped).
+   */
+  validatorExclude: string[];
+  /**
    * Private JWK (JSON text) of the key that signs the gateway's OWN report
    * (draft -07 §Signing). When set, every declaration object the self report
    * emits — the parameterless one and each object of an Extended trend —
@@ -206,6 +211,10 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
       perMinute: envNum("RATE_LIMIT_PER_MINUTE", 600),
       trustProxy: envCount("TRUST_PROXY", 1),
     },
+    validatorExclude: (process.env.VALIDATOR_EXCLUDE ?? "")
+      .split(",")
+      .map((h) => h.trim().toLowerCase().replace(/\.$/, ""))
+      .filter((h) => h !== ""),
     signingKeyJwk: process.env.SUSTAINABILITY_SIGNING_KEY || undefined,
     self: {
       target: env("SELF_TARGET", "sustainability-data-gateway"),

@@ -1,10 +1,12 @@
 # `sfc-compliance/`
 
-The SFC profile of `/.well-known/sustainability-data`, and a checker for it.
+The SFC profile of `/.well-known/sustainability-data` (short name: the SFC disclosure
+profile), and a checker for it.
 
 | File | What it is |
 |---|---|
-| [`PROFILE.md`](PROFILE.md) | The normative profile. Four criteria, two declaration levels, three extension names, six rules a publisher can get wrong, and what a conformance statement may claim. |
+| [`PROFILE.md`](PROFILE.md) | The normative profile, version 1.0. Four criteria, two declaration levels, three extension names, six rules a publisher can get wrong, and what a conformance statement may claim. |
+| [`PROFILE-1.1-draft.md`](PROFILE-1.1-draft.md) | The draft of version 1.1, not normative: a fourth extension name, `ledger-evidence` (proposed), the C1 boundary, and "net zero" explained as an offset-coverage position. Section 11 lists the changes. |
 | [`SFC.md`](SFC.md) | The older non normative note on how the framework and the specification fit together. Kept as written, with stale facts corrected. |
 | [`examples/`](examples) | Two reference declarations, one network level and one operator level. Both validate against the JTD schema, the CDDL schema and the consumer library. |
 | `sfc-check.mjs` | The checker. |
@@ -51,8 +53,9 @@ arithmetically, and that an origin answers the way the specification requires.
 ## What it cannot conclude
 
 It cannot tell you that any figure is true. Nothing it prints is verification of
-anything. Hardware lifecycle and net zero are reported as **declared**, because a
-document can only say what the publisher wrote. Criterion 1 is refused on an
+anything. Hardware lifecycle and the net zero position (the framework's term for retired
+credits covering the emissions, an offset-coverage claim) are reported as
+**declared**, because a document can only say what the publisher wrote. Criterion 1 is refused on an
 operator level or a sub annual document rather than passed, because a single
 operator is trivially under a whole system cap and a month is not a year. An
 attestation that checks out is evidence about the statement and the issuer's key,

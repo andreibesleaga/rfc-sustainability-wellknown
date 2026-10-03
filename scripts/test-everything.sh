@@ -17,7 +17,10 @@
 #   6. example-scripts the Python, JavaScript and PHP safeguard tests and the request-handler
 #                      end-to-end test
 #   7. tools           tools/report-to-declaration: its tests and the offline demonstration
-#   8. draft           builds the latest draft into a temporary directory (the files in
+#   8. bdd             bdd/: traceability check (every normative sentence of the draft has a
+#                      scenario) and the cucumber-js scenarios against the three builds
+#   9. fitness         fitness/: architecture fitness functions against the three builds
+#  10. draft           builds the latest draft into a temporary directory (the files in
 #                      internet-drafts/ are never rewritten) the way build.sh does: RFCXML v3
 #                      vocabulary, v3-postprocess.py, strict xml2rfc, then idnits3 in normal
 #                      mode, which must report no nit at all
@@ -172,6 +175,9 @@ do_tools() {
     --target "Example Hosting Ltd" --methodology-uri https://hosting.example/reports/2025.pdf \
     --target-type organization --source-differs --out "$out" || [ $? -eq 3 ]
   test -f "$out/candidate.json" && ! test -f "$out/declaration.json"
+  # The initializer: seven answers in, a conformant file and the host's configuration out.
+  cd "$ROOT/tools/create-sustainability-data"
+  node --test test/*.test.mjs
 }
 
 do_draft() {
@@ -193,6 +199,23 @@ do_draft() {
   [ "$n" = "0" ]
 }
 
+do_bdd() {
+  # Behaviour scenarios for every normative sentence of the draft, against the
+  # builds the earlier steps produced (publisher, consumer, gateway).
+  bash "$ROOT/scripts/overlay-source-libs.sh"
+  cd "$ROOT/bdd"
+  npm ci --no-audit --no-fund
+  npm run trace
+  npm run trace:next
+  npm test
+}
+
+do_fitness() {
+  # Architecture fitness functions: cross-package rules, also against the builds.
+  cd "$ROOT/fitness"
+  npm test
+}
+
 echo "Testing $(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo 'working tree') with Node $(node -v); logs in $LOG_DIR"
 step schemas         do_schemas
 step publisher       do_publisher
@@ -201,6 +224,8 @@ step gateway         do_gateway
 step sfc-compliance  do_sfc
 step example-scripts do_example_scripts
 step tools           do_tools
+step bdd             do_bdd
+step fitness         do_fitness
 if [ "$RUN_DRAFT" = 1 ]; then step draft do_draft; fi
 
 echo

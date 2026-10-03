@@ -18,7 +18,7 @@ is [GUIDE.md](GUIDE.md).
 cd gateway
 npm install
 npm run build
-npm test          # 464 tests; everything must be green before you deploy
+npm test          # 473 tests; everything must be green before you deploy
 node dist/index.js &
 until curl -sf http://127.0.0.1:8080/healthz >/dev/null; do sleep 1; done   # boot fetches live upstreams first
 curl -sSI http://127.0.0.1:8080/wikimedia.org/.well-known/sustainability-data
@@ -126,7 +126,8 @@ default; set them under **Variables** (dashboard) or with
 | `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | Private JWK (JSON) signing the gateway's own report: every declaration object it emits then carries a `signed` member (-07 defines no separate signature resource). See [Signing and attestation](#signing-and-attestation). |
 | `SELF_SIGNING_KEY_URL` | *(unset)* | Public URL of the signing key's public half (index display). |
 | `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report. |
-| `RATE_LIMIT_PER_MINUTE` | `600` | Per-client limit; `0` disables. `TRUST_PROXY` stays `1` on Railway. |
+| `RATE_LIMIT_PER_MINUTE` | `600` | Per-client limit; `0` disables it (the public validator keeps its own, stricter limit). `TRUST_PROXY` stays `1` on Railway. |
+| `VALIDATOR_EXCLUDE` | *(empty)* | Comma-separated host names whose operators asked not to be fetched by the public validator (LEGAL.md §8); trimmed, lower-cased, trailing dot stripped before matching. |
 | `TRUST_PROXY` | `1` | Trusted proxies in front of the process (the client is the last `X-Forwarded-For` entry); `0` when exposed directly. |
 
 ### Signing and attestation

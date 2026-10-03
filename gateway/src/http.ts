@@ -28,6 +28,10 @@ export function corsHeaders(): Record<string, string> {
  * is unaffected — the value is identical either way.
  */
 export function withBody(status: number, headers: Record<string, string>, body: string): Result {
+  // Every error body this service emits is English text (the draft's
+  // Internationalization Considerations ask a server to say so at the HTTP
+  // layer); a 200 carries the declaration's own language header elsewhere.
+  if (status >= 400 && headers["Content-Language"] === undefined) headers = { ...headers, "Content-Language": "en" };
   return {
     status,
     headers: {
@@ -46,7 +50,9 @@ export function jsonError(
 ): Result {
   return withBody(
     status,
-    { ...corsHeaders(), "Content-Type": "application/json", ...extra },
+    // The error text is English; the draft asks a server publishing human-readable
+    // text in a known language to say so at the HTTP layer.
+    { ...corsHeaders(), "Content-Type": "application/json", "Content-Language": "en", ...extra },
     JSON.stringify({ status, error }) + "\n",
   );
 }

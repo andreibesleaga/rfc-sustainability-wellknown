@@ -1,0 +1,21 @@
+{
+  "name": "sustainability-wellknown-bdd",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Behaviour scenarios for every normative sentence of draft-besleaga-sustainability-wellknown, run against the built publisher, consumer and reference gateway.",
+  "license": "BSD-3-Clause",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "test": "cucumber-js",
+    "trace": "node traceability/check.mjs",
+    "trace:extract": "node traceability/extract.mjs --write ../internet-drafts/draft-besleaga-sustainability-wellknown-07.md",
+    "all": "npm run trace && npm test",
+    "trace:next": "node traceability/next.mjs"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^13.2.1"
+  }
+}

@@ -1,0 +1,28 @@
+name: Sustainability Data
+version: "0.1.0"
+slug: sustainability_data
+description: Publishes this home's metered energy at /.well-known/sustainability-data (an IETF Internet-Draft format), signed, from the Energy dashboard's sensors.
+url: https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/main/deploy/home-assistant
+arch: [aarch64, amd64, armv7]
+init: false
+homeassistant_api: true
+ports:
+  8099/tcp: 8099
+ports_description:
+  8099/tcp: The declaration server (expose it through your reverse proxy at /.well-known/sustainability-data only)
+map:
+  - data:rw
+options:
+  energy_sensor: sensor.energy_total
+  provider: "A household (role contact)"
+  methodology_uri: "https://example.com/how-i-measure"
+  target: "home.example"
+  target_type: device
+  grid_intensity_gco2e_per_kwh: 0
+schema:
+  energy_sensor: str
+  provider: str
+  methodology_uri: url
+  target: str
+  target_type: list(origin|device|organization|service)
+  grid_intensity_gco2e_per_kwh: float

@@ -19,6 +19,11 @@ Everyone else is marked **independent**.
 | JTD validator | validates a document against the JTD schema (RFC 8927) | Python | BSD-3-Clause | `schemas-validators/validator-json.py` | `-07` |
 | CDDL validator | validates a document against the CDDL schema (RFC 8610) | Python | BSD-3-Clause | `schemas-validators/validator-cddl.py` | `-07` |
 | Reference gateway | serves the format live and relays declarations for third-party subjects | TypeScript / Node.js | BSD-3-Clause | `gateway/` | `-07` |
+| Deployment kit | configuration and one-route examples for the most used hosts, web servers and frameworks, each CI-run recipe validated with the consumer in strict mode | nginx, Apache, Caddy, HAProxy, Envoy, Traefik, IIS; Node.js, Python, PHP, Go, Java, C#, Ruby, Rust | BSD-3-Clause | `deploy/` | `-07` |
+| WordPress plugin "Sustainability Data (well-known)" | serves and signs a declaration from a settings page; no external calls | PHP | GPLv2-or-later | `deploy/wordpress/` | `-07` |
+| One-click node | a signed declaration from environment variables, on the publisher library (Railway or any container host) | TypeScript / Node.js | BSD-3-Clause | `deploy/one-click/railway/` | `-07` |
+| GitHub Action | validates a file or a live origin in CI with the consumer | composite action | BSD-3-Clause | `deploy/github-action/` | `-07` |
+| Behaviour scenarios and fitness functions | one scenario or more for every normative sentence of the draft (traced by id), and cross-package rules as tests | cucumber-js, node:test | BSD-3-Clause | `bdd/`, `fitness/` | `-07` |
 
 All of the above are maintained by the draft's author. The two validators are independent of
 each other (different schema languages, different libraries), and the publisher and consumer

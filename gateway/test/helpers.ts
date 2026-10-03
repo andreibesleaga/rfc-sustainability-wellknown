@@ -32,6 +32,8 @@ export interface StartOptions {
    * instance. Unset, the reference deployment's origin is used.
    */
   baseUrl?: string;
+  /** The validator's dependencies; unset disables it (tests never reach the network). */
+  validator?: import("../src/validate").ValidatorDeps | null;
 }
 
 export async function startGateway(opts: StartOptions = {}): Promise<TestServer> {
@@ -64,6 +66,7 @@ export async function startGateway(opts: StartOptions = {}): Promise<TestServer>
     clock: () => now,
     fetchImpl: null,
     env: {},
+    validator: opts.validator ?? null,
   });
   await new Promise<void>((r) => gw.server.listen(0, "127.0.0.1", r));
   const { port } = gw.server.address() as AddressInfo;

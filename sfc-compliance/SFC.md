@@ -32,6 +32,12 @@ checklist:
 | C3 | **Carbon Accountability** | Native on-chain carbon transparency; regulatory-aligned thresholds requiring annual Net Zero via direct renewables or verified offsets; GHG Protocol Scope 2 & 3 methodologies |
 | C4 | **Regulatory Readiness** | Auditability compatible with CSRD and ESG reporting (e.g., accessible via APIs) |
 
+*Notes added 2026-10-04.* The framework leaves "system-wide" undefined; the profile 1.1 draft
+adopts the boundary of Commission Delegated Regulation (EU) 2025/422, field S.8. The
+framework's "Net Zero via ... verified offsets" is, in GHG Protocol and Science Based Targets
+initiative terms, an offset-coverage claim, and the profile treats it so
+([PROFILE-1.1-draft.md](PROFILE-1.1-draft.md) section 3.3).
+
 ## 2. How the two fit together
 
 SFC and the Internet-Draft address the same disclosure problem at **two complementary
@@ -44,7 +50,7 @@ layers**, sharing the GHG Protocol vocabulary:
   document at `/.well-known/sustainability-data` on any HTTP origin. A validator
   endpoint, RPC gateway, or operator portal is an ordinary origin, so an SFC-evaluated
   network can publish its numbers with no new protocol machinery.
-- **SFC criterion C4 is satisfiable, directly, by implementing the draft**: the framework
+- **The machine-readability part of SFC criterion C4 is satisfiable, directly, by implementing the draft**: the framework
   requires auditability "compatible with CSRD and ESG reporting (e.g., accessible via
   APIs)" — a conformant well-known document *is* that API, vendor-neutral and
   schema-validated, and a consumer can check C1 mechanically from it (an annual
@@ -102,7 +108,8 @@ conformant units.
 > the IETF `/.well-known/sustainability-data` draft defines *where and how* any system
 > publishes the machine-readable evidence — so an SFC-evaluated network, an enterprise
 > suite, or a plain web server all expose the **same validated fields at the same URL**,
-> and SFC's regulatory-readiness criterion is met by a single conformant JSON document.
+> and the machine-readability part of SFC's regulatory-readiness criterion is met by a single
+> conformant JSON document (it is not a CSRD or MiCA filing).
 
 ## 6. Example candidates (illustrative, per the framework)
 
@@ -116,12 +123,14 @@ serve the well-known document today:
 | Algorand | low-energy PoS with published sustainability commitments | foundation site / public API gateway |
 | Hedera | low-energy hashgraph consensus, sustainability program | foundation site / mirror-node gateway |
 | IOTA | DAG-based low-energy architecture | foundation site / node gateway |
-| Post-Merge Ethereum | the reference case for orders-of-magnitude energy reduction (CCRI-measured) | foundation site / RPC gateways |
+| Post-Merge Ethereum | the reference case for orders-of-magnitude energy reduction (CCRI-estimated); above the 1 GWh cap on every published estimate (CCRI 2022: about 2.6 GWh a year; Cambridge Centre for Alternative Finance 2026: about 7.9 GWh), so a reference, not a C1 candidate | foundation site / RPC gateways |
 | Hyperledger Fabric / VeChain / BigchainDB | modular or sector-specific sustainability tracking without computational waste | operator portals, consortium sites |
 
 These are *illustrations from the framework*, not endorsements or deployment claims: none of
 them currently publishes `/.well-known/sustainability-data`, which is exactly the gap the
-draft closes. An engineering-profile example for full SFC deployments (attestation events,
+draft closes. Published annual figures for the same chain differ with the boundary and the
+data provider; on the MiCA boundary some low-energy chains named by the framework, Algorand
+among them, have current estimates slightly above 1 GWh. An engineering-profile example for full SFC deployments (attestation events,
 service APIs, conformance suites) lives in the author's `awesome-blockchain-greentech`
 collection, as noted in §4.
 
@@ -199,7 +208,7 @@ document serves web, API/M2M, human, and AI consumers at once.
 **The regulatory and standards web both sides plug into.** The pair speaks the vocabulary
 regulators and standards bodies already use, so nothing is invented twice:
 
-- **MiCA (EU 2023/1114 + ESMA RTS 2025/422)** — mandates consensus-mechanism energy
+- **MiCA (EU 2023/1114 + Commission Delegated Regulation (EU) 2025/422, the RTS drafted by ESMA)** — mandates consensus-mechanism energy
   disclosure for crypto-asset providers (renewable share, per-transaction intensity, and
   GHG emissions above 500,000 kWh/year): these map onto the draft's
   `energy-consumption`, `renewable-energy`, `sci-score`/`functional-unit`

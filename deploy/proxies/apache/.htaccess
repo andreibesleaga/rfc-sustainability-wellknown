@@ -1,0 +1,21 @@
+# Apache and LiteSpeed (shared hosting): drop this .htaccess at the site root, the document at
+# .well-known/sustainability-data and the small file sustainability-405.json next to this file.
+# Needs mod_headers and mod_rewrite (standard on shared hosts). TRACE cannot be disabled from
+# .htaccess; ask the host for "TraceEnable Off" or accept the residual.
+<Files "sustainability-data">
+    ForceType application/sustainability-data+json
+    Header set X-Content-Type-Options "nosniff"
+    Header set Access-Control-Allow-Origin "*"
+    Header set Cache-Control "public, max-age=86400"
+</Files>
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} !^(GET|HEAD)$
+    RewriteRule ^\.well-known/sustainability-data$ - [R=405,L]
+</IfModule>
+ErrorDocument 405 /sustainability-405.json
+<Files "sustainability-405.json">
+    ForceType application/json
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Allow "GET, HEAD"
+</Files>

@@ -1,0 +1,42 @@
+{
+  "Name": "sustainability-data-headers",
+  "Comment": "Headers for /.well-known/sustainability-data",
+  "CorsConfig": {
+    "AccessControlAllowOrigins": {
+      "Quantity": 1,
+      "Items": [
+        "*"
+      ]
+    },
+    "AccessControlAllowHeaders": {
+      "Quantity": 1,
+      "Items": [
+        "*"
+      ]
+    },
+    "AccessControlAllowMethods": {
+      "Quantity": 2,
+      "Items": [
+        "GET",
+        "HEAD"
+      ]
+    },
+    "AccessControlAllowCredentials": false,
+    "OriginOverride": true
+  },
+  "SecurityHeadersConfig": {
+    "ContentTypeOptions": {
+      "Override": true
+    }
+  },
+  "CustomHeadersConfig": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Header": "Cache-Control",
+        "Value": "public, max-age=86400",
+        "Override": true
+      }
+    ]
+  }
+}

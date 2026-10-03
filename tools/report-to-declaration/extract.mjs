@@ -12,7 +12,7 @@
  *                same fingerprint as the run the reviewer read. Only then are
  *                declaration.json and approval.json written.
  *
- * Node >= 20. No dependencies. PDF support needs `pdftotext` (poppler-utils).
+ * Node >= 22.12. No dependencies. PDF support needs `pdftotext` (poppler-utils).
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";

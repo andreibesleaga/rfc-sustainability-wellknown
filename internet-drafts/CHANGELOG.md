@@ -4,6 +4,18 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
+### **Version 07 to Version 08 (`draft-besleaga-sustainability-wellknown`) — in preparation, NOT posted**
+
+Editorial only. **No member, schema, media type or registration changes: every `-07` document is a
+valid `-08` document and every `-07` publisher and consumer conforms unchanged.** Adds an
+Implementation Status appendix (RFC 7942) in place of the Implementations appendix; brings the
+worked example in line with the live deployment (platform-reported draw where available, a national
+grid intensity, a credential naming the entered months); mentions the Digital Impacts Schema and
+Taxonomy next to carbon.txt; updates the author's contact address. The deployments table is filled
+on the day of posting from `IMPLEMENTATIONS.md`.
+
+---
+
 ### **Version 06 to Version 07 (`draft-besleaga-sustainability-wellknown`) — posted 2026-09-17**
 
 Withdraws the companion signature resource entirely and moves signing inside the document itself;

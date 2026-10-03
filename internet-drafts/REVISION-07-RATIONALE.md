@@ -312,3 +312,6 @@ honour, an `x5c` path that let any publicly trusted certificate claim payload pr
   asks whether he considers the point closed, noting that his own review of `-06` used the suffix
   in an example path. Changing it would touch one paragraph, the IANA entry, and one route
   constant per package.
+
+
+**Note added 2026-10-03.** The naming question (whether `sustainability-data` is precise enough, raised twice by the ISE) has received no answer to the -07 covering letter as of 2026-10-03; see ADOPTION.md §14.

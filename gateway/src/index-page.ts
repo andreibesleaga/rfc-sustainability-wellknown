@@ -569,7 +569,10 @@ th { font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var
 .dim { color:var(--dim); }
 .visually-hidden { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
   clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0; }
-pre.cmd { overflow-x:auto; border:1px solid var(--line); border-radius:4px; padding:.75rem .9rem;
+pre.check { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0 1rem; }
+.check input { flex: 1 1 18rem; min-width: 12rem; padding: .4rem .6rem; font: inherit; }
+.check button { padding: .4rem .9rem; font: inherit; }
+.cmd { overflow-x:auto; border:1px solid var(--line); border-radius:4px; padding:.75rem .9rem;
   background:var(--warnbg); background:color-mix(in srgb, var(--bg) 92%, var(--fg) 8%); }
 pre.cmd code { font-size:.82em; white-space:pre; }
 ul { padding-left:1.2rem; }
@@ -779,6 +782,30 @@ ${liveRequests(doc).map(liveRow).join("\n")}
 </table>
 </div>
 
+<h2>Check a file</h2>
+<p>Type an origin that serves <code>/.well-known/sustainability-data</code>. The gateway fetches it once
+with the published consumer library (at most once an hour per host, <code>https</code> only, public names
+only, 64&nbsp;KiB, 5&nbsp;s) and says whether the bytes it got are a schema-valid declaration. That is all it
+says: nothing about accuracy, no endorsement; no result is stored (the hosting provider's request log keeps the
+request line for its retention period, as the legal notice says).</p>
+<form id="check" class="check" action="/validate" method="get">
+<label for="origin">Origin</label>
+<input id="origin" name="origin" type="url" inputmode="url" placeholder="https://example.com" required pattern="https://.*" spellcheck="false">
+<button type="submit">Check</button>
+</form>
+<pre id="check-out" class="cmd" hidden aria-live="polite"></pre>
+<p>Badge for a README, computed from the same hourly check:
+<code>![sustainability-data](<span class="host">${BASE_TOKEN}</span>/badge/example.com.svg)</code></p>
+
+<h2>Deployments</h2>
+<p>Origins known to serve the format are listed, with their operator, in
+<a href="${REPO_DOCS}/IMPLEMENTATIONS.md" rel="noopener noreferrer">IMPLEMENTATIONS.md</a>; a scheduled
+workflow fetches each one daily and checks the media type and the schema
+(<a href="${REPO}/actions/workflows/live-deployments.yml" rel="noopener noreferrer">results</a>). Origins run by
+the operator of this gateway are marked as such; nobody is listed without consent. Copy-paste recipes for
+the most used servers, hosts and frameworks are in
+<a href="${REPO}/tree/main/deploy" rel="noopener noreferrer">deploy/</a>.</p>
+
 <h2>Verify it yourself</h2>
 <p>With the reference consumer
 (<a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer"><code>sustainability-wellknown-consumer</code></a>
@@ -866,6 +893,15 @@ var themeSelect = document.getElementById("theme");
 function applyTheme(v) { v === "light" || v === "dark" ? document.documentElement.setAttribute("data-theme", v) : document.documentElement.removeAttribute("data-theme"); themeSelect.value = v === "light" || v === "dark" ? v : "system"; }
 try { applyTheme(localStorage.getItem("theme")); } catch (e) { applyTheme(); }
 themeSelect.onchange = function () { try { localStorage.setItem("theme", themeSelect.value); } catch (e) {} applyTheme(themeSelect.value); };
+var checkForm = document.getElementById("check"), checkOut = document.getElementById("check-out");
+checkForm.addEventListener("submit", function (ev) {
+  ev.preventDefault();
+  checkOut.hidden = false; checkOut.textContent = "checking\u2026";
+  fetch("/validate?origin=" + encodeURIComponent(document.getElementById("origin").value), { headers: { Accept: "application/json" } })
+    .then(function (r) { return r.json(); })
+    .then(function (j) { checkOut.textContent = JSON.stringify(j, null, 2); })
+    .catch(function (e) { checkOut.textContent = "request failed: " + e; });
+});
 </script>${hostScript}
 </body>
 </html>

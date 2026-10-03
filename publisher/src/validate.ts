@@ -50,7 +50,7 @@ const NON_NEGATIVE_FIELDS = [
 ] as const;
 
 /** RFC 3339 date-time shape for the mandatory `updated` member. */
-const UPDATED_RE = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
+export const UPDATED_RE = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
 
 /**
  * The URI-valued members of a declaration object other than

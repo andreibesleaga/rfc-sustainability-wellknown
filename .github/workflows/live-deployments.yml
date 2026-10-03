@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - run: python3 -m pip install -r schemas-validators/requirements.txt
       - name: Check every listed deployment
@@ -34,7 +34,7 @@ jobs:
           set -o pipefail
           cd schemas-validators
           python3 check-live.py --csv live-deployments.csv | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: live-deployments

@@ -16,6 +16,25 @@ GET  /healthz                                    liveness
 GET  /legal                                      legal notice: what the third-party documents are, corrections and removal
 ```
 
+## Public validator and badge
+
+`GET /validate?origin=https://host` fetches that origin's `/.well-known/sustainability-data` once with the
+published consumer library and answers JSON: `valid` (schema-valid, the draft's media type; `json` noted as
+tolerated), `invalid` (reachable, not a usable declaration) or `unreachable`, with the signature state,
+the period and the target. `GET /badge/<host>.svg` is the same outcome as a badge for a README. The target
+is fetched at most once an hour, `https` and public DNS names only, 64 KiB and 5 s caps; a name that resolves
+to a private, loopback or link-local address at check time is refused (the consumer's transport rules; a DNS
+answer that changes between that check and the connection is not closed, as the consumer documents), only an
+`https` request on port 443 to that name is ever attempted; a stricter per-client limit applies to requests
+that cause a retrieval (a badge served from the hourly cache does not, so shared egress such as GitHub's camo
+proxy is tolerated), and a global budget of new retrievals per minute; when that budget is spent the answer is
+`503` with `Retry-After` and a grey "try later" badge, never an outcome about the origin (`unreachable` means
+the origin was contacted and gave no usable response); no result is stored. `VALIDATOR_EXCLUDE` (comma-separated host names) refuses hosts whose
+operators asked not to be fetched. The
+front page has a form for it. A check is a statement about bytes at a moment, never an endorsement; the
+legal notice, section 8, says so and how an origin can be excluded. `createGateway({ validator: null })`
+disables both routes.
+
 ## What it is
 
 - A **reference deployment** of the convention, so clients, validators and
@@ -103,7 +122,7 @@ Anything invented lives under a reserved `.example` name (RFC 2606), says
 ```bash
 npm install
 npm run build
-npm test                       # 464 tests
+npm test                       # 473 tests
 node dist/index.js             # 0.0.0.0:8080
 curl -sS http://127.0.0.1:8080/index.json | jq '.subjects[].domain'
 ```

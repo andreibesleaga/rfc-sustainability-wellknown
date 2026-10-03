@@ -292,6 +292,24 @@ class RequestHandlerE2ETests(unittest.TestCase):
         self.assertEqual(doc["reporting-period"], "2026")
         _validate_schema(doc)
 
+    def test_noise_is_consistent_across_every_response_path(self):
+        # The noised values are the published values: a single day, the same day inside a daily array,
+        # and a month aggregated from those days must all agree, or two requests would undo the noise.
+        _, _, one = self._get("?target=/api/v1&period=2026-03-02")
+        _, _, days = self._get("?target=/api/v1&period=2026-03&granularity=daily")
+        _, _, month = self._get("?target=/api/v1&period=2026-03")
+        one, days, month = json.loads(one), json.loads(days), json.loads(month)
+        day2 = next(d for d in days if d["reporting-period"] == "2026-03-02")
+        for key in ("energy-consumption", "carbon-footprint"):
+            self.assertEqual(one[key], day2[key], key)
+            self.assertAlmostEqual(month[key], sum(d[key] for d in days), places=3, msg=key)
+
+    def test_yearly_aggregate_equals_the_sum_of_the_published_months(self):
+        _, _, year = self._get("?period=2026")
+        _, _, months = self._get("?period=2026&granularity=monthly")
+        year, months = json.loads(year), json.loads(months)
+        self.assertAlmostEqual(year["energy-consumption"], sum(m["energy-consumption"] for m in months), places=3)
+
 
 if __name__ == "__main__":
     unittest.main()

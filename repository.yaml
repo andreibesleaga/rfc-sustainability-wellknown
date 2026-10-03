@@ -1,0 +1,5 @@
+# Home Assistant add-on repository manifest. It lets a Home Assistant instance add this repository
+# (Settings > Add-ons > Add-on Store > Repositories) and find the add-on in deploy/home-assistant/.
+name: Sustainability Data add-ons
+url: https://github.com/andreibesleaga/rfc-sustainability-wellknown
+maintainer: Andrei N. Besleaga

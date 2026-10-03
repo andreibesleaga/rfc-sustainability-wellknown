@@ -1,0 +1,6 @@
+Reporting period,Energy (kWh),Energy unit,Total emissions,Emissions unit,Scope 1,Scope 2,Scope 3,Basis,Renewable %,Notes
+2025-01,"12,480",kWh,"3,120",kgCO2e,120,1400,1600,market-based,78,January
+2025-02,11900,kWh,2990,kgCO2e,110,1300,1580,market-based,80,"February, with a comma"
+2025-03,,kWh,,kgCO2e,,,,,,no figures and no link: skipped
+2025-13,100,kWh,10,kgCO2e,,,,,,bad period: skipped
+2025-04,500,MW,10,kgCO2e,,,,,,bad unit: skipped

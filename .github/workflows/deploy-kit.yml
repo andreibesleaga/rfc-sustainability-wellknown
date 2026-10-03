@@ -1,0 +1,95 @@
+name: deploy-kit
+
+# Starts every CI-marked recipe of deploy/ and validates it with the consumer in strict mode; runs the
+# one-click node, Home Assistant add-on and initializer tests; lints the WordPress plugin with the
+# WordPress coding standards, runs its offline tests, validates its output and verifies its signature
+# with the consumer, and runs it in a real WordPress.
+on:
+  push:
+    paths: ["deploy/**", "tools/create-sustainability-data/**", "repository.yaml", ".github/workflows/deploy-kit.yml"]
+  pull_request:
+    paths: ["deploy/**", "tools/create-sustainability-data/**", "repository.yaml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  recipes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with: { node-version: "22" }
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12" }
+      - uses: actions/setup-go@v7
+        with: { go-version: "1.22" }
+      - uses: hashicorp/setup-terraform@v4
+      - name: Install servers
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q nginx apache2 php-cli haproxy
+          sudo systemctl stop nginx apache2 haproxy || true
+          curl -sSfL "https://caddyserver.com/api/download?os=linux&arch=amd64" -o /usr/local/bin/caddy && chmod +x /usr/local/bin/caddy
+      - name: Install recipe dependencies
+        run: |
+          (cd deploy/frameworks/node && npm ci --no-audit --no-fund)
+          python3 -m pip install -q -r deploy/frameworks/python/requirements.txt
+      - name: Run every recipe against the consumer (each in its own process group, on a port proven free)
+        run: bash deploy/e2e/run.sh
+
+  packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with: { node-version: "22" }
+      - name: One-click node tests
+        working-directory: deploy/one-click/railway
+        run: npm ci --no-audit --no-fund && npm test
+      - name: Home Assistant add-on tests (fake Core API)
+        working-directory: deploy/home-assistant/sustainability-data
+        run: npm ci --no-audit --no-fund && npm test
+      - name: Initializer tests (including the bin run through a symlink, as npx runs it)
+        working-directory: tools/create-sustainability-data
+        run: node --test test/*.test.mjs
+
+  wordpress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with: { node-version: "22" }
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: "8.1", tools: composer }
+      - name: WordPress coding standards and PHP 8.1 compatibility
+        working-directory: deploy/wordpress/sustainability-data-wellknown
+        run: |
+          dir="$RUNNER_TEMP/phpcs"; mkdir -p "$dir"
+          (cd "$dir" && composer config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true \
+            && composer require --dev --no-interaction --quiet wp-coding-standards/wpcs:"^3.1" phpcompatibility/phpcompatibility-wp:"*" dealerdirect/phpcodesniffer-composer-installer)
+          "$dir/vendor/bin/phpcs" --standard=WordPress-Extra sustainability-data-wellknown.php uninstall.php includes/
+          "$dir/vendor/bin/phpcs" --standard=PHPCompatibilityWP --runtime-set testVersion 8.1- sustainability-data-wellknown.php uninstall.php includes/
+      - name: Offline tests (WordPress stubs)
+        working-directory: deploy/wordpress/sustainability-data-wellknown
+        run: php -l sustainability-data-wellknown.php && php -l includes/class-sustainability-data-wellknown.php && SDWK_DUMP="$RUNNER_TEMP/wp.json" php tests/run.php
+      - name: Plugin output validated and its signature verified with this repository's consumer
+        run: |
+          (cd consumer && npm ci --no-audit --no-fund && npm run build)
+          node -e '
+            const fs = require("node:fs");
+            const c = require("./consumer/dist/index.js");
+            const d = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const r = c.validateDocument(d);
+            if (!r.valid) { console.error(r.errors); process.exit(1); }
+            c.verifyEmbeddedSignature(d).then((v) => {
+              if (v.result.status !== "verified") { console.error(v.result); process.exit(1); }
+              console.log("wordpress plugin output: valid, signature verified");
+            });
+          ' "$RUNNER_TEMP/wp.json"
+      - name: The plugin in a real WordPress (official images), checked by the consumer in strict mode
+        run: bash deploy/wordpress/wordpress-e2e.sh

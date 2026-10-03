@@ -1,0 +1,45 @@
+name: bdd-and-fitness
+
+on:
+  push:
+    paths:
+      - "bdd/**"
+      - "fitness/**"
+      - "publisher/**"
+      - "consumer/**"
+      - "gateway/**"
+      - ".github/workflows/bdd.yml"
+  pull_request:
+    paths:
+      - "bdd/**"
+      - "fitness/**"
+      - "publisher/**"
+      - "consumer/**"
+      - "gateway/**"
+
+jobs:
+  scenarios:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with: { node-version: "22" }
+      - name: Build publisher and consumer, then the gateway against those source builds
+        run: |
+          (cd publisher && npm ci --no-audit --no-fund && npm run build)
+          (cd consumer  && npm ci --no-audit --no-fund && npm run build)
+          (cd gateway   && npm ci --no-audit --no-fund)
+          bash scripts/overlay-source-libs.sh
+      - name: Traceability check (against the posted revision named in requirements.json)
+        working-directory: bdd
+        run: npm ci --no-audit --no-fund && npm run trace
+      - name: Normative changes in the newest draft (report only)
+        working-directory: bdd
+        run: npm run trace:next
+      - name: Scenarios
+        working-directory: bdd
+        run: npm test
+      - name: Fitness functions
+        working-directory: fitness
+        run: npm test

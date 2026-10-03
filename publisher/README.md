@@ -169,7 +169,7 @@ deployment that restricts or rate-limits a request responds as RFC 9110 defines
 (`401`, `403`, `429`) — nothing in this package presumes otherwise, so
 put the publisher behind whatever authorization or rate limiter your deployment
 needs. What the package does guarantee is that whatever it *does* serve as a
-`200` is a conformant declaration with the registered media type.
+`200` is a conformant declaration with the draft's media type.
 
 ### Caching and the cache key
 
@@ -192,7 +192,7 @@ depend on a parameter the publisher ignores.
 ## Media type and the `application/json` fallback
 
 The draft's §Mandatory Minimum Supported Service requires that a successful
-(`200 OK`) response carrying a declaration use the registered
+(`200 OK`) response carrying a declaration use the draft's
 `application/sustainability-data+json` media type, and forbids any other media
 type on that response. By default, every entry point in this package (the
 standalone server, `expressSustainability`, `fastifySustainability`, and
@@ -201,7 +201,7 @@ standalone server, `expressSustainability`, `fastifySustainability`, and
 be induced to interpret the document as some other, more dangerous type. (The
 header is this package's own hardening: -07 no longer mentions it.)
 
-Declarations published before that media type was registered are found in the
+Declarations published before that media type was defined (-06) are found in the
 field as plain `application/json`; the draft says a consumer MAY process such a
 response as a declaration. For a deployment that still needs to serve that
 media type, pass `mediaType: "json"` to any entry point's options:
@@ -312,6 +312,8 @@ Product and organization names are used only to identify the data sources these 
 | Salesforce Net Zero Cloud | `salesforceNzcAdapter` | SOQL on `AnnualEmssnInventory` | `instanceUrl`, `accessToken` | `fixture` |
 | Microsoft Sustainability Manager | `msSustainabilityAdapter` | OData (`$skiptoken` paged) (targets the Microsoft Sustainability Manager preview API retired 2025-05-30; replay fixtures only) | `baseUrl`, `accessToken`, `endpoint` | `fixturePages` |
 | Watershed | `watershedAdapter` | footprint REST pull | `apiUrl`, `apiKey` | `fixture` |
+| CSV export (any ESG tool) | `csvAdapter` (CLI type `csv`) | one row per period: `period`, `energy`, `energy_unit`, `carbon`, `carbon_unit`, `scope_1..3`, `carbon_accounting`, `renewable_percent`, optional `provider`/`measurement_method`/`methodology_uri`/`disclosure_uri`/`target`/`target_type`/`updated`; header names matched loosely; `;` exports and `decimalComma` supported, numbers read strictly in that locale; every row checked (period, numbers, 0..100 share, units, basis, target type, https links, RFC 3339 `updated`, a measurement method — never defaulted — and a figure or a disclosure link) and a failing row skipped and reported via `onSkip`, never published; helpers `parseCsv`, `rowsToMetrics` | `text` or `file` | — (the file is the source) |
+| Slurm (`sacct` energy accounting) | `slurmSacctAdapter` (CLI type `slurm-sacct`) | sums `ConsumedEnergyRaw` of finished top-level jobs per calendar month (`sacct --parsable2 --format=JobID,Start,End,ConsumedEnergyRaw`; header in any order, or none in that order; a header missing a column is an error); monthly exports may be concatenated (a job spanning the boundary counts once, in the month it ended); joules → kWh; carbon from `gridIntensity`; `hardware-estimated` by default; the energy is a job's own only with exclusive node allocation; helpers `parseSacct`, `energyByMonth` | `text` or `file` | — |
 
 ### Field mapping (source → draft)
 

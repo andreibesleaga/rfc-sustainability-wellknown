@@ -1,0 +1,21 @@
+# Traefik (file provider): a headers middleware in front of whatever serves the file
+# (Traefik serves no static files itself). Attach `sustainability-headers` to the router of your app.
+http:
+  middlewares:
+    sustainability-headers:
+      headers:
+        customResponseHeaders:
+          Content-Type: application/sustainability-data+json
+          X-Content-Type-Options: nosniff
+          Access-Control-Allow-Origin: "*"
+          Cache-Control: public, max-age=86400
+  routers:
+    sustainability-data:
+      rule: "Path(`/.well-known/sustainability-data`)"
+      middlewares: [sustainability-headers]
+      service: app
+  services:
+    app:
+      loadBalancer:
+        servers:
+          - url: "http://app:3000"

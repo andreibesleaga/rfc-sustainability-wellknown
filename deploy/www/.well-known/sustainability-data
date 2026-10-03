@@ -1,0 +1,15 @@
+{
+  "updated": "2026-10-01T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Kit Example Ltd (https://kit.example/contact)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://kit.example/sustainability/methodology",
+  "reporting-period": "2026-09",
+  "target": "kit.example",
+  "target-type": "origin",
+  "energy-consumption": 12.5,
+  "energy-unit": "kWh",
+  "carbon-footprint": 3062,
+  "carbon-unit": "gCO2e",
+  "disclosure-uri": "https://kit.example/sustainability"
+}

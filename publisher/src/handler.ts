@@ -109,7 +109,7 @@ export function carbonTxtResult(
   if (hostDerived && host !== undefined && !HOST_RE.test(host)) {
     return {
       status: 400,
-      headers: { ...headers, "Cache-Control": "no-store", "Content-Type": "application/json", "X-Content-Type-Options": "nosniff" },
+      headers: { ...headers, "Cache-Control": "no-store", "Content-Type": "application/json", "X-Content-Type-Options": "nosniff", "Content-Language": "en" },
       body: JSON.stringify({ error: "invalid Host header" }),
     };
   }
@@ -255,7 +255,7 @@ function baseHeaders(opts: HandlerOptions): Record<string, string> {
 export function badRequestResult(detail: string, opts: HandlerOptions = {}): HandlerResult {
   return {
     status: 400,
-    headers: { ...baseHeaders(opts), "Cache-Control": "no-store", "Content-Type": "application/json" },
+    headers: { ...baseHeaders(opts), "Cache-Control": "no-store", "Content-Type": "application/json", "Content-Language": "en" },
     body: JSON.stringify({ error: `bad request: ${detail}` }),
   };
 }
@@ -269,7 +269,7 @@ export function badRequestResult(detail: string, opts: HandlerOptions = {}): Han
 function noDataResult(headers: Record<string, string>, message: string): HandlerResult {
   return {
     status: 404,
-    headers: { ...headers, "Content-Type": "application/json", "X-Content-Type-Options": "nosniff" },
+    headers: { ...headers, "Content-Type": "application/json", "X-Content-Type-Options": "nosniff", "Content-Language": "en" },
     body: JSON.stringify({ error: message.toLowerCase() }),
   };
 }
@@ -357,13 +357,17 @@ export async function handleRequest(
       return noDataResult(headers, new NotFoundError().message);
     }
     if (err instanceof NotFoundError) {
-      return noDataResult(headers, err.message);
+      // Every "no data" answer has the same body, whatever an adapter said: a reason in the body would
+      // let a client tell "nothing for that period" from "nothing at all" or from an unpublished target
+      // (draft -07 Privacy Considerations). The adapter's reason goes to the operator instead.
+      if (err.message !== new NotFoundError().message) reportDiagnostic(opts, err);
+      return noDataResult(headers, new NotFoundError().message);
     }
     // Validation failure or upstream error → 503 (do not publish unverified data).
     reportError(opts, err);
     return {
       status: 503,
-      headers: { ...headers, "Content-Type": "application/json" },
+      headers: { ...headers, "Content-Type": "application/json", "Content-Language": "en" },
       body: JSON.stringify({ error: "sustainability metadata temporarily unavailable" }),
     };
   }

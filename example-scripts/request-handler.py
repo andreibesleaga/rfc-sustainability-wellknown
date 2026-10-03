@@ -90,6 +90,13 @@ REPORTS_BY_TARGET = {
     ],
 }
 
+# The anti-fingerprinting noise is applied once, here, to the held data: the noised values ARE the
+# published values (draft -07 Privacy Considerations), so every path below (a single entry, a trend
+# array, an aggregate summed from finer entries) serves the same, consistent figures, and no path
+# exposes the raw value that would let two requests be compared to undo the noise. A deployment that
+# applies noise says so, and bounds it, in its methodology document.
+REPORTS_BY_TARGET = {k: secure_sustainability_report(v) for k, v in REPORTS_BY_TARGET.items()}
+
 # The additive members an aggregate sums; every other metric member is
 # omitted from an aggregate unless the publisher recomputes it (draft -07
 # "Extended Query Parameters", step 5) — this reference does not recompute
@@ -230,7 +237,7 @@ def _resolve(params: dict):
         )
         if not matches:
             raise NotFound(f"no entries of granularity {G} within {P}")  # body: the no-data message
-        return secure_sustainability_report(matches)
+        return matches  # already noised, sorted and capped at load
 
     exact = [e for e in entries if e["reporting-period"] == P]
     if exact:

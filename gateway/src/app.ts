@@ -36,6 +36,7 @@ import { loadMediaTypeOverrides, MEDIA_TYPE_FILE } from "./media-type";
 import { clientKey, createRateLimiter, type RateLimiter } from "./rate-limit";
 import { loadRegistry, subjectFromAdapter, type Subject } from "./registry";
 import { LEGAL_PATH, LEGAL_TEXT } from "./legal";
+import { BADGE_ROUTE, VALIDATE_PATH, Validator, badgeSvg, checkHost, isBusy, noticeBadgeSvg, parseOrigin, type ValidatorDeps } from "./validate";
 import { crossValidate, type CrossValidation } from "./verify";
 import { loadSelfMeasured } from "./self-measured";
 
@@ -90,6 +91,8 @@ export interface Gateway {
   signingKey?: SigningKey;
   /** Per-client request limiter; unset when disabled. */
   rateLimiter?: RateLimiter;
+  /** The public validator and badge (undefined when disabled in this deployment). */
+  validator?: Validator;
 }
 
 export type LogFn = (line: Record<string, unknown>) => void;
@@ -111,6 +114,12 @@ export interface CreateGatewayOptions {
   fetchImpl?: typeof fetch | null;
   /** Injectable environment for API-key lookups (defaults to process.env). */
   env?: Record<string, string | undefined>;
+  /**
+   * The public validator's dependencies (its fetch, DNS lookup, clock). Unset
+   * uses the real network; `null` disables the /validate and /badge routes.
+   * Separate from `fetchImpl`, which governs the live demonstration upstreams.
+   */
+  validator?: ValidatorDeps | null;
 }
 
 /** `Last-Modified` for a served body: the `updated` of the object, or of an array's last entry. */
@@ -218,7 +227,7 @@ export async function route(
     Gateway,
     "config" | "subjects" | "self" | "mediaTypeOverrides" | "index" | "indexHtml" | "indexJson"
   > &
-    Partial<Pick<Gateway, "refreshSelf" | "examples" | "signingKey" | "live">>,
+    Partial<Pick<Gateway, "refreshSelf" | "examples" | "signingKey" | "live" | "validator">>,
   method: string,
   rawUrl: string,
   headers: { "if-none-match"?: string; "if-modified-since"?: string } = {},
@@ -232,6 +241,8 @@ export async function route(
     path === "/index.json" ||
     path === "/healthz" ||
     path === LEGAL_PATH ||
+    path === VALIDATE_PATH ||
+    BADGE_ROUTE.test(path) ||
     path === WELL_KNOWN_PATH ||
     SUBJECT_ROUTE.test(path) ||
     INPUT_ROUTE.test(path);
@@ -278,6 +289,46 @@ export async function route(
       },
       LEGAL_TEXT,
     );
+  }
+
+  if (path === VALIDATE_PATH || BADGE_ROUTE.test(path)) {
+    if (!gw.validator) return jsonError(503, "the validator is disabled in this deployment");
+    const badge = BADGE_ROUTE.exec(path);
+    const target = badge ? checkHost(badge[1]) : parseOrigin(new URLSearchParams(search).get("origin") ?? undefined);
+    if (!("error" in target) && gw.validator.excluded(target.host)) {
+      const detail = "excluded at the operator's request";
+      if (badge) {
+        return withBody(400, { ...corsHeaders(), "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+          noticeBadgeSvg("not checked", `${badge[1]}: ${detail}`));
+      }
+      return jsonError(400, detail);
+    }
+    if ("error" in target) {
+      // A bad badge request still gets an image, so a README never shows a broken icon.
+      if (badge) {
+        return withBody(400, { ...corsHeaders(), "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+          noticeBadgeSvg("not checked", `${badge[1]}: ${target.error}`));
+      }
+      return jsonError(400, target.error);
+    }
+    const outcome = await gw.validator.check(target.host);
+    if (isBusy(outcome)) {
+      // This service did not contact the origin: say so, with no-store, and say when to come back.
+      const busy = { "Retry-After": String(outcome.retryAfterSec), "Cache-Control": "no-store" };
+      if (badge) {
+        return withBody(503, { ...corsHeaders(), "Content-Type": "image/svg+xml; charset=utf-8", ...busy },
+          noticeBadgeSvg("try later", "This checking service is busy; the origin was not checked."));
+      }
+      return jsonError(503, "this service's retrieval budget is spent; retry after the indicated delay", busy);
+    }
+    const headers = {
+      ...corsHeaders(),
+      // The outcome is reused for an hour; the badge is a picture of the same outcome.
+      "Cache-Control": "public, max-age=3600",
+      "X-Robots-Tag": "noindex",
+    };
+    if (badge) return withBody(200, { ...headers, "Content-Type": "image/svg+xml; charset=utf-8" }, badgeSvg(outcome));
+    return withBody(200, { ...headers, "Content-Type": "application/json", "Content-Language": "en" }, JSON.stringify(outcome, null, 2) + "\n");
   }
 
   if (path === "/healthz") {
@@ -357,6 +408,14 @@ export async function route(
   }
 
   return jsonError(404, "not found");
+}
+
+/** The request target as logged: the host a validator or badge request names is dropped. */
+export function loggedPath(rawUrl: string): string {
+  const { path } = splitTarget(rawUrl);
+  if (path === VALIDATE_PATH) return `${VALIDATE_PATH}?origin=<host>`;
+  if (BADGE_ROUTE.test(path)) return "/badge/<host>.svg";
+  return rawUrl.slice(0, 512);
 }
 
 /** Path and query string of a request target, split once for routing, rate limiting and parameters. */
@@ -658,13 +717,14 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     refreshSelf,
     signingKey,
     rateLimiter: createRateLimiter(config.rateLimit),
+    validator: opts.validator === null ? undefined : new Validator({ clock: opts.clock, exclude: new Set(config.validatorExclude ?? []), ...(opts.validator ?? {}) }),
   };
 
   gw.server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const started = process.hrtime.bigint();
     const method = req.method ?? "GET";
     const rawUrl = req.url ?? "/";
-    const { path: pathname } = splitTarget(rawUrl);
+    const { path: pathname, search } = splitTarget(rawUrl);
 
     const finish = (result: Result) => {
       res.writeHead(result.status, result.headers);
@@ -677,7 +737,10 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
         method,
         // JSON.stringify escapes control characters, so a hostile path cannot
         // forge a log line. Truncated to keep one request to one bounded line.
-        path: rawUrl.slice(0, 512),
+        // A validator or badge request names another origin: that name is not
+        // written to this log (the hosting provider's own request log still has
+        // the request line; the legal notice says so).
+        path: loggedPath(rawUrl),
         status: result.status,
         bytes: method === "HEAD" ? 0 : Buffer.byteLength(result.body),
         ms: Number(process.hrtime.bigint() - started) / 1e6,
@@ -688,9 +751,28 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     // before routing so every path but the health check counts; the platform
     // health checker must never be throttled.
     const limited = async (): Promise<Result | undefined> => {
-      if (!gw.rateLimiter || pathname === "/healthz") return undefined;
-      const decision = await gw.rateLimiter.check(clientKey(req, gw.config.rateLimit.trustProxy));
+      if (pathname === "/healthz") return undefined;
+      // The validator makes an outbound request on the caller's behalf, so a request that will cause a
+      // retrieval has its own, stricter budget; a badge or check answered from the hourly cache costs
+      // nothing outbound and only counts against the general limit (shared egress such as GitHub's
+      // image proxy must be able to show many badges).
+      const badge = BADGE_ROUTE.exec(pathname);
+      const validatorRoute = pathname === VALIDATE_PATH || badge !== null;
+      let limiter = gw.rateLimiter;
+      if (validatorRoute && gw.validator?.limiter) {
+        const host = badge ? badge[1].toLowerCase() : (new URLSearchParams(search).get("origin") ?? "").replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
+        // Chosen before the "no general limiter" exit, so the validator keeps its own limit even when
+        // the deployment turns the general one off.
+        if (host && !gw.validator.isFresh(host)) limiter = gw.validator.limiter;
+      }
+      if (!limiter) return undefined;
+      const decision = await limiter.check(clientKey(req, gw.config.rateLimit.trustProxy));
       if (decision.allowed) return undefined;
+      if (badge) {
+        // Never JSON on a badge URL: a README shows an image or nothing.
+        return withBody(429, { ...corsHeaders(), "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store", "Retry-After": String(decision.retryAfterSec) },
+          noticeBadgeSvg("try later", "Too many checks from this client; the origin was not checked."));
+      }
       return jsonError(429, "rate limit exceeded; retry after the indicated delay", {
         "Retry-After": String(decision.retryAfterSec),
         "Cache-Control": "no-store",
@@ -713,7 +795,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
           level: "error",
           event: "unhandled",
           method,
-          path: rawUrl.slice(0, 512),
+          path: loggedPath(rawUrl),
           error: err instanceof Error ? err.message : String(err),
         });
         if (!res.headersSent) finish(jsonError(500, "internal server error"));

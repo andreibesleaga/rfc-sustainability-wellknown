@@ -1,0 +1,33 @@
+name: self-check
+
+# This repository runs its own GitHub Action: the deployment kit's sample file, and the live gateway.
+on:
+  push:
+    paths: ["deploy/github-action/**", "deploy/www/**", ".github/workflows/self-check.yml"]
+  pull_request:
+    paths: ["deploy/github-action/**", "deploy/www/**"]
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  file:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with: { node-version: "22" }
+      - uses: ./deploy/github-action
+        with:
+          file: deploy/www/.well-known/sustainability-data
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with: { node-version: "22" }
+      - uses: ./deploy/github-action
+        with:
+          origin: https://sustainability.up.railway.app

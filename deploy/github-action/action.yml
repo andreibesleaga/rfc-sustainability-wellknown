@@ -1,0 +1,73 @@
+name: "sustainability-data check"
+description: "Validates a /.well-known/sustainability-data declaration (a live origin, or a file in the repository) with the reference consumer."
+author: "Andrei Nicolae Besleaga"
+branding:
+  icon: "check-circle"
+  color: "green"
+inputs:
+  origin:
+    description: "An https origin to fetch and check in strict mode, e.g. https://example.com (leave empty to check a file instead)"
+    required: false
+    default: ""
+  file:
+    description: "A file in the repository holding the declaration, e.g. public/.well-known/sustainability-data"
+    required: false
+    default: ""
+  consumer-version:
+    description: "Exact version of sustainability-wellknown-consumer to use (the version this action was tested with by default)"
+    required: false
+    default: "0.7.0"
+outputs:
+  status:
+    description: "valid or invalid"
+    value: ${{ steps.check.outputs.status }}
+runs:
+  using: "composite"
+  steps:
+    - name: Check the declaration
+      id: check
+      shell: bash
+      env:
+        ORIGIN: ${{ inputs.origin }}
+        FILE: ${{ inputs.file }}
+        VERSION: ${{ inputs.consumer-version }}
+        # Install outside the repository, with no install scripts, so the action never touches the
+        # repository's own dependencies or runs code from the package's lifecycle hooks.
+        PREFIX: ${{ runner.temp }}/sustainability-data-check
+        npm_config_ignore_scripts: "true"
+      run: |
+        set -euo pipefail
+        if [ -z "$ORIGIN" ] && [ -z "$FILE" ]; then
+          echo "::error::give either origin or file"; exit 2
+        fi
+        npm install --prefix "$PREFIX" --no-save --no-audit --no-fund "sustainability-wellknown-consumer@$VERSION" >/dev/null
+        echo "sustainability-wellknown-consumer $(node -p "require('$PREFIX/node_modules/sustainability-wellknown-consumer/package.json').version")"
+        if [ -n "$ORIGIN" ]; then
+          if "$PREFIX/node_modules/.bin/sustainability-fetch" "$ORIGIN" --strict; then
+            echo "status=valid" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=invalid" >> "$GITHUB_OUTPUT"
+            echo "::error::$ORIGIN does not serve a conformant declaration (see the checks above)"
+            exit 1
+          fi
+        else
+          if [ ! -f "$FILE" ]; then
+            echo "status=invalid" >> "$GITHUB_OUTPUT"; echo "::error file=$FILE::file not found"; exit 1
+          fi
+          if NODE_PATH="$PREFIX/node_modules" node -e '
+            const fs = require("node:fs");
+            const { validateDocument } = require("sustainability-wellknown-consumer");
+            const file = process.argv[1];
+            let doc;
+            try { doc = JSON.parse(fs.readFileSync(file, "utf8")); }
+            catch (e) { console.log(`::error file=${file}::not valid JSON: ${e.message}`); process.exit(1); }
+            const r = validateDocument(doc);
+            for (const w of r.warnings ?? []) console.log(`::warning file=${file}::${w}`);
+            if (!r.valid) { for (const e of r.errors) console.log(`::error file=${file}::${e}`); process.exit(1); }
+            console.log(`valid declaration: ${file}`);
+          ' "$FILE"; then
+            echo "status=valid" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=invalid" >> "$GITHUB_OUTPUT"; exit 1
+          fi
+        fi

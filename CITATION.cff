@@ -10,6 +10,7 @@ date-released: "2026-09-17"
 url: "https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/"
 repository-code: "https://github.com/andreibesleaga/rfc-sustainability-wellknown"
 license: BSD-3-Clause
+# The WordPress plugin under deploy/wordpress/ is GPL-2.0-or-later (WordPress.org directory rule).
 preferred-citation:
   type: generic
   authors:

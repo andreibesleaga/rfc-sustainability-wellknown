@@ -27,9 +27,13 @@ import sys
 
 
 def unwrap_combined_references(xml: str) -> str:
-    start = xml.find('<references anchor="sec-combined-references">')
-    if start < 0:
+    # xml2rfc --v2v3 wraps the two reference sections in one <references> with
+    # <name>References</name>; depending on the xml2rfc version the wrapper
+    # carries anchor="sec-combined-references" or no anchor at all.
+    m = re.search(r'<references(?: anchor="sec-combined-references")?>\s*(?=<name>References</name>)', xml)
+    if not m:
         return xml
+    start = m.start()
     # Find the </references> that closes the wrapper, counting nested ones.
     depth, pos = 0, start
     for m in re.finditer(r"<references[\s>]|</references>", xml[start:]):
@@ -40,7 +44,7 @@ def unwrap_combined_references(xml: str) -> str:
     else:
         raise SystemExit("v3-postprocess: unbalanced <references> wrapper")
     inner = xml[start:pos]
-    inner = re.sub(r'^<references anchor="sec-combined-references">\s*', "", inner)
+    inner = re.sub(r'^<references(?: anchor="sec-combined-references")?>\s*', "", inner)
     inner = re.sub(r"^<name>References</name>\s*", "", inner)
     line_start = xml.rfind("\n", 0, start) + 1
     close_end = pos + len("</references>")

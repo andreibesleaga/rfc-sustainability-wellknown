@@ -42,6 +42,9 @@ final class Sustainability_Data_Wellknown {
 		'disclosure_uri',
 	);
 
+	/** The guide to getting real figures, linked from the settings page. */
+	public const FIGURES_GUIDE = 'https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md';
+
 	/** Response headers recorded instead of sent when SDWK_NO_EXIT is defined (offline tests only). */
 	public static array $sent = array();
 
@@ -420,6 +423,8 @@ final class Sustainability_Data_Wellknown {
 		echo '</p></div>';
 		echo '<p>' . esc_html__( 'The figures are yours; the plugin only publishes them. Check the result with:', 'sustainability-data-wellknown' )
 			. ' <code>npx -y -p sustainability-wellknown-consumer sustainability-fetch ' . esc_html( home_url() ) . ' --strict</code></p>';
+		echo '<p>' . esc_html__( 'No figures yet?', 'sustainability-data-wellknown' )
+			. ' <a href="' . esc_url( self::FIGURES_GUIDE ) . '">' . esc_html__( 'Get them from your host\'s carbon report, a meter, or your monthly data transfer.', 'sustainability-data-wellknown' ) . '</a></p>';
 
 		echo '<form method="post" action="options.php">';
 		settings_fields( 'sdwk' );
@@ -430,7 +435,7 @@ final class Sustainability_Data_Wellknown {
 		self::select_row( $o, 'measurement_method', __( 'Measurement method (required)', 'sustainability-data-wellknown' ), self::METHODS, true, __( 'hardware-metered only for a meter reading; a model or a calculator is third-party-modeled.', 'sustainability-data-wellknown' ) );
 		self::text_row( $o, 'target', __( 'Target', 'sustainability-data-wellknown' ), (string) wp_parse_url( home_url(), PHP_URL_HOST ), __( 'What the figures are about; the site host by default.', 'sustainability-data-wellknown' ) );
 		self::select_row( $o, 'target_type', __( 'Target type', 'sustainability-data-wellknown' ), self::TARGET_TYPES, false, '' );
-		self::text_row( $o, 'energy_kwh', __( 'Energy (kWh)', 'sustainability-data-wellknown' ), '', '' );
+		self::text_row( $o, 'energy_kwh', __( 'Energy (kWh)', 'sustainability-data-wellknown' ), '', __( 'From a meter or an energy report. For an estimate from data transfer, leave this empty and fill in Carbon only.', 'sustainability-data-wellknown' ) );
 		self::text_row( $o, 'carbon_kgco2e', __( 'Carbon (kgCO2e)', 'sustainability-data-wellknown' ), '', '' );
 		self::text_row( $o, 'scope_1', __( 'Scope 1 (kgCO2e)', 'sustainability-data-wellknown' ), '', '' );
 		self::text_row( $o, 'scope_2', __( 'Scope 2 (kgCO2e)', 'sustainability-data-wellknown' ), '', '' );

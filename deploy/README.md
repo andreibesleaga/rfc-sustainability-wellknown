@@ -5,6 +5,10 @@ document is `www/.well-known/sustainability-data` (a synthetic `kit.example`; re
 figures). Recipes marked **CI** are started and validated by `.github/workflows/deploy-kit.yml` on every
 change with the reference consumer in strict mode; the others are reviewed by hand and say when.
 
+**Figures:** every recipe publishes the figures you give it. [FIGURES.md](FIGURES.md) lists the easiest real sources
+(your cloud's or host's own report, a meter, energy counters) and a five-minute estimate from data transfer, with
+the `measurement-method` to declare for each and how to check the result.
+
 The four response headers every recipe sets, and why (three come from the draft, one is kit hardening):
 
 | Header | Value | Why |

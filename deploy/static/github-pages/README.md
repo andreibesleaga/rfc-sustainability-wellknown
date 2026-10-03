@@ -4,3 +4,5 @@ headers; Jekyll cannot change that. Options: publish the site through Cloudflare
 (free; `_headers` recipe), or keep GitHub Pages for the site and serve the declaration from a tiny
 Worker/Pages project on a subdomain, or use the reference gateway as a relay with your consent.
 Do not publish the file as `sustainability-data.json`: the canonical path has no extension.
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

@@ -145,5 +145,6 @@ $page = (string) ob_get_clean();
 check(str_contains($page, 'name="sdwk_declaration[provider]"') && str_contains($page, 'name="sdwk_declaration[measurement_method]"'), 'the settings page renders the form fields');
 check(str_contains($page, 'Published at'), 'the settings page says the declaration is published');
 check(str_contains($page, '<option value="">choose</option>'), 'the measurement method must be chosen, nothing is preselected for it');
+check(str_contains($page, 'href="https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md"'), 'the settings page links the guide to getting real figures');
 
 exit($fail);

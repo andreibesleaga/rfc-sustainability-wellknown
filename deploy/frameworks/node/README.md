@@ -9,3 +9,5 @@ is the only one served).
 For a signed, Extended service (periods, granularity, signatures) use the publisher package instead:
 `npm install sustainability-wellknown-publisher`, then `expressSustainability(publisher)` or
 `fastifySustainability`, or the standalone `sustainability-publisher` command.
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

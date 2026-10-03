@@ -20,3 +20,5 @@ These work once this folder lives in its own public repository (owner step: crea
 
 A deployment made from the template is that person's origin, served from their name once they attach
 a custom domain; the platform's own `*.netlify.app` / `*.vercel.app` name counts as an origin too.
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

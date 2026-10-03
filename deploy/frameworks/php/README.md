@@ -6,3 +6,5 @@ WordPress: until the plugin ships, the Apache/LiteSpeed `.htaccess` recipe in `.
 works on every WordPress host that runs Apache or LiteSpeed; put the document at
 `.well-known/sustainability-data` in the site root (outside `wp-content`).
 A hardened plain-PHP example is `../../../example-scripts/security.php`.
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

@@ -10,3 +10,5 @@ every path with HTML is the commonest way a deployment fails the check). The doc
 enable CORS on the storage account for GET/HEAD from `*`; `nosniff` needs Azure Front Door or CDN
 rules-engine response headers. Carbon data: Azure Carbon Optimization (free, monthly, kgCO2e,
 resource-level) can feed a `cloud-billing` figure.
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

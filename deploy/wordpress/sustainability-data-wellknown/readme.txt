@@ -40,6 +40,19 @@ Check your file with the reference consumer: `npx -y -p sustainability-wellknown
 
 = Where do the figures come from? =
 From you. The plugin publishes what you enter; the methodology page you link should say how you obtained it.
+The easiest real sources, best first:
+
+* Your cloud's or host's own carbon report (AWS Sustainability console, Google Cloud Carbon Footprint, Azure
+  Carbon optimization, OVHcloud, Infomaniak): enter one month's total as Carbon, converted to kg (the consoles show
+  tonnes: × 1000), set the period to that month and Carbon accounting to the report's method; measurement method
+  `cloud-billing`. Leave the scope fields empty: your provider's emissions are your Scope 3.
+* A meter or a smart plug that reports kWh, on your own server: Energy, `hardware-metered`.
+* Otherwise, an estimate from data transfer with the Sustainable Web Design Model: GB sent in the month × 0.148 =
+  kgCO2e (0.300 kWh per GB at the model's global 494 gCO2e/kWh). Enter it as Carbon only (not Energy, not a scope),
+  with Carbon accounting `location-based` and measurement method `third-party-modeled`.
+
+The guide, with links to each source and to free grid-intensity data:
+https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md
 
 = What does "measurement method" mean? =
 How the figures were obtained: `hardware-metered` only for a meter reading; `hardware-estimated` for counters or

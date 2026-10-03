@@ -35,3 +35,5 @@ Until it is on the Marketplace, use it from this repository at a fixed commit:
 Marketplace publishing (owner step): create the repository `sustainability-data-check` with `action.yml` and this
 README at its root, tag `v1`, and publish from its Releases page. This repository runs the action on itself in
 `.github/workflows/self-check.yml`.
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

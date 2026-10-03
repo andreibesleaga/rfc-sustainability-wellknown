@@ -4,3 +4,5 @@
 answers 200 with the JSON and an `Allow: GET, HEAD` header, which is harmless. Works on
 shared hosting where only `.htaccess` can be edited (LiteSpeed honours it). The full virtual-host file
 with a `405` body and TRACE hardening is `server-configurations/apache.conf`.
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

@@ -22,3 +22,5 @@ Status: the logic is unit-tested against a fake Core API (`npm test`), the add-o
 documented add-on format, **but it has not been run inside a real Home Assistant**. First real install:
 a volunteer from the community, or the author's own instance. Known gaps to check there: the Supervisor
 API path and token, the base image's Node availability, and the ingress/port exposure.
+
+**Grid intensity:** the energy comes from your meter. For `grid_intensity_gco2e_per_kwh`, use your country's average (the EEA in the EU, Ember elsewhere), your region's in Great Britain (NESO), or your eGRID subregion's CO2e rate in the US (lb/MWh × 0.4536 = g/kWh); see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md#grid-intensity-for-kwh--carbon). Ember counts CO2 only: say so on your methodology page.

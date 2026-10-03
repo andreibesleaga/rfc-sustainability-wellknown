@@ -38,3 +38,5 @@ works on Render, Fly.io, Scaleway Serverless Containers, Google Cloud Run, Azure
 `npx -y -p sustainability-wellknown-consumer sustainability-fetch https://your.domain.example --strict --verify`
 
 Tests: `npm test` (starts the server on a loopback port and checks the document and its signature).
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

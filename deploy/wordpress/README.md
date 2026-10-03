@@ -23,3 +23,5 @@ Owner steps to publish: run the Plugin Check plugin on a test site (zero errors)
 https://wordpress.org/plugins/developers/add/ from the owner's wordpress.org account; expect a review of
 days to weeks; the slug cannot start with a trademark (it does not). Until then the zip installs on any
 site through Plugins → Add New → Upload.
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

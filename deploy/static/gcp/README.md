@@ -11,3 +11,5 @@ no public API) can feed a `cloud-billing` figure; it needs billing permissions a
 (`gcr.io`/Artifact Registry image built from `../../frameworks/node/`), set the four headers in code.
 That is the same recipe as any Node framework; nothing GCP-specific beyond the deploy command:
 `gcloud run deploy sustainability-data --source . --allow-unauthenticated --region europe-west1`.
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

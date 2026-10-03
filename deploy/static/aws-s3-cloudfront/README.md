@@ -25,3 +25,5 @@ permanent origin before then (your site, with the methodology page quoting the A
    in your methodology page. Publish no kWh unless AWS prints one.
 
 `main.tf` is the same deployment as Terraform for people who prefer it (not run in CI).
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

@@ -12,3 +12,5 @@ npx create-sustainability-data --target example.com --provider "Example Ltd (htt
 Nothing is estimated: a figure you do not have is left out; a file with no figure needs a disclosure
 link. Then deploy and check: `npx -y -p sustainability-wellknown-consumer sustainability-fetch https://example.com --strict`.
 No dependencies. Not yet published to npm (owner step: `npm publish --access public` from this folder).
+
+**Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).

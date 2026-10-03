@@ -1,5 +1,5 @@
 /**
- * sfc-check against the eight fixtures. No network: the attestation test
+ * sfc-check against the nine fixtures. No network: the attestation test
  * injects its own fetch, and every clock is fixed, so a run means the same
  * thing today and in ten years.
  */
@@ -50,6 +50,27 @@ describe("fixture: pass", () => {
     for (const id of ["C2-hardware-lifecycle", "C3-net-zero", "M-topology"]) {
       expect(statusOf(result, id)).toEqual(["DECLARED"]);
     }
+  });
+});
+
+describe("fixture: ledger-evidence", () => {
+  // pass.json plus a ledger-evidence entry. The operator entry copies the invented
+  // operator 7 values of the paper's worked example, with the window moved into
+  // the fixture's reporting year so that it lies inside reporting-period. The entry
+  // only exercises the DECLARED row: its values do not reconcile with the fixture's
+  // annual figures (ledger profile 1.2 section 9.3, step 5), as its provider says.
+  it("reports the extension as DECLARED, never PASS, and leaves the exit code alone", async () => {
+    const result = await checkDocument(fixture("ledger-evidence.json"));
+    expect(result).toMatchObject({ conformant: true, capExceeded: false, exitCode: 0 });
+    expect(statusOf(result, "ledger-evidence")).toEqual(["DECLARED"]);
+    expect(detailOf(result, "ledger-evidence")).toContain("1 operator entry");
+    expect(detailOf(result, "ledger-evidence")).toContain("profile-version 1.2");
+  });
+
+  it("reports pass.json, which carries no such extension, as ABSENT", async () => {
+    const result = await checkDocument(fixture("pass.json"));
+    expect(statusOf(result, "ledger-evidence")).toEqual(["ABSENT"]);
+    expect(result.exitCode).toBe(0);
   });
 });
 

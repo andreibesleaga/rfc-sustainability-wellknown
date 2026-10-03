@@ -32,11 +32,11 @@ checklist:
 | C3 | **Carbon Accountability** | Native on-chain carbon transparency; regulatory-aligned thresholds requiring annual Net Zero via direct renewables or verified offsets; GHG Protocol Scope 2 & 3 methodologies |
 | C4 | **Regulatory Readiness** | Auditability compatible with CSRD and ESG reporting (e.g., accessible via APIs) |
 
-*Notes added 2026-10-04.* The framework leaves "system-wide" undefined; the profile 1.1 draft
+*Notes added 2026-10-03.* The framework leaves "system-wide" undefined; profile 1.1
 adopts the boundary of Commission Delegated Regulation (EU) 2025/422, field S.8. The
 framework's "Net Zero via ... verified offsets" is, in GHG Protocol and Science Based Targets
 initiative terms, an offset-coverage claim, and the profile treats it so
-([PROFILE-1.1-draft.md](PROFILE-1.1-draft.md) section 3.3).
+([PROFILE.md](PROFILE.md) section 3.3).
 
 ## 2. How the two fit together
 
@@ -73,7 +73,7 @@ layers**, sharing the GHG Protocol vocabulary:
 | Annualized network energy (C1) | `energy-consumption` + `energy-unit` (`Wh`/`kWh`/`MWh`/`GWh`) with a yearly `reporting-period` | C1's 1 GWh cap is directly checkable |
 | Carbon intensity (C3, grid data) | `carbon-intensity-gCO2e-per-kWh` | the framework's regional grid-intensity monitoring |
 | GHG Scope 2 / Scope 3 (C3) | `scope-2`, `scope-3` (+ `carbon-accounting`) | -07 allows a negative scope value only where the declared accounting method conveys removals, with the basis explained in `methodology-uri`; `carbon-footprint` is gross and MUST NOT be negative, so a position reached after offsets (the framework's net zero, an offset-coverage position) is carried in an extension instead (see [PROFILE.md](PROFILE.md) rule 1) |
-| Net Zero / verified offsets (C3) | the `carbon-neutrality` extension (the position and the retired credits), `verifiable-attestation-uri` (a third party's signed statement), `renewable-energy` (%) | the draft links to attestations rather than defining them (its stated non-goal); the profile counts only retired credits and reads the framework's "Net Zero" as an offset-coverage position ([PROFILE-1.1-draft.md](PROFILE-1.1-draft.md) section 3.3) |
+| Net Zero / verified offsets (C3) | the `carbon-neutrality` extension (the position and the retired credits), `verifiable-attestation-uri` (a third party's signed statement), `renewable-energy` (%) | the draft links to attestations rather than defining them (its stated non-goal); the profile counts only retired credits and reads the framework's "Net Zero" as an offset-coverage position ([PROFILE.md](PROFILE.md) section 3.3) |
 | Measurement methodology (CBECI/CCRI etc.) | `measurement-method` + mandatory `methodology-uri` | the framework's transparent-methodology requirement is the draft's mandatory floor |
 | CSRD/ESG machine-readable auditability (C4) | the document itself + `disclosure-uri` (e.g., a carbon.txt index to filed reports) | one GET, schema-validated |
 | The evaluated system as reporting subject | `target` (+ optional `target-type`: e.g., `service` for a network, `device` for a node, `organization` for the operator) | -07's generalized reporting subject fits network-, node-, and operator-level reporting |
@@ -252,16 +252,17 @@ It states:
   membership);
 - the **four criteria** mapped member by member, with units and with what each level MUST
   carry;
-- the **three extension names**, minted once under
+- the **four extension names**, minted once under
   `https://andreibesleaga.com/sfc/extensions/`: `hardware-lifecycle`, `carbon-neutrality`
-  and `network-topology`, each with its members defined in a table;
+  and `network-topology`, and, new in 1.1, `ledger-evidence`, each with its members defined
+  in a table;
 - the **six rules a publisher can get wrong**: `carbon-footprint` is gross and never net of
   offsets; there is no `TWh`; a network is a `service` and not a `network`; a
   hardware-lifecycle extension never travels alone; `upstream` is suppliers and not
   membership; and a statement is *attested*, never *verified*;
 - the boundaries: real-time grid data is a measurement input while publication stays
   periodic; an on-ledger evidence trail stays outside the specification and is reached
-  through `disclosure-uri`; and bespoke `/v1/sustainability/*` endpoints are replaced by
+  through the signed `ledger-evidence` extension or through `disclosure-uri`; and bespoke `/v1/sustainability/*` endpoints are replaced by
   well-known documents (section 7.3);
 - **what a conformance statement may and may not claim** (section 9).
 

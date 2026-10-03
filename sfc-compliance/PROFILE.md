@@ -1,7 +1,10 @@
 # The SFC profile of `/.well-known/sustainability-data`
 
-**Status:** normative profile. **Applies to:** draft-besleaga-sustainability-wellknown-07
-(the *draft* below). **Version:** profile 1.0, 2026-09-16.
+**Status:** normative profile, version 1.1, 2026-10-03; version 1.0 (2026-09-16) in
+[PROFILE-1.0.md](PROFILE-1.0.md). **Applies to:**
+draft-besleaga-sustainability-wellknown-07 (the *draft* below). **Version:** profile
+1.1, 2026-10-03. Section 11 lists what changed from 1.0. **Short name:** the SFC
+disclosure profile (its companion, the SFC ledger profile, says what a ledger records).
 
 ## 1. Purpose
 
@@ -17,8 +20,8 @@ path, validated by two formal schemas, readable with one GET.
 This profile joins the two. It states, member by member, how an SFC declaration is
 published so that a reader can evaluate the four criteria from the document alone. It uses
 the draft as it stands. It changes nothing in the draft, adds no top level member, and
-invents no new unit. Everything the draft does not define is carried under three extension
-names, defined in section 5.
+invents no new unit. Everything the draft does not define is carried under four extension
+names, defined in section 5. The fourth, `ledger-evidence`, is new in 1.1.
 
 This document is self contained. It is written for two readers: a publisher deciding what
 to serve, and a consumer deciding what may be concluded from what was served.
@@ -49,6 +52,9 @@ differently.
 | `upstream` | usually absent | names the hosting, cloud and electricity providers the operator buys from |
 | Membership | not applicable | declared in the `network-topology` extension, section 5.4 |
 
+An operator level declaration carries `target-type: "origin"`, and its `target` is the
+operator's origin host, as the table shows.
+
 A network level declaration MUST carry `target-type: "service"`. The draft's `target-type`
 enumeration has no `network` value, and a value outside the enumeration is disregarded by a
 conforming consumer, which would leave the level undeclared.
@@ -69,6 +75,16 @@ methodology document carries the basis.
 ### 3.1 C1, energy consumption
 
 **Criterion.** The annual energy consumption of the whole network is below 1 GWh.
+
+**Boundary.** The framework says "system-wide" and defines nothing further. This profile
+uses the boundary of Commission Delegated Regulation (EU) 2025/422, Annex, Table 2, field
+S.8: the energy used for the validation of transactions and the maintenance of the integrity
+of the ledger, in kilowatt-hours per calendar year, counted over all its nodes as the
+Regulation's recital 8 says. This profile counts data-centre overhead within it; S.8 itself
+does not mention overhead. Gateways, off-ledger storage, backups and any share of an anchor chain are stated
+in the methodology document as included or excluded. Client and user devices are excluded.
+Published figures for the same ledger differ by a factor of two or more with the boundary and
+the data provider, so a reader compares figures only on the same boundary.
 
 | What is published | Draft member | Unit | Required by this profile |
 |---|---|---|---|
@@ -132,7 +148,17 @@ conformant. In practice the C2 data rides with the C1 figure, which is the inten
 ### 3.3 C3, carbon accountability
 
 **Criterion.** The system accounts for its carbon on a stated basis, reports value chain
-emissions, and either reaches net zero for the year or says plainly that it has not.
+emissions, and either covers its emissions for the year with retired carbon credits or
+market based renewable instruments, or says plainly that it has not.
+
+**What "net zero" means in this profile.** The framework calls that position "Net Zero".
+In the terms of the GHG Protocol and the Science Based Targets initiative it is an
+**offset-coverage** claim: both keep credits outside the emissions inventory, and the Science
+Based Targets initiative admits them towards net zero only to neutralise residual emissions. This profile keeps the framework's word in its
+extension and member names, which are stable (section 4), and uses it in that sense only. It
+makes no consumer-facing claim of neutrality; in the EU, a claim based on offsetting that a
+product has a neutral, reduced or positive greenhouse-gas impact is prohibited for
+business-to-consumer commercial practices from 27 September 2026 (Directive (EU) 2024/825).
 
 | What is published | Draft member | Unit | Required by this profile |
 |---|---|---|---|
@@ -160,12 +186,28 @@ A market based renewable claim is an ordinary market based `scope-2` figure. The
 travels in band, in `carbon-accounting`, because figures computed on different bases are
 not comparable and a consumer that compares them without the basis is comparing nothing.
 
+Where contractual instruments exist, the GHG Protocol's Scope 2 Guidance asks for Scope 2 in
+two ways, location based and market based. A declaration object carries one
+`carbon-accounting` value, so the in-band `scope-2` is the market based figure and the
+location based figure is stated in the methodology document. Renewable electricity counts
+towards the offset-coverage position only through the market based figure.
+
+The methodology document lists the Scope 3 categories included and says how capital goods
+are counted. The GHG Protocol's Scope 3 guidance counts them in the year of acquisition; the
+Software Carbon Intensity specification (ISO/IEC 21031:2024) amortises embodied carbon over
+service life. A publisher that amortises says so, as a stated deviation.
+
 ### 3.4 C4, regulatory readiness
 
 **Criterion.** The figures are readable by machine, without prior arrangement, by a party
 the publisher has never met.
 
-This is the criterion the draft satisfies by being implemented. Nothing else is needed:
+The framework's criterion asks for auditability compatible with CSRD and ESG reporting,
+"e.g., accessible via APIs". This profile applies its machine-readability part. The
+declaration maps onto quantities of ESRS E1 and of the MiCA sustainability indicators, but
+it is not a regulatory filing and does not replace one.
+
+This is the part the draft satisfies by being implemented. Nothing else is needed:
 
 | What the criterion asks for | How the draft answers it |
 |---|---|
@@ -193,13 +235,15 @@ Names minted by this profile live under:
 https://andreibesleaga.com/sfc/extensions/
 ```
 
-Exactly three names are defined, and no others are minted by this version of the profile:
+Four names are defined, and no others are minted by this version of the profile. The first
+three are unchanged from 1.0; the fourth, `ledger-evidence`, is new in 1.1:
 
 | Name | Level | Section |
 |---|---|---|
 | `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle` | both | 5.2 |
 | `https://andreibesleaga.com/sfc/extensions/carbon-neutrality` | network, and an operator that makes its own claim | 5.3 |
 | `https://andreibesleaga.com/sfc/extensions/network-topology` | both, with different members at each level | 5.4 |
+| `https://andreibesleaga.com/sfc/extensions/ledger-evidence` | network, and an operator that publishes its own trail | 5.5 |
 
 An extension name is an identifier, not a locator. It is compared as a string, octet for
 octet, and it is never normalized and never fetched, not even though it is an https URI. It
@@ -246,19 +290,27 @@ guessing. The two booleans are the criterion; the rest is context.
 
 ### 5.3 `carbon-neutrality`
 
-The net zero position for the period, and the evidence behind it.
+The net zero position for the period, and the evidence behind it. "Net zero" is meant in the
+sense of section 3.3: whether retired credits, and market based renewable instruments, cover
+the period's emissions. The extension name and `net-zero-status` keep their 1.0 spelling,
+because a minted name is kept (section 4); their values are unchanged.
 
 | Member | JSON type | Unit | Meaning | Required |
 |---|---|---|---|---|
 | `net-zero-status` | string | none | One of `achieved`, `partial`, `not-achieved`. `partial` means some of the residual was addressed and some was not. | yes |
 | `renewable-procurement` | string | none | How renewable energy was obtained. One of `on-site-generation`, `power-purchase-agreements`, `unbundled-certificates`, `supplier-tariff`, `grid-average`, `mixed`. | no |
 | `residual-emissions-tCO2e` | number, non negative | metric tons CO2e | The emissions remaining for the period after reductions, which retirements are meant to address. | no |
-| `offsets-retired-tCO2e` | number, non negative | metric tons CO2e | Carbon credits retired for this period, in the publisher's name. | no |
+| `offsets-retired-tCO2e` | number, non negative | metric tons CO2e | Carbon credits retired and allocated to this period: in the publisher's name, or, at network level, in the names of the operators counted, which the methodology document says. Registries retire whole tonnes; one retirement may be allocated across periods by a signed allocation whose parts never exceed the tonnes retired, so the figure may be fractional. (1.0: "retired for this period, in the publisher's name".) | no |
 | `offset-registry-uri` | string, absolute https URI | none | The registry record of those retirements, where serial numbers can be read. | no |
 | `offsets-attested-by` | string | none | The party that issued the statement at `verifiable-attestation-uri`, named so that a reader knows whose key to look for. | no |
 
 A net zero claim is a claim. It is published beside the gross figures that support it, never
 instead of them. See rules 1 and 6 of section 6.
+
+A publisher that claims retirements SHOULD publish, at the registry, the beneficiary and the
+period of each retirement, and SHOULD name in its methodology document the standard or label
+of the credits retired. A registry record shows that serial numbers were retired; it shows
+for whom and for which period only when the account holder publishes them.
 
 ### 5.4 `network-topology`
 
@@ -290,6 +342,57 @@ checker reading `member-of-network` treats the declaration as operator level wha
 it carries.
 
 `upstream` is not membership. See rule 5 of section 6.
+
+### 5.5 `ledger-evidence` (new in 1.1)
+
+A pointer from the declaration to the system's own signed evidence trail, for systems that
+keep one: per-operator attestation events, each linked by hash to the one before it.
+
+The value records, for each operator counted, the hash of the last attestation of each
+kind at the end of the period (the head of that operator's chain), the period boundaries,
+the number of events, the totals rolled up into the declaration's figures, and the result
+of the offset-coverage rule for the period (the framework's net zero, section 3.3); and, once, where a verifier obtains read access to the
+trail. Its members are those of section 9.2 of the SFC ledger profile v1.2
+([`SFC_COMPLIANCE.md`](https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md)),
+which specifies the trail itself. Event and payload names in the tables (`CarbonAttested`,
+`kWhConsumed`, `netZero`) and the section numbers marked "ledger profile" are that
+profile's.
+
+| Member | JSON type | Required | Meaning |
+|---|---|---|---|
+| `profile-version` | string | yes | `"1.2"`, the version of the SFC ledger profile |
+| `ledger-access-uri` | string, absolute https URI | yes | where a verifier obtains the attestation events and the Registry keys; access MAY be restricted to consortium members and auditors |
+| `hash-algorithm` | string | yes | `"sha-256"` |
+| `event-encoding` | string | yes | `"rfc8785"` |
+| `period-start`, `period-end` | string, full date | yes | first and last day covered; both inside the declaration's `reporting-period` |
+| `operators` | array of objects, at least one | yes | one entry per operator counted (exactly one in an operator declaration) |
+| `network-offset-coverage` | boolean | network level only | Σ(S2 + S3) ≤ Σ R over the period, from the totals below |
+| `anchor` | object | no | `{ "ledger": <name of the public chain>, "reference": <transaction or root identifier> }` for the last anchor covering `period-end` |
+
+Each `operators` entry:
+
+| Member | JSON type | Meaning |
+|---|---|---|
+| `operator` | string | the operator's DID, as in the `subject` of its attestation events |
+| `energy-head`, `carbon-head` | string, 64 hex | hash of the latest attestation of each type, in chain order, whose period ends on or before `period-end` |
+| `energy-events`, `carbon-events` | integer | number of attestations of each type whose period lies within the declared period, corrections included |
+| `kwh` | number | Σ `kWhConsumed` over the effective attestations among those events (ledger profile §3.1 rule 1) |
+| `scope2-kgco2e`, `scope3-kgco2e`, `offsets-kgco2e` | number | Σ of the matching payload fields of the effective attestations |
+| `offset-coverage-every-period` | boolean | true when every month of the period has an effective `CarbonAttested` whose `netZero` is true and correct |
+
+The members for the rule are named for what it tests; they are new, so they do not carry
+the framework's "net zero" label. Totals are computed with exact decimal arithmetic over
+the numbers as they appear in the RFC 8785 serialisation of each event.
+
+A publisher MAY emit this extension. A checker implementing only profile 1.0 ignores it, as
+the draft requires for any extension it does not implement.
+
+The value sits inside the declaration object, so a `signed` member covers it. That is the
+reason for an extension rather than a link: see section 7.2.
+
+What a reader can conclude from it is bounded by rule 6. A reader who follows the pointer and
+recomputes the heads and totals from the signed events learns whether the declaration agrees
+with the trail. It does not learn whether the readings in the trail were true.
 
 ## 6. Six rules a publisher can get wrong
 
@@ -350,11 +453,20 @@ signed measurements written to the system itself. None of that is in the draft. 
 names no ledger, no chain and no on chain artefact, and it is not going to, because it is a
 disclosure format for any HTTP origin.
 
-The trail is reachable from the declaration by exactly one route: `disclosure-uri`, which
-names a machine readable index, and the index names the trail. A publisher MUST NOT invent
-a top level member for it. A publisher MAY describe the trail in its methodology document.
-That is the whole of the relationship, and it is enough: the reader who wants the trail
-follows one link.
+The trail is reachable from the declaration by one of two routes:
+
+* **Inside the declaration**, under the `ledger-evidence` extension of section 5.5. The
+  extension value is part of the declaration object, so a `signed` member covers it. A
+  reader holding a key it trusts can detect a changed or swapped pointer.
+* **Behind `disclosure-uri`**, which names a machine readable index, and the index names the
+  trail. The index is a separate resource. The declaration's `signed` member does not cover
+  it, so a swapped index cannot be detected from the declaration alone.
+
+A publisher that signs SHOULD use the first route. `verifiable-attestation-uri` is not a
+route: the draft defines it as a statement made and signed by a party other than the
+publisher, at most one per object, so it cannot carry the publisher's own pointer to its
+trail. A publisher MUST NOT invent a top level member for the trail. A publisher MAY
+describe the trail in its methodology document.
 
 ### 7.3 Bespoke endpoints are replaced, not documented
 
@@ -379,7 +491,9 @@ they are not part of this profile and a checker will not look for them.
 
 `sfc-check.mjs` in this directory reads a declaration, from a local file or from an origin,
 and reports the four criteria as this profile defines them. See `README.md` for how to run
-it.
+it. The checker implements profile 1.1. It reports `ledger-evidence` as declared, with the
+number of operator entries and `profile-version`; comparing the declaration with the trail
+needs read access to the ledger and is a separate check (ledger profile §9.4).
 
 What it does:
 
@@ -387,7 +501,7 @@ What it does:
 * evaluates C1 only on an annual object whose `target-type` is `service`, converting the
   figure to GWh and comparing it with 1 GWh, and refuses with a stated reason on anything
   else;
-* reports C2 and the net zero position as **declared**, never as passed;
+* reports C2, the net zero position and `ledger-evidence` as **declared**, never as passed;
 * checks C3 for presence and coherence, which is as far as a reader can get from a
   document;
 * treats C4 as a mechanism: the document validates, and, when an origin was given, the
@@ -432,7 +546,7 @@ A publisher, an aggregator or a checker writing about a declaration under this p
   authorship, and nothing else.
 
 A statement of profile conformance is therefore always of this shape: *this declaration
-conforms to the draft, and under the SFC profile version 1.0 it declares X, Y and Z, of
+conforms to the draft, and under the SFC profile version 1.1 it declares X, Y and Z, of
 which the annual energy figure was checked against the 1 GWh cap on the date shown.*
 
 ## 10. Examples
@@ -443,7 +557,7 @@ both say in band, in `provider`, that every figure in them is invented.
 
 | File | Level | What it shows |
 |---|---|---|
-| `examples/sfc-network.example.json` | network | the full member set, an annual period, 800 MWh against the 1 GWh cap, gross carbon with the scopes, and all three extensions |
+| `examples/sfc-network.example.json` | network | the full member set, an annual period, 800 MWh against the 1 GWh cap, gross carbon with the scopes, and the three extensions of profile 1.0 (no `ledger-evidence`) |
 | `examples/sfc-operator.example.json` | operator | one validator operator, `upstream` naming its cloud and electricity providers, and membership declared in `network-topology` |
 
 The network example is internally coherent, which a reader can check by hand: 800 MWh is
@@ -451,3 +565,34 @@ The network example is internally coherent, which a reader can check by hand: 80
 scopes sum to 95.5, the declared `carbon-footprint`; and 95.5 mtCO2e is 95 500 kg, the
 declared `estimated-annual-emissions-kgCO2e`. A publisher SHOULD make its own figures
 reconcile the same way, and a reader SHOULD check.
+
+## 11. Changes from profile 1.0
+
+* **A fourth extension name**, `https://andreibesleaga.com/sfc/extensions/ledger-evidence`
+  (sections 4 and 5.5). Its members are those of the SFC ledger profile v1.2, section 9.2;
+  the members for the offset-coverage rule are `offset-coverage-every-period` and
+  `network-offset-coverage`.
+* **"Exactly three extension names" no longer holds.** Section 1 and section 4 now say four.
+  The three names of 1.0 keep their meaning, as section 4 requires.
+* **Two routes to the evidence trail** (section 7.2): inside the signed declaration, under
+  `ledger-evidence`, covered by `signed`; or behind `disclosure-uri`, not covered. 1.0 allowed
+  only the second.
+* **`verifiable-attestation-uri` cannot carry the trail** (section 7.2): it names a statement
+  signed by a party other than the publisher.
+* **Operator declarations use `target-type: "origin"`** (section 2), stated in prose as well
+  as in the table.
+* **C1 boundary** (section 3.1): the framework's "system-wide" is given the boundary of
+  Delegated Regulation (EU) 2025/422, field S.8 (all nodes, as its recital 8 says), with
+  data-centre overhead counted by this profile and declared extensions.
+* **"Net zero" explained** (sections 3.3 and 5.3) as an offset-coverage position, with no
+  consumer-facing neutrality claim. Names and values of 1.0 are unchanged.
+* **Scope 2 and Scope 3** (section 3.3): in-band `scope-2` is market based where instruments
+  exist, the location based figure goes in the methodology document; Scope 3 categories and the
+  treatment of capital goods are stated.
+* **C4** (section 3.4) is applied in its machine-readability part, and said so.
+* **`offsets-retired-tCO2e` widened** (section 5.3): allocated retirements, and at network level
+  the operators' retirements. A 1.0 value stays valid under 1.1.
+* **Retirement evidence** (section 5.3): beneficiary and period published at the registry,
+  credit standard named.
+* Sections 8, 9 and 10 updated for the version number, the checker and the examples. Nothing
+  else changed.

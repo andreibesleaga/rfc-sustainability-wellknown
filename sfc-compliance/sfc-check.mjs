@@ -5,7 +5,7 @@
  *
  * Nothing here extends the draft. The document is validated by the published
  * consumer library, and every criterion is read off the members the draft
- * defines plus the three extension names PROFILE.md section 4 mints.
+ * defines plus the four extension names PROFILE.md section 4 mints.
  *
  * What the output words mean:
  *   PASS      a check a reader can actually make came out right
@@ -34,6 +34,7 @@ export const NS = "https://andreibesleaga.com/sfc/extensions/";
 export const HARDWARE_LIFECYCLE = NS + "hardware-lifecycle";
 export const CARBON_NEUTRALITY = NS + "carbon-neutrality";
 export const NETWORK_TOPOLOGY = NS + "network-topology";
+export const LEDGER_EVIDENCE = NS + "ledger-evidence";
 
 /** PROFILE.md section 3.1. The cap is a whole year figure for a whole network. */
 export const CAP_GWH = 1;
@@ -297,6 +298,28 @@ function checkMeasurement(rows, obj) {
 }
 
 /**
+ * The ledger-evidence pointer, PROFILE.md section 5.5. Reported as declared,
+ * never as passed: comparing the declaration with the trail needs read access
+ * to the ledger, which is a separate check.
+ */
+function checkLedgerEvidence(rows, obj) {
+  const le = extensionOf(obj, LEDGER_EVIDENCE);
+  if (!le) {
+    rows.push(row("ABSENT", "ledger-evidence", `no ${LEDGER_EVIDENCE} extension. No pointer to a signed evidence trail is declared`));
+    return;
+  }
+  const count = Array.isArray(le.operators) ? le.operators.filter(isObject).length : 0;
+  const version = isString(le["profile-version"]) ? `, profile-version ${le["profile-version"]}` : "";
+  rows.push(
+    row(
+      "DECLARED",
+      "ledger-evidence",
+      `${count} operator ${count === 1 ? "entry" : "entries"}${version}. The declaration was not compared with the ledger; that needs read access to it`
+    )
+  );
+}
+
+/**
  * Check one document. Pure apart from the optional attestation fetch, which
  * only runs when options.verifyAttestation is set.
  */
@@ -338,6 +361,7 @@ export async function checkDocument(doc, options = {}) {
   await checkAttestation(rows, subject, opts);
   checkC4Document(rows, subject, validation.valid);
   checkMeasurement(rows, subject);
+  checkLedgerEvidence(rows, subject);
 
   return {
     rows,

@@ -68,10 +68,10 @@ Prefer a source that gives CO2e.
 - **EU member states:** [EEA, GHG emission intensity of electricity generation](https://www.eea.europa.eu/en/analysis/indicators/greenhouse-gas-emission-intensity-of-1),
   gCO2e/kWh, CC BY with attribution to the EEA.
 - **United States:** [EPA eGRID](https://www.epa.gov/egrid/summary-data) subregion rates (eGRID2023 is the latest).
-  Use the CO2e column. It is in lb/MWh: multiply by 0.4536 for g/kWh.
+  Use the CO2e column. It is in lb/MWh: multiply by 0.4536 for g/kWh. A US government work (public domain in the US); cite EPA and the eGRID edition.
 - **Great Britain:** the [NESO Carbon Intensity API](https://carbonintensity.org.uk/): half-hourly and regional, no
   key, CC BY 4.0 under its [terms of use](https://github.com/carbon-intensity/terms).
-- **Any country:** [Ember](https://ember-energy.org/), yearly, CC BY 4.0; the
+- **Any country:** [Ember](https://ember-energy.org/), yearly; read the licence on its data page before republishing a figure (CO2.js records the Ember data it bundles as CC BY-SA 4.0, which asks derived data to carry the same terms); the
   [full CSV](https://storage.googleapis.com/emb-prod-bkt-publicdata/public-downloads/yearly_full_release_long_format.csv)
   needs no key (world 2025: 458 g/kWh; EU 2025: 209). Ember counts CO2 only, which slightly understates CO2e; say so on
   your methodology page. The model's 494 is Ember's 2022 world figure, so the same applies to it.
@@ -89,5 +89,5 @@ Prefer a source that gives CO2e.
   (change `example.com` to your host), with `npx -y -p sustainability-wellknown-consumer sustainability-fetch https://your-site --strict`,
   or in CI with the [GitHub Action](github-action/).
 
-More: the [Internet-Draft](../internet-drafts/draft-besleaga-sustainability-wellknown-07.md), the
+More: the [Internet-Draft](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/) (current revision), the
 [initializer](../tools/create-sustainability-data/) (seven questions, one file), and the [kit index](README.md).

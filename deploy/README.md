@@ -23,7 +23,7 @@ The four response headers every recipe sets, and why (three come from the draft,
 ## Static hosts
 | Platform | Can serve it? | Recipe | Checked |
 |---|---|---|---|
-| Cloudflare Pages | yes (`_headers`) | `static/cloudflare-pages/` | live on andreibesleaga.com |
+| Cloudflare Pages | yes (`_headers`) | `static/cloudflare-pages/` | live on andreibesleaga.com (media type, CORS, nosniff; that site chooses `max-age=0, must-revalidate` over the recipe's `max-age=86400`) |
 | Netlify | yes (`_headers`) | `static/netlify/` | reviewed 2026-10-03 |
 | Vercel | yes (`vercel.json` headers) | `static/vercel/` | reviewed 2026-10-03 |
 | Render static site | yes (dashboard header rules) | `static/render/` | reviewed 2026-10-03 |

@@ -124,7 +124,7 @@ export function filesFor(host, doc) {
     add_header Cache-Control "public, max-age=86400" always;
     add_header Access-Control-Allow-Origin "*" always;
     add_header X-Content-Type-Options "nosniff" always;
-    limit_except GET HEAD { deny all; }
+    limit_except GET HEAD { deny all; }  # other methods get 403 here; for 405 with Allow: GET, HEAD use server-configurations/nginx.conf
 }
 `;
       break;

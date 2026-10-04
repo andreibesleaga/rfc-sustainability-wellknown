@@ -139,10 +139,12 @@ export async function runConformanceChecks(
   const rawSignal = () => AbortSignal.timeout(timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
   checks.push(
-    await check("Basic request returns a schema-valid single object", "MUST", async () => {
+    await check("Basic request returns a schema-valid declaration (one object or an array)", "MUST", async () => {
+      // -07 lets the Basic response be one object or an array (a trend); the
+      // array rules (ascending periods, no overlap, one target) are enforced by
+      // fetchSustainability. The old "single object" rule was a -06 rule.
       const r = await fetchSustainability(origin, fetchOpts);
       if (r.status !== "ok") return `expected ok, got ${r.status}`;
-      if (Array.isArray(r.document)) return "Basic request MUST return a single object, not an array";
       return true;
     }),
   );
@@ -247,9 +249,9 @@ export async function runConformanceChecks(
       const r = await fetchSustainability(origin, { ...fetchOpts, period: year, granularity: "monthly" });
       if (r.status === "not-found") return true; // server may have no data for this year; not a conformance failure
       if (r.status !== "ok") return `expected ok or not-found, got ${r.status}`;
-      // The draft's array-when-finer-granularity rule is a SHOULD: a server
-      // ignoring the parameter and returning its Basic single object is
-      // conformant, so a non-array does not fail the check — but say so.
+      // The draft lets a server ignore an unusable granularity (it then returns
+      // its Basic response) and forbids an array only when no granularity is in
+      // effect (a MUST NOT), so a non-array here does not fail the check — but say so.
       if (!Array.isArray(r.document)) {
         return true; // single object: granularity not honored (allowed; Basic fallback)
       }

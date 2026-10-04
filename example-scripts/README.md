@@ -8,7 +8,7 @@ This directory contains the technical specifications and operational safeguards 
 * **Path**: Metadata MUST be published at `/.well-known/sustainability-data`.
 * **Protocol**: The resource MUST be served over **HTTPS**, on every hop including redirects.
 * **HTTP Method**: Servers MUST respond to `GET` requests (and `HEAD`); other methods SHOULD receive `405 Method Not Allowed` with `Allow: GET, HEAD`.
-* **Media Type**: Successful (`200 OK`) responses MUST use the dedicated `application/sustainability-data+json` media type and MUST NOT use another; clients MUST accept it and SHOULD also accept `application/json`, under which documents published before the registration are found in the field. Error bodies (`400`/`404`/`405`/`500`) are not Sustainability Metadata Documents and keep `application/json`.
+* **Media Type**: Successful (`200 OK`) responses MUST use the dedicated `application/sustainability-data+json` media type and MUST NOT use another; clients MUST accept it and SHOULD also accept `application/json`, under which documents published before the registration are found in the field. Error bodies (`400`/`404`/`405`/`500`) are not declarations and keep `application/json`.
 * **CORS**: Successful responses SHOULD include `Access-Control-Allow-Origin: *` (the document is public and intended for browser-based clients; follows WebFinger practice).
 * **Status Codes**:
     * `200 OK`: Successful retrieval of metadata.
@@ -18,8 +18,8 @@ This directory contains the technical specifications and operational safeguards 
 ## 2. Service Levels
 ### Basic Service (Default)
 * **Request**: `GET /.well-known/sustainability-data` with no query strings.
-* **Scope**: Returns the aggregate impact of the entire origin.
-* **Period**: Returns the most recently completed reporting period the server publishes (a period matching the publisher's own reporting cycle is RECOMMENDED: a full calendar year for the periodic, regulatory-style disclosure that is the common case, or a full calendar month for publishers that report more frequently).
+* **Scope**: the subject named by the mandatory `target` member (the origin's host for an origin-wide report, or a path prefix, service, product, device, tenant, organization or data source, classified by `target-type`); a figure for part of the declared subject MUST NOT be presented as the whole.
+* **Period**: whatever `reporting-period` the publisher chose; the draft no longer requires the latest completed period.
 
 ### Extended Service (Optional)
 * Supports query parameters: `target` (a published path prefix; a scoped response carries the matched prefix in the mandatory `target` response member — the member identifies the reporting subject of every response, origin-wide or scoped), `period` (calendar-date precision forms `YYYY`, `YYYY-MM`, `YYYY-MM-DD` — only the last is an RFC 3339 `full-date`; UTC), and `granularity` (`monthly`, `daily`).

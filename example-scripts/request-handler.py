@@ -334,7 +334,7 @@ class Handler(BaseHTTPRequestHandler):
         # Not required by the specification; ordinary web hardening.
         self.send_header("X-Content-Type-Options", "nosniff")
         # Compatible with documents published before the dedicated media
-        # type was registered (not -07 conformant):
+        # type is registered (registration requested in the draft; not conformant to the current revision):
         # self.send_header("Content-Type", "application/json")
         self.send_header("Cache-Control", "public, max-age=86400")
         self.send_header("ETag", etag)

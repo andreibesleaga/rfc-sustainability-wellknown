@@ -16,6 +16,16 @@ static_resources:
                     - name: www
                       domains: ["*"]
                       routes:
+                        # Any method other than GET or HEAD gets 405 with Allow (the draft's SHOULD).
+                        - match:
+                            path: "/.well-known/sustainability-data"
+                            headers:
+                              - name: ":method"
+                                string_match: { safe_regex: { regex: "GET|HEAD" } }
+                                invert_match: true
+                          direct_response: { status: 405 }
+                          response_headers_to_add:
+                            - header: { key: Allow, value: "GET, HEAD" }
                         - match: { path: "/.well-known/sustainability-data" }
                           direct_response:
                             status: 200

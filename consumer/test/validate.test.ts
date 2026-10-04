@@ -528,12 +528,13 @@ describe("-06: URI members restricted to https — WARNINGS, never errors", () =
     expect(r.warnings).toEqual([]);
   });
 
-  it("says nothing about a value that is not an absolute URI at all", () => {
+  it("reports (as a warning) a value that is not an absolute URI at all", () => {
     // Out of scope for this check: no base to resolve against, and the
     // absolute-URI requirement is a separate rule.
     const r = validateDocument(metrics({ "methodology-uri": "/methodology" }));
     expect(r.valid).toBe(true);
-    expect(r.warnings).toEqual([]);
+    expect(r.warnings).toHaveLength(1);
+    expect(r.warnings[0]).toMatch(/is not an absolute URI/);
   });
 
   it("prefixes array-entry warnings with the entry index, like errors", () => {

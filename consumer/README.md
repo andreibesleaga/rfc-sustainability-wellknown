@@ -146,7 +146,7 @@ job, a crawler, a carbon-aware scheduler) and fails loudly and legibly on bad in
 >   cap: `maxBytes` (10 MB) and `maxObjects` (500) are enforced here, the
 >   latter as `status: "too-many-objects"`.
 > * **Media typing is enforced.** `Accept: application/sustainability-data+json,
->   application/json;q=0.9`; a `200` carrying the registered type or the generic
+>   application/json;q=0.9`; a `200` carrying the dedicated type or the generic
 >   `application/json` is processed, and **any other media type is refused
 >   unread** (`status: "wrong-media-type"`) — the draft says such a response is
 >   not a declaration.
@@ -434,13 +434,13 @@ draft itself is:
 
 * **Both media types are processed.** Every fetch sends
   `Accept: application/sustainability-data+json, application/json;q=0.9`. A
-  `200` carrying the registered type is a declaration; one carrying the generic
+  `200` carrying the dedicated type is a declaration; one carrying the generic
   `application/json` is processed too (the draft's MAY, for declarations
   published before the type was registered), and `result.mediaType` says which.
   **Any other media type is refused unread** — `status: "wrong-media-type"` —
   because the draft says such a response is not a declaration.
 * **The battery warns rather than fails** on `application/json`, and will keep
-  doing so until the RFC publishes and IANA has registered the dedicated media
+  doing so until, if and when the RFC is published, IANA registers the dedicated media
   type. There is no strict flag: the `WARN` line is the whole message.
 * **An unrecognized top-level member is ignored, not rejected.** The base
   object is closed in -07, so such a member should not be there — but a later

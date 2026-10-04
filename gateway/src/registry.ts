@@ -247,7 +247,7 @@ export async function subjectFromAdapter(opts: {
   const document = JSON.parse(body) as SustainabilityMetrics;
   if (Array.isArray(document)) {
     throw new Error(
-      `registry: adapter "${opts.adapter.name}" produced an array; the Basic service serves a single object`,
+      `registry: adapter "${opts.adapter.name}" produced an array; this gateway relays one object per subject (a deployment choice, not a rule of the draft, which allows an array)`,
     );
   }
   return {

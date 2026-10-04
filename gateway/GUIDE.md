@@ -51,7 +51,7 @@ distinction is the whole design.
 
 The gateway does not reimplement the format. It depends on the published
 [`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)
-package (0.7.2) for normalization, the JTD validation gate, ETag generation,
+package (0.7.3) for normalization, the JTD validation gate, ETag generation,
 caching and the per-document HTTP semantics; the gateway adds multi-subject
 routing, `Last-Modified`, the index, and the honesty machinery.
 

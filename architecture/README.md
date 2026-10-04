@@ -237,8 +237,8 @@ prefix set ⇒ 404); removes the server-side "cap at 366" MUST/RECOMMENDED in
 favor of a consumer-side bound; and removes the `X-Content-Type-Options:
 nosniff` recommendation. See the draft's own Changelog appendix for the full
 list.
-**`-06`** (schema `2.0`) remains the *latest revision actually posted* —
-posted to the Datatracker 2026-09-10, under ISE review: it requires the
+**`-06`** (schema `2.0`) is the *prior posted revision* —
+posted to the Datatracker 2026-09-10 (superseded by `-07`, posted 2026-09-17, now under ISE review): it requires the
 dedicated `application/sustainability-data+json` media type, raises HTTPS
 from SHOULD to MUST, added `X-Content-Type-Options: nosniff` and the
 now-withdrawn detached JWS, with no wire-format change from `-05`. Earlier
@@ -247,7 +247,7 @@ revisions **-05** (posted 2026-07-28), **-04** (URI suffix renamed to
 (posted 2026-07-23) are prior history; the schema label was `2.0` from `-03`
 through `-06` and is removed entirely in `-07`. The diagrams and prose below
 describe the `-07` wire protocol throughout, and the reference codebase
-(`publisher/` 0.7.2 and `consumer/` 0.7.0, `schemas-validators/`, the gateway)
+(`publisher/` 0.7.3 and `consumer/` 0.7.0, `schemas-validators/`, the gateway)
 implements it. Two habits of the implementations are not `-07` requirements
 and are labelled as such where they appear: the publisher keeps a defensive
 366-object cap, and the servers still send `X-Content-Type-Options: nosniff`.
@@ -494,10 +494,10 @@ achieved entirely through two **field-driven** rules, neither of which reads
 
 The same diagram tracks the draft's own revision lifecycle, from the renamed
 predecessor series through `-02`, `-03` and `-04` (URI suffix renamed to
-`sustainability-data`, optional `target-type` added) to `-06`, the latest
-revision actually *posted* (media type required, HTTPS MUST, `nosniff`, the
-now-withdrawn OPTIONAL detached JWS), to `-07`, the active *in-preparation*
-draft in this repository (embedded `signed` member, `version` removed, closed
+`sustainability-data`, optional `target-type` added) to `-06`, the prior
+posted revision (media type required, HTTPS MUST, `nosniff`, the
+now-withdrawn OPTIONAL detached JWS), to `-07`, the latest *posted* revision
+(2026-09-17; `-08` is prepared in the repository and not yet posted) (embedded `signed` member, `version` removed, closed
 member set, `extensions` by absolute URI, `upstream`, `nosniff` recommendation
 withdrawn — §3), and the eventual Informational RFC + IANA registration.
 

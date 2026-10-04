@@ -227,7 +227,11 @@ function uriMemberWarnings(obj: unknown): string[] {
     try {
       parsed = new URL(value);
     } catch {
-      return; // not an absolute URI: out of scope for this check
+      warnings.push(
+        `${key} is not an absolute URI ("${isolate(value)}"): the draft requires an absolute "https" URI ` +
+          `and a consumer never dereferences a relative reference (member kept; reported, not a validation error)`,
+      );
+      return;
     }
     if (parsed.protocol !== "https:") {
       warnings.push(

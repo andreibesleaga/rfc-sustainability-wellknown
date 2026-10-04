@@ -186,8 +186,8 @@ export const LIMITS = {
    * consumer-side bound, so this is a defensive default of this deployment,
    * not a requirement it has to meet; 366 is the calendar bound the draft
    * notes for daily granularity over a year. Relayed subjects are served at
-   * the Basic service, whose parameterless response MUST be a single JSON
-   * object, so array source documents are refused outright; the gateway's own
+   * the Basic service as one object each (a choice of this deployment; the
+   * draft allows an array there), so array source documents are refused; the gateway's own
    * report is Extended (period/granularity honoured), and the cap is kept as
    * a second, explicit bound.
    */

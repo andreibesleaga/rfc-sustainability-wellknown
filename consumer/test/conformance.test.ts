@@ -153,7 +153,7 @@ describe("runConformanceChecks()", () => {
     expect(ct?.pass).toBe(false);
     expect(ct?.level).toBe("MUST");
 
-    const basic = byName.get("Basic request returns a schema-valid single object");
+    const basic = byName.get("Basic request returns a schema-valid declaration (one object or an array)");
     expect(basic?.outcome).toBe("fail");
     expect(basic?.detail).toContain("wrong-media-type");
 
@@ -280,7 +280,7 @@ describe("runConformanceChecks()", () => {
     // The checker must still discriminate: unrelated checks pass for this
     // otherwise-conformant server, proving the failure above is specific
     // rather than every check failing in lockstep.
-    const basic = byName.get("Basic request returns a schema-valid single object");
+    const basic = byName.get("Basic request returns a schema-valid declaration (one object or an array)");
     expect(basic?.pass).toBe(true);
 
     const etagPresence = byName.get("Response carries an ETag");

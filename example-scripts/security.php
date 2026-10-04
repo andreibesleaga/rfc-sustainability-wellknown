@@ -73,7 +73,7 @@ function secureSustainabilityReport(array $reports): array {
 header('Content-Type: application/sustainability-data+json');
 // Not required by the specification; ordinary web hardening.
 header('X-Content-Type-Options: nosniff');
-// Compatible with documents published before the dedicated media type was
-// registered (not -07 conformant): header('Content-Type: application/json');
+// Compatible with documents published before the dedicated media type is
+// registered (registration requested in the draft; not conformant to the current revision): header('Content-Type: application/json');
 // echo json_encode(secureSustainabilityReport($yourRawData));
 ?>

@@ -74,7 +74,7 @@ export function supplement(markdown) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-const draft = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? join(here, "..", "..", "internet-drafts", "draft-besleaga-sustainability-wellknown-07.md");
+const draft = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? join(here, "..", "..", "internet-drafts", "draft-besleaga-sustainability-wellknown-08.md");
 const reqs = extract(readFileSync(draft, "utf8")).concat(supplement(readFileSync(draft, "utf8")).map(({ present, ...r }) => r));
 if (process.argv.includes("--write")) {
   writeFileSync(join(here, "requirements.json"), `${JSON.stringify({ source: draft.split("/").pop(), count: reqs.length, requirements: reqs }, null, 2)}\n`);

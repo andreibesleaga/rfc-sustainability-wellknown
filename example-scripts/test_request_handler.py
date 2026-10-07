@@ -185,7 +185,7 @@ class RequestHandlerE2ETests(unittest.TestCase):
             self.assertEqual(headers["Allow"], "GET, HEAD")
 
     def test_other_methods_also_405_not_501(self):
-        # Draft: ANY method other than GET/HEAD SHOULD get 405 — not http.server's
+        # HTTP (RFC 9110; -07 stated it, -08 cites it): ANY method other than GET/HEAD gets 405 — not http.server's
         # default 501. Covers OPTIONS/TRACE and an arbitrary custom method.
         for method in ("OPTIONS", "TRACE", "BREW"):
             status, headers, _ = self._get(method=method)

@@ -1,6 +1,6 @@
 Feature: Payload format, mandatory and optional members, value constraints
   What a declaration object is, what it must carry, what it may carry, and how a consumer
-  treats a defective member. Draft -07, sections "Payload Format", "Mandatory Members",
+  treats a defective member. Draft -08 (prepared; -07 posted), sections "Payload Format", "Mandatory Members",
   "Optional Members", "Value Constraints and Omitted Metrics".
 
   @req-87cef521 @req-6ff5a712
@@ -61,7 +61,7 @@ Feature: Payload format, mandatory and optional members, value constraints
     Then a publisher given a negative gross figure refuses to build
     And a publisher given a non-finite figure refuses to build
 
-  @req-c57ca753
+  @req-6ae4fde7
   Scenario: A top-level member the consumer does not recognize is ignored, never fatal
     Given a valid declaration object
     And the member "x-future-member" is "1"
@@ -124,13 +124,13 @@ Feature: Payload format, mandatory and optional members, value constraints
     When the consumer validates it
     Then it is valid
 
-  @req-01be5ef2 @req-4bd0beb7
+  @req-0248be7a @req-4bd0beb7
   Scenario: The target is an opaque identifier: never normalized, compared octet for octet
     Given a local server whose declaration's target is in decomposed Unicode form
     When the consumer fetches the local origin allowing insecure transport
     Then the fetched target is byte-identical to the served text and differs from its normalized form
 
-  @req-fd873813 @req-3ff5b63d
+  @req-fd873813 @req-7d44fec0
   Scenario: A negative metric reads as not reported, and the object survives
     Given a valid declaration object
     And the member "energy-consumption" is the number -5
@@ -183,7 +183,7 @@ Feature: Payload format, mandatory and optional members, value constraints
     When the consumer retrieves and validates it
     Then the member "target-type" is reported as not usable
 
-  @req-fd873813 @req-3ff5b63d @req-cc373117
+  @req-fd873813 @req-7d44fec0 @req-cc373117
   Scenario Outline: An unrecognized enumerated value is disregarded; tokens are case-sensitive ASCII
     Given a valid declaration object
     And the member "<member>" is "<value>"
@@ -196,7 +196,7 @@ Feature: Payload format, mandatory and optional members, value constraints
       | carbon-unit       | tonnes         |
       | carbon-accounting | mixed          |
 
-  @req-f9c117c6
+  @req-13e27a5a @req-cbc8f500
   Scenario: A methodology link on another scheme is kept, flagged, and never dereferenced automatically
     Given a valid declaration object
     And the member "methodology-uri" is "http://example.com/methodology"
@@ -205,7 +205,7 @@ Feature: Payload format, mandatory and optional members, value constraints
     And the warnings mention "methodology-uri"
     And the validator made no network request
 
-  @req-f9c117c6 @req-fd873813
+  @req-13e27a5a @req-fd873813
   Scenario: An optional link that is not https is disregarded
     Given a valid declaration object
     And the member "disclosure-uri" is "ftp://example.com/esg"

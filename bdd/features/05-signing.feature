@@ -1,6 +1,6 @@
 Feature: Signing and verification
   The optional signed member is a JWS over the object itself. A consumer verifies bytes and
-  key continuity, never accuracy. Draft -07, sections "Signing", "The signed Member",
+  key continuity, never accuracy. Draft -08 (prepared; -07 posted), sections "Signing", "The signed Member",
   "Verification", "What a Signature Proves", "Media Type Registration".
 
   @req-5c792780 @req-68ff48e7
@@ -24,7 +24,7 @@ Feature: Signing and verification
       | EdDSA |
       | ES256 |
 
-  @req-26659a8e @req-7b2bab02
+  @req-b10f4177 @req-7b2bab02
   Scenario: Every object of a trend array carries its own signature
     Given the declaration is an array of objects with reporting-periods "2026-01,2026-02"
     And every object of the array is signed with EdDSA
@@ -114,7 +114,7 @@ Feature: Signing and verification
     And the members in use are the ones the origin served, not the payload
     And the data is not reported as true or verified-accurate
 
-  @req-26659a8e @req-c9d470af
+  @req-b10f4177 @req-c9d470af
   Scenario: The reference gateway's own report arrives signed and intact through its HTTP path
     Given the reference gateway is running
     When I send GET "/.well-known/sustainability-data"

@@ -14,6 +14,18 @@ grid intensity, a credential naming the entered months); mentions the Digital Im
 Taxonomy next to carbon.txt; updates the author's contact address. The deployments table is filled
 on the day of posting from `IMPLEMENTATIONS.md`.
 
+Answers the ART-area early review of `-07` (2026-10-03), prose only: a Terminology section under
+Section 1 (the term list leaves URI Definition; one term, *subject*; the `target` member unchanged);
+Mandatory Minimum Supported Service cites RFC 9110 instead of restating HEAD, 404, 401/403/429,
+405 with Allow and the permission to redirect; the query-envelope ABNF rules are removed and the
+origin cache-key rule is stated once, in Operational Considerations; the unknown-member rule is
+stated once at Payload Format (publisher MUST NOT add; consumer ignores, RFC 7493 Section 4.2);
+the body is defined as a single JSON text whose value is one object or one JSON array; the
+`target` comparison sentence is split; `methodology-uri` is stated to be human-readable with no
+consumer behaviour depending on it; `target-type` is the first optional member; the extension-name
+sentence cites RFC 3986 Section 4.3; the body is shortened throughout with every requirement kept
+(92 traced normative sentences against 97, the difference being the restated HTTP rules).
+
 ---
 
 ### **Version 06 to Version 07 (`draft-besleaga-sustainability-wellknown`) — posted 2026-09-17**

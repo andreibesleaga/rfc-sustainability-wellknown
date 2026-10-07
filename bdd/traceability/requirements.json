@@ -1,6 +1,6 @@
 {
-  "source": "draft-besleaga-sustainability-wellknown-07.md",
-  "count": 97,
+  "source": "draft-besleaga-sustainability-wellknown-08.md",
+  "count": 92,
   "requirements": [
     {
       "id": "req-e38d33df",
@@ -20,46 +20,13 @@
       "text": "A `GET` request without query parameters MUST be answered with `200 OK` and the declaration as the body, absent redirection or cache revalidation; responses to requests carrying query parameters are as {{extended-query-parameters}} specifies."
     },
     {
-      "id": "req-130b8253",
-      "section": "Mandatory Minimum Supported Service",
-      "keywords": [
-        "MUST"
-      ],
-      "text": "A `HEAD` request MUST receive the same status and header fields with no body."
-    },
-    {
-      "id": "req-aeecb2eb",
-      "section": "Mandatory Minimum Supported Service",
-      "keywords": [
-        "SHOULD"
-      ],
-      "text": "When nothing is published, the server SHOULD respond `404 Not Found`."
-    },
-    {
-      "id": "req-5d25d3af",
-      "section": "Mandatory Minimum Supported Service",
-      "keywords": [
-        "MAY"
-      ],
-      "text": "Access control is outside the scope of this document; a server MAY restrict access to the declaration, and a server that restricts or rate-limits a request responds as {{RFC9110}} defines (for example `401`, `403`, or `429`)."
-    },
-    {
-      "id": "req-b2e98433",
-      "section": "Mandatory Minimum Supported Service",
-      "keywords": [
-        "SHOULD"
-      ],
-      "text": "Any other method SHOULD receive `405 Method Not Allowed` with `Allow: GET, HEAD`."
-    },
-    {
-      "id": "req-1947d932",
+      "id": "req-b22507d7",
       "section": "Mandatory Minimum Supported Service",
       "keywords": [
         "MUST",
-        "MUST NOT",
         "SHOULD"
       ],
-      "text": "A `200 OK` response MUST carry the `Content-Type` `application/sustainability-data+json` and MUST NOT carry any other media type; the body SHOULD follow I-JSON {{RFC7493}}."
+      "text": "A `200 OK` response MUST carry the `Content-Type` `application/sustainability-data+json`; the body SHOULD follow I-JSON {{RFC7493}}."
     },
     {
       "id": "req-e73cf54b",
@@ -87,14 +54,6 @@
       "text": "Because the declaration is public and intended for browser-based consumers as well, a `200 OK` response SHOULD include `Access-Control-Allow-Origin: *`, following WebFinger ({{?RFC7033}})."
     },
     {
-      "id": "req-d86c92e6",
-      "section": "Mandatory Minimum Supported Service",
-      "keywords": [
-        "MAY"
-      ],
-      "text": "A server MAY redirect the well-known URI."
-    },
-    {
       "id": "req-faf38e5f",
       "section": "Mandatory Minimum Supported Service",
       "keywords": [
@@ -112,14 +71,6 @@
       "text": "A publisher SHOULD NOT redirect to a different origin."
     },
     {
-      "id": "req-61a943cf",
-      "section": "Partial Knowledge and Incremental Adoption",
-      "keywords": [
-        "MUST NOT"
-      ],
-      "text": "A publisher MUST NOT present figures covering part of the declared subject as though they covered the whole of it."
-    },
-    {
       "id": "req-684991a9",
       "section": "Extended Query Parameters",
       "keywords": [
@@ -128,12 +79,12 @@
       "text": "A server MAY support the query parameters `target`, `period`, and `granularity` on the well-known URI."
     },
     {
-      "id": "req-be7708da",
+      "id": "req-c978c015",
       "section": "Extended Query Parameters",
       "keywords": [
         "MUST"
       ],
-      "text": "A server that honors the `target` parameter MUST publish the set of prefixes it honors in the document identified by `methodology-uri`; this document defines no in-band list, since one would disclose the path information that {{privacy-considerations}} protects."
+      "text": "A server that honors the `target` parameter MUST publish the set of prefixes it honors in the document identified by `methodology-uri`; this document defines no in-band list, since a consumer needs none: it compares the `target` of every object it receives with what it requested."
     },
     {
       "id": "req-cc35f9b8",
@@ -206,12 +157,13 @@
       "text": "A declaration object contains the seven mandatory members, any of the optional members, and nothing else: a publisher MUST NOT add other top-level members ({{extensions}} defines where other data goes)."
     },
     {
-      "id": "req-c57ca753",
+      "id": "req-6ae4fde7",
       "section": "Payload Format (JSON Data Model)",
       "keywords": [
-        "MUST"
+        "MUST",
+        "MUST NOT"
       ],
-      "text": "A consumer MUST ignore a top-level member it does not recognize, since a revision of this document may define one."
+      "text": "A consumer MUST ignore a top-level member it does not recognize and MUST NOT treat its presence as an error ({{RFC7493}}, Section 4.2), since a revision of this document may define one; whether a given member was permitted is a question about the publisher's conformance, which the consumer does not decide and which never makes the object unreadable."
     },
     {
       "id": "req-92070927",
@@ -222,12 +174,12 @@
       "text": "The tokens `hardware-metered`, `hardware-estimated`, `cloud-billing`, and `third-party-modeled` are RECOMMENDED and are compared as protocol elements ({{internationalization-considerations}}); any other value is a brief human-readable description."
     },
     {
-      "id": "req-01be5ef2",
+      "id": "req-0248be7a",
       "section": "Mandatory Members",
       "keywords": [
         "MUST NOT"
       ],
-      "text": "It is an opaque protocol element that MUST NOT be translated or transliterated, compared octet-for-octet except where `target-type` is `origin` or the value is otherwise a host name, in which case the host-name comparison rules of {{internationalization-considerations}} apply."
+      "text": "It is an opaque protocol element: it MUST NOT be translated or transliterated, and it is compared octet-for-octet, except that where `target-type` ({{optional-members}}) is `origin` or the value is otherwise a host name the host-name comparison rules of {{internationalization-considerations}} apply."
     },
     {
       "id": "req-9e0f6688",
@@ -244,6 +196,14 @@
         "MUST NOT"
       ],
       "text": "Unless stated otherwise, a numeric member MUST NOT be negative."
+    },
+    {
+      "id": "req-4c666180",
+      "section": "Optional Members",
+      "keywords": [
+        "SHOULD"
+      ],
+      "text": "**target-type** (string): Classifies the subject named by `target` as one of `origin` (the publishing origin; `target` SHOULD then be its host), `path`, `organization`, `service`, `product`, `device`, `tenant`, or `data-source`."
     },
     {
       "id": "req-c2a4d2a8",
@@ -279,21 +239,20 @@
       "text": "**sci-score** (number): Software Carbon Intensity {{GSF-SCI}}, in grams of CO2e per `functional-unit`, which MUST then be present, regardless of `carbon-unit`."
     },
     {
-      "id": "req-4c666180",
+      "id": "req-13e27a5a",
       "section": "Optional Members",
       "keywords": [
-        "SHOULD"
+        "MUST"
       ],
-      "text": "**target-type** (string): Classifies the subject named by `target` as one of `origin` (the publishing origin; `target` SHOULD then be its host), `path`, `organization`, `service`, `product`, `device`, `tenant`, or `data-source`."
+      "text": "The URI-valued members (`methodology-uri`, `verifiable-attestation-uri`, `disclosure-uri`, and `upstream[].declaration`) MUST be absolute URIs {{RFC3986}} with the \"https\" scheme: a declaration is meant to be stored, forwarded, and relayed from other origins ({{signing}}), where a relative reference would resolve against the relaying URI ({{RFC3986}}, Section 5.1.3)."
     },
     {
-      "id": "req-f9c117c6",
+      "id": "req-cbc8f500",
       "section": "Optional Members",
       "keywords": [
-        "MUST",
         "MUST NOT"
       ],
-      "text": "The URI-valued members (`methodology-uri`, `verifiable-attestation-uri`, `disclosure-uri`, and `upstream[].declaration`) MUST be absolute URIs {{RFC3986}} with the \"https\" scheme; a consumer MUST NOT automatically dereference any other scheme, and one that dereferences them applies the protections of {{consumer-considerations}}."
+      "text": "A consumer MUST NOT automatically dereference any other scheme, and one that dereferences them applies the protections of {{consumer-considerations}}."
     },
     {
       "id": "req-73d9560a",
@@ -338,12 +297,12 @@
       "text": "A publisher MUST NOT emit one."
     },
     {
-      "id": "req-3ff5b63d",
+      "id": "req-7d44fec0",
       "section": "Value Constraints and Omitted Metrics",
       "keywords": [
         "SHOULD"
       ],
-      "text": "A validating consumer whose check fails only on such a value, or only on a top-level member it does not recognize, SHOULD apply the rules above rather than reject the object, on the assumption that the schemas, like the member set, will be extended over time."
+      "text": "A validating consumer whose check fails only on such a value SHOULD apply the rules above rather than reject the object, on the assumption that the schemas will be extended over time; a check that fails only on an unrecognized top-level member is governed by {{payload-format-json-data-model}}."
     },
     {
       "id": "req-2a41a04d",
@@ -436,12 +395,12 @@
       "text": "A server that computes responses to Extended Query Parameters on demand SHOULD precompute or cache them."
     },
     {
-      "id": "req-26659a8e",
+      "id": "req-b10f4177",
       "section": "Operational Considerations",
       "keywords": [
         "MUST"
       ],
-      "text": "A publisher behind a content delivery network or reverse proxy MUST ensure that the well-known path is served with the authoritative declaration, without rewriting or reformatting the body."
+      "text": "A publisher behind a content delivery network or reverse proxy MUST serve, at the well-known path, the body it produced, octet for octet: an intermediary that rewrites or reformats the body invalidates any `signed` member and misrepresents the publisher."
     },
     {
       "id": "req-5c792780",
@@ -591,12 +550,12 @@
       "text": "A consumer MUST NOT treat the presence of a declaration, or of any member in it, as verification of a claim, and one that presents, stores, or forwards the data MUST NOT represent it as verified; these are processing rules on conforming consumers, not statements about what any party may conclude by other means."
     },
     {
-      "id": "req-5ec85632",
+      "id": "req-aa9f7d0d",
       "section": "Trust and Spoofing",
       "keywords": [
         "SHOULD"
       ],
-      "text": "A declaration that is correctly served, typed and signed can still be untrue: publishers SHOULD link authoritative reports and third-party attestations through `disclosure-uri` and `verifiable-attestation-uri`, and consumers SHOULD treat the declaration as a discovery mechanism and check claims against external sources when it matters."
+      "text": "A declaration that is correctly served, typed and signed can still be untrue: publishers SHOULD link authoritative reports and third-party attestations through `disclosure-uri` and `verifiable-attestation-uri`, and a consumer treats the declaration as a discovery mechanism and checks claims against external sources when it matters."
     },
     {
       "id": "req-4f1a55c9",
@@ -697,14 +656,6 @@
       "text": "A publisher SHOULD aggregate or omit any metric that could be linked to individual users or small groups, and SHOULD use a role rather than a personal contact address in `provider`."
     },
     {
-      "id": "req-bd666000",
-      "section": "Privacy Considerations",
-      "keywords": [
-        "SHOULD"
-      ],
-      "text": "An aggregator publishing derived datasets SHOULD use privacy-preserving aggregation."
-    },
-    {
       "id": "req-3bd371e9",
       "section": "Well-Known URI Registration",
       "keywords": [
@@ -792,6 +743,12 @@
       "section": "keyword-less requirement",
       "keywords": [],
       "text": "A defective value of a mandatory member is a different matter, since disregarding it would leave the object without a member this document requires: a defective `capabilities` value, whether an unrecognized string or a value of the wrong JSON type, is read as `basic`, and a defective value of any other mandatory member leaves the object non-conformant."
+    },
+    {
+      "id": "req-61a943cf",
+      "section": "keyword-less requirement",
+      "keywords": [],
+      "text": "figures covering part of the declared subject are not presented as though they covered the whole of it."
     }
   ]
 }

@@ -7,8 +7,8 @@ This directory contains the technical specifications and operational safeguards 
 ## 1. Endpoint Specification
 * **Path**: Metadata MUST be published at `/.well-known/sustainability-data`.
 * **Protocol**: The resource MUST be served over **HTTPS**, on every hop including redirects.
-* **HTTP Method**: Servers MUST respond to `GET` requests (and `HEAD`); other methods SHOULD receive `405 Method Not Allowed` with `Allow: GET, HEAD`.
-* **Media Type**: Successful (`200 OK`) responses MUST use the dedicated `application/sustainability-data+json` media type and MUST NOT use another; clients MUST accept it and SHOULD also accept `application/json`, under which documents published before the registration are found in the field. Error bodies (`400`/`404`/`405`/`500`) are not declarations and keep `application/json`.
+* **HTTP Method**: `GET` and `HEAD` are the only methods the draft uses; other methods get `405 Method Not Allowed` with `Allow: GET, HEAD` as HTTP itself (RFC 9110) provides (the draft cites it rather than restating it).
+* **Media Type**: Successful (`200 OK`) responses MUST use the dedicated `application/sustainability-data+json` media type; clients MUST accept it and SHOULD also accept `application/json`, under which documents published before the registration are found in the field. Error bodies (`400`/`404`/`405`/`500`) are not declarations and keep `application/json`.
 * **CORS**: Successful responses SHOULD include `Access-Control-Allow-Origin: *` (the document is public and intended for browser-based clients; follows WebFinger practice).
 * **Status Codes**:
     * `200 OK`: Successful retrieval of metadata.

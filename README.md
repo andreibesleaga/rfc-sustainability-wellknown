@@ -460,7 +460,7 @@ That section also has the version note: checking a `-07` document requires consu
 
 ## How the repository checks itself
 
-- **Behaviour scenarios** ([`bdd/`](bdd/)): 134 scenarios, written in plain language, cite every normative sentence of
+- **Behaviour scenarios** ([`bdd/`](bdd/)): written in plain language, cite every normative sentence of
   the posted draft by id; a check fails if a sentence has no scenario, and a report lists what a draft in
   preparation changes.
 - **Fitness functions** ([`fitness/`](fitness/)): rules that span the packages, such as the full header set on every

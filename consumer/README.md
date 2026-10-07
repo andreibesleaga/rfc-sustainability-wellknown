@@ -389,8 +389,8 @@ one of two things:
   non-conformance. The most common one in practice is the 405-with-`Allow`
   check on static hosting (Cloudflare Pages, GitHub Pages, S3): these platforms
   return `405` to a non-GET/HEAD request but cannot be configured to add an
-  `Allow` header, and the draft states that requirement as a `SHOULD` for
-  exactly this reason;
+  `Allow` header; the battery rates it SHOULD because it is an HTTP nicety
+  (RFC 9110) that the draft cites rather than states;
 * **an advisory finding** — the media-type check against a publisher still
   serving the generic type:
 

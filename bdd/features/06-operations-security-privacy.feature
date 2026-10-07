@@ -1,6 +1,6 @@
 Feature: Operational considerations, security, privacy, internationalization
   Caching and revalidation, bounds on both sides, what a declaration can never prove, the
-  privacy floors, and how text travels. Draft -07, sections "Operational Considerations",
+  privacy floors, and how text travels. Draft -08 (prepared; -07 posted), sections "Operational Considerations",
   "Security Considerations", "Privacy Considerations", "Internationalization Considerations".
 
   @req-76f7d871 @req-7c267492
@@ -63,7 +63,7 @@ Feature: Operational considerations, security, privacy, internationalization
     Then the fetch status is "ok"
     And the fetched document's "energy-consumption" is 2
 
-  @req-5ec85632
+  @req-aa9f7d0d
   Scenario: The reference report links its disclosures and its methodology
     Given the reference gateway is running
     When I send GET "/.well-known/sustainability-data"
@@ -75,7 +75,7 @@ Feature: Operational considerations, security, privacy, internationalization
     Given an extended publisher with monthly entries for "2025-01,2025-02" and noise enabled
     Then the published figures for "2025-01" are within 1% of 100 kWh, consistent with the carbon figure, and identical across two builds
 
-  @req-bd666000
+  @privacy-practice
   Scenario: An aggregate carries totals, not identities
     Given the declaration is an array of objects with reporting-periods "2026-01,2026-02,2026-03"
     Then the consumer aggregates the array into totals without per-entry identities

@@ -24,6 +24,12 @@
       "section": "keyword-less requirement",
       "keywords": [],
       "text": "A defective value of a mandatory member is a different matter, since disregarding it would leave the object without a member this document requires: a defective `capabilities` value, whether an unrecognized string or a value of the wrong JSON type, is read as `basic`, and a defective value of any other mandatory member leaves the object non-conformant."
+    },
+    {
+      "id": "req-61a943cf",
+      "section": "keyword-less requirement",
+      "keywords": [],
+      "text": "figures covering part of the declared subject are not presented as though they covered the whole of it."
     }
   ]
 }

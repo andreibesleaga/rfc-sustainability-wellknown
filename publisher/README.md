@@ -175,7 +175,7 @@ needs. What the package does guarantee is that whatever it *does* serve as a
 
 `Publisher` computes its cache key from the parameters it **honors**, in the
 draft's canonical order (`target`, `period`, `granularity`), never from the query
-string as received (§Extended Query Parameters, step 7). Two requests differing
+string as received (§Operational Considerations in -08; §Extended Query Parameters, step 7, in -07). Two requests differing
 only in a parameter the publisher ignores — an analytics parameter, a `target`
 when no prefix set is configured, a `granularity` that is not finer than the
 period — therefore share one cache entry and one `ETag`, so a client cannot flood

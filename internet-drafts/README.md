@@ -9,7 +9,7 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 Well-Known URI* — the Datatracker document name is unchanged).
 Individual submission on the IETF **Independent Submission Stream** (Informational).
 
-- **`-08`** is **in preparation and not posted** (editorial: an RFC 7942 Implementation Status appendix, the worked example aligned with the live deployment, a mention of DIST, the contact address; no change to the format). It is built and checked by CI like every revision; it is posted only on the author's decision.
+- **`-08`** is **in preparation and not posted** (editorial: an RFC 7942 Implementation Status appendix, the worked example aligned with the live deployment, a mention of DIST, the contact address, and the answers to the ART-area early review of `-07`: a Terminology section, one term *subject*, Section 2.2 citing RFC 9110 instead of restating it, the query-envelope ABNF removed, the unknown-member rule stated once, `target-type` first among the optional members, a shorter body; no change to the format). It is built and checked by CI like every revision; it is posted only on the author's decision.
 - **`-07`** is the **latest posted** revision (posted 2026-09-17, under ISE review; sources in this
   directory: `draft-besleaga-sustainability-wellknown-07.{md,xml,txt}`); `-06` is the prior posted
   revision. `-07` withdraws the companion
@@ -85,7 +85,7 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 | `draft-besleaga-sustainability-wellknown-07.md` | Markdown source of the latest posted revision (posted 2026-09-17). Do not edit — it is a posted artifact; further changes go to the prepared, unposted `-08` file. |
 | `draft-besleaga-sustainability-wellknown-07.xml` | xml2rfc v3 XML of `-07`. |
 | `draft-besleaga-sustainability-wellknown-07.txt` | Rendered plain-text form of `-07`. |
-| `draft-besleaga-sustainability-wellknown-06.md` | Markdown source of the latest **posted** revision (2026-09-10). Do not edit — it is a posted artifact. |
+| `draft-besleaga-sustainability-wellknown-06.md` | Markdown source of the prior posted revision (2026-09-10). Do not edit — it is a posted artifact. |
 | `draft-besleaga-sustainability-wellknown-06.xml` | xml2rfc v3 XML of `-06` — the submission form. |
 | `draft-besleaga-sustainability-wellknown-06.txt` | Rendered plain-text form of `-06`. |
 | `draft-besleaga-sustainability-wellknown-05.md` | Markdown source of the prior posted revision. Do not edit — it is a posted artifact. |

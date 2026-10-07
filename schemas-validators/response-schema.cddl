@@ -10,7 +10,7 @@ sustainability-metrics = {
   measurement-method: tstr,
   methodology-uri: tstr,          ; absolute https URI
   reporting-period: tstr,         ; YYYY, YYYY-MM, or YYYY-MM-DD
-  target: tstr,                   ; reporting subject
+  target: tstr,                   ; the subject
 
   ; Energy; when energy-unit is absent, kWh applies
   ? energy-consumption: number,   ; non-negative

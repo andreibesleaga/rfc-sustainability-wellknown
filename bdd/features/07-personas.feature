@@ -1,9 +1,9 @@
 Feature: Personas and usage scenarios
   The people the draft is written for, each doing the one thing they come for. Every scenario
-  runs against the real libraries or the real gateway. Draft -07, "Roles and Processing Model"
+  runs against the real libraries or the real gateway. Draft -08 (prepared; -07 posted), "Roles and Processing Model"
   and Appendix "Worked Example: A Live Deployment".
 
-  @persona-static-publisher @req-addcb130 @req-1947d932
+  @persona-static-publisher @req-addcb130 @req-b22507d7
   Scenario: A site owner on static hosting publishes one signed file
     Given a valid declaration object
     And the object is signed with EdDSA
@@ -12,7 +12,7 @@ Feature: Personas and usage scenarios
     When the consumer verifies the signature
     Then the signature status is "verified"
 
-  @persona-site-owner @req-addcb130 @req-1947d932 @req-b781809b
+  @persona-site-owner @req-addcb130 @req-b22507d7 @req-b781809b
   Scenario: A WordPress or shared-hosting site that serves a static file passes the battery
     Given a local server that answers the well-known path with "application/sustainability-data+json" and status 200
     Then the origin passes every MUST of the conformance battery
@@ -67,7 +67,7 @@ Feature: Personas and usage scenarios
     When the consumer validates it
     Then it is valid
 
-  @persona-aggregator @req-ae51fdec @req-bd666000
+  @persona-aggregator @req-ae51fdec
   Scenario: An aggregator checks what it got against what it asked, then aggregates
     Given a basic publisher with one entry for "2026-01"
     And the publisher is served on a local port
@@ -76,7 +76,7 @@ Feature: Personas and usage scenarios
     Given the declaration is an array of objects with reporting-periods "2026-01,2026-02"
     Then the consumer aggregates the array into totals without per-entry identities
 
-  @persona-auditor @req-5ec85632 @req-366595ae
+  @persona-auditor @req-aa9f7d0d @req-366595ae
   Scenario: An auditor records attribution and integrity, and nothing more
     Given the reference gateway is running
     When I send GET "/.well-known/sustainability-data"
@@ -91,7 +91,7 @@ Feature: Personas and usage scenarios
     When the consumer verifies the signature
     Then the data is not reported as true or verified-accurate
 
-  @persona-relay @req-1947d932 @req-aeecb2eb
+  @persona-relay @req-b22507d7 @http-only
   Scenario: The reference gateway relays a third party's figures under its own path prefix
     Given the reference gateway is running
     When I send GET "/wikimedia.org/.well-known/sustainability-data"

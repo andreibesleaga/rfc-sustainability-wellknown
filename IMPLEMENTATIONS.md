@@ -4,7 +4,7 @@ This file records the software that implements `draft-besleaga-sustainability-we
 origins known to serve `/.well-known/sustainability-data`. It follows the spirit of RFC 7942
 ("Improving Awareness of Running Code: The Implementation Status Section"): it is information
 for reviewers and implementers, not an endorsement by anyone listed, and it describes the state
-on the date given. It tracks revision `-07` (posted 2026-09-17).
+on the date given. It tracks the prepared revision `-08` (not yet posted; `-07`, posted 2026-09-17, is the latest posted revision, and `-08` changes no member, schema, media type or registration).
 
 An entry says who operates the origin. Origins run by the draft's author are marked
 **author**; they show that the format can be deployed, not that anyone else has adopted it.

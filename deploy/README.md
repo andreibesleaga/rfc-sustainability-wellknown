@@ -18,7 +18,7 @@ The four response headers every recipe sets, and why (three come from the draft,
 | `Access-Control-Allow-Origin` | `*` | the file is public and browser consumers exist (draft, SHOULD) |
 | `Cache-Control` | `public, max-age=86400` | the draft's recommended day of caching; refresh the file monthly |
 
-`HEAD` must answer like `GET` without a body. Other methods should get `405` with `Allow: GET, HEAD` where the platform can do it.
+`HEAD` must answer like `GET` without a body, and other methods should get `405` with `Allow: GET, HEAD` where the platform can do it (HTTP itself, RFC 9110, asks for both; the draft cites it rather than restating it).
 
 ## Static hosts
 | Platform | Can serve it? | Recipe | Checked |

@@ -122,8 +122,8 @@ export class Publisher {
 
   /**
    * The parameters this publisher HONORS for a request, in the draft's
-   * canonical order (`target`, `period`, `granularity`) — draft §Extended
-   * Query Parameters, step 7. Everything else has already been dropped by
+   * canonical order (`target`, `period`, `granularity`) — draft
+   * §Operational Considerations in -08 (§Extended Query Parameters, step 7, in -07). Everything else has already been dropped by
    * `parseQuery`; what remains is dropped here:
    *
    *  - a publisher whose adapter declares `capabilities: "basic"` supports
@@ -165,7 +165,7 @@ export class Publisher {
   /**
    * The cache key for a request: the parameters this publisher honors, in the
    * draft's canonical order, NEVER the query string as received (draft
-   * §Extended Query Parameters, step 7). Two requests differing only in
+   * §Operational Considerations in -08; §Extended Query Parameters, step 7, in -07). Two requests differing only in
    * parameters this publisher ignores therefore share one cache entry — and,
    * since the body is what the `ETag` hashes, one entity-tag.
    *

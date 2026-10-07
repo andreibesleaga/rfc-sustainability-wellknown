@@ -366,8 +366,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send_405()
 
     def __getattr__(self, name):
-        # The draft: "Any other method SHOULD receive 405 Method Not Allowed
-        # with Allow: GET, HEAD." Without this catch-all, http.server answers
+        # HTTP (RFC 9110): any other method gets 405 Method Not Allowed with
+        # Allow: GET, HEAD (-07 stated it; -08 cites RFC 9110). Without this catch-all, http.server answers
         # OPTIONS/TRACE/any-other-method with its own default 501 Not
         # Implemented. BaseHTTPRequestHandler dispatches via getattr(self,
         # "do_<METHOD>"); synthesizing a 405 handler for every do_* we didn't

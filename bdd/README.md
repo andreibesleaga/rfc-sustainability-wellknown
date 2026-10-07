@@ -18,9 +18,10 @@ hash of the sentence). `traceability/check.mjs` fails when:
 
 ## Which revision the suite tracks
 
-The posted revision, named in `traceability/requirements.json` (`source`): today `-07`. A draft being
-prepared (`-08`) is compared, report only, by `npm run trace:next`, which lists the normative sentences it
-adds, removes or rewords. When a new revision is posted: `node traceability/extract.mjs --write
+The revision the suite tracks, named in `traceability/requirements.json` (`source`): the prepared `-08`
+(`-07` is the latest posted revision). `npm run trace:next` compares the newest draft file in
+`internet-drafts/` with the tracked one, report only, and lists the normative sentences it adds, removes or
+rewords (nothing while both are `-08`). When a new revision is posted: `node traceability/extract.mjs --write
 ../internet-drafts/<draft>.md`, then re-point the tags `npm run trace` lists, and change the `trace:extract`
 script to the new file.
 

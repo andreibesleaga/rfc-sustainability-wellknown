@@ -16,7 +16,7 @@ static_resources:
                     - name: www
                       domains: ["*"]
                       routes:
-                        # Any method other than GET or HEAD gets 405 with Allow (the draft's SHOULD).
+                        # Any method other than GET or HEAD gets 405 with Allow (RFC 9110; the draft cites it).
                         - match:
                             path: "/.well-known/sustainability-data"
                             headers:

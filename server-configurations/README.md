@@ -21,7 +21,7 @@ per-request responses), see "Optional: dynamic Extended service" below.
 | `Cache-Control: max-age=86400` | ✓ | ✓ | RECOMMENDED |
 | `ETag` / `Last-Modified` | auto (on by default) | auto (static files) | RECOMMENDED |
 | `Access-Control-Allow-Origin: *` | ✓ | ✓ | SHOULD (on successful responses; WebFinger practice) |
-| GET/HEAD only; others get `405` + `Allow: GET, HEAD` | ✓ (named location) | ✓ (ErrorDocument) | SHOULD |
+| GET/HEAD only; others get `405` + `Allow: GET, HEAD` | ✓ (named location) | ✓ (ErrorDocument) | HTTP (RFC 9110); the draft cites it |
 | Rate limiting | commented out | commented out | RECOMMENDED |
 
 **A note on the 405 handling in both files, and why it isn't a one-line `return`/`deny`:**

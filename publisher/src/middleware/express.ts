@@ -54,7 +54,7 @@ export function expressSustainability(
     const path = req.path ?? (req.url ?? "").split("?")[0];
     const handledPath = path === WELL_KNOWN_PATH || (opts.carbonTxt && carbonPaths.has(path));
     if (req.method && req.method !== "GET" && req.method !== "HEAD") {
-      // Draft: other methods on the well-known path SHOULD get 405 + Allow.
+      // HTTP (RFC 9110): other methods on the well-known path get 405 + Allow.
       if (handledPath) {
         res
           .status(405)

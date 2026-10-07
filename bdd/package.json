@@ -11,7 +11,7 @@
   "scripts": {
     "test": "cucumber-js",
     "trace": "node traceability/check.mjs",
-    "trace:extract": "node traceability/extract.mjs --write ../internet-drafts/draft-besleaga-sustainability-wellknown-07.md",
+    "trace:extract": "node traceability/extract.mjs --write ../internet-drafts/draft-besleaga-sustainability-wellknown-08.md",
     "all": "npm run trace && npm test",
     "trace:next": "node traceability/next.mjs"
   },

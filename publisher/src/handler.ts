@@ -175,7 +175,7 @@ export function queryFromSearchParams(params: URLSearchParams): RawQuery {
  * percent-encoded on the wire and arrives here decoded.
  *
  * Step 4 of the procedure (an unmatched `target` is `404`) needs the publisher's
- * published prefix set and is applied in `Publisher.build`; step 7 (the cache
+ * published prefix set and is applied in `Publisher.build`; the cache-key rule (§Operational Considerations in -08, step 7 of §Extended Query Parameters in -07; the cache
  * key is computed from the honored parameters, in a canonical order) is
  * `Publisher.cacheKeyFor`.
  */

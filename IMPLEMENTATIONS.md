@@ -37,10 +37,15 @@ the media type and the schema; `schemas-validators/check-live.py` runs the same 
 
 | Origin | Operator | How it is served | Signed | Listed since | Last checked |
 |---|---|---|---|---|---|
-| <https://sustainability.up.railway.app/.well-known/sustainability-data> | author | reference gateway (`gateway/`) | yes | 2026-07 | 2026-10-01: 200, `application/sustainability-data+json`, schema-valid |
-| <https://andreibesleaga.com/.well-known/sustainability-data> | author | static file, signed offline with `sustainability-sign` | yes | 2026-07 | 2026-10-01: 200, `application/sustainability-data+json`, schema-valid |
+| <https://sustainability.up.railway.app/.well-known/sustainability-data> | author | reference gateway (`gateway/`) | yes | 2026-07 | 2026-10-09: 200, `application/sustainability-data+json`, schema-valid |
+| <https://andreibesleaga.com/.well-known/sustainability-data> | author | static file, signed offline with `sustainability-sign` | yes | 2026-07 | 2026-10-09: 200, `application/sustainability-data+json`, schema-valid |
+| <https://agenticsystemcore.com/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-09: 200, `application/sustainability-data+json`, schema-valid |
+| <https://patterns.agenticsystemcore.com/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-09: 200, `application/sustainability-data+json`, schema-valid |
+| <https://agenticsystempatterns.com/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-09: 200, `application/sustainability-data+json`, schema-valid |
+| <https://medicine-finder.up.railway.app/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-09: 200, `application/sustainability-data+json`, schema-valid |
+| <https://zfeeder.up.railway.app/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-09: 200, `application/sustainability-data+json`, schema-valid |
 
-No independent deployment is known on 2026-10-01.
+No independent deployment is known on 2026-10-09.
 
 ## Adding a deployment
 

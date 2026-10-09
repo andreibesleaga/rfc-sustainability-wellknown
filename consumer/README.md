@@ -507,3 +507,18 @@ shapes, and 404 handling end-to-end — see
 ## License
 
 BSD-3-Clause. Part of the `rfc-sustainability-wellknown` repository.
+
+## Entry points and version history (moved from the root README, 2026-10-09)
+
+- **How to use it:** one call (`fetchSustainability`), a `SustainabilityClient` class for repeated, ETag-cached
+  polling, or the `sustainability-fetch` CLI, whose `--strict` mode is a conformance checker for **any**
+  implementation. Its tests include a live round trip against a real `Publisher`.
+- **Versions:** `0.1.0` = draft `-02`; `0.4.0`–`0.5.2` = `-04` (`0.5.0` fixed the CLI arguments, `0.5.2` added
+  path-prefixed base URLs); `0.6.x` = `-06` (media type, HTTPS only unless `--allow-http`, detached-signature
+  verification, every redirect hop checked); `0.7.0` = `-07` (embedded `signed`, `upstream`, seven mandatory
+  members, no `nosniff` check).
+- **Checking a `-07` document** requires consumer `0.7.0` or later (`0.5.0` fixed the CLI argument bug; `0.7.0` is the first release that knows the `-07` member set).
+- **`--strict` severity model:** a failed `MUST` is `FAIL`; an unmet `SHOULD` — e.g. a static host that cannot add an `Allow` header to its own `405` — is `WARN` and does not fail the check.
+- The package is also mirrored on GitHub Packages
+  ([`@andreibesleaga/sustainability-wellknown-consumer`](https://github.com/andreibesleaga/rfc-sustainability-wellknown/pkgs/npm/sustainability-wellknown-consumer));
+  npmjs.com is the canonical registry. The reference gateway's tests and its live deployment use the publisher and the consumer together.

@@ -9,7 +9,7 @@ Feature: Extensions and upstream declarations
     And the extension name "https://other-party.example/spec#v1" is rejected
     And the extension name "https://other-party.example/spec" is accepted
 
-  @req-b11204bf
+  @req-c508ab7e
   Scenario Outline: A UUID URN name is lowercase and hyphenated, and the reserved UUIDs are not names
     Then the extension name "<name>" is <verdict>
     Examples:
@@ -74,14 +74,14 @@ Feature: Extensions and upstream declarations
     When the consumer walks the upstream chain
     Then a comparison verdict is "under-reported"
 
-  @req-38419866 @req-4f5fc3f6
+  @req-6b29203c @req-4f5fc3f6
   Scenario: A walk stops three declarations below the start
     Given a subject declaration whose upstream chain is 6 declarations deep
     When the consumer walks the upstream chain
     Then the deepest retrieved comparison has depth 3
     And at most 3 upstream declarations were retrieved
 
-  @req-38419866
+  @req-6b29203c
   Scenario: A walk never retrieves the same URI twice
     Given a subject declaration whose upstream chain loops back on itself
     When the consumer walks the upstream chain

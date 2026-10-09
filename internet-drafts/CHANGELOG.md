@@ -11,8 +11,7 @@ valid `-08` document and every `-07` publisher and consumer conforms unchanged.*
 Implementation Status appendix (RFC 7942) in place of the Implementations appendix; brings the
 worked example in line with the live deployment (platform-reported draw where available, a national
 grid intensity, a credential naming the entered months); mentions the Digital Impacts Schema and
-Taxonomy next to carbon.txt; updates the author's contact address. The deployments table is filled
-on the day of posting from `IMPLEMENTATIONS.md`.
+Taxonomy next to carbon.txt. The Implementation Status appendix lists the seven origins of `IMPLEMENTATIONS.md`, all operated by the author.
 
 Answers the ART-area early review of `-07` (2026-10-03), prose only: a Terminology section under
 Section 1 (the term list leaves URI Definition; one term, *subject*; the `target` member unchanged);
@@ -24,7 +23,7 @@ the body is defined as a single JSON text whose value is one object or one JSON 
 `target` comparison sentence is split; `methodology-uri` is stated to be human-readable with no
 consumer behaviour depending on it; `target-type` is the first optional member; the extension-name
 sentence cites RFC 3986 Section 4.3; the body is shortened throughout with every requirement kept
-(92 traced normative sentences against 97, the difference being the restated HTTP rules).
+(96 traced normative sentences against 97: the five restated HTTP rules and two keyword-less sentences lose their id, three long sentences are split into eight, and the partial-subject sentence joins the hand-kept keyword-less list).
 
 ---
 

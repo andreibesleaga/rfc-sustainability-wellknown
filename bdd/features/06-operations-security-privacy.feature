@@ -22,13 +22,13 @@ Feature: Operational considerations, security, privacy, internationalization
     When I send GET "/.well-known/sustainability-data?period=2025&granularity=monthly" with the ETag of GET "/.well-known/sustainability-data?period=2025&granularity=monthly"
     Then the status is 304
 
-  @req-0eb0422b @req-4f5fc3f6
+  @req-581a802b @req-4f5fc3f6
   Scenario: The consumer bounds the size of what it reads
     Given a local server whose declaration body is 20000 bytes of JSON
     When the consumer fetches the local origin allowing insecure transport with at most 4096 bytes
     Then the fetch did not succeed
 
-  @req-0eb0422b @req-4f5fc3f6
+  @req-581a802b @req-4f5fc3f6
   Scenario: The consumer bounds the number of objects it accepts
     Given a local server whose declaration is an array of 10 objects
     When the consumer fetches the local origin allowing insecure transport with at most 5 objects
@@ -56,7 +56,7 @@ Feature: Operational considerations, security, privacy, internationalization
   Scenario: A public address is not refused
     Then the consumer allows the address "193.0.6.139"
 
-  @req-d4a7c458
+  @req-1357335b
   Scenario: Duplicate member names are handled consistently, with the last value in effect
     Given a local server whose body is the raw text "{\"updated\":\"2026-02-01T00:00:00Z\",\"capabilities\":\"basic\",\"provider\":\"Example\",\"measurement-method\":\"hardware-metered\",\"methodology-uri\":\"https://example.com/m\",\"reporting-period\":\"2026-01\",\"target\":\"example.com\",\"energy-consumption\":1,\"energy-consumption\":2,\"energy-unit\":\"kWh\"}"
     When the consumer fetches the local origin allowing insecure transport
@@ -70,7 +70,7 @@ Feature: Operational considerations, security, privacy, internationalization
     Then the object's "methodology-uri" starts with "https://"
     And the object's "disclosure-uri" starts with "https://"
 
-  @req-0def9c52 @req-0fa7bcb6 @req-7b4a80ac
+  @req-622662bc @req-d7e5997f @req-9afda67d @req-8da84e57 @req-89bed7dd @req-7b4a80ac
   Scenario: Noise, when a publisher opts in, is small, deterministic per period and consistent across related members
     Given an extended publisher with monthly entries for "2025-01,2025-02" and noise enabled
     Then the published figures for "2025-01" are within 1% of 100 kWh, consistent with the carbon figure, and identical across two builds

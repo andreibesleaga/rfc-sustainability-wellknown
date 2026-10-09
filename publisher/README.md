@@ -502,3 +502,14 @@ for the four commands and expected output (`--verify` reports the outcome of the
 ## License
 
 BSD-3-Clause. Part of the `rfc-sustainability-wellknown` repository.
+
+## Version history (moved from the root README, 2026-10-09)
+
+- **Versions:** `0.1.0` = draft `-02`; `0.4.0`–`0.5.2` = `-04` (no schema change in `-05` or `-06`); `0.6.x` = `-06`
+  (media type, HTTPS, detached signature, Extended selection rule); `0.7.0` = `-07` (no `version` member, embedded
+  `signed`, `upstream`, `extensions`); `0.7.1`–`0.7.3` = fixes (same 404 body for an unmatched `target`, at least
+  four significant figures, `nosniff` on the library's own errors, Kepler defaults to `hardware-estimated`,
+  Normalization Form C for `provider`) and the CSV and Slurm adapters.
+- The package is also mirrored on GitHub Packages
+  ([`@andreibesleaga/sustainability-wellknown-publisher`](https://github.com/andreibesleaga/rfc-sustainability-wellknown/pkgs/npm/sustainability-wellknown-publisher));
+  npmjs.com is the canonical registry. The reference gateway's tests and its live deployment use the publisher and the consumer together.

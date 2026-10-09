@@ -84,7 +84,7 @@ The tool's credential attests a reporting *model* (constants and formula) for fi
 years, which is what the reference gateway needs and the shape the draft's own
 Appendix A worked example describes. An auditor attesting *figures*
 for one reporting period embeds a copy of that declaration object (`signed`
-omitted) in `credentialSubject` instead — the alternative Appendix A names — and issues a new credential per reporting period;
+omitted) in `credentialSubject` instead — the repository's recommendation, not a rule of the draft — and issues a new credential per reporting period;
 the consumer's checks are the same either way. The credential's structure is in
 [internet-drafts/draft-verifiable-credential.md](internet-drafts/draft-verifiable-credential.md).
 

@@ -14,6 +14,41 @@
       "operator": "author",
       "software": "static file; signed with sustainability-sign (publisher/)",
       "since": "2026-07"
+    },
+    {
+      "origin": "https://agenticsystemcore.com",
+      "name": "AgenticSystemCore site (static file, signed offline)",
+      "operator": "author",
+      "software": "static file; signed with sustainability-sign (publisher/)",
+      "since": "2026-10"
+    },
+    {
+      "origin": "https://patterns.agenticsystemcore.com",
+      "name": "AgenticSystemCore patterns site (static file, signed offline)",
+      "operator": "author",
+      "software": "static file; signed with sustainability-sign (publisher/)",
+      "since": "2026-10"
+    },
+    {
+      "origin": "https://agenticsystempatterns.com",
+      "name": "Agentic System Patterns book site (static file, signed offline)",
+      "operator": "author",
+      "software": "static file; signed with sustainability-sign (publisher/)",
+      "since": "2026-10"
+    },
+    {
+      "origin": "https://medicine-finder.up.railway.app",
+      "name": "Medicine Finder demo (static file, signed offline)",
+      "operator": "author",
+      "software": "static file; signed with sustainability-sign (publisher/)",
+      "since": "2026-10"
+    },
+    {
+      "origin": "https://zfeeder.up.railway.app",
+      "name": "zFeeder demo (static file, signed offline)",
+      "operator": "author",
+      "software": "static file; signed with sustainability-sign (publisher/)",
+      "since": "2026-10"
     }
   ]
 }

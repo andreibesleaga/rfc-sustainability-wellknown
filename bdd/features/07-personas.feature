@@ -3,7 +3,7 @@ Feature: Personas and usage scenarios
   runs against the real libraries or the real gateway. Draft -08 (prepared; -07 posted), "Roles and Processing Model"
   and Appendix "Worked Example: A Live Deployment".
 
-  @persona-static-publisher @req-addcb130 @req-b22507d7
+  @persona-static-publisher @req-3f9a1155 @req-b22507d7
   Scenario: A site owner on static hosting publishes one signed file
     Given a valid declaration object
     And the object is signed with EdDSA
@@ -12,7 +12,7 @@ Feature: Personas and usage scenarios
     When the consumer verifies the signature
     Then the signature status is "verified"
 
-  @persona-site-owner @req-addcb130 @req-b22507d7 @req-b781809b
+  @persona-site-owner @req-3f9a1155 @req-b22507d7 @req-0eaecebc
   Scenario: A WordPress or shared-hosting site that serves a static file passes the battery
     Given a local server that answers the well-known path with "application/sustainability-data+json" and status 200
     Then the origin passes every MUST of the conformance battery

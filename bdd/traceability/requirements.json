@@ -1,6 +1,6 @@
 {
   "source": "draft-besleaga-sustainability-wellknown-08.md",
-  "count": 92,
+  "count": 96,
   "requirements": [
     {
       "id": "req-e38d33df",
@@ -12,12 +12,12 @@
       "text": "The declaration MUST be published and retrieved over HTTPS, and a consumer MUST NOT accept a declaration retrieved over unauthenticated HTTP."
     },
     {
-      "id": "req-addcb130",
+      "id": "req-3f9a1155",
       "section": "Mandatory Minimum Supported Service",
       "keywords": [
         "MUST"
       ],
-      "text": "A `GET` request without query parameters MUST be answered with `200 OK` and the declaration as the body, absent redirection or cache revalidation; responses to requests carrying query parameters are as {{extended-query-parameters}} specifies."
+      "text": "The declaration is the representation of the well-known URI: a server MUST make it available there, and a `200 OK` response to a `GET` request without query parameters carries it as content; responses to requests carrying query parameters are as {{extended-query-parameters}} specifies."
     },
     {
       "id": "req-b22507d7",
@@ -37,30 +37,37 @@
       "text": "A consumer SHOULD send an `Accept` header field whose value is `application/sustainability-data+json, application/json;q=0.9`."
     },
     {
-      "id": "req-49ec34e8",
+      "id": "req-d7ffd3ac",
       "section": "Mandatory Minimum Supported Service",
       "keywords": [
         "MUST",
         "MAY"
       ],
-      "text": "A consumer MUST process a `200 OK` response whose `Content-Type` is `application/sustainability-data+json` as a declaration, and MAY so process one whose `Content-Type` is `application/json`, under which declarations published before the registration of the dedicated type exist."
+      "text": "A consumer MUST process a `200 OK` response whose `Content-Type` is `application/sustainability-data+json` as a declaration, and MAY so process one whose `Content-Type` is `application/json`, since declarations published before the dedicated type was registered carry that type."
     },
     {
-      "id": "req-b781809b",
+      "id": "req-0eaecebc",
       "section": "Mandatory Minimum Supported Service",
       "keywords": [
         "SHOULD"
       ],
-      "text": "Because the declaration is public and intended for browser-based consumers as well, a `200 OK` response SHOULD include `Access-Control-Allow-Origin: *`, following WebFinger ({{?RFC7033}})."
+      "text": "Because the declaration is public and intended for browser-based consumers as well, a `200 OK` response SHOULD include `Access-Control-Allow-Origin: *`, following WebFinger ({{?RFC7033}}, Section 5)."
     },
     {
-      "id": "req-faf38e5f",
+      "id": "req-08defe2c",
       "section": "Mandatory Minimum Supported Service",
       "keywords": [
-        "MUST",
+        "MUST"
+      ],
+      "text": "A consumer that follows a redirect MUST require HTTPS on every hop."
+    },
+    {
+      "id": "req-13788375",
+      "section": "Mandatory Minimum Supported Service",
+      "keywords": [
         "MUST NOT"
       ],
-      "text": "A consumer that follows a redirect MUST require HTTPS on every hop and attributes the declaration to the origin of the final response; where that origin differs from the one it queried, the declaration is a claim by that other origin, and the consumer MUST NOT record it as a declaration of the origin it queried unless the object's `target` names the origin it queried."
+      "text": "Where that origin differs from the one it queried, the declaration is a claim by that other origin: the consumer MUST NOT record it as a declaration of the origin it queried unless the object's `target` names that origin."
     },
     {
       "id": "req-50b85e9d",
@@ -87,22 +94,22 @@
       "text": "A server that honors the `target` parameter MUST publish the set of prefixes it honors in the document identified by `methodology-uri`; this document defines no in-band list, since a consumer needs none: it compares the `target` of every object it receives with what it requested."
     },
     {
-      "id": "req-cc35f9b8",
+      "id": "req-7f1dbd9c",
       "section": "Extended Query Parameters",
       "keywords": [
         "MUST NOT",
         "MUST"
       ],
-      "text": "They MUST NOT overlap, since a server that summed a month and a day inside it would count that day twice, and they MUST cover P, or, where P has not yet completed, the completed portion of it that step 6 provides for: a server holding figures for only part of a finished period cannot present their sum as a figure for the whole of it."
+      "text": "They MUST NOT overlap, and they MUST cover P, or, where P has not yet completed, the completed portion of it that step 6 provides for."
     },
     {
-      "id": "req-bbd432b1",
+      "id": "req-9bcce9c7",
       "section": "Extended Query Parameters",
       "keywords": [
         "MUST",
         "MUST NOT"
       ],
-      "text": "`provider`, `measurement-method`, `methodology-uri`, `target` and `target-type` are those of the contributing entries, which MUST agree; where they do not, the server MUST NOT serve an aggregate, since it could only misdescribe what the figures are about, and responds as it does when it has no data."
+      "text": "`provider`, `measurement-method`, `methodology-uri`, `target` and `target-type` are those of the contributing entries, which MUST agree; where they do not, the server MUST NOT serve an aggregate, and responds as it does when it has no data."
     },
     {
       "id": "req-5152df1a",
@@ -157,13 +164,13 @@
       "text": "A declaration object contains the seven mandatory members, any of the optional members, and nothing else: a publisher MUST NOT add other top-level members ({{extensions}} defines where other data goes)."
     },
     {
-      "id": "req-6ae4fde7",
+      "id": "req-17b43ea2",
       "section": "Payload Format (JSON Data Model)",
       "keywords": [
         "MUST",
         "MUST NOT"
       ],
-      "text": "A consumer MUST ignore a top-level member it does not recognize and MUST NOT treat its presence as an error ({{RFC7493}}, Section 4.2), since a revision of this document may define one; whether a given member was permitted is a question about the publisher's conformance, which the consumer does not decide and which never makes the object unreadable."
+      "text": "A consumer MUST ignore a top-level member it does not recognize and MUST NOT treat its presence as an error ({{RFC7493}}, Section 4.2), since a revision of this document may define one."
     },
     {
       "id": "req-92070927",
@@ -289,12 +296,12 @@
       "text": "A consumer encountering a defective optional member SHOULD NOT reject the object; instead:"
     },
     {
-      "id": "req-dbe0ecf9",
+      "id": "req-7da41e57",
       "section": "Value Constraints and Omitted Metrics",
       "keywords": [
         "MUST NOT"
       ],
-      "text": "A publisher MUST NOT emit one."
+      "text": "A publisher MUST NOT emit a number whose magnitude or precision exceeds what IEEE 754 binary64 represents ({{RFC7493}}, Section 2.2)."
     },
     {
       "id": "req-7d44fec0",
@@ -313,12 +320,12 @@
       "text": "The first is an \"https\" URI under the definer's control when the name was minted, which SHOULD identify human-readable documentation of the extension."
     },
     {
-      "id": "req-b11204bf",
+      "id": "req-c508ab7e",
       "section": "Extensions",
       "keywords": [
         "MUST NOT"
       ],
-      "text": "The second is a UUID URN, `urn:uuid:` followed by the hyphenated text form of a UUID ({{RFC9562}}, Section 4) in lowercase, which that section permits in either case and which this document fixes as lowercase so that names compare octet for octet, for a definer that has no domain or that wants a name independent of any domain; the Nil and Max UUIDs ({{RFC9562}}, Sections 5.9 and 5.10) MUST NOT be used, since they are guaranteed collisions."
+      "text": "The Nil and Max UUIDs ({{RFC9562}}, Sections 5.9 and 5.10) MUST NOT be used, since they are guaranteed collisions."
     },
     {
       "id": "req-cd1ce13b",
@@ -369,13 +376,13 @@
       "text": "A consumer MAY retrieve upstream declarations and compare the figures for the same `reporting-period`."
     },
     {
-      "id": "req-38419866",
+      "id": "req-6b29203c",
       "section": "Upstream Declarations",
       "keywords": [
         "MUST NOT",
         "MUST"
       ],
-      "text": "A consumer that does so MUST NOT follow a chain deeper than three declarations below the one it started from, MUST refuse any URI it has already retrieved during the walk, MUST bound the total number of retrievals it performs for one starting declaration, and applies the fetch limits of {{consumer-considerations}} to each."
+      "text": "A consumer that does so MUST NOT follow a chain deeper than three declarations below the one it started from, MUST refuse any URI it has already retrieved during the walk, and MUST bound the total number of retrievals it performs for one starting declaration."
     },
     {
       "id": "req-76f7d871",
@@ -395,12 +402,12 @@
       "text": "A server that computes responses to Extended Query Parameters on demand SHOULD precompute or cache them."
     },
     {
-      "id": "req-b10f4177",
+      "id": "req-318bd979",
       "section": "Operational Considerations",
       "keywords": [
         "MUST"
       ],
-      "text": "A publisher behind a content delivery network or reverse proxy MUST serve, at the well-known path, the body it produced, octet for octet: an intermediary that rewrites or reformats the body invalidates any `signed` member and misrepresents the publisher."
+      "text": "A publisher behind a content delivery network or reverse proxy MUST serve, at the well-known URI, the representation data it produced, unchanged (content codings aside): an intermediary that rewrites or reformats the data invalidates any `signed` member and misrepresents the publisher."
     },
     {
       "id": "req-5c792780",
@@ -469,12 +476,12 @@
       "text": "A publisher MUST NOT serve an object whose `signed` payload differs from the object it accompanies, so a publisher regenerating an object regenerates its signature in the same step."
     },
     {
-      "id": "req-66f13b96",
+      "id": "req-07d513cf",
       "section": "Verification",
       "keywords": [
         "MUST"
       ],
-      "text": "A consumer that verifies the member MUST reject it when `alg` is `none` or a MAC algorithm, when `cty` is absent or identifies any other media type, or when it carries a `crit` parameter the consumer does not understand; it determines the acceptable algorithm from the key and its own policy, never from `alg` alone ({{RFC8725}}, Sections 3.1 and 3.2)."
+      "text": "A consumer that verifies the member MUST reject it when `alg` is `none` or a MAC algorithm, when `cty` is absent or identifies any other media type, or when it carries a `crit` parameter the consumer does not understand."
     },
     {
       "id": "req-fa97b1c8",
@@ -493,20 +500,20 @@
       "text": "A consumer MUST also treat the object as unverified when the payload's `target` or `reporting-period` differs from the object's, since the two then describe different things."
     },
     {
-      "id": "req-5ba598aa",
+      "id": "req-256d3643",
       "section": "Verification",
       "keywords": [
         "MUST"
       ],
-      "text": "A consumer that promotes an `x5c`-validated key MUST also require that the certificate identify the publisher, where the anchor is a general-purpose one by an acceptable match between the origin serving the declaration and the certificate's identity ({{RFC9110}}, Section 4.3.4), since a chain to a widely trusted anchor otherwise establishes only that some party holds a certificate."
+      "text": "A consumer that promotes an `x5c`-validated key MUST also require that the certificate identify the publisher; where the anchor is a general-purpose one, that means an acceptable match between the origin serving the declaration and the certificate's identity ({{RFC9110}}, Section 4.3.4)."
     },
     {
-      "id": "req-398e290f",
+      "id": "req-6f6e388c",
       "section": "Verification",
       "keywords": [
         "MAY"
       ],
-      "text": "In either case a consumer MAY report a difference between the payload and the surrounding members as evidence that the object was modified after signing, which is not a verification failure."
+      "text": "Whether or not the payload takes precedence, a consumer MAY report a difference between the payload and the surrounding members as evidence that the object was modified after signing, which is not a verification failure."
     },
     {
       "id": "req-68ff48e7",
@@ -566,13 +573,13 @@
       "text": "A server SHOULD rate-limit requests to the well-known URI and SHOULD precompute or cache responses, since {{extended-query-parameters}} can otherwise force on-demand aggregation; honoring `target` only for a published prefix set bounds the cache-key space."
     },
     {
-      "id": "req-0eb0422b",
+      "id": "req-581a802b",
       "section": "Denial of Service",
       "keywords": [
         "MUST NOT",
         "MUST"
       ],
-      "text": "A response to a request naming a granularity is bounded by the calendar (at most 366 objects for daily granularity over a year), and nothing bounds the size of a Basic response; a consumer MUST NOT rely on any server bound: it MUST limit the bytes and objects it accepts and treat an excess as an error."
+      "text": "A consumer MUST NOT rely on any server bound: it MUST limit the bytes and objects it accepts and treat an excess as an error."
     },
     {
       "id": "req-4f5fc3f6",
@@ -591,12 +598,12 @@
       "text": "A consumer SHOULD parse with a JSON parser hardened against untrusted input ({{RFC8259}}, Section 12), validate before use, and treat every value as data: the format has no active content, and a consumer that evaluates a value has introduced a hazard the format does not contain."
     },
     {
-      "id": "req-d4a7c458",
+      "id": "req-1357335b",
       "section": "Consumer Considerations",
       "keywords": [
         "SHOULD"
       ],
-      "text": "Duplicate member names make JSON interoperability unpredictable; a consumer whose parser exposes them SHOULD reject an object containing them, and one whose parser does not applies that parser's documented resolution consistently and states which it is."
+      "text": "Duplicate member names make JSON interoperability unpredictable ({{RFC8259}}, Section 4; {{RFC7493}}, Section 2.3); a consumer whose parser exposes them SHOULD reject an object containing them, and one whose parser does not applies that parser's documented resolution consistently and states which it is."
     },
     {
       "id": "req-794f2d51",
@@ -607,29 +614,53 @@
       "text": "A consumer MUST NOT dereference an `extensions` name, which is an identifier and not a locator, and MUST NOT automatically dereference or execute anything within an `extensions` value it does not implement."
     },
     {
-      "id": "req-c9b266f1",
+      "id": "req-e73b19b7",
       "section": "Privacy Considerations",
       "keywords": [
         "SHOULD NOT",
         "NOT RECOMMENDED"
       ],
-      "text": "A server SHOULD NOT report at a granularity finer than 24 hours, and real-time telemetry is NOT RECOMMENDED, since either lets an observer correlate energy with individual user actions."
+      "text": "A publisher SHOULD NOT report at a granularity finer than 24 hours, and real-time telemetry is NOT RECOMMENDED, since either lets an observer correlate energy with individual user actions."
     },
     {
-      "id": "req-0def9c52",
+      "id": "req-622662bc",
       "section": "Privacy Considerations",
       "keywords": [
         "MAY"
       ],
-      "text": "A server MAY apply multiplicative noise within 1% of the true values to blunt hardware fingerprinting."
+      "text": "A publisher MAY apply multiplicative noise within 1% of the true values to blunt hardware fingerprinting."
     },
     {
-      "id": "req-0fa7bcb6",
+      "id": "req-d7e5997f",
       "section": "Privacy Considerations",
       "keywords": [
         "MUST"
       ],
-      "text": "Noise MUST be applied once, at generation time, deterministically per period and consistently across arithmetically related members, including any annualized or otherwise derived member, so that ratios are preserved and no unperturbed member discloses a perturbed one; bounded members MUST remain within their range; the noised values are the published values for caching purposes; and the methodology document MUST state that noise is applied and bound its magnitude."
+      "text": "Noise MUST be applied once, at generation time, deterministically per period."
+    },
+    {
+      "id": "req-9afda67d",
+      "section": "Privacy Considerations",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "It MUST be applied consistently across arithmetically related members, including any annualized or otherwise derived member, so that ratios are preserved and no unperturbed member discloses a perturbed one."
+    },
+    {
+      "id": "req-8da84e57",
+      "section": "Privacy Considerations",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "Bounded members MUST remain within their range."
+    },
+    {
+      "id": "req-89bed7dd",
+      "section": "Privacy Considerations",
+      "keywords": [
+        "MUST"
+      ],
+      "text": "The methodology document MUST state that noise is applied and bound its magnitude."
     },
     {
       "id": "req-7b4a80ac",
@@ -680,12 +711,12 @@
       "text": "A declaration is JSON and therefore UTF-8 ({{RFC8259}}, Section 8.1); a publisher SHOULD emit human-readable strings in Unicode Normalization Form C ({{?RFC5198}}, Section 3)."
     },
     {
-      "id": "req-cc373117",
+      "id": "req-a3f26dd8",
       "section": "Internationalization Considerations",
       "keywords": [
         "RECOMMENDED"
       ],
-      "text": "Member names, the values of the enumerated members, the RECOMMENDED `measurement-method` tokens, the `role` tokens, the extension names that key `extensions`, which are ASCII URIs and never IRIs, `functional-unit`, the date members, the URI members, and `signed` are ASCII protocol elements; where this document compares them it does so octet-for-octet, never case-folded, normalized, translated, or localized."
+      "text": "The following are ASCII protocol elements: member names; the values of the enumerated members; the RECOMMENDED `measurement-method` tokens; the `role` tokens; the extension names that key `extensions` (ASCII URIs, never IRIs); `functional-unit`; the date members; the URI members; and `signed`."
     },
     {
       "id": "req-4bd0beb7",
@@ -724,7 +755,7 @@
       "id": "req-8fe518ba",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "If one of the three appears more than once, respond `400 Bad Request`; a server that has entered this procedure does so whether or not it supports the repeated parameter."
+      "text": "If one of the three appears more than once, respond `400 Bad Request`; this applies whether or not the server supports the repeated parameter."
     },
     {
       "id": "req-8ee496d1",
@@ -736,13 +767,13 @@
       "id": "req-d5507448",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "The tolerance rules above are exhaustive: a defect they do not name, such as an `extensions` key that is not an absolute URI or whose value is not an object, an `upstream` member that is an array of no entries, or a mandatory member other than `capabilities` whose value is malformed rather than absent, leaves the object non-conformant, and a consumer that validates reports it as such rather than disregarding the member."
+      "text": "The tolerance rules above are exhaustive. A defect they do not name leaves the object non-conformant, and a consumer that validates reports it as such rather than disregarding the member."
     },
     {
       "id": "req-86e23e83",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "A defective value of a mandatory member is a different matter, since disregarding it would leave the object without a member this document requires: a defective `capabilities` value, whether an unrecognized string or a value of the wrong JSON type, is read as `basic`, and a defective value of any other mandatory member leaves the object non-conformant."
+      "text": "A defective value of a mandatory member cannot be disregarded, since that would leave the object without a required member."
     },
     {
       "id": "req-61a943cf",

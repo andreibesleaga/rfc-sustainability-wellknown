@@ -24,14 +24,14 @@ Feature: Signing and verification
       | EdDSA |
       | ES256 |
 
-  @req-b10f4177 @req-7b2bab02
+  @req-318bd979 @req-7b2bab02
   Scenario: Every object of a trend array carries its own signature
     Given the declaration is an array of objects with reporting-periods "2026-01,2026-02"
     And every object of the array is signed with EdDSA
     When the consumer verifies every signature of the array
     Then every signature status is "verified"
 
-  @req-398e290f @req-fa97b1c8
+  @req-6f6e388c @req-fa97b1c8
   Scenario: An object changed after signing is reported as modified, and the served members stay in use
     Given a valid declaration object
     And the object is signed with EdDSA
@@ -42,7 +42,7 @@ Feature: Signing and verification
     And the members in use are the ones the origin served, not the payload
     And the data is not reported as true or verified-accurate
 
-  @req-26a25d5a @req-66f13b96
+  @req-26a25d5a @req-07d513cf
   Scenario Outline: alg none and MAC algorithms are rejected
     Given a valid declaration object
     And the signed member is a JWS with alg "<alg>"
@@ -53,14 +53,14 @@ Feature: Signing and verification
       | none  |
       | HS256 |
 
-  @req-c427596c @req-66f13b96
+  @req-c427596c @req-07d513cf
   Scenario: A signature without cty is rejected
     Given a valid declaration object
     And the signed member's cty is absent
     When the consumer verifies the signature
     Then the signature status is "unverified"
 
-  @req-66f13b96
+  @req-07d513cf
   Scenario: A signature whose cty names another media type is rejected
     Given a valid declaration object
     And the signed member's cty is "text/plain"
@@ -98,7 +98,7 @@ Feature: Signing and verification
     Then the signature status is "unverified"
     And the signature reason mentions "payload-subject-mismatch"
 
-  @req-5ba598aa
+  @req-256d3643
   Scenario: A key presented only as x5c is never promoted without an anchor
     Given a valid declaration object
     And a signed object whose header carries x5c and no jwk
@@ -114,7 +114,7 @@ Feature: Signing and verification
     And the members in use are the ones the origin served, not the payload
     And the data is not reported as true or verified-accurate
 
-  @req-b10f4177 @req-c9d470af
+  @req-318bd979 @req-c9d470af
   Scenario: The reference gateway's own report arrives signed and intact through its HTTP path
     Given the reference gateway is running
     When I send GET "/.well-known/sustainability-data"

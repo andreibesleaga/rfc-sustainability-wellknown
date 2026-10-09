@@ -3,7 +3,7 @@ Feature: Extended query parameters
   decides what comes back: one object, or a sorted array when a finer granularity is in effect.
   Draft -08 (prepared; -07 posted), section "Extended Query Parameters".
 
-  @req-684991a9 @req-5152df1a @req-cc35f9b8
+  @req-684991a9 @req-5152df1a @req-7f1dbd9c
   Scenario: A yearly period at monthly granularity returns the sorted, non-overlapping months
     Given an extended publisher with monthly entries for "2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08,2025-09,2025-10,2025-11,2025-12"
     And the publisher is served on a local port
@@ -13,7 +13,7 @@ Feature: Extended query parameters
     And the body is in ascending reporting-period order without overlap
     And every object's reporting-period starts with "2025"
 
-  @req-5152df1a @req-bbd432b1 @req-cc35f9b8
+  @req-5152df1a @req-9bcce9c7 @req-7f1dbd9c
   Scenario: A completed period without a granularity is one aggregated object carrying the contributors' provider
     Given an extended publisher with monthly entries for "2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08,2025-09,2025-10,2025-11,2025-12"
     And the publisher is served on a local port
@@ -23,7 +23,7 @@ Feature: Extended query parameters
     And the object's reporting-period is "2025"
     And the object's "provider" is "Example Org (https://example.com/contact)"
 
-  @req-cc35f9b8
+  @req-7f1dbd9c
   Scenario: Entries that cover only part of a finished period cannot be summed into a figure for the whole of it
     Given an extended publisher with monthly entries for "2025-01,2025-02,2025-03"
     And the publisher is served on a local port
@@ -88,14 +88,14 @@ Feature: Extended query parameters
     And the body is in ascending reporting-period order without overlap
     And the body validates as a declaration
 
-  @req-0eb0422b
+  @req-581a802b
   Scenario: Daily granularity over a year is bounded by the calendar
     Given the reference gateway is running
     When I send GET "/.well-known/sustainability-data?period=2025&granularity=daily"
     Then the status is 200
     And the body has at most 366 objects
 
-  @req-c9b266f1 @req-23ad5bde
+  @req-e73b19b7 @req-23ad5bde
   Scenario: Nothing finer than a day is ever served; an undefined granularity value is ignored
     Given the reference gateway is running
     When I send GET "/.well-known/sustainability-data?period=2025-01-05&granularity=hourly"

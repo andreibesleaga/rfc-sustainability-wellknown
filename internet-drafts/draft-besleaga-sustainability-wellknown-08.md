@@ -17,7 +17,7 @@ author:
   - ins: A. N. Besleaga
     name: Andrei Nicolae Besleaga
     organization: Independent
-    email: andrei.besleaga.nicolae@gmail.com
+    email: andrei.besleaga@ieee.org
 
 normative:
   RFC2119:
@@ -109,9 +109,9 @@ This document defines the "sustainability-data" well-known URI, at which a web o
 
 # Introduction
 
-The report of the IAB Workshop on Environmental Impact of Internet Applications and Systems {{RFC9547}} records the need for data on the environmental impact of Internet systems, and the gaps in it. The quantities themselves are defined by corporate greenhouse-gas accounting {{GHG-PROTOCOL}} and by the disclosure regimes built on it. What is missing is one place and one form in which a web origin can publish them, so that a client can find and read them knowing nothing but the origin.
+Energy and carbon figures for Internet systems are increasingly measured and disclosed: the IAB workshop report {{RFC9547}} records the need for such data and the gaps in it, and corporate greenhouse-gas accounting {{GHG-PROTOCOL}} defines the quantities. What is missing is a fixed place and form in which a web origin publishes them, so that any client can find and read them knowing nothing but the origin.
 
-This document defines that place and form. The place is a well-known URI {{RFC8615}}, as security.txt ({{?RFC9116}}) is for security contact information; the form is one JSON document, the *declaration*. Its mandatory `target` member names the subject: most often the origin itself, otherwise a part of it (a subdomain, a service, a path prefix), a device, a cloud tenant, a product, a data source, or the publishing organization.
+This document defines both. The place is a well-known URI {{RFC8615}}, as security.txt ({{?RFC9116}}) is for security contacts. The form is one JSON document, the *declaration*, whose mandatory `target` member names the subject: the origin itself, a part of it, a device, a cloud tenant, a product, a data source, or the publishing organization.
 
 The smallest conformant declaration carries the seven mandatory members and at least one metric or evidence link ({{value-constraints-and-omitted-metrics}}):
 
@@ -138,9 +138,10 @@ The following terms are used throughout this document.
 * **Origin**: the scheme, host, and port triple of an HTTP URI, as {{RFC9110}}, Section 4.3.1, defines it.
 * **Publisher**: the entity operating an origin and publishing a declaration at the well-known URI.
 * **Consumer**: any client that retrieves a declaration.
-* **Declaration** (in full, *Sustainability Declaration*): the JSON document served at the well-known URI; its body is one declaration object or an array of them ({{payload-format-json-data-model}}).
+* **Declaration**: the JSON document served at the well-known URI; its body is one declaration object or an array of them ({{payload-format-json-data-model}}).
 * **Basic response**: the declaration returned for a request without query parameters.
-* **Subject**: the entity or scope the declaration is about, named by the mandatory `target` member ({{mandatory-members}}). This document says *subject* for the thing and `target` only for the member.
+* **Subject**: the entity or scope the declaration is about, named by the mandatory `target` member ({{mandatory-members}}). This document says *subject* for the entity and `target` only for the member.
+* **Server**: the origin server for the well-known URI ({{RFC9110}}, Section 3.6), or an intermediary answering on the publisher's behalf ({{RFC9110}}, Section 3.7). A declaration is attributed to an origin, whichever server answered.
 
 ## Goals and Non-Goals
 
@@ -151,17 +152,17 @@ The following terms are used throughout this document.
 
 ## Roles and Processing Model
 
-The *publisher* operates an origin and publishes one declaration at the well-known URI. A *consumer* is any client that retrieves it, from a reporting pipeline to a person with a command line. A consumer proceeds as follows:
+The *publisher* operates an origin and publishes one declaration at the well-known URI. A *consumer* is any client that retrieves it, and proceeds as follows:
 
 1. Retrieve the declaration over HTTPS from the well-known URI ({{mandatory-minimum-supported-service}}).
-2. Check the media type and parse the body as JSON; ignore any top-level member it does not recognize and any `extensions` entry it does not implement; validate the rest against the formal schemas and the prose rules of {{payload-format-json-data-model}}, applying the tolerance rules of {{value-constraints-and-omitted-metrics}}.
+2. Check the media type and parse the body as JSON. Ignore any top-level member it does not recognize and any `extensions` entry it does not implement. Validate the rest against the formal schemas and the prose rules of {{payload-format-json-data-model}}, applying the tolerance rules of {{value-constraints-and-omitted-metrics}}.
 3. If the object carries a `signed` member, verify it as {{signing}} specifies; otherwise treat the object as unsigned.
 4. Attribute every value to the origin that served it, as a claim of the publisher; judge freshness from `updated`, `reporting-period`, and the HTTP caching metadata.
 5. When it needs evidence, follow `methodology-uri`, `disclosure-uri`, `verifiable-attestation-uri`, and the `upstream` declarations, under the fetch limits of {{consumer-considerations}}.
 
 ## Relationship to Other Work
 
-This document operates at the reporting layer of an HTTP origin and does not overlap with network-equipment energy management ({{?RFC7326}}). The carbon.txt convention {{CARBON-TXT}} is a TOML index of where an origin's disclosures live and carries no figures; a declaration can link to such an index through `disclosure-uri`, and a carbon.txt file can list the well-known URI defined here. The Digital Impacts Schema and Taxonomy {{GWF-DIST}} is an organization-level JSON document of digital impacts that a carbon.txt file can likewise list; an origin can publish both.
+The carbon.txt convention {{CARBON-TXT}} is a TOML index of where an origin's disclosures live and carries no figures: a declaration can link to it through `disclosure-uri`, and it can list the well-known URI defined here. The Digital Impacts Schema and Taxonomy {{GWF-DIST}} is an organization-level JSON document that a carbon.txt file can likewise list; an origin can publish both. Network-equipment energy management ({{?RFC7326}}) is a different layer.
 
 # The "sustainability-data" Well-Known URI
 
@@ -171,13 +172,13 @@ The declaration is published at the path `/.well-known/sustainability-data` on t
 
 ## Mandatory Minimum Supported Service
 
-The declaration MUST be published and retrieved over HTTPS, and a consumer MUST NOT accept a declaration retrieved over unauthenticated HTTP. This document uses only the GET and HEAD methods. Method handling, status codes, redirection, and header fields are as {{RFC9110}} defines them, and caching as {{RFC9111}} defines it; a consumer handles a status code it does not expect by its class ({{?RFC9205}}, Section 4.6). A declaration is attributed to an origin ({{terminology}}); a server is the HTTP party answering a request for it, the origin server ({{RFC9110}}, Section 3.6) or an intermediary acting for the publisher. Access control is outside the scope of this document.
+The declaration MUST be published and retrieved over HTTPS, and a consumer MUST NOT accept a declaration retrieved over unauthenticated HTTP. This document uses only the GET and HEAD methods. Method handling, status codes, redirection, and header fields are as {{RFC9110}} defines them, and caching as {{RFC9111}} defines it; a consumer handles a status code it does not expect by its class ({{?RFC9205}}, Section 4.6). Access control is outside the scope of this document.
 
-* A `GET` request without query parameters MUST be answered with `200 OK` and the declaration as the body, absent redirection or cache revalidation; responses to requests carrying query parameters are as {{extended-query-parameters}} specifies. An origin that publishes no declaration has no representation at the well-known URI.
+* The declaration is the representation of the well-known URI: a server MUST make it available there, and a `200 OK` response to a `GET` request without query parameters carries it as content; responses to requests carrying query parameters are as {{extended-query-parameters}} specifies. An origin that publishes no declaration has no representation at the well-known URI.
 * A `200 OK` response MUST carry the `Content-Type` `application/sustainability-data+json`; the body SHOULD follow I-JSON {{RFC7493}}. The media type has no parameters ({{media-type-registration}}); a consumer compares the type ignoring any parameter it receives. Caching directives are addressed in {{operational-considerations}}.
-* A consumer SHOULD send an `Accept` header field whose value is `application/sustainability-data+json, application/json;q=0.9`. A consumer MUST process a `200 OK` response whose `Content-Type` is `application/sustainability-data+json` as a declaration, and MAY so process one whose `Content-Type` is `application/json`, under which declarations published before the registration of the dedicated type exist. A response carrying a media type other than those two is not a declaration.
-* Because the declaration is public and intended for browser-based consumers as well, a `200 OK` response SHOULD include `Access-Control-Allow-Origin: *`, following WebFinger ({{?RFC7033}}).
-* A consumer that follows a redirect MUST require HTTPS on every hop and attributes the declaration to the origin of the final response; where that origin differs from the one it queried, the declaration is a claim by that other origin, and the consumer MUST NOT record it as a declaration of the origin it queried unless the object's `target` names the origin it queried. A publisher SHOULD NOT redirect to a different origin.
+* A consumer SHOULD send an `Accept` header field whose value is `application/sustainability-data+json, application/json;q=0.9`. A consumer MUST process a `200 OK` response whose `Content-Type` is `application/sustainability-data+json` as a declaration, and MAY so process one whose `Content-Type` is `application/json`, since declarations published before the dedicated type was registered carry that type. A response carrying a media type other than those two is not a declaration.
+* Because the declaration is public and intended for browser-based consumers as well, a `200 OK` response SHOULD include `Access-Control-Allow-Origin: *`, following WebFinger ({{?RFC7033}}, Section 5).
+* A consumer that follows a redirect MUST require HTTPS on every hop. It attributes the declaration to the origin of the final response. Where that origin differs from the one it queried, the declaration is a claim by that other origin: the consumer MUST NOT record it as a declaration of the origin it queried unless the object's `target` names that origin. A publisher SHOULD NOT redirect to a different origin.
 
 ## Partial Knowledge and Incremental Adoption
 
@@ -185,7 +186,7 @@ A publisher declares the subject it can measure or estimate. The `target` member
 
 ## Extended Query Parameters
 
-A server MAY support the query parameters `target`, `period`, and `granularity` on the well-known URI. A server ignores a parameter it does not support and answers the rest of the request. A request carries the parameters in the query component ({{RFC3986}}, Section 3.4) as `name=value` pairs separated by "&". Each parameter is defined by the following ABNF {{RFC5234}}, using the case-sensitive string notation of {{RFC7405}}, with `date-fullyear`, `date-month`, and `date-mday` from {{RFC3339}}, Appendix A, and `unreserved` and `pct-encoded` from {{RFC3986}}, Section 2. Each rule matches its parameter as received in the query, before percent-decoding; a `target` value therefore carries any "&" or "=" of its own percent-encoded, since `pchar-nd` omits them:
+A server MAY support the query parameters `target`, `period`, and `granularity` on the well-known URI. A server ignores a parameter it does not support and answers the rest of the request. A request carries the parameters in the query component ({{RFC3986}}, Section 3.4) as `name=value` pairs separated by "&". Each parameter is defined by the following ABNF {{RFC5234}}, using the case-sensitive string notation of {{RFC7405}}, with `date-fullyear`, `date-month`, and `date-mday` from {{RFC3339}}, Section 5.6, and `unreserved` and `pct-encoded` from {{RFC3986}}, Section 2. Each rule matches its parameter as received in the query, before percent-decoding; a `target` value therefore carries any "&" or "=" of its own percent-encoded, since `pchar-nd` omits them:
 
 ~~~ abnf
 target       = %s"target=" target-value
@@ -199,25 +200,25 @@ pchar-nd     = unreserved / pct-encoded / "!" / "$" / "'" / "("
              / ")" / "*" / "+" / "," / ";" / ":" / "@"
 ~~~
 
-A `period-value` names a whole calendar year, month, or day in UTC unless the methodology document states otherwise. A period has year, month, or day *precision* accordingly, year being the coarsest; the granularity `monthly` denotes month precision and `daily` denotes day precision. A publisher whose reporting year is not the calendar year publishes its constituent months or the enclosing calendar years and describes the alignment in the methodology document. One period is *within* another when every instant of the first is an instant of the second.
+A `period-value` names a whole calendar year, month, or day. A consumer reads a period as UTC; a publisher whose accounting boundaries differ states them in the methodology document. A period has year, month, or day *precision* accordingly, year being the coarsest; the granularity `monthly` denotes month precision and `daily` denotes day precision. A publisher whose reporting year is not the calendar year publishes its constituent months or the enclosing calendar years and describes the alignment in the methodology document. One period is *within* another when every instant of the first is an instant of the second.
 
 A server supporting any of the parameters processes a request carrying one or more of them as follows; the responses the procedure names are requirements on a server that supports the parameter concerned:
 
-1. Split the query at "&" and each part at its first "=", then percent-decode names and values. Ignore any name other than the three defined here. If one of the three appears more than once, respond `400 Bad Request`; a server that has entered this procedure does so whether or not it supports the repeated parameter.
+1. Split the query at "&" and each part at its first "=", then percent-decode names and values. Ignore any name other than the three defined here. If one of the three appears more than once, respond `400 Bad Request`; this applies whether or not the server supports the repeated parameter.
 2. If `period` is present and its value does not match the `period-value` rule above or does not name a real calendar date, respond `400 Bad Request`. Let P be the named period, or, when `period` is absent, the `reporting-period` of the Basic response, and, where the Basic response is an array, the `reporting-period` of its last object.
 3. If `granularity` is present, let G be the precision its value denotes; ignore the parameter when the value is neither `monthly` nor `daily`, or when the precision it denotes is not finer than the precision of P.
 4. If `target` is present, compare its value, percent-decoded, with the publisher's published set of path prefixes, byte-wise, case-sensitively, and on complete segments. A value that does not match the `target-value` rule matches no prefix. If it matches none, respond `404 Not Found`. A server that honors the `target` parameter MUST publish the set of prefixes it honors in the document identified by `methodology-uri`; this document defines no in-band list, since a consumer needs none: it compares the `target` of every object it receives with what it requested. Every returned object then carries the matched prefix in its `target` member. A server that sees only percent-decoded parameter values applies the `target-value` rule to the decoded value.
-5. Select from the entries the server holds for the subject, an entry being one declaration object for one period at one precision. When G is in effect, the response is the array of all held entries whose precision is G and whose period is within P, in ascending order; a server that holds no entries at that precision responds `404 Not Found`. Otherwise the response is the held entry whose period equals P. If there is none but held entries of finer precision lie within P, the response is their aggregate. The contributing entries are the held entries of one precision within P, the coarsest where more than one is held. They MUST NOT overlap, since a server that summed a month and a day inside it would count that day twice, and they MUST cover P, or, where P has not yet completed, the completed portion of it that step 6 provides for: a server holding figures for only part of a finished period cannot present their sum as a figure for the whole of it. A server whose held data cannot meet these conditions responds as it does when it has no data. The aggregate is formed as follows:
+5. Select from the entries the server holds for the subject, an entry being one declaration object for one period at one precision. When G is in effect, the response is the array of all held entries whose precision is G and whose period is within P, in ascending order; a server that holds no entries at that precision responds `404 Not Found`. Otherwise the response is the held entry whose period equals P. If there is none but held entries of finer precision lie within P, the response is their aggregate. The contributing entries are the held entries of one precision within P, the coarsest where more than one is held. They MUST NOT overlap, and they MUST cover P, or, where P has not yet completed, the completed portion of it that step 6 provides for. A server whose held data cannot meet these conditions responds as it does when it has no data. The aggregate is formed as follows:
 
     * `reporting-period` is P, and `capabilities` is `extended`.
     * `energy-consumption`, `carbon-footprint` and the scope members are sums taken after converting the contributing entries to the unit the aggregate declares in `energy-unit` and `carbon-unit`, which is the unit declared by the last contributing entry in ascending order of `reporting-period`. Each of these members is carried only where every contributing entry reports it.
     * `updated` is the latest `updated` of the contributing entries.
-    * `provider`, `measurement-method`, `methodology-uri`, `target` and `target-type` are those of the contributing entries, which MUST agree; where they do not, the server MUST NOT serve an aggregate, since it could only misdescribe what the figures are about, and responds as it does when it has no data.
+    * `provider`, `measurement-method`, `methodology-uri`, `target` and `target-type` are those of the contributing entries, which MUST agree; where they do not, the server MUST NOT serve an aggregate, and responds as it does when it has no data.
     * Every other metric member is omitted unless the publisher recomputes it for the aggregated period and states so in the methodology document. Any other optional member, except `energy-unit` and `carbon-unit`, is carried only where every contributing entry carries it with the same value; `signed` is omitted unless the server signs the aggregate itself.
 
     Respond `404 Not Found` when the aggregate would carry no metric member, and when nothing lies within P. A server MUST NOT return an array unless G is in effect.
 6. For a period that has not yet completed, report the completed portion to date. A publisher still missing figures for part of that portion answers as it does when it has no data until they arrive.
-7. Respond with the same status, media type and header fields as for the Basic response.
+7. Respond as for the Basic response: a `200 OK` response carrying the media type of {{mandatory-minimum-supported-service}}, the cache directives of {{operational-considerations}} and, where sent, the `Access-Control-Allow-Origin` header field.
 
 The `target` parameter requests path-prefix scoping; the `target` member names the subject of whatever is returned. Because a server ignores a parameter it does not support, a consumer MUST compare the `reporting-period` and `target` of every object it receives against what it requested, and MUST NOT record a response as covering a period or a subject it does not name.
 
@@ -225,7 +226,7 @@ The `target` parameter requests path-prefix scoping; the `target` member names t
 
 The body is a single JSON text ({{RFC8259}}, Section 2) whose value is either one declaration object or one JSON array ({{RFC8259}}, Section 5) of declaration objects, that is, the objects within a single pair of square brackets. An array conveys a trend: its objects MUST be in ascending order of `reporting-period`, MUST NOT overlap, and MUST share the same period precision and the same `target`; `target-type` MUST be present in every object with the same value or absent from all; units SHOULD be the same across objects. A single object is equivalent to a one-object array, and a consumer MUST accept both forms, determined by the JSON top-level type; a body whose top-level value is neither an object nor an array is not a declaration. An array MUST contain at least one object; a consumer receiving an empty array SHOULD treat it as conveying no report.
 
-A declaration object contains the seven mandatory members, any of the optional members, and nothing else: a publisher MUST NOT add other top-level members ({{extensions}} defines where other data goes). A consumer MUST ignore a top-level member it does not recognize and MUST NOT treat its presence as an error ({{RFC7493}}, Section 4.2), since a revision of this document may define one; whether a given member was permitted is a question about the publisher's conformance, which the consumer does not decide and which never makes the object unreadable. This document defines no version member; the media type identifies the format.
+A declaration object contains the seven mandatory members, any of the optional members, and nothing else: a publisher MUST NOT add other top-level members ({{extensions}} defines where other data goes). A consumer MUST ignore a top-level member it does not recognize and MUST NOT treat its presence as an error ({{RFC7493}}, Section 4.2), since a revision of this document may define one. An unpermitted member is a non-conformance of the publisher; the consumer does not decide that, and the member never makes the object unreadable. This document defines no version member; the media type identifies the format, and a format not compatible with this one would take a different media type.
 
 ### Mandatory Members
 
@@ -233,7 +234,14 @@ A declaration object contains the seven mandatory members, any of the optional m
 * **capabilities** (string): `"basic"` when the publisher offers only the Mandatory Minimum Supported Service, `"extended"` when it supports at least one Extended Query Parameter. The member describes query support only, never which members the object carries. A consumer determines actual support from the server's behavior.
 * **provider** (string): Human-readable identification of the publisher, such as a name and a role contact address.
 * **measurement-method** (string): The method behind the figures. The tokens `hardware-metered`, `hardware-estimated`, `cloud-billing`, and `third-party-modeled` are RECOMMENDED and are compared as protocol elements ({{internationalization-considerations}}); any other value is a brief human-readable description.
-* **methodology-uri** (string): An absolute "https" URI of a human-readable document, in any format and language, describing the measurement or estimation method in enough detail to interpret the figures. No consumer behavior defined by this document depends on reading it. It is the designated place for what other provisions of this document direct there: the set of path prefixes honored for the `target` parameter ({{extended-query-parameters}}), any non-UTC reckoning of periods, the meaning of `functional-unit`, the extrapolation behind `estimated-annual-emissions-kgCO2e`, the basis of any negative scope value, any noise applied ({{privacy-considerations}}), and the extension names used ({{extensions}}).
+* **methodology-uri** (string): An absolute "https" URI of a human-readable document, in any format and language, describing the measurement or estimation method in enough detail to interpret the figures. No consumer behavior defined by this document depends on reading it. It is the designated place for what other provisions of this document direct there:
+  * the set of path prefixes honored for the `target` parameter ({{extended-query-parameters}});
+  * accounting boundaries that differ from UTC;
+  * the meaning of `functional-unit`;
+  * the extrapolation behind `estimated-annual-emissions-kgCO2e`;
+  * the basis of any negative scope value;
+  * any noise applied ({{privacy-considerations}});
+  * the extension names used ({{extensions}}).
 * **reporting-period** (string): The period the object covers, in the `period` form of {{extended-query-parameters}} (`YYYY`, `YYYY-MM`, or `YYYY-MM-DD`).
 * **target** (string): Names the subject. It is an opaque protocol element: it MUST NOT be translated or transliterated, and it is compared octet-for-octet, except that where `target-type` ({{optional-members}}) is `origin` or the value is otherwise a host name the host-name comparison rules of {{internationalization-considerations}} apply. For an origin-wide report the origin's host (for example `"example.com"`) is RECOMMENDED; other subjects are a path prefix (`"/api/v1"`), an organization, a tenant, a product or data source, or a device, as `target-type` can classify. A subject other than the origin is a claim by the origin's publisher about that subject ({{trust-and-spoofing}}).
 
@@ -265,29 +273,29 @@ The URI-valued members (`methodology-uri`, `verifiable-attestation-uri`, `disclo
 
 A metric not reported for the subject and period is omitted; there is no in-band "not reported" value. A published value may have been perturbed under the conditions of {{privacy-considerations}}, in which case the methodology document says so.
 
-A declaration object MUST carry at least one numeric metric member or at least one of `disclosure-uri` and `verifiable-attestation-uri`; an object with none is not conformant. This is judged on the members the object carries as served; a consumer that disregards a defective value under the rules below does not thereby make the object non-conformant. A consumer that receives an object carrying neither a metric member nor an evidence link MAY read its mandatory members but MUST NOT record it as reporting anything. An object that omits a mandatory member is not conformant; a consumer MAY read the members it does carry but MUST NOT treat it as a declaration.
+A declaration object MUST carry at least one numeric metric member or at least one of `disclosure-uri` and `verifiable-attestation-uri`; an object with none is not conformant. This is judged on the members as served; disregarding a defective value under the rules below does not make the object non-conformant. A consumer that receives an object carrying neither a metric member nor an evidence link MAY read its mandatory members but MUST NOT record it as reporting anything. An object that omits a mandatory member is not conformant; a consumer MAY read the members it does carry but MUST NOT treat it as a declaration.
 
 A consumer encountering a defective optional member SHOULD NOT reject the object; instead:
 
-* A value outside a member's stated range, or of the wrong JSON type (including `null`), is treated as not reported.
-* A numeric value that the consumer cannot represent as a finite number, including one outside the range of IEEE 754 double precision ({{RFC7493}}, Section 2.2), is treated as not reported. A publisher MUST NOT emit one.
-* An unrecognized value of `energy-unit`, `carbon-unit`, `carbon-accounting`, or `target-type` causes that member to be disregarded; for a unit member the numeric members it parameterizes are then treated as not reported, and for `target-type` the consumer reads `target` as if the member were absent.
+* A value outside the member's range, or of the wrong JSON type (including `null`), is treated as not reported.
+* A numeric value that the consumer cannot represent as a finite number, including one outside the range of IEEE 754 double precision ({{RFC7493}}, Section 2.2), is treated as not reported. A publisher MUST NOT emit a number whose magnitude or precision exceeds what IEEE 754 binary64 represents ({{RFC7493}}, Section 2.2).
+* An unrecognized value of `energy-unit`, `carbon-unit`, `carbon-accounting`, or `target-type` is disregarded; the numeric members a disregarded unit parameterizes are treated as not reported, and `target` is read as if `target-type` were absent.
 * A `sci-score` without `functional-unit` is treated as not reported.
 * For `signed`, `upstream` and `extensions`, a value of the wrong JSON type is disregarded and the object is processed as though the member were absent.
 
-A defective value of a mandatory member is a different matter, since disregarding it would leave the object without a member this document requires: a defective `capabilities` value, whether an unrecognized string or a value of the wrong JSON type, is read as `basic`, and a defective value of any other mandatory member leaves the object non-conformant. A mandatory member that is absent altogether is not a defective value: such an object is not a declaration.
+A defective value of a mandatory member cannot be disregarded, since that would leave the object without a required member. A defective `capabilities` value, whether an unrecognized string or the wrong JSON type, is read as `basic`. A defective value of any other mandatory member leaves the object non-conformant.
 
-The tolerance rules above are exhaustive: a defect they do not name, such as an `extensions` key that is not an absolute URI or whose value is not an object, an `upstream` member that is an array of no entries, or a mandatory member other than `capabilities` whose value is malformed rather than absent, leaves the object non-conformant, and a consumer that validates reports it as such rather than disregarding the member.
+The tolerance rules above are exhaustive. A defect they do not name leaves the object non-conformant, and a consumer that validates reports it as such rather than disregarding the member. Examples: an `extensions` key that is not an absolute URI or whose value is not an object; an `upstream` member that is an empty array; a mandatory member other than `capabilities` whose value is malformed rather than absent.
 
 The formal schemas close the enumerated value sets and the top-level member set. A validating consumer whose check fails only on such a value SHOULD apply the rules above rather than reject the object, on the assumption that the schemas will be extended over time; a check that fails only on an unrecognized top-level member is governed by {{payload-format-json-data-model}}.
 
 ### Extensions
 
-Data that this document does not define is carried in the `extensions` member, an object whose member names are extension names and whose values are objects defined by the party that defined the name. An extension name is an absolute-URI ({{RFC3986}}, Section 4.3) with its scheme in lowercase. Two forms are used in practice. The first is an "https" URI under the definer's control when the name was minted, which SHOULD identify human-readable documentation of the extension. The second is a UUID URN, `urn:uuid:` followed by the hyphenated text form of a UUID ({{RFC9562}}, Section 4) in lowercase, which that section permits in either case and which this document fixes as lowercase so that names compare octet for octet, for a definer that has no domain or that wants a name independent of any domain; the Nil and Max UUIDs ({{RFC9562}}, Sections 5.9 and 5.10) MUST NOT be used, since they are guaranteed collisions.
+Data that this document does not define is carried in the `extensions` member, an object whose member names are extension names and whose values are objects defined by the party that defined the name. An extension name is an absolute-URI ({{RFC3986}}, Section 4.3) with its scheme in lowercase. Two forms are used in practice. The first is an "https" URI under the definer's control when the name was minted, which SHOULD identify human-readable documentation of the extension. The second is a UUID URN: `urn:uuid:` followed by the hyphenated text form of a UUID ({{RFC9562}}, Section 4) in lowercase. That section permits either case; this document fixes lowercase so that names compare octet for octet. This form suits a definer that has no domain or that wants a name independent of any domain. The Nil and Max UUIDs ({{RFC9562}}, Sections 5.9 and 5.10) MUST NOT be used, since they are guaranteed collisions.
 
-A name is compared as a string, octet for octet, never normalized, and a publisher writes it exactly as its definer published it. Nothing is ever fetched from a name: a consumer MUST NOT dereference a name, and MUST NOT automatically dereference or execute anything within a value it does not implement. A later change of ownership, or the loss, of a domain in a name does not change the meaning of a document already published. A consumer that implements a name's definition processes its value; a consumer that does not MUST ignore the value. The definer publishes the definition of the members of the value wherever it chooses; no registry is defined. A publisher MAY use a name defined by another party when it implements that party's definition. The methodology document SHOULD list the extension names a publisher uses, each with its definition or a pointer to it. Values are subject to the same I-JSON expectations as the rest of the declaration.
+A name is compared as a string, octet for octet, never normalized, and written exactly as its definer published it. Nothing is ever fetched from a name: a consumer MUST NOT dereference a name, and MUST NOT automatically dereference or execute anything within a value it does not implement. A change of ownership or the loss of the domain in a name does not change the meaning of a document already published. A consumer that implements a name's definition processes its value; a consumer that does not MUST ignore the value. The definer publishes the definition wherever it chooses; no registry is defined. A publisher MAY use a name defined by another party when it implements that party's definition. The methodology document SHOULD list the extension names a publisher uses, each with its definition or a pointer to it. Values follow I-JSON like the rest of the declaration.
 
-This is collision-resistant naming as {{RFC7519}}, Section 2, describes it; extension relation types ({{RFC8288}}, Section 2.1.2) and SCIM extension schemas ({{RFC7643}}) are likewise URIs used as names.
+This is collision-resistant naming ({{RFC7519}}, Section 2), as extension relation types ({{RFC8288}}, Section 2.1.2) and SCIM extension schemas ({{RFC7643}}) are named.
 
 ### Upstream Declarations
 
@@ -295,11 +303,9 @@ A subject's figures commonly derive in part from what other providers deliver to
 
 An upstream that reports what it delivers to one customer publishes a declaration whose `target-type` is `tenant` and whose `target` is an identifier of its choosing, at any "https" URI it chooses, for example a per-customer URI it gives that customer. Its own `upstream` member, if any, names its sources in turn. An upstream may also be the party that issues the statement a subject links from `verifiable-attestation-uri`.
 
-A consumer MAY retrieve upstream declarations and compare the figures for the same `reporting-period`. It reads a retrieved declaration as it reads any other, applying the tolerance rules of {{value-constraints-and-omitted-metrics}}. A consumer that does so MUST NOT follow a chain deeper than three declarations below the one it started from, MUST refuse any URI it has already retrieved during the walk, MUST bound the total number of retrievals it performs for one starting declaration, and applies the fetch limits of {{consumer-considerations}} to each.
+A consumer MAY retrieve upstream declarations and compare the figures for the same `reporting-period`. It reads a retrieved declaration as it reads any other, applying the tolerance rules of {{value-constraints-and-omitted-metrics}}. A consumer that does so MUST NOT follow a chain deeper than three declarations below the one it started from, MUST refuse any URI it has already retrieved during the walk, and MUST bound the total number of retrievals it performs for one starting declaration. It applies the fetch limits of {{consumer-considerations}} to each.
 
-The comparison is defined where an upstream publishes a declaration about what it delivers to this subject: one whose `target-type` is `tenant`, cited by the URI in the `upstream` entry. For the same `reporting-period`, after conversion to a single unit, a subject whose declared scope covers what that upstream delivers cannot report a smaller `energy-consumption`, or a smaller `carbon-footprint`, than the upstream states it delivered. A consumer that finds otherwise has found an inconsistency between two claims; it disregards a shortfall no larger than rounding and unit conversion can account for.
-
-The relation is loose in four ways. Whether a subject's declared scope covers a given upstream is not expressed in this format, so a subject that legitimately excludes one reads as inconsistent, and the finding is something to investigate, not a conformance failure. No member carries the share of a subject's figures attributable to one upstream, so the converse cannot be checked. Each `upstream` entry is compared on its own. Figures computed on different bases are not comparable, so `carbon-footprint` is compared only where both objects declare the same `carbon-accounting` value or neither declares one. Where an upstream publishes only its own totals, no relation is defined.
+The comparison is defined where an upstream publishes a declaration about what it delivers to this subject, one whose `target-type` is `tenant`, cited by the URI in the `upstream` entry. For the same `reporting-period`, after conversion to one unit, a subject whose declared scope covers what that upstream delivers cannot report a smaller `energy-consumption` or `carbon-footprint` than the upstream states it delivered; a shortfall within rounding and unit conversion is disregarded. A smaller figure is an inconsistency between two claims, something to investigate and not a conformance failure. The comparison is limited in four ways: the format does not say whether a subject's scope covers a given upstream; it carries no per-upstream share, so the converse cannot be checked; each `upstream` entry is compared on its own; and `carbon-footprint` is compared only where both objects declare the same `carbon-accounting` value or neither does. Where an upstream publishes only its own totals, no relation is defined.
 
 ### Formal Definition (CDDL)
 
@@ -415,32 +421,21 @@ The JSON Type Definition {{RFC8927}} of a declaration object:
 
 The schemas describe what a conforming publisher emits, and a publisher validates against them exactly. A consumer validates against them too, but applies the tolerance rules of {{value-constraints-and-omitted-metrics}} to what it receives, so that a defective value does not cause it to reject an otherwise readable declaration.
 
-JSON Type Definition has no alternation at its root: a consumer validating an array body applies the schema above to each of its elements. The CDDL regular expression is an XSD regular expression, which matches a complete string ({{RFC8610}}, Section 3.8.3).
+JSON Type Definition has no alternation at its root: a consumer validating an array body applies the schema above to each of its elements. The CDDL regular expression is an XSD regular expression ({{RFC8610}}, Section 3.8.3) and therefore matches the whole string.
 
-The following are prose rules of this document, enforced by validating implementations and captured by the schemas only in part: the range constraints, the `sci-score`/`functional-unit` rule, the date and URI forms, the unit defaults, the at-least-one rule, the array ordering and uniformity rules, the URI form of the `extensions` keys and the non-empty `upstream` array (both captured by the CDDL; both schemas require extension values to be objects), the exclusion of the Nil and Max UUIDs from an extension name, the octet-for-octet comparison of those names, and the rule that a `signed` payload carries no `signed` member.
+The following are prose rules of this document; validating implementations enforce them, and the schemas capture them only in part:
+
+* the range constraints;
+* the `sci-score`/`functional-unit` rule;
+* the date and URI forms;
+* the unit defaults;
+* the at-least-one rule;
+* the array ordering and uniformity rules;
+* the URI form of the `extensions` keys and the non-empty `upstream` array (both captured by the CDDL; both schemas require extension values to be objects);
+* the exclusion of the Nil and Max UUIDs from an extension name, and the octet-for-octet comparison of those names;
+* the rule that a `signed` payload carries no `signed` member.
 
 # Examples
-
-## Basic Response
-
-Request: `GET /.well-known/sustainability-data`
-
-~~~ json
-{
-  "updated": "2026-03-01T12:00:00Z",
-  "capabilities": "basic",
-  "provider": "Example Corp (sustain@example.org)",
-  "measurement-method": "cloud-billing",
-  "methodology-uri": "https://example.com/methodology",
-  "reporting-period": "2025",
-  "target": "example.com",
-  "energy-consumption": 15000,
-  "energy-unit": "kWh",
-  "carbon-footprint": 4140,
-  "carbon-unit": "kgCO2e",
-  "target-type": "origin"
-}
-~~~
 
 ## Yearly Trend at Monthly Granularity
 
@@ -584,33 +579,11 @@ An organization reports its annual figures, names the cloud provider whose tenan
 
 The upstream's tenant-scoped declaration, retrieved from the URI above, has `"target-type": "tenant"` and `"target": "acme"`, and its `energy-consumption` and `carbon-footprint` are what the cloud provider states it delivered to that tenant in 2025.
 
-## Partial Reporting with Default Units
-
-Request: `GET /.well-known/sustainability-data`
-
-Energy is not reported; `carbon-unit` is omitted, so `gCO2e` applies to `carbon-footprint` and `scope-2`.
-
-~~~ json
-{
-  "updated": "2026-04-01T00:00:00Z",
-  "capabilities": "basic",
-  "provider": "Partial Metrics Co. (sustainability@partial.example)",
-  "measurement-method": "third-party-modeled",
-  "methodology-uri": "https://partial.example/methodology",
-  "reporting-period": "2026-03",
-  "target": "partial.example",
-  "carbon-footprint": 4200,
-  "carbon-accounting": "location-based",
-  "scope-2": 4200,
-  "disclosure-uri": "https://partial.example/disclosures"
-}
-~~~
-
 # Operational Considerations
 
-HTTP caching and conditional requests are as {{RFC9111}} and {{RFC9110}} define them. A server SHOULD send cache directives (for example `Cache-Control: max-age=86400`), SHOULD send `ETag` or `Last-Modified` so that consumers can revalidate, and, for a `period` naming a completed past period, MAY use a long `max-age`. A server that computes responses to Extended Query Parameters on demand SHOULD precompute or cache them. A shared cache keys on the target URI ({{RFC9111}}, Section 4), so each distinct query string is a distinct entry there. An origin server that caches its own responses keys them on the parameters it honors, in a canonical order, not on the query string as received, so that requests differing only in parameters it ignores share one entry ({{denial-of-service}}).
+HTTP caching and conditional requests are as {{RFC9111}} and {{RFC9110}} define them. A server SHOULD send cache directives (for example `Cache-Control: max-age=86400`), SHOULD send `ETag` or `Last-Modified` so that consumers can revalidate, and, for a `period` naming a completed past period, MAY use a long `max-age`. A server that computes responses to Extended Query Parameters on demand SHOULD precompute or cache them. An origin server that caches its own responses keys them on the parameters it honors, in a canonical order, not on the query string as received (which is how a shared cache keys them, {{RFC9111}}, Section 4), so that requests differing only in parameters it ignores share one entry ({{denial-of-service}}). A reading is current for the freshness lifetime of the response that carried it ({{RFC9111}}, Section 4.2); a consumer that keeps it longer revalidates before relying on it, and presents the figures as covering their `reporting-period`, not as current.
 
-A publisher behind a content delivery network or reverse proxy MUST serve, at the well-known path, the body it produced, octet for octet: an intermediary that rewrites or reformats the body invalidates any `signed` member and misrepresents the publisher. A multi-tenant platform publishes a declaration at each tenant's origin about that tenant, or one at its own origin about the platform; `target` and `target-type` say which. Appendix A gives a worked example of a complete deployment.
+A publisher behind a content delivery network or reverse proxy MUST serve, at the well-known URI, the representation data it produced, unchanged (content codings aside): an intermediary that rewrites or reformats the data invalidates any `signed` member and misrepresents the publisher. A multi-tenant platform publishes a declaration at each tenant's origin about that tenant, or one at its own origin about the platform; `target` and `target-type` say which. {{worked-example-a-live-deployment}} gives a worked example of a complete deployment.
 
 # Signing
 
@@ -621,16 +594,22 @@ HTTPS authenticates the origin and protects the declaration in flight, not once 
 The value of `signed` is a JSON Web Signature in the JWS Compact Serialization ({{RFC7515}}, Section 7.1) whose payload is the declaration object in which it appears, without the `signed` member, serialized as JSON by the publisher. In an array each object carries its own `signed` member, and a publisher that signs the objects of an array signs all of them. The payload MUST NOT itself contain a `signed` member. Its JOSE Header:
 
 * MUST contain `alg` naming an asymmetric digital-signature algorithm. `EdDSA` with Ed25519 {{RFC8037}} and `ES256` ({{RFC7518}}, Section 3.4) are RECOMMENDED, and a verifier SHOULD implement both. `none` and MAC algorithms such as `HS256` MUST NOT be used, since verifiers hold no secret shared with the publisher.
-* MUST contain `cty` ({{RFC7515}}, Section 4.1.10) identifying the payload as this media type, which keeps the signature from being confused with a JWS produced for another purpose. A publisher writes `sustainability-data+json`; a consumer treats a `cty` value containing no "/" as though "application/" were prepended ({{RFC7515}}, Section 4.1.10) and so accepts either spelling, compared as a media type and ignoring any parameters.
+* MUST contain `cty` ({{RFC7515}}, Section 4.1.10) identifying the payload as this media type, which keeps the signature from being confused with a JWS produced for another purpose. A publisher writes `sustainability-data+json`; a consumer compares the value as a media type, ignoring parameters.
 * SHOULD carry the verification key as `jwk` ({{RFC7515}}, Section 4.1.3) or `x5c` ({{RFC7515}}, Section 4.1.6), so that verification needs nothing but the declaration; a publisher that distributes its key out of band MAY instead identify it with `kid`.
 
 A publisher MUST NOT serve an object whose `signed` payload differs from the object it accompanies, so a publisher regenerating an object regenerates its signature in the same step.
 
 ## Verification
 
-A consumer that verifies the member MUST reject it when `alg` is `none` or a MAC algorithm, when `cty` is absent or identifies any other media type, or when it carries a `crit` parameter the consumer does not understand; it determines the acceptable algorithm from the key and its own policy, never from `alg` alone ({{RFC8725}}, Sections 3.1 and 3.2). On success it parses the payload as a JSON object and validates it as a declaration object; a payload that is not one leaves the object unverified, and the consumer MUST NOT let such a payload take precedence over the members around it. A consumer MUST also treat the object as unverified when the payload's `target` or `reporting-period` differs from the object's, since the two then describe different things.
+A consumer that verifies the member MUST reject it when `alg` is `none` or a MAC algorithm, when `cty` is absent or identifies any other media type, or when it carries a `crit` parameter the consumer does not understand. It determines the acceptable algorithm from the key and its own policy, never from `alg` alone ({{RFC8725}}, Sections 3.1 and 3.2). On success it parses the payload as a JSON object and validates it as a declaration object; a payload that is not one leaves the object unverified, and the consumer MUST NOT let such a payload take precedence over the members around it. A consumer MUST also treat the object as unverified when the payload's `target` or `reporting-period` differs from the object's, since the two then describe different things.
 
-What a consumer does with a verified payload depends on how far it trusts the key. Where the key was obtained out of band (from a source the consumer selected independently of the declaration, never from a URI the declaration or its JOSE Header names), pinned from an earlier retrieval, or validated through an `x5c` chain to an anchor the consumer already trusts, the payload's members take precedence over the members around them, as the `signed_metadata` parameter of {{?RFC8414}} does. Pinning establishes that the same holder signed the earlier declaration, not who that holder is. In every other case the key is trusted no further than the declaration carrying it, the members served by the origin remain the ones the consumer uses, and the signature establishes only what {{what-a-signature-proves}} describes; otherwise anyone able to add a member could replace every figure. A consumer that promotes an `x5c`-validated key MUST also require that the certificate identify the publisher, where the anchor is a general-purpose one by an acceptable match between the origin serving the declaration and the certificate's identity ({{RFC9110}}, Section 4.3.4), since a chain to a widely trusted anchor otherwise establishes only that some party holds a certificate. In either case a consumer MAY report a difference between the payload and the surrounding members as evidence that the object was modified after signing, which is not a verification failure.
+What a consumer does with a verified payload depends on how far it trusts the key. The payload's members take precedence over the members around them, as the `signed_metadata` parameter of {{?RFC8414}} does, where the key was one of the following:
+
+* obtained out of band, that is, from a source the consumer selected independently of the declaration and never from a URI the declaration or its JOSE Header names;
+* pinned from an earlier retrieval, which establishes continuity of the signer, not identity; or
+* validated through an `x5c` chain to an anchor the consumer already trusts.
+
+In every other case the key is trusted no further than the declaration carrying it: the members served by the origin remain the ones the consumer uses, and the signature establishes only what {{what-a-signature-proves}} describes. A consumer that promotes an `x5c`-validated key MUST also require that the certificate identify the publisher; where the anchor is a general-purpose one, that means an acceptable match between the origin serving the declaration and the certificate's identity ({{RFC9110}}, Section 4.3.4). A chain to a widely trusted anchor otherwise establishes only that some party holds a certificate. Whether or not the payload takes precedence, a consumer MAY report a difference between the payload and the surrounding members as evidence that the object was modified after signing, which is not a verification failure.
 
 An absent `signed` member means only that the publisher did not sign; it MUST NOT be treated as evidence about the declaration. A member that fails to verify MUST cause the consumer to treat the object as unverified, never as false: a consumer that distinguishes verified from unverified data records it as unverified and MUST NOT present it downstream as verified.
 
@@ -640,24 +619,32 @@ A signature whose key arrives in its own header is as self-asserted as the metri
 
 # Security Considerations
 
-A declaration is public data, retrieved without authentication and meant for automated ingestion. The threats are spoofing and misattribution (mandatory HTTPS, redirect attribution, the `signed` member), tampering (HTTPS, the required media type, the signature), false or selective figures (the methodology link, the attestation channel, and the rule that a consumer never labels a claim as verified), disclosure through the published figures ({{privacy-considerations}}), and denial of service (below). Nothing here makes a published figure true.
+A declaration is public data, retrieved without authentication and meant for automated ingestion. The threats, and the provisions that address each, are the following:
+
+* spoofing and misattribution: mandatory HTTPS, redirect attribution, the `signed` member;
+* tampering: HTTPS, the required media type, the signature;
+* false or selective figures: the methodology link, the attestation channel, and the rule that a consumer never labels a claim as verified;
+* disclosure through the published figures: {{privacy-considerations}};
+* denial of service: {{denial-of-service}}.
+
+Nothing here makes a published figure true.
 
 ## Transport and Media Type
 
-A consumer MUST verify that the service identity is an acceptable match for the origin, as {{RFC9110}}, Section 4.3.4, requires, on every hop of a followed redirect and on every URI it dereferences from the declaration. HTTPS is required for integrity and origin authentication, not confidentiality; security.txt requires the same scheme for the same class of document ({{?RFC9116}}, Section 3).
+A consumer MUST verify that the service identity is an acceptable match for the origin, as {{RFC9110}}, Section 4.3.4, requires, on every hop of a followed redirect and on every URI it dereferences from the declaration. HTTPS is required for integrity and origin authentication, not confidentiality.
 
 ## Trust and Spoofing
 
-An attacker who controls DNS, the certificate, or the origin can publish false data, and a party that obtained a declaration other than by an HTTPS fetch from its origin has no assurance of where it came from unless it verifies a `signed` member against a key it has reason to trust. Retrieval establishes that the origin published these claims. A consumer MUST NOT treat the presence of a declaration, or of any member in it, as verification of a claim, and one that presents, stores, or forwards the data MUST NOT represent it as verified; these are processing rules on conforming consumers, not statements about what any party may conclude by other means. A consumer that requires signatures defends against their removal by an origin-controlling attacker only through key pinning. A declaration that is correctly served, typed and signed can still be untrue: publishers SHOULD link authoritative reports and third-party attestations through `disclosure-uri` and `verifiable-attestation-uri`, and a consumer treats the declaration as a discovery mechanism and checks claims against external sources when it matters.
+An attacker who controls DNS, the certificate, or the origin can publish false data. A copy obtained other than by an HTTPS fetch from its origin carries no assurance of where it came from unless a `signed` member verifies against a key the consumer has reason to trust. Retrieval establishes that the origin published these claims. A consumer MUST NOT treat the presence of a declaration, or of any member in it, as verification of a claim, and one that presents, stores, or forwards the data MUST NOT represent it as verified; these are processing rules on conforming consumers, not statements about what any party may conclude by other means. Key pinning is the only defense against an origin-controlling attacker removing signatures. A declaration that is correctly served, typed and signed can still be untrue: publishers SHOULD link authoritative reports and third-party attestations through `disclosure-uri` and `verifiable-attestation-uri`, and a consumer treats the declaration as a discovery mechanism and checks claims against external sources when it matters.
 
 ## Denial of Service
 
-A server SHOULD rate-limit requests to the well-known URI and SHOULD precompute or cache responses, since {{extended-query-parameters}} can otherwise force on-demand aggregation; honoring `target` only for a published prefix set bounds the cache-key space. A response to a request naming a granularity is bounded by the calendar (at most 366 objects for daily granularity over a year), and nothing bounds the size of a Basic response; a consumer MUST NOT rely on any server bound: it MUST limit the bytes and objects it accepts and treat an excess as an error.
+A server SHOULD rate-limit requests to the well-known URI and SHOULD precompute or cache responses, since {{extended-query-parameters}} can otherwise force on-demand aggregation; honoring `target` only for a published prefix set bounds the cache-key space. The parameter space is otherwise bounded by construction: `granularity` is an enumeration and `period` names a calendar period. A response to a request naming a granularity is bounded by the calendar (at most 366 objects for daily granularity over a year); nothing bounds the size of a Basic response. A consumer MUST NOT rely on any server bound: it MUST limit the bytes and objects it accepts and treat an excess as an error.
 
 ## Consumer Considerations
 
 * A consumer SHOULD bound the time, size, and redirects of every fetch, including those of upstream declarations, and SHOULD refuse URIs that resolve to private or link-local addresses, since dereferencing URIs from an untrusted document exposes it to server-side request forgery.
-* A consumer SHOULD parse with a JSON parser hardened against untrusted input ({{RFC8259}}, Section 12), validate before use, and treat every value as data: the format has no active content, and a consumer that evaluates a value has introduced a hazard the format does not contain. Duplicate member names make JSON interoperability unpredictable; a consumer whose parser exposes them SHOULD reject an object containing them, and one whose parser does not applies that parser's documented resolution consistently and states which it is.
+* A consumer SHOULD parse with a JSON parser hardened against untrusted input ({{RFC8259}}, Section 12), validate before use, and treat every value as data: the format has no active content, and a consumer that evaluates a value has introduced a hazard the format does not contain. Duplicate member names make JSON interoperability unpredictable ({{RFC8259}}, Section 4; {{RFC7493}}, Section 2.3); a consumer whose parser exposes them SHOULD reject an object containing them, and one whose parser does not applies that parser's documented resolution consistently and states which it is.
 * A consumer MUST NOT dereference an `extensions` name, which is an identifier and not a locator, and MUST NOT automatically dereference or execute anything within an `extensions` value it does not implement.
 * A consumer that walks upstream declarations applies the depth, revisit, and total-retrieval limits of {{upstream-declarations}}.
 
@@ -665,9 +652,9 @@ A server SHOULD rate-limit requests to the well-known URI and SHOULD precompute 
 
 Everything in a declaration is available to any party. Energy and utilization figures can reveal capacity and load patterns, precise metrics can reveal hardware, path-scoped responses can reveal which paths exist, and contact strings can carry personal data. The publisher decides what to publish and at what aggregation; this document bounds what the mechanism itself exposes ({{?RFC6973}}):
 
-* A server SHOULD NOT report at a granularity finer than 24 hours, and real-time telemetry is NOT RECOMMENDED, since either lets an observer correlate energy with individual user actions.
-* A server MAY apply multiplicative noise within 1% of the true values to blunt hardware fingerprinting. Noise MUST be applied once, at generation time, deterministically per period and consistently across arithmetically related members, including any annualized or otherwise derived member, so that ratios are preserved and no unperturbed member discloses a perturbed one; bounded members MUST remain within their range; the noised values are the published values for caching purposes; and the methodology document MUST state that noise is applied and bound its magnitude. A publisher for whom ratio-based fingerprinting is a concern SHOULD omit the derived members instead.
-* A server honoring `target` for arbitrary values would reveal which paths exist and carry traffic; {{extended-query-parameters}} therefore restricts it to a published prefix set and answers every value outside that set with the same `404 Not Found` it returns when it holds no data. A server SHOULD make those two responses indistinguishable in body and in timing as well.
+* A publisher SHOULD NOT report at a granularity finer than 24 hours, and real-time telemetry is NOT RECOMMENDED, since either lets an observer correlate energy with individual user actions.
+* A publisher MAY apply multiplicative noise within 1% of the true values to blunt hardware fingerprinting. Noise MUST be applied once, at generation time, deterministically per period. It MUST be applied consistently across arithmetically related members, including any annualized or otherwise derived member, so that ratios are preserved and no unperturbed member discloses a perturbed one. Bounded members MUST remain within their range. The noised values are the published values for caching purposes. The methodology document MUST state that noise is applied and bound its magnitude. A publisher for whom ratio-based fingerprinting is a concern SHOULD omit the derived members instead.
+* {{extended-query-parameters}} restricts `target` to a published prefix set and answers any other value with the same `404 Not Found` it returns when it holds no data, so that the parameter does not reveal which paths exist. A server SHOULD make those two responses indistinguishable in body and in timing as well.
 * A publisher SHOULD aggregate or omit any metric that could be linked to individual users or small groups, and SHOULD use a role rather than a personal contact address in `provider`.
 
 # IANA Considerations
@@ -677,12 +664,12 @@ Everything in a declaration is available to any party. Energy and utilization fi
 IANA is requested to register the following entry in the "Well-Known URIs" registry, per {{RFC8615}}, Section 3.1:
 
 * **URI Suffix**: sustainability-data
-* **Change Controller**: Andrei Nicolae Besleaga (andrei.besleaga.nicolae@gmail.com)
+* **Change Controller**: Andrei Nicolae Besleaga (andrei.besleaga@ieee.org)
 * **Specification Document(s)**: This document.
 * **Status**: provisional
 * **Related Information**: Used with the "https" URI scheme. The resource is an `application/sustainability-data+json` document, defined by CDDL {{RFC8610}} and JTD {{RFC8927}} schemas in the specification, and accepts the OPTIONAL query parameters `target`, `period`, and `granularity`, whose syntax the specification defines.
 
-The suffix names the class of data the resource carries, a machine-readable declaration of sustainability metrics for a declared subject, not the topic of sustainability at large ({{RFC8615}}, Section 3). Provisional status is requested because this is an Independent Submission; the designated experts may promote the entry to permanent once the URI is in broad use ({{RFC8615}}, Section 3.1).
+The suffix names the data the resource carries, not the topic of sustainability at large ({{RFC8615}}, Section 3). Provisional status is requested, as {{RFC8615}}, Section 3.1, directs for a document that is not an open standard.
 
 ## Media Type Registration
 
@@ -699,10 +686,10 @@ IANA is requested to register `application/sustainability-data+json` in the "Med
 * **Applications that use this media type**: Publishers of environmental-impact, energy, and carbon-footprint declarations; clients, aggregators, procurement and reporting tools, and automated agents that retrieve them from the "/.well-known/sustainability-data" URI. The type also names, in the `cty` header parameter, the payload of the embedded signature the specification defines.
 * **Fragment identifier considerations**: As specified for "application/json" ({{RFC6839}}, Section 3.1).
 * **Additional information**: Deprecated alias names: N/A. Magic number(s): N/A. File extension(s): .json. Macintosh file type code(s): TEXT.
-* **Person & email address to contact for further information**: Andrei Nicolae Besleaga (andrei.besleaga.nicolae@gmail.com)
+* **Person & email address to contact for further information**: Andrei Nicolae Besleaga (andrei.besleaga@ieee.org)
 * **Intended usage**: COMMON
 * **Restrictions on usage**: None.
-* **Author**: Andrei Nicolae Besleaga (andrei.besleaga.nicolae@gmail.com)
+* **Author**: Andrei Nicolae Besleaga (andrei.besleaga@ieee.org)
 * **Change controller**: IETF
 * **Provisional registration?**: No
 
@@ -710,15 +697,15 @@ IANA is requested to register `application/sustainability-data+json` in the "Med
 
 A declaration is JSON and therefore UTF-8 ({{RFC8259}}, Section 8.1); a publisher SHOULD emit human-readable strings in Unicode Normalization Form C ({{?RFC5198}}, Section 3). Following BCP 18 ({{?RFC2277}}, Section 2), its members are protocol elements except where stated:
 
-* Member names, the values of the enumerated members, the RECOMMENDED `measurement-method` tokens, the `role` tokens, the extension names that key `extensions`, which are ASCII URIs and never IRIs, `functional-unit`, the date members, the URI members, and `signed` are ASCII protocol elements; where this document compares them it does so octet-for-octet, never case-folded, normalized, translated, or localized.
-* `target` is an opaque identifier and MUST NOT be translated or transliterated. Where it is a host, the ordinary case-insensitive comparison rules for host names apply and an internationalized host is given in A-label form ({{?RFC5890}}, Section 2.3.2.1); where it is a path prefix, it carries the percent-decoded form.
+* The following are ASCII protocol elements: member names; the values of the enumerated members; the RECOMMENDED `measurement-method` tokens; the `role` tokens; the extension names that key `extensions` (ASCII URIs, never IRIs); `functional-unit`; the date members; the URI members; and `signed`. Where this document compares them it does so octet-for-octet, never case-folded, normalized, translated, or localized.
+* `target` is an opaque identifier and MUST NOT be translated or transliterated. Where it is a host, it is compared case-insensitively as a host name ({{RFC3986}}, Section 3.2.2) and an internationalized host is given in A-label form ({{?RFC5890}}, Section 2.3.2.1); where it is a path prefix, it carries the percent-decoded form.
 * `provider`, a `measurement-method` value outside the RECOMMENDED set, and human-readable values within `extensions` are text. Language is conveyed at the HTTP layer, as problem details do ({{?RFC9457}}, Section 3.1.3): a server publishing such text in a known language SHOULD send `Content-Language`, and one that negotiates on `Accept-Language` MUST send `Vary: Accept-Language` and, if it signs, signs each language variant separately. A consumer that displays such text SHOULD render it under the Unicode Bidirectional Algorithm {{UAX9}} and isolate it from surrounding text.
 
 No in-document language-tagging mechanism is defined.
 
 # Acknowledgments
 
-The author thanks Eliot Lear, Tim Bray, and the reviewers of earlier revisions of this document.
+The author thanks the reviewers of earlier revisions of this document.
 
 --- back
 
@@ -726,47 +713,37 @@ The author thanks Eliot Lear, Tim Bray, and the reviewers of earlier revisions o
 
 This appendix walks through one deployment of this specification, from figures to verified retrieval. Hostnames are illustrative.
 
-1. **Figures.** A small service on a hosted platform has no metering of its own. It takes an average draw for its container (an assumed 3 W, replaced by the platform's reported average for the months where one is available), multiplies by the hours in the completed calendar month, and converts to emissions with a published national grid intensity (245 gCO2e/kWh). The draw is an assumption or a platform estimate and the conversion is a model, so `measurement-method` is `third-party-modeled`; the methodology page states the formula, the basis of the draw for each month, the intensity source, and what is not covered.
-2. **Declaration.** The publisher generates the object for the last completed month: `target` an identifier of the service, `target-type` `service`, `capabilities` `extended` (it also serves `?period=<year>&granularity=monthly`), a `disclosure-uri`, and a `verifiable-attestation-uri`. The platform publishes no declaration of its own, so there is no `upstream` member and the methodology page says so.
-3. **Signing.** At generation time the publisher serializes the object, signs those bytes with an Ed25519 key (`alg` `EdDSA`, `cty` `sustainability-data+json`, the public key carried as `jwk`), and inserts the result as `signed`; the same for every object of the monthly array.
-4. **Serving.** The declaration is served at `/.well-known/sustainability-data` over HTTPS with `Content-Type: application/sustainability-data+json`, `Cache-Control: max-age=3600`, an `ETag`, and `Access-Control-Allow-Origin: *`; `HEAD` returns the same header fields, and other methods receive `405`.
-5. **Attestation.** An issuer that has reviewed the methodology and the figures issues a verifiable credential {{VC-DATA-MODEL-2}}, signs it with a key it publishes, and serves it at the `verifiable-attestation-uri`. Its `credentialSubject` carries the derivation model, its constants and formulas, and the months whose draw was entered, from which every period's figures follow; it is re-issued whenever a constant or an entered month changes. Here the issuer is not independent of the publisher; the credential says so, and a consumer records the attestation as no stronger than that relationship allows.
-6. **Retrieval.** A consumer fetches the declaration, validates it, verifies `signed` with the key in the JOSE Header, pinned from an earlier retrieval, fetches the credential, verifies its signature against the issuer's key, and recomputes the verified payload's figures from the credential's model. It records: attributed to the origin; integrity verified; attested by that issuer; accuracy unknown.
+1. **Figures.** A small hosted service has no metering. It multiplies an average draw for its container (an assumed 3 W, or the platform's reported average where available) by the hours in the completed month and converts with a published national grid intensity (245 gCO2e/kWh). The draw is assumed or estimated and the conversion is a model, so `measurement-method` is `third-party-modeled`; the methodology document states the formula, the basis of each month's draw, the intensity source, and what is not covered.
+2. **Declaration.** The object for the last completed month carries `target` (an identifier of the service), `target-type` `service`, `capabilities` `extended` (it also serves `?period=<year>&granularity=monthly`), a `disclosure-uri` and a `verifiable-attestation-uri`. The platform publishes no declaration, so there is no `upstream` member and the methodology document says so.
+3. **Signing.** The publisher signs the serialized object with an Ed25519 key (`alg` `EdDSA`, `cty` `sustainability-data+json`, the public key as `jwk`) and inserts the result as `signed`; each object of the monthly array likewise.
+4. **Serving.** `/.well-known/sustainability-data` over HTTPS, with `Content-Type: application/sustainability-data+json`, `Cache-Control: max-age=3600`, an `ETag` and `Access-Control-Allow-Origin: *`.
+5. **Attestation.** An issuer that has reviewed the methodology and the figures issues a verifiable credential {{VC-DATA-MODEL-2}}, signed with a key it publishes and served at the `verifiable-attestation-uri`. Its `credentialSubject` carries the derivation model, its constants and formulas, and the entered months; it is re-issued when any of them changes. Here the issuer is not independent of the publisher; the credential says so, and a consumer records the attestation as no stronger than that relationship allows.
+6. **Retrieval.** A consumer fetches and validates the declaration, verifies `signed` with the pinned key, fetches and verifies the credential, and recomputes the figures from its model. It records: attributed to the origin; integrity verified; attested by that issuer; accuracy unknown.
 7. **Static variant.** A publisher on static hosting produces the same object with an offline tool that signs and writes one file, and uploads it.
 
 # Implementation Status
 
-> \[Note to the RFC Editor: please remove this appendix before publication.]
+> \[Note to the RFC Editor: please remove this appendix and the reference to RFC 7942 before publication.]
 
-This appendix records the status of known implementations of the format defined by this document at the time of posting of this Internet-Draft, and is based on a proposal described in {{RFC7942}}. The description of implementations in this appendix is intended to assist the Independent Submissions Editor in its decision process. The listing of any individual implementation here does not imply endorsement. No effort has been spent to verify information supplied by contributors. This is not intended as, and must not be construed to be, a catalog of available implementations or their features. Readers are advised to note that other implementations may exist.
+This appendix records the status of known implementations of the format defined by this document at the time of posting of this Internet-Draft, and is based on a proposal described in {{RFC7942}}. The description of implementations in this appendix is intended to assist the Independent Submissions Editor in the publication decision. The listing of any individual implementation here does not imply endorsement. No effort has been spent to verify information supplied by contributors. This is not intended as, and must not be construed to be, a catalog of available implementations or their features. Readers are advised to note that other implementations may exist.
 
 ## Software
 
-Publisher library and command-line tool (`sustainability-wellknown-publisher`, npm):
-: Maintained by the author; BSD-3-Clause. Builds, signs and serves declarations from a Node.js HTTP server, with an offline signing tool for static hosts. Implements every member, the query parameters and the `signed` member.
+* Publisher (`sustainability-wellknown-publisher`, npm; BSD-3-Clause): builds, signs and serves declarations from a Node.js HTTP server, with an offline signing tool for static hosts; every member, the query parameters and `signed`.
+* Consumer (`sustainability-wellknown-consumer`, npm; BSD-3-Clause): retrieves and validates declarations, verifies `signed`, follows `upstream` within the bounds of this document, verifies attestations, and runs a conformance battery against an origin.
+* Validators: one per formal schema (CDDL, JTD), on different libraries, run in continuous integration against the repository's examples; the JTD validator also runs daily against every listed origin.
+* Reference gateway (BSD-3-Clause): publishes its own signed and attested declaration, relays declarations for third-party subjects, and offers a public check of any origin's declaration.
+* Deployment kit (BSD-3-Clause except where noted): configuration for widely used web servers, hosting platforms and application frameworks, ten of them started and validated against the consumer in continuous integration and the others reviewed by hand; a WordPress plugin (GPLv2 or later); a one-click publisher; an initializer.
 
-Consumer library and command-line tool (`sustainability-wellknown-consumer`, npm):
-: Maintained by the author; BSD-3-Clause. Retrieves and validates declarations, verifies `signed`, follows `upstream` within the bounds of this document, verifies attestations, and runs a conformance battery against an origin.
-
-Validators:
-: Two validators maintained by the author, one for each formal schema in this document (CDDL and JTD), built on different libraries, run in continuous integration against the repository's example documents; the JTD validator also runs daily against every listed origin.
-
-Reference gateway:
-: Maintained by the author; BSD-3-Clause. Publishes its own signed and attested declaration, relays declarations for third-party subjects, and offers a public check of any origin's declaration.
-
-Deployment kit:
-: Maintained by the author; BSD-3-Clause except where noted. Configuration for widely used web servers, hosting platforms and application frameworks, of which ten are started and validated against the consumer in continuous integration and the others are reviewed by hand; a WordPress plugin (GPLv2 or later); a one-click publisher; an initializer.
-
-The software above is at <https://github.com/andreibesleaga/rfc-sustainability-wellknown>, with a behaviour test suite that cites every normative sentence of this document. The author is not aware of an implementation maintained by another party.
+The software is at <https://github.com/andreibesleaga/rfc-sustainability-wellknown>, with a behavior test suite that cites every normative sentence of this document. Maturity: production use on the origins listed below, by the author only. Coverage: the whole of this document; the wire format has been stable since -07 and the npm packages at 0.7.x implement it. Contact: the author. Information current at the posting of this revision. No implementation maintained by another party is known.
 
 ## Deployments
 
-Origins serving `/.well-known/sustainability-data`, as recorded in the repository's machine-readable list and checked daily by a public workflow for the media type and the schema. "Author" marks an origin operated by the author of this document; such origins show that deployment is inexpensive, not that others have adopted the format.
+All origins below are operated by the author, which shows that deployment is inexpensive and nothing more; no deployment by another party is known at the time of posting. Each is listed in the repository's machine-readable list and checked daily by a public workflow for the media type and the schema.
 
-* <https://sustainability.up.railway.app>: operated by the author; served by the reference gateway; signed; serving since 2026-07.
-* <https://andreibesleaga.com>: operated by the author; a static file signed offline with the publisher's tool; serving since 2026-07.
-
-No deployment by another party is known at the time of posting.
+* <https://sustainability.up.railway.app>: the reference gateway; signed; serving since 2026-07.
+* <https://andreibesleaga.com>: a static file signed offline with the publisher's tool; serving since 2026-07.
+* <https://agenticsystemcore.com>, <https://patterns.agenticsystemcore.com>, <https://agenticsystempatterns.com>, <https://medicine-finder.up.railway.app>, <https://zfeeder.up.railway.app>: static files signed offline with the publisher's tool; serving since 2026-10.
 
 # Changelog
 
@@ -774,21 +751,22 @@ No deployment by another party is known at the time of posting.
 
 ## Since -07
 
-This revision changes no member, no schema, no media type and no registration: every -07 document is a valid -08 document and every -07 publisher and consumer conforms unchanged.
+This revision changes no member, no schema, no media type and no registration (the Security and Interoperability considerations fields of the media-type template, and the paragraph after the well-known entry, are shortened without change of substance): every -07 document is a valid -08 document and every -07 publisher and consumer conforms unchanged.
 
 * An Implementation Status appendix, after {{RFC7942}}, replaces the Implementations appendix.
 * The worked example is brought in line with the live deployment it describes: a platform-reported draw where available, a national grid intensity, and a credential that names the months whose draw was entered and is re-issued when its model changes.
 * The Digital Impacts Schema and Taxonomy is mentioned next to carbon.txt as a related, complementary convention.
-* Four sentences lose their BCP 14 keyword because they stated no observable behaviour (partial-subject presentation, consumer cross-checking, aggregator practice), or gain one (an intermediary serves the produced body octet for octet); a sentence assigning GHG Protocol scopes to upstream figures is removed as accounting guidance outside this document's scope. No member, schema, media type or conformance condition changes.
-* The author's contact address is updated, including in the registration templates.
+* Two sentences lose their BCP 14 keyword because they stated no observable behavior (partial-subject presentation, consumer cross-checking), and the sentence on aggregator practice is removed for the same reason; the intermediary sentence in Operational Considerations keeps its MUST and now says that the representation data is served unchanged, content codings aside; a sentence assigning GHG Protocol scopes to upstream figures is removed as accounting guidance outside this document's scope. No member, schema, media type or conformance condition changes.
 * In answer to the ART-area early review of -07: the terms formerly listed under URI Definition are defined in Terminology, beside the BCP 14 text, after the model of RFC 9116, and the Origin entry defers to RFC 9110, Section 4.3.1; the defined term is *subject* (formerly *reporting subject*), and the `target` member is unchanged.
-* Mandatory Minimum Supported Service no longer restates RFC 9110: the sentences on HEAD, on 404, on 401/403/429, on 405 with Allow, and on the permission to redirect are replaced by a citation, and a consumer handles an unexpected status code by its class (RFC 9205, Section 4.6). The media-type sentence loses its MUST NOT clause, which restated the MUST; the HTTPS, Accept, CORS and redirect-attribution rules are unchanged. The lead sentence states that this document uses only the GET and HEAD methods and, in one clause, that a declaration is attributed to an origin while a server is whatever answers the request.
+* Mandatory Minimum Supported Service no longer restates RFC 9110: the sentences on HEAD, on 404, on 401/403/429, on 405 with Allow, and on the permission to redirect are replaced by a citation, and a consumer handles an unexpected status code by its class (RFC 9205, Section 4.6). The media-type sentence loses its MUST NOT clause, which restated the MUST; the HTTPS, Accept, CORS and redirect-attribution rules are unchanged in substance. The lead sentence states that this document uses only the GET and HEAD methods; the first bullet no longer promises a status code for every response (RFC 9205, Section 3.1); the Terminology entry for *server* states, in one clause, that a declaration is attributed to an origin while a server is whatever answers the request.
 * Extended Query Parameters loses the ABNF rules for the query envelope (the per-parameter rules remain) and a rationale sentence; the statement that this grammar, not RFC 3986, forbids a bare "&" or "=" in a `target` value is corrected; the origin cache-key rule is stated once, in Operational Considerations; the reason the honored `target` prefix set is not carried in-band is corrected.
 * Payload Format states that the body is a single JSON text whose value is one object or one JSON array, and states in one place that an unrecognized top-level member is a publisher non-conformance which a consumer ignores and never treats as an error (RFC 7493, Section 4.2); the ignore step of the processing model is folded into its validation step.
 * The `target` definition is split so that the prohibition governs only translation and transliteration, with the octet-for-octet comparison and the host-name exception stated separately; `methodology-uri` is stated to identify a human-readable document in any format on which no consumer behavior depends; the absolute-URI rule carries its reason; `target-type` is now the first optional member and is cross-referenced from its earlier uses, and remains optional; the extension-name sentence cites RFC 3986, Section 4.3 instead of restating it.
 * The sentence on figures covering part of the declared subject is kept in plain language in Partial Knowledge and Incremental Adoption.
-* Operational Considerations says "target URI", the term of RFC 9111, Section 4, for the shared-cache key. The list of what the methodology document holds gains the extension names used (already a SHOULD in Extensions). The replaced predecessor series is corrected to -00 to -04, as the Datatracker lists it. The Acknowledgments name the Independent Submissions Editor and the ART-area reviewer.
-* The body is shortened throughout without removing a requirement: the rendered text, from the Introduction to the References and without page headers, is about 8,700 words against about 9,500 in -07; the behaviour-test suite traces 92 normative sentences against 97, the difference being the restated HTTP rules above. Rationale and precedent sentences that were cut are recorded in the repository named in Appendix B.
+* Operational Considerations states for how long a reading is current (the freshness lifetime of the response), answering a question from the review of -05. The list of what the methodology document holds gains the extension names used (already a SHOULD in Extensions). The replaced predecessor series is corrected to -00 to -04, as the Datatracker lists it.
+* The term *server* is defined in Terminology; the period paragraph of Extended Query Parameters says that a consumer reads a period as UTC and that a publisher states differing accounting boundaries in the methodology document; Denial of Service notes that the parameter space is bounded by construction; the aggregation procedure drops its rationale clauses and step 7 names the header fields it repeats; the Implementation Status appendix carries the RFC 7942 fields and lists seven origins.
+* Two examples are removed (the basic response, which the Introduction already shows, and the default-units example, whose rule Optional Members states); the repository keeps the default-units example and basic single-object examples. Relationship to Other Work, Value Constraints, Extensions, Upstream Declarations, Signing, Security, Appendix A and the Implementation Status appendix are condensed.
+* The Abstract and the body are shortened throughout without removing a requirement: measured on the rendered text from the Introduction to the References, without page headers, the body is about ten percent shorter than -07; the behavior-test suite traces 96 normative sentences against 97: the five restated HTTP rules, the aggregator sentence and the partial-subject sentence lose their id, three long sentences (redirect attribution, URI-valued members, noise) are split into eight, and the partial-subject sentence joins the hand-kept keyword-less list. Long sentences in Payload Format, Extensions, Signing, Security, Privacy and Internationalization are split or set as lists with their keywords kept; the sentences that were cut are preserved in the repository's revision history. The Privacy Considerations name the publisher, not the server, as the party that chooses granularity and noise.
 
 ## Since -06
 

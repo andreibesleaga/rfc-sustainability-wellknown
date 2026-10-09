@@ -56,12 +56,12 @@ Feature: Payload format, mandatory and optional members, value constraints
   Scenario: A publisher never emits a top-level member the draft does not define
     Then a publisher never emits a top-level member the draft does not define
 
-  @req-6484e85c @req-dbe0ecf9
+  @req-6484e85c @req-7da41e57
   Scenario: A publisher refuses to emit a negative or non-finite figure
     Then a publisher given a negative gross figure refuses to build
     And a publisher given a non-finite figure refuses to build
 
-  @req-6ae4fde7
+  @req-17b43ea2
   Scenario: A top-level member the consumer does not recognize is ignored, never fatal
     Given a valid declaration object
     And the member "x-future-member" is "1"
@@ -105,7 +105,7 @@ Feature: Payload format, mandatory and optional members, value constraints
     When the consumer validates it
     Then it is valid
 
-  @req-92070927 @req-cc373117
+  @req-92070927 @req-a3f26dd8
   Scenario Outline: The recommended measurement-method tokens are accepted as written
     Given a valid declaration object
     And the member "measurement-method" is "<token>"
@@ -183,7 +183,7 @@ Feature: Payload format, mandatory and optional members, value constraints
     When the consumer retrieves and validates it
     Then the member "target-type" is reported as not usable
 
-  @req-fd873813 @req-7d44fec0 @req-cc373117
+  @req-fd873813 @req-7d44fec0 @req-a3f26dd8
   Scenario Outline: An unrecognized enumerated value is disregarded; tokens are case-sensitive ASCII
     Given a valid declaration object
     And the member "<member>" is "<value>"

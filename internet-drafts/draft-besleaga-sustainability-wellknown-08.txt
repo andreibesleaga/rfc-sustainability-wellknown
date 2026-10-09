@@ -4,8 +4,8 @@
 
 Independent Submission                                    A. N. Besleaga
 Internet-Draft                                               Independent
-Intended status: Informational                            7 October 2026
-Expires: 10 April 2027
+Intended status: Informational                            9 October 2026
+Expires: 12 April 2027
 
 
                 The 'sustainability-data' Well-Known URI
@@ -38,7 +38,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 10 April 2027.
+   This Internet-Draft will expire on 12 April 2027.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Besleaga                  Expires 10 April 2027                 [Page 1]
+Besleaga                  Expires 12 April 2027                 [Page 1]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
@@ -74,71 +74,65 @@ Table of Contents
        2.5.1.  Mandatory Members . . . . . . . . . . . . . . . . . .  10
        2.5.2.  Optional Members  . . . . . . . . . . . . . . . . . .  11
        2.5.3.  Value Constraints and Omitted Metrics . . . . . . . .  13
-       2.5.4.  Extensions  . . . . . . . . . . . . . . . . . . . . .  14
+       2.5.4.  Extensions  . . . . . . . . . . . . . . . . . . . . .  15
        2.5.5.  Upstream Declarations . . . . . . . . . . . . . . . .  15
        2.5.6.  Formal Definition (CDDL)  . . . . . . . . . . . . . .  16
-       2.5.7.  Formal Definition (JTD) . . . . . . . . . . . . . . .  17
+       2.5.7.  Formal Definition (JTD) . . . . . . . . . . . . . . .  18
    3.  Examples  . . . . . . . . . . . . . . . . . . . . . . . . . .  19
-     3.1.  Basic Response  . . . . . . . . . . . . . . . . . . . . .  19
-     3.2.  Yearly Trend at Monthly Granularity . . . . . . . . . . .  19
-     3.3.  Path-Scoped Request for One Day . . . . . . . . . . . . .  20
-     3.4.  Signed Declaration with Scopes and Attestation  . . . . .  21
-     3.5.  Organization with Upstream Providers and Extensions . . .  22
-     3.6.  Partial Reporting with Default Units  . . . . . . . . . .  23
+     3.1.  Yearly Trend at Monthly Granularity . . . . . . . . . . .  19
+     3.2.  Path-Scoped Request for One Day . . . . . . . . . . . . .  20
+     3.3.  Signed Declaration with Scopes and Attestation  . . . . .  21
+     3.4.  Organization with Upstream Providers and Extensions . . .  22
    4.  Operational Considerations  . . . . . . . . . . . . . . . . .  23
-   5.  Signing . . . . . . . . . . . . . . . . . . . . . . . . . . .  24
-     5.1.  The signed Member . . . . . . . . . . . . . . . . . . . .  24
-     5.2.  Verification  . . . . . . . . . . . . . . . . . . . . . .  25
-     5.3.  What a Signature Proves . . . . . . . . . . . . . . . . .  26
-   6.  Security Considerations . . . . . . . . . . . . . . . . . . .  26
+   5.  Signing . . . . . . . . . . . . . . . . . . . . . . . . . . .  23
+     5.1.  The signed Member . . . . . . . . . . . . . . . . . . . .  23
+     5.2.  Verification  . . . . . . . . . . . . . . . . . . . . . .  24
+     5.3.  What a Signature Proves . . . . . . . . . . . . . . . . .  25
+   6.  Security Considerations . . . . . . . . . . . . . . . . . . .  25
      6.1.  Transport and Media Type  . . . . . . . . . . . . . . . .  26
      6.2.  Trust and Spoofing  . . . . . . . . . . . . . . . . . . .  26
-     6.3.  Denial of Service . . . . . . . . . . . . . . . . . . . .  27
+     6.3.  Denial of Service . . . . . . . . . . . . . . . . . . . .  26
      6.4.  Consumer Considerations . . . . . . . . . . . . . . . . .  27
    7.  Privacy Considerations  . . . . . . . . . . . . . . . . . . .  27
    8.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  28
      8.1.  Well-Known URI Registration . . . . . . . . . . . . . . .  28
      8.2.  Media Type Registration . . . . . . . . . . . . . . . . .  29
-   9.  Internationalization Considerations . . . . . . . . . . . . .  31
+   9.  Internationalization Considerations . . . . . . . . . . . . .  30
    10. Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .  31
    11. Normative References  . . . . . . . . . . . . . . . . . . . .  31
    12. Informative References  . . . . . . . . . . . . . . . . . . .  33
    Appendix A.  Worked Example: A Live Deployment  . . . . . . . . .  36
    Appendix B.  Implementation Status  . . . . . . . . . . . . . . .  37
      B.1.  Software  . . . . . . . . . . . . . . . . . . . . . . . .  38
+     B.2.  Deployments . . . . . . . . . . . . . . . . . . . . . . .  38
+   Appendix C.  Changelog  . . . . . . . . . . . . . . . . . . . . .  39
 
 
 
-Besleaga                  Expires 10 April 2027                 [Page 2]
+Besleaga                  Expires 12 April 2027                 [Page 2]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
-     B.2.  Deployments . . . . . . . . . . . . . . . . . . . . . . .  39
-   Appendix C.  Changelog  . . . . . . . . . . . . . . . . . . . . .  39
      C.1.  Since -07 . . . . . . . . . . . . . . . . . . . . . . . .  39
-     C.2.  Since -06 . . . . . . . . . . . . . . . . . . . . . . . .  41
-     C.3.  Earlier revisions . . . . . . . . . . . . . . . . . . . .  43
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  43
+     C.2.  Since -06 . . . . . . . . . . . . . . . . . . . . . . . .  42
+     C.3.  Earlier revisions . . . . . . . . . . . . . . . . . . . .  44
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  44
 
 1.  Introduction
 
-   The report of the IAB Workshop on Environmental Impact of Internet
-   Applications and Systems [RFC9547] records the need for data on the
-   environmental impact of Internet systems, and the gaps in it.  The
-   quantities themselves are defined by corporate greenhouse-gas
-   accounting [GHG-PROTOCOL] and by the disclosure regimes built on it.
-   What is missing is one place and one form in which a web origin can
-   publish them, so that a client can find and read them knowing nothing
-   but the origin.
+   Energy and carbon figures for Internet systems are increasingly
+   measured and disclosed: the IAB workshop report [RFC9547] records the
+   need for such data and the gaps in it, and corporate greenhouse-gas
+   accounting [GHG-PROTOCOL] defines the quantities.  What is missing is
+   a fixed place and form in which a web origin publishes them, so that
+   any client can find and read them knowing nothing but the origin.
 
-   This document defines that place and form.  The place is a well-known
-   URI [RFC8615], as security.txt ([RFC9116]) is for security contact
-   information; the form is one JSON document, the _declaration_. Its
-   mandatory target member names the subject: most often the origin
-   itself, otherwise a part of it (a subdomain, a service, a path
-   prefix), a device, a cloud tenant, a product, a data source, or the
-   publishing organization.
+   This document defines both.  The place is a well-known URI [RFC8615],
+   as security.txt ([RFC9116]) is for security contacts.  The form is
+   one JSON document, the _declaration_, whose mandatory target member
+   names the subject: the origin itself, a part of it, a device, a cloud
+   tenant, a product, a data source, or the publishing organization.
 
    The smallest conformant declaration carries the seven mandatory
    members and at least one metric or evidence link (Section 2.5.3):
@@ -163,33 +157,38 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
-
-
-Besleaga                  Expires 10 April 2027                 [Page 3]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    The following terms are used throughout this document.
 
    *  *Origin*: the scheme, host, and port triple of an HTTP URI, as
       [RFC9110], Section 4.3.1, defines it.
+
+
+
+
+Besleaga                  Expires 12 April 2027                 [Page 3]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
    *  *Publisher*: the entity operating an origin and publishing a
       declaration at the well-known URI.
 
    *  *Consumer*: any client that retrieves a declaration.
 
-   *  *Declaration* (in full, _Sustainability Declaration_): the JSON
-      document served at the well-known URI; its body is one declaration
-      object or an array of them (Section 2.5).
+   *  *Declaration*: the JSON document served at the well-known URI; its
+      body is one declaration object or an array of them (Section 2.5).
 
    *  *Basic response*: the declaration returned for a request without
       query parameters.
 
    *  *Subject*: the entity or scope the declaration is about, named by
       the mandatory target member (Section 2.5.1).  This document says
-      _subject_ for the thing and target only for the member.
+      _subject_ for the entity and target only for the member.
+
+   *  *Server*: the origin server for the well-known URI ([RFC9110],
+      Section 3.6), or an intermediary answering on the publisher's
+      behalf ([RFC9110], Section 3.7).  A declaration is attributed to
+      an origin, whichever server answered.
 
 1.2.  Goals and Non-Goals
 
@@ -213,22 +212,23 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
    The _publisher_ operates an origin and publishes one declaration at
    the well-known URI.  A _consumer_ is any client that retrieves it,
-   from a reporting pipeline to a person with a command line.  A
-   consumer proceeds as follows:
+   and proceeds as follows:
 
    1.  Retrieve the declaration over HTTPS from the well-known URI
        (Section 2.2).
 
 
 
-Besleaga                  Expires 10 April 2027                 [Page 4]
+
+
+Besleaga                  Expires 12 April 2027                 [Page 4]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
-   2.  Check the media type and parse the body as JSON; ignore any top-
+   2.  Check the media type and parse the body as JSON.  Ignore any top-
        level member it does not recognize and any extensions entry it
-       does not implement; validate the rest against the formal schemas
+       does not implement.  Validate the rest against the formal schemas
        and the prose rules of Section 2.5, applying the tolerance rules
        of Section 2.5.3.
 
@@ -245,15 +245,13 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 1.4.  Relationship to Other Work
 
-   This document operates at the reporting layer of an HTTP origin and
-   does not overlap with network-equipment energy management
-   ([RFC7326]).  The carbon.txt convention [CARBON-TXT] is a TOML index
-   of where an origin's disclosures live and carries no figures; a
-   declaration can link to such an index through disclosure-uri, and a
-   carbon.txt file can list the well-known URI defined here.  The
-   Digital Impacts Schema and Taxonomy [GWF-DIST] is an organization-
-   level JSON document of digital impacts that a carbon.txt file can
-   likewise list; an origin can publish both.
+   The carbon.txt convention [CARBON-TXT] is a TOML index of where an
+   origin's disclosures live and carries no figures: a declaration can
+   link to it through disclosure-uri, and it can list the well-known URI
+   defined here.  The Digital Impacts Schema and Taxonomy [GWF-DIST] is
+   an organization-level JSON document that a carbon.txt file can
+   likewise list; an origin can publish both.  Network-equipment energy
+   management ([RFC7326]) is a different layer.
 
 2.  The "sustainability-data" Well-Known URI
 
@@ -272,25 +270,24 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    handling, status codes, redirection, and header fields are as
    [RFC9110] defines them, and caching as [RFC9111] defines it; a
    consumer handles a status code it does not expect by its class
-   ([RFC9205], Section 4.6).  A declaration is attributed to an origin
-   (Section 1.1); a server is the HTTP party answering a request for it,
+   ([RFC9205], Section 4.6).  Access control is outside the scope of
+   this document.
 
 
 
-Besleaga                  Expires 10 April 2027                 [Page 5]
+
+
+Besleaga                  Expires 12 April 2027                 [Page 5]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
-   the origin server ([RFC9110], Section 3.6) or an intermediary acting
-   for the publisher.  Access control is outside the scope of this
-   document.
-
-   *  A GET request without query parameters MUST be answered with 200
-      OK and the declaration as the body, absent redirection or cache
-      revalidation; responses to requests carrying query parameters are
-      as Section 2.4 specifies.  An origin that publishes no declaration
-      has no representation at the well-known URI.
+   *  The declaration is the representation of the well-known URI: a
+      server MUST make it available there, and a 200 OK response to a
+      GET request without query parameters carries it as content;
+      responses to requests carrying query parameters are as Section 2.4
+      specifies.  An origin that publishes no declaration has no
+      representation at the well-known URI.
 
    *  A 200 OK response MUST carry the Content-Type application/
       sustainability-data+json; the body SHOULD follow I-JSON [RFC7493].
@@ -302,22 +299,23 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       application/sustainability-data+json, application/json;q=0.9.  A
       consumer MUST process a 200 OK response whose Content-Type is
       application/sustainability-data+json as a declaration, and MAY so
-      process one whose Content-Type is application/json, under which
-      declarations published before the registration of the dedicated
-      type exist.  A response carrying a media type other than those two
-      is not a declaration.
+      process one whose Content-Type is application/json, since
+      declarations published before the dedicated type was registered
+      carry that type.  A response carrying a media type other than
+      those two is not a declaration.
 
    *  Because the declaration is public and intended for browser-based
       consumers as well, a 200 OK response SHOULD include Access-
-      Control-Allow-Origin: *, following WebFinger ([RFC7033]).
+      Control-Allow-Origin: *, following WebFinger ([RFC7033],
+      Section 5).
 
-   *  A consumer that follows a redirect MUST require HTTPS on every hop
-      and attributes the declaration to the origin of the final
-      response; where that origin differs from the one it queried, the
-      declaration is a claim by that other origin, and the consumer MUST
-      NOT record it as a declaration of the origin it queried unless the
-      object's target names the origin it queried.  A publisher SHOULD
-      NOT redirect to a different origin.
+   *  A consumer that follows a redirect MUST require HTTPS on every
+      hop.  It attributes the declaration to the origin of the final
+      response.  Where that origin differs from the one it queried, the
+      declaration is a claim by that other origin: the consumer MUST NOT
+      record it as a declaration of the origin it queried unless the
+      object's target names that origin.  A publisher SHOULD NOT
+      redirect to a different origin.
 
 2.3.  Partial Knowledge and Incremental Adoption
 
@@ -330,15 +328,15 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    optional, so a declaration carrying one measured quantity conforms.
    A figure may rest on estimation for the parts not directly measured
    if the methodology document says what is measured and what is
+   estimated.
 
 
 
-Besleaga                  Expires 10 April 2027                 [Page 6]
+
+Besleaga                  Expires 12 April 2027                 [Page 6]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
-
-   estimated.
 
 2.4.  Extended Query Parameters
 
@@ -349,7 +347,7 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    Section 3.4) as name=value pairs separated by "&".  Each parameter is
    defined by the following ABNF [RFC5234], using the case-sensitive
    string notation of [RFC7405], with date-fullyear, date-month, and
-   date-mday from [RFC3339], Appendix A, and unreserved and pct-encoded
+   date-mday from [RFC3339], Section 5.6, and unreserved and pct-encoded
    from [RFC3986], Section 2.  Each rule matches its parameter as
    received in the query, before percent-decoding; a target value
    therefore carries any "&" or "=" of its own percent-encoded, since
@@ -365,15 +363,16 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    pchar-nd     = unreserved / pct-encoded / "!" / "$" / "'" / "("
                 / ")" / "*" / "+" / "," / ";" / ":" / "@"
 
-   A period-value names a whole calendar year, month, or day in UTC
-   unless the methodology document states otherwise.  A period has year,
-   month, or day _precision_ accordingly, year being the coarsest; the
-   granularity monthly denotes month precision and daily denotes day
-   precision.  A publisher whose reporting year is not the calendar year
-   publishes its constituent months or the enclosing calendar years and
-   describes the alignment in the methodology document.  One period is
-   _within_ another when every instant of the first is an instant of the
-   second.
+   A period-value names a whole calendar year, month, or day.  A
+   consumer reads a period as UTC; a publisher whose accounting
+   boundaries differ states them in the methodology document.  A period
+   has year, month, or day _precision_ accordingly, year being the
+   coarsest; the granularity monthly denotes month precision and daily
+   denotes day precision.  A publisher whose reporting year is not the
+   calendar year publishes its constituent months or the enclosing
+   calendar years and describes the alignment in the methodology
+   document.  One period is _within_ another when every instant of the
+   first is an instant of the second.
 
    A server supporting any of the parameters processes a request
    carrying one or more of them as follows; the responses the procedure
@@ -383,13 +382,14 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    1.  Split the query at "&" and each part at its first "=", then
        percent-decode names and values.  Ignore any name other than the
        three defined here.  If one of the three appears more than once,
-       respond 400 Bad Request; a server that has entered this procedure
-       does so whether or not it supports the repeated parameter.
+       respond 400 Bad Request; this applies whether or not the server
+       supports the repeated parameter.
 
 
 
 
-Besleaga                  Expires 10 April 2027                 [Page 7]
+
+Besleaga                  Expires 12 April 2027                 [Page 7]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
@@ -429,14 +429,11 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
        entries of finer precision lie within P, the response is their
        aggregate.  The contributing entries are the held entries of one
        precision within P, the coarsest where more than one is held.
-       They MUST NOT overlap, since a server that summed a month and a
-       day inside it would count that day twice, and they MUST cover P,
-       or, where P has not yet completed, the completed portion of it
-       that step 6 provides for: a server holding figures for only part
-       of a finished period cannot present their sum as a figure for the
-       whole of it.  A server whose held data cannot meet these
-       conditions responds as it does when it has no data.  The
-       aggregate is formed as follows:
+       They MUST NOT overlap, and they MUST cover P, or, where P has not
+       yet completed, the completed portion of it that step 6 provides
+       for.  A server whose held data cannot meet these conditions
+       responds as it does when it has no data.  The aggregate is formed
+       as follows:
 
        *  reporting-period is P, and capabilities is extended.
 
@@ -445,7 +442,10 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
 
-Besleaga                  Expires 10 April 2027                 [Page 8]
+
+
+
+Besleaga                  Expires 12 April 2027                 [Page 8]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
@@ -462,8 +462,7 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
        *  provider, measurement-method, methodology-uri, target and
           target-type are those of the contributing entries, which MUST
           agree; where they do not, the server MUST NOT serve an
-          aggregate, since it could only misdescribe what the figures
-          are about, and responds as it does when it has no data.
+          aggregate, and responds as it does when it has no data.
 
        *  Every other metric member is omitted unless the publisher
           recomputes it for the aggregated period and states so in the
@@ -481,8 +480,9 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
        that portion answers as it does when it has no data until they
        arrive.
 
-   7.  Respond with the same status, media type and header fields as for
-       the Basic response.
+   7.  Respond as for the Basic response: a 200 OK response carrying the
+       media type of Section 2.2, the cache directives of Section 4 and,
+       where sent, the Access-Control-Allow-Origin header field.
 
    The target parameter requests path-prefix scoping; the target member
    names the subject of whatever is returned.  Because a server ignores
@@ -501,7 +501,7 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
 
-Besleaga                  Expires 10 April 2027                 [Page 9]
+Besleaga                  Expires 12 April 2027                 [Page 9]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
@@ -527,11 +527,12 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    top-level members (Section 2.5.4 defines where other data goes).  A
    consumer MUST ignore a top-level member it does not recognize and
    MUST NOT treat its presence as an error ([RFC7493], Section 4.2),
-   since a revision of this document may define one; whether a given
-   member was permitted is a question about the publisher's conformance,
-   which the consumer does not decide and which never makes the object
-   unreadable.  This document defines no version member; the media type
-   identifies the format.
+   since a revision of this document may define one.  An unpermitted
+   member is a non-conformance of the publisher; the consumer does not
+   decide that, and the member never makes the object unreadable.  This
+   document defines no version member; the media type identifies the
+   format, and a format not compatible with this one would take a
+   different media type.
 
 2.5.1.  Mandatory Members
 
@@ -556,8 +557,7 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
 
-
-Besleaga                  Expires 10 April 2027                [Page 10]
+Besleaga                  Expires 12 April 2027                [Page 10]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
@@ -567,12 +567,22 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       measurement or estimation method in enough detail to interpret the
       figures.  No consumer behavior defined by this document depends on
       reading it.  It is the designated place for what other provisions
-      of this document direct there: the set of path prefixes honored
-      for the target parameter (Section 2.4), any non-UTC reckoning of
-      periods, the meaning of functional-unit, the extrapolation behind
-      estimated-annual-emissions-kgCO2e, the basis of any negative scope
-      value, any noise applied (Section 7), and the extension names used
-      (Section 2.5.4).
+      of this document direct there:
+
+      -  the set of path prefixes honored for the target parameter
+         (Section 2.4);
+
+      -  accounting boundaries that differ from UTC;
+
+      -  the meaning of functional-unit;
+
+      -  the extrapolation behind estimated-annual-emissions-kgCO2e;
+
+      -  the basis of any negative scope value;
+
+      -  any noise applied (Section 7);
+
+      -  the extension names used (Section 2.5.4).
 
    *  *reporting-period* (string): The period the object covers, in the
       period form of Section 2.4 (YYYY, YYYY-MM, or YYYY-MM-DD).
@@ -600,6 +610,14 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       data-source.  It does not change the syntax or attribution rules
       of target.
 
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 11]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
+
    *  *energy-consumption* (number): Energy consumed by the subject
       during the period, in the unit of energy-unit.
 
@@ -609,14 +627,6 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
    *  *carbon-footprint* (number): Gross emissions attributable to the
       subject during the period, in the unit of carbon-unit.
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 11]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
 
    *  *carbon-unit* (string): One of gCO2e, kgCO2e, mtCO2e; when absent,
       gCO2e applies to carbon-footprint and to the scope members.
@@ -656,23 +666,20 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    *  *verifiable-attestation-uri* (string): An absolute "https" URI of
       a statement about the published metrics made and cryptographically
       signed by a party other than the publisher; a verifiable
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 12]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
+
       credential [VC-DATA-MODEL-2] is one such form, and the format is
       not constrained.  It speaks to the authenticity of the figures
       only once the consumer has retrieved the statement and validated
       it against an issuer it trusts.  A declaration carries at most one
       such URI; a subject with more than one attestation links an index
       of them, or the remaining ones, from disclosure-uri.
-
-
-
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 12]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
 
    *  *disclosure-uri* (string): An absolute "https" URI of a machine-
       readable index of the subject's public sustainability disclosures
@@ -705,41 +712,41 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
    A declaration object MUST carry at least one numeric metric member or
    at least one of disclosure-uri and verifiable-attestation-uri; an
-   object with none is not conformant.  This is judged on the members
-   the object carries as served; a consumer that disregards a defective
-   value under the rules below does not thereby make the object non-
-   conformant.  A consumer that receives an object carrying neither a
-   metric member nor an evidence link MAY read its mandatory members but
-   MUST NOT record it as reporting anything.  An object that omits a
-   mandatory member is not conformant; a consumer MAY read the members
-   it does carry but MUST NOT treat it as a declaration.
-
-   A consumer encountering a defective optional member SHOULD NOT reject
-   the object; instead:
-
-   *  A value outside a member's stated range, or of the wrong JSON type
-      (including null), is treated as not reported.
+   object with none is not conformant.  This is judged on the members as
+   served; disregarding a defective value under the rules below does not
+   make the object non-conformant.  A consumer that receives an object
+   carrying neither a metric member nor an evidence link MAY read its
+   mandatory members but MUST NOT record it as reporting anything.  An
+   object that omits a mandatory member is not conformant; a consumer
+   MAY read the members it does carry but MUST NOT treat it as a
+   declaration.
 
 
 
 
 
-
-Besleaga                  Expires 10 April 2027                [Page 13]
+Besleaga                  Expires 12 April 2027                [Page 13]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
+   A consumer encountering a defective optional member SHOULD NOT reject
+   the object; instead:
+
+   *  A value outside the member's range, or of the wrong JSON type
+      (including null), is treated as not reported.
+
    *  A numeric value that the consumer cannot represent as a finite
       number, including one outside the range of IEEE 754 double
       precision ([RFC7493], Section 2.2), is treated as not reported.  A
-      publisher MUST NOT emit one.
+      publisher MUST NOT emit a number whose magnitude or precision
+      exceeds what IEEE 754 binary64 represents ([RFC7493],
+      Section 2.2).
 
    *  An unrecognized value of energy-unit, carbon-unit, carbon-
-      accounting, or target-type causes that member to be disregarded;
-      for a unit member the numeric members it parameterizes are then
-      treated as not reported, and for target-type the consumer reads
-      target as if the member were absent.
+      accounting, or target-type is disregarded; the numeric members a
+      disregarded unit parameterizes are treated as not reported, and
+      target is read as if target-type were absent.
 
    *  A sci-score without functional-unit is treated as not reported.
 
@@ -747,21 +754,18 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       type is disregarded and the object is processed as though the
       member were absent.
 
-   A defective value of a mandatory member is a different matter, since
-   disregarding it would leave the object without a member this document
-   requires: a defective capabilities value, whether an unrecognized
-   string or a value of the wrong JSON type, is read as basic, and a
-   defective value of any other mandatory member leaves the object non-
-   conformant.  A mandatory member that is absent altogether is not a
-   defective value: such an object is not a declaration.
+   A defective value of a mandatory member cannot be disregarded, since
+   that would leave the object without a required member.  A defective
+   capabilities value, whether an unrecognized string or the wrong JSON
+   type, is read as basic.  A defective value of any other mandatory
+   member leaves the object non-conformant.
 
-   The tolerance rules above are exhaustive: a defect they do not name,
-   such as an extensions key that is not an absolute URI or whose value
-   is not an object, an upstream member that is an array of no entries,
-   or a mandatory member other than capabilities whose value is
-   malformed rather than absent, leaves the object non-conformant, and a
-   consumer that validates reports it as such rather than disregarding
-   the member.
+   The tolerance rules above are exhaustive.  A defect they do not name
+   leaves the object non-conformant, and a consumer that validates
+   reports it as such rather than disregarding the member.  Examples: an
+   extensions key that is not an absolute URI or whose value is not an
+   object; an upstream member that is an empty array; a mandatory member
+   other than capabilities whose value is malformed rather than absent.
 
    The formal schemas close the enumerated value sets and the top-level
    member set.  A validating consumer whose check fails only on such a
@@ -769,6 +773,18 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    the assumption that the schemas will be extended over time; a check
    that fails only on an unrecognized top-level member is governed by
    Section 2.5.
+
+
+
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 14]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
 2.5.4.  Extensions
 
@@ -778,42 +794,33 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    extension name is an absolute-URI ([RFC3986], Section 4.3) with its
    scheme in lowercase.  Two forms are used in practice.  The first is
    an "https" URI under the definer's control when the name was minted,
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 14]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    which SHOULD identify human-readable documentation of the extension.
-   The second is a UUID URN, urn:uuid: followed by the hyphenated text
-   form of a UUID ([RFC9562], Section 4) in lowercase, which that
-   section permits in either case and which this document fixes as
-   lowercase so that names compare octet for octet, for a definer that
-   has no domain or that wants a name independent of any domain; the Nil
-   and Max UUIDs ([RFC9562], Sections 5.9 and 5.10) MUST NOT be used,
-   since they are guaranteed collisions.
+   The second is a UUID URN: urn:uuid: followed by the hyphenated text
+   form of a UUID ([RFC9562], Section 4) in lowercase.  That section
+   permits either case; this document fixes lowercase so that names
+   compare octet for octet.  This form suits a definer that has no
+   domain or that wants a name independent of any domain.  The Nil and
+   Max UUIDs ([RFC9562], Sections 5.9 and 5.10) MUST NOT be used, since
+   they are guaranteed collisions.
 
    A name is compared as a string, octet for octet, never normalized,
-   and a publisher writes it exactly as its definer published it.
-   Nothing is ever fetched from a name: a consumer MUST NOT dereference
-   a name, and MUST NOT automatically dereference or execute anything
-   within a value it does not implement.  A later change of ownership,
-   or the loss, of a domain in a name does not change the meaning of a
-   document already published.  A consumer that implements a name's
-   definition processes its value; a consumer that does not MUST ignore
-   the value.  The definer publishes the definition of the members of
-   the value wherever it chooses; no registry is defined.  A publisher
-   MAY use a name defined by another party when it implements that
-   party's definition.  The methodology document SHOULD list the
-   extension names a publisher uses, each with its definition or a
-   pointer to it.  Values are subject to the same I-JSON expectations as
-   the rest of the declaration.
+   and written exactly as its definer published it.  Nothing is ever
+   fetched from a name: a consumer MUST NOT dereference a name, and MUST
+   NOT automatically dereference or execute anything within a value it
+   does not implement.  A change of ownership or the loss of the domain
+   in a name does not change the meaning of a document already
+   published.  A consumer that implements a name's definition processes
+   its value; a consumer that does not MUST ignore the value.  The
+   definer publishes the definition wherever it chooses; no registry is
+   defined.  A publisher MAY use a name defined by another party when it
+   implements that party's definition.  The methodology document SHOULD
+   list the extension names a publisher uses, each with its definition
+   or a pointer to it.  Values follow I-JSON like the rest of the
+   declaration.
 
-   This is collision-resistant naming as [RFC7519], Section 2, describes
-   it; extension relation types ([RFC8288], Section 2.1.2) and SCIM
-   extension schemas ([RFC7643]) are likewise URIs used as names.
+   This is collision-resistant naming ([RFC7519], Section 2), as
+   extension relation types ([RFC8288], Section 2.1.2) and SCIM
+   extension schemas ([RFC7643]) are named.
 
 2.5.5.  Upstream Declarations
 
@@ -825,6 +832,16 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    hosting, cloud, cdn, network, or electricity.  A publisher with
    nothing to name omits the member.
 
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 15]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
+
    An upstream that reports what it delivers to one customer publishes a
    declaration whose target-type is tenant and whose target is an
    identifier of its choosing, at any "https" URI it chooses, for
@@ -833,43 +850,29 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    the party that issues the statement a subject links from verifiable-
    attestation-uri.
 
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 15]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    A consumer MAY retrieve upstream declarations and compare the figures
    for the same reporting-period.  It reads a retrieved declaration as
    it reads any other, applying the tolerance rules of Section 2.5.3.  A
    consumer that does so MUST NOT follow a chain deeper than three
    declarations below the one it started from, MUST refuse any URI it
-   has already retrieved during the walk, MUST bound the total number of
-   retrievals it performs for one starting declaration, and applies the
-   fetch limits of Section 6.4 to each.
+   has already retrieved during the walk, and MUST bound the total
+   number of retrievals it performs for one starting declaration.  It
+   applies the fetch limits of Section 6.4 to each.
 
    The comparison is defined where an upstream publishes a declaration
-   about what it delivers to this subject: one whose target-type is
+   about what it delivers to this subject, one whose target-type is
    tenant, cited by the URI in the upstream entry.  For the same
-   reporting-period, after conversion to a single unit, a subject whose
+   reporting-period, after conversion to one unit, a subject whose
    declared scope covers what that upstream delivers cannot report a
-   smaller energy-consumption, or a smaller carbon-footprint, than the
-   upstream states it delivered.  A consumer that finds otherwise has
-   found an inconsistency between two claims; it disregards a shortfall
-   no larger than rounding and unit conversion can account for.
-
-   The relation is loose in four ways.  Whether a subject's declared
-   scope covers a given upstream is not expressed in this format, so a
-   subject that legitimately excludes one reads as inconsistent, and the
-   finding is something to investigate, not a conformance failure.  No
-   member carries the share of a subject's figures attributable to one
-   upstream, so the converse cannot be checked.  Each upstream entry is
-   compared on its own.  Figures computed on different bases are not
-   comparable, so carbon-footprint is compared only where both objects
-   declare the same carbon-accounting value or neither declares one.
+   smaller energy-consumption or carbon-footprint than the upstream
+   states it delivered; a shortfall within rounding and unit conversion
+   is disregarded.  A smaller figure is an inconsistency between two
+   claims, something to investigate and not a conformance failure.  The
+   comparison is limited in four ways: the format does not say whether a
+   subject's scope covers a given upstream; it carries no per-upstream
+   share, so the converse cannot be checked; each upstream entry is
+   compared on its own; and carbon-footprint is compared only where both
+   objects declare the same carbon-accounting value or neither does.
    Where an upstream publishes only its own totals, no relation is
    defined.
 
@@ -887,17 +890,17 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
      measurement-method: tstr,
      methodology-uri: tstr,          ; absolute https URI
      reporting-period: tstr,         ; YYYY, YYYY-MM, or YYYY-MM-DD
-     target: tstr,                   ; the subject
-
-     ; Energy; when energy-unit is absent, kWh applies
 
 
 
-Besleaga                  Expires 10 April 2027                [Page 16]
+Besleaga                  Expires 12 April 2027                [Page 16]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
+     target: tstr,                   ; the subject
+
+     ; Energy; when energy-unit is absent, kWh applies
      ? energy-consumption: number,   ; non-negative
      ? energy-unit: "Wh" / "kWh" / "MWh" / "GWh",
 
@@ -940,19 +943,20 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
    ext-name = tstr .regexp "[a-z][a-z0-9+.-]*:[!$-;=?-Z\\[\\]_a-z~]+"
 
-2.5.7.  Formal Definition (JTD)
-
-   The JSON Type Definition [RFC8927] of a declaration object:
 
 
 
 
 
 
-Besleaga                  Expires 10 April 2027                [Page 17]
+Besleaga                  Expires 12 April 2027                [Page 17]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
+
+2.5.7.  Formal Definition (JTD)
+
+   The JSON Type Definition [RFC8927] of a declaration object:
 
    {
      "properties": {
@@ -1001,11 +1005,7 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
 
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 18]
+Besleaga                  Expires 12 April 2027                [Page 18]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
@@ -1018,55 +1018,53 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
    JSON Type Definition has no alternation at its root: a consumer
    validating an array body applies the schema above to each of its
-   elements.  The CDDL regular expression is an XSD regular expression,
-   which matches a complete string ([RFC8610], Section 3.8.3).
+   elements.  The CDDL regular expression is an XSD regular expression
+   ([RFC8610], Section 3.8.3) and therefore matches the whole string.
 
-   The following are prose rules of this document, enforced by
-   validating implementations and captured by the schemas only in part:
-   the range constraints, the sci-score/functional-unit rule, the date
-   and URI forms, the unit defaults, the at-least-one rule, the array
-   ordering and uniformity rules, the URI form of the extensions keys
-   and the non-empty upstream array (both captured by the CDDL; both
-   schemas require extension values to be objects), the exclusion of the
-   Nil and Max UUIDs from an extension name, the octet-for-octet
-   comparison of those names, and the rule that a signed payload carries
-   no signed member.
+   The following are prose rules of this document; validating
+   implementations enforce them, and the schemas capture them only in
+   part:
+
+   *  the range constraints;
+
+   *  the sci-score/functional-unit rule;
+
+   *  the date and URI forms;
+
+   *  the unit defaults;
+
+   *  the at-least-one rule;
+
+   *  the array ordering and uniformity rules;
+
+   *  the URI form of the extensions keys and the non-empty upstream
+      array (both captured by the CDDL; both schemas require extension
+      values to be objects);
+
+   *  the exclusion of the Nil and Max UUIDs from an extension name, and
+      the octet-for-octet comparison of those names;
+
+   *  the rule that a signed payload carries no signed member.
 
 3.  Examples
 
-3.1.  Basic Response
-
-   Request: GET /.well-known/sustainability-data
-
-   {
-     "updated": "2026-03-01T12:00:00Z",
-     "capabilities": "basic",
-     "provider": "Example Corp (sustain@example.org)",
-     "measurement-method": "cloud-billing",
-     "methodology-uri": "https://example.com/methodology",
-     "reporting-period": "2025",
-     "target": "example.com",
-     "energy-consumption": 15000,
-     "energy-unit": "kWh",
-     "carbon-footprint": 4140,
-     "carbon-unit": "kgCO2e",
-     "target-type": "origin"
-   }
-
-3.2.  Yearly Trend at Monthly Granularity
+3.1.  Yearly Trend at Monthly Granularity
 
    Request: GET /.well-known/sustainability-
    data?period=2025&granularity=monthly
 
+   One object per month; two are shown.
 
 
 
-Besleaga                  Expires 10 April 2027                [Page 19]
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 19]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
-
-   One object per month; two are shown.
 
    [
      {
@@ -1101,7 +1099,7 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
      }
    ]
 
-3.3.  Path-Scoped Request for One Day
+3.2.  Path-Scoped Request for One Day
 
    Request: GET /.well-known/sustainability-data?target=/api/
    v1&period=2026-03-15
@@ -1117,7 +1115,9 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
 
-Besleaga                  Expires 10 April 2027                [Page 20]
+
+
+Besleaga                  Expires 12 April 2027                [Page 20]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
@@ -1138,7 +1138,7 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
      "functional-unit": "per-thousand-requests"
    }
 
-3.4.  Signed Declaration with Scopes and Attestation
+3.3.  Signed Declaration with Scopes and Attestation
 
    Request: GET /.well-known/sustainability-data?target=/app/
    storage&period=2026-03-20
@@ -1173,12 +1173,12 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
 
-Besleaga                  Expires 10 April 2027                [Page 21]
+Besleaga                  Expires 12 April 2027                [Page 21]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
-3.5.  Organization with Upstream Providers and Extensions
+3.4.  Organization with Upstream Providers and Extensions
 
    Request: GET /.well-known/sustainability-data
 
@@ -1229,7 +1229,7 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
 
-Besleaga                  Expires 10 April 2027                [Page 22]
+Besleaga                  Expires 12 April 2027                [Page 22]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
@@ -1239,27 +1239,6 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    energy-consumption and carbon-footprint are what the cloud provider
    states it delivered to that tenant in 2025.
 
-3.6.  Partial Reporting with Default Units
-
-   Request: GET /.well-known/sustainability-data
-
-   Energy is not reported; carbon-unit is omitted, so gCO2e applies to
-   carbon-footprint and scope-2.
-
-   {
-     "updated": "2026-04-01T00:00:00Z",
-     "capabilities": "basic",
-     "provider": "Partial Metrics Co. (sustainability@partial.example)",
-     "measurement-method": "third-party-modeled",
-     "methodology-uri": "https://partial.example/methodology",
-     "reporting-period": "2026-03",
-     "target": "partial.example",
-     "carbon-footprint": 4200,
-     "carbon-accounting": "location-based",
-     "scope-2": 4200,
-     "disclosure-uri": "https://partial.example/disclosures"
-   }
-
 4.  Operational Considerations
 
    HTTP caching and conditional requests are as [RFC9111] and [RFC9110]
@@ -1268,36 +1247,24 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    that consumers can revalidate, and, for a period naming a completed
    past period, MAY use a long max-age.  A server that computes
    responses to Extended Query Parameters on demand SHOULD precompute or
-   cache them.  A shared cache keys on the target URI ([RFC9111],
-   Section 4), so each distinct query string is a distinct entry there.
-   An origin server that caches its own responses keys them on the
-   parameters it honors, in a canonical order, not on the query string
-   as received, so that requests differing only in parameters it ignores
-   share one entry (Section 6.3).
-
-
-
-
-
-
-
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 23]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
+   cache them.  An origin server that caches its own responses keys them
+   on the parameters it honors, in a canonical order, not on the query
+   string as received (which is how a shared cache keys them, [RFC9111],
+   Section 4), so that requests differing only in parameters it ignores
+   share one entry (Section 6.3).  A reading is current for the
+   freshness lifetime of the response that carried it ([RFC9111],
+   Section 4.2); a consumer that keeps it longer revalidates before
+   relying on it, and presents the figures as covering their reporting-
+   period, not as current.
 
    A publisher behind a content delivery network or reverse proxy MUST
-   serve, at the well-known path, the body it produced, octet for octet:
-   an intermediary that rewrites or reformats the body invalidates any
-   signed member and misrepresents the publisher.  A multi-tenant
-   platform publishes a declaration at each tenant's origin about that
-   tenant, or one at its own origin about the platform; target and
-   target-type say which.  Appendix A gives a worked example of a
-   complete deployment.
+   serve, at the well-known URI, the representation data it produced,
+   unchanged (content codings aside): an intermediary that rewrites or
+   reformats the data invalidates any signed member and misrepresents
+   the publisher.  A multi-tenant platform publishes a declaration at
+   each tenant's origin about that tenant, or one at its own origin
+   about the platform; target and target-type say which.  Appendix A
+   gives a worked example of a complete deployment.
 
 5.  Signing
 
@@ -1315,6 +1282,14 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    serialized as JSON by the publisher.  In an array each object carries
    its own signed member, and a publisher that signs the objects of an
    array signs all of them.  The payload MUST NOT itself contain a
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 23]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
+
    signed member.  Its JOSE Header:
 
    *  MUST contain alg naming an asymmetric digital-signature algorithm.
@@ -1326,25 +1301,13 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    *  MUST contain cty ([RFC7515], Section 4.1.10) identifying the
       payload as this media type, which keeps the signature from being
       confused with a JWS produced for another purpose.  A publisher
-      writes sustainability-data+json; a consumer treats a cty value
-      containing no "/" as though "application/" were prepended
-      ([RFC7515], Section 4.1.10) and so accepts either spelling,
-      compared as a media type and ignoring any parameters.
+      writes sustainability-data+json; a consumer compares the value as
+      a media type, ignoring parameters.
 
    *  SHOULD carry the verification key as jwk ([RFC7515],
       Section 4.1.3) or x5c ([RFC7515], Section 4.1.6), so that
       verification needs nothing but the declaration; a publisher that
       distributes its key out of band MAY instead identify it with kid.
-
-
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 24]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
 
    A publisher MUST NOT serve an object whose signed payload differs
    from the object it accompanies, so a publisher regenerating an object
@@ -1355,7 +1318,7 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    A consumer that verifies the member MUST reject it when alg is none
    or a MAC algorithm, when cty is absent or identifies any other media
    type, or when it carries a crit parameter the consumer does not
-   understand; it determines the acceptable algorithm from the key and
+   understand.  It determines the acceptable algorithm from the key and
    its own policy, never from alg alone ([RFC8725], Sections 3.1 and
    3.2).  On success it parses the payload as a JSON object and
    validates it as a declaration object; a payload that is not one
@@ -1366,27 +1329,42 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    describe different things.
 
    What a consumer does with a verified payload depends on how far it
-   trusts the key.  Where the key was obtained out of band (from a
-   source the consumer selected independently of the declaration, never
-   from a URI the declaration or its JOSE Header names), pinned from an
-   earlier retrieval, or validated through an x5c chain to an anchor the
-   consumer already trusts, the payload's members take precedence over
-   the members around them, as the signed_metadata parameter of
-   [RFC8414] does.  Pinning establishes that the same holder signed the
-   earlier declaration, not who that holder is.  In every other case the
-   key is trusted no further than the declaration carrying it, the
-   members served by the origin remain the ones the consumer uses, and
-   the signature establishes only what Section 5.3 describes; otherwise
-   anyone able to add a member could replace every figure.  A consumer
-   that promotes an x5c-validated key MUST also require that the
-   certificate identify the publisher, where the anchor is a general-
-   purpose one by an acceptable match between the origin serving the
-   declaration and the certificate's identity ([RFC9110],
-   Section 4.3.4), since a chain to a widely trusted anchor otherwise
-   establishes only that some party holds a certificate.  In either case
-   a consumer MAY report a difference between the payload and the
-   surrounding members as evidence that the object was modified after
-   signing, which is not a verification failure.
+   trusts the key.  The payload's members take precedence over the
+   members around them, as the signed_metadata parameter of [RFC8414]
+   does, where the key was one of the following:
+
+   *  obtained out of band, that is, from a source the consumer selected
+      independently of the declaration and never from a URI the
+      declaration or its JOSE Header names;
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 24]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
+
+   *  pinned from an earlier retrieval, which establishes continuity of
+      the signer, not identity; or
+
+   *  validated through an x5c chain to an anchor the consumer already
+      trusts.
+
+   In every other case the key is trusted no further than the
+   declaration carrying it: the members served by the origin remain the
+   ones the consumer uses, and the signature establishes only what
+   Section 5.3 describes.  A consumer that promotes an x5c-validated key
+   MUST also require that the certificate identify the publisher; where
+   the anchor is a general-purpose one, that means an acceptable match
+   between the origin serving the declaration and the certificate's
+   identity ([RFC9110], Section 4.3.4).  A chain to a widely trusted
+   anchor otherwise establishes only that some party holds a
+   certificate.  Whether or not the payload takes precedence, a consumer
+   MAY report a difference between the payload and the surrounding
+   members as evidence that the object was modified after signing, which
+   is not a verification failure.
 
    An absent signed member means only that the publisher did not sign;
    it MUST NOT be treated as evidence about the declaration.  A member
@@ -1394,13 +1372,6 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    unverified, never as false: a consumer that distinguishes verified
    from unverified data records it as unverified and MUST NOT present it
    downstream as verified.
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 25]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
 
 5.3.  What a Signature Proves
 
@@ -1415,14 +1386,31 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 6.  Security Considerations
 
    A declaration is public data, retrieved without authentication and
-   meant for automated ingestion.  The threats are spoofing and
-   misattribution (mandatory HTTPS, redirect attribution, the signed
-   member), tampering (HTTPS, the required media type, the signature),
-   false or selective figures (the methodology link, the attestation
-   channel, and the rule that a consumer never labels a claim as
-   verified), disclosure through the published figures (Section 7), and
-   denial of service (below).  Nothing here makes a published figure
-   true.
+   meant for automated ingestion.  The threats, and the provisions that
+   address each, are the following:
+
+   *  spoofing and misattribution: mandatory HTTPS, redirect
+      attribution, the signed member;
+
+   *  tampering: HTTPS, the required media type, the signature;
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 25]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
+
+   *  false or selective figures: the methodology link, the attestation
+      channel, and the rule that a consumer never labels a claim as
+      verified;
+
+   *  disclosure through the published figures: Section 7;
+
+   *  denial of service: Section 6.3.
+
+   Nothing here makes a published figure true.
 
 6.1.  Transport and Media Type
 
@@ -1430,34 +1418,24 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    match for the origin, as [RFC9110], Section 4.3.4, requires, on every
    hop of a followed redirect and on every URI it dereferences from the
    declaration.  HTTPS is required for integrity and origin
-   authentication, not confidentiality; security.txt requires the same
-   scheme for the same class of document ([RFC9116], Section 3).
+   authentication, not confidentiality.
 
 6.2.  Trust and Spoofing
 
    An attacker who controls DNS, the certificate, or the origin can
-   publish false data, and a party that obtained a declaration other
-   than by an HTTPS fetch from its origin has no assurance of where it
-   came from unless it verifies a signed member against a key it has
-   reason to trust.  Retrieval establishes that the origin published
-   these claims.  A consumer MUST NOT treat the presence of a
-   declaration, or of any member in it, as verification of a claim, and
-   one that presents, stores, or forwards the data MUST NOT represent it
-   as verified; these are processing rules on conforming consumers, not
-   statements about what any party may conclude by other means.  A
-   consumer that requires signatures defends against their removal by an
-   origin-controlling attacker only through key pinning.  A declaration
-   that is correctly served, typed and signed can still be untrue:
-   publishers SHOULD link authoritative reports and third-party
+   publish false data.  A copy obtained other than by an HTTPS fetch
+   from its origin carries no assurance of where it came from unless a
+   signed member verifies against a key the consumer has reason to
+   trust.  Retrieval establishes that the origin published these claims.
+   A consumer MUST NOT treat the presence of a declaration, or of any
+   member in it, as verification of a claim, and one that presents,
+   stores, or forwards the data MUST NOT represent it as verified; these
+   are processing rules on conforming consumers, not statements about
+   what any party may conclude by other means.  Key pinning is the only
+   defense against an origin-controlling attacker removing signatures.
+   A declaration that is correctly served, typed and signed can still be
+   untrue: publishers SHOULD link authoritative reports and third-party
    attestations through disclosure-uri and verifiable-attestation-uri,
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 26]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    and a consumer treats the declaration as a discovery mechanism and
    checks claims against external sources when it matters.
 
@@ -1466,11 +1444,22 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    A server SHOULD rate-limit requests to the well-known URI and SHOULD
    precompute or cache responses, since Section 2.4 can otherwise force
    on-demand aggregation; honoring target only for a published prefix
-   set bounds the cache-key space.  A response to a request naming a
+   set bounds the cache-key space.  The parameter space is otherwise
+   bounded by construction: granularity is an enumeration and period
+   names a calendar period.  A response to a request naming a
    granularity is bounded by the calendar (at most 366 objects for daily
-   granularity over a year), and nothing bounds the size of a Basic
-   response; a consumer MUST NOT rely on any server bound: it MUST limit
-   the bytes and objects it accepts and treat an excess as an error.
+   granularity over a year); nothing bounds the size of a Basic
+   response.  A consumer MUST NOT rely on any server bound: it MUST
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 26]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
+
+   limit the bytes and objects it accepts and treat an excess as an
+   error.
 
 6.4.  Consumer Considerations
 
@@ -1485,10 +1474,11 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       treat every value as data: the format has no active content, and a
       consumer that evaluates a value has introduced a hazard the format
       does not contain.  Duplicate member names make JSON
-      interoperability unpredictable; a consumer whose parser exposes
-      them SHOULD reject an object containing them, and one whose parser
-      does not applies that parser's documented resolution consistently
-      and states which it is.
+      interoperability unpredictable ([RFC8259], Section 4; [RFC7493],
+      Section 2.3); a consumer whose parser exposes them SHOULD reject
+      an object containing them, and one whose parser does not applies
+      that parser's documented resolution consistently and states which
+      it is.
 
    *  A consumer MUST NOT dereference an extensions name, which is an
       identifier and not a locator, and MUST NOT automatically
@@ -1507,35 +1497,36 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    publisher decides what to publish and at what aggregation; this
    document bounds what the mechanism itself exposes ([RFC6973]):
 
+   *  A publisher SHOULD NOT report at a granularity finer than 24
+      hours, and real-time telemetry is NOT RECOMMENDED, since either
+      lets an observer correlate energy with individual user actions.
+
+   *  A publisher MAY apply multiplicative noise within 1% of the true
+      values to blunt hardware fingerprinting.  Noise MUST be applied
+      once, at generation time, deterministically per period.  It MUST
+      be applied consistently across arithmetically related members,
+      including any annualized or otherwise derived member, so that
 
 
-Besleaga                  Expires 10 April 2027                [Page 27]
+
+Besleaga                  Expires 12 April 2027                [Page 27]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
-   *  A server SHOULD NOT report at a granularity finer than 24 hours,
-      and real-time telemetry is NOT RECOMMENDED, since either lets an
-      observer correlate energy with individual user actions.
+      ratios are preserved and no unperturbed member discloses a
+      perturbed one.  Bounded members MUST remain within their range.
+      The noised values are the published values for caching purposes.
+      The methodology document MUST state that noise is applied and
+      bound its magnitude.  A publisher for whom ratio-based
+      fingerprinting is a concern SHOULD omit the derived members
+      instead.
 
-   *  A server MAY apply multiplicative noise within 1% of the true
-      values to blunt hardware fingerprinting.  Noise MUST be applied
-      once, at generation time, deterministically per period and
-      consistently across arithmetically related members, including any
-      annualized or otherwise derived member, so that ratios are
-      preserved and no unperturbed member discloses a perturbed one;
-      bounded members MUST remain within their range; the noised values
-      are the published values for caching purposes; and the methodology
-      document MUST state that noise is applied and bound its magnitude.
-      A publisher for whom ratio-based fingerprinting is a concern
-      SHOULD omit the derived members instead.
-
-   *  A server honoring target for arbitrary values would reveal which
-      paths exist and carry traffic; Section 2.4 therefore restricts it
-      to a published prefix set and answers every value outside that set
-      with the same 404 Not Found it returns when it holds no data.  A
-      server SHOULD make those two responses indistinguishable in body
-      and in timing as well.
+   *  Section 2.4 restricts target to a published prefix set and answers
+      any other value with the same 404 Not Found it returns when it
+      holds no data, so that the parameter does not reveal which paths
+      exist.  A server SHOULD make those two responses indistinguishable
+      in body and in timing as well.
 
    *  A publisher SHOULD aggregate or omit any metric that could be
       linked to individual users or small groups, and SHOULD use a role
@@ -1551,7 +1542,7 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    *  *URI Suffix*: sustainability-data
 
    *  *Change Controller*: Andrei Nicolae Besleaga
-      (andrei.besleaga.nicolae@gmail.com)
+      (andrei.besleaga@ieee.org)
 
    *  *Specification Document(s)*: This document.
 
@@ -1563,19 +1554,21 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       specification, and accepts the OPTIONAL query parameters target,
       period, and granularity, whose syntax the specification defines.
 
+   The suffix names the data the resource carries, not the topic of
+   sustainability at large ([RFC8615], Section 3).  Provisional status
+   is requested, as [RFC8615], Section 3.1, directs for a document that
+   is not an open standard.
 
 
-Besleaga                  Expires 10 April 2027                [Page 28]
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 28]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
-
-   The suffix names the class of data the resource carries, a machine-
-   readable declaration of sustainability metrics for a declared
-   subject, not the topic of sustainability at large ([RFC8615],
-   Section 3).  Provisional status is requested because this is an
-   Independent Submission; the designated experts may promote the entry
-   to permanent once the URI is in broad use ([RFC8615], Section 3.1).
 
 8.2.  Media Type Registration
 
@@ -1618,19 +1611,20 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       treat an instance as verified.  Instances can reveal
       infrastructure characteristics or traffic patterns and can carry
       personal data in contact strings; the specification directs
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 29]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
       publishers to aggregate and to bound granularity.  An OPTIONAL
       embedded JWS [RFC7515] provides integrity outside the TLS session,
       with this media type as its cty; it does not establish accuracy.
       The full analysis is in the Security and Privacy Considerations of
       the specification.
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 29]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
    *  *Interoperability considerations*: The structure of an instance is
       specified by CDDL [RFC8610] and JTD [RFC8927] schemas; consumers
@@ -1656,31 +1650,17 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       code(s): TEXT.
 
    *  *Person & email address to contact for further information*:
-      Andrei Nicolae Besleaga (andrei.besleaga.nicolae@gmail.com)
+      Andrei Nicolae Besleaga (andrei.besleaga@ieee.org)
 
    *  *Intended usage*: COMMON
 
    *  *Restrictions on usage*: None.
 
-   *  *Author*: Andrei Nicolae Besleaga
-      (andrei.besleaga.nicolae@gmail.com)
+   *  *Author*: Andrei Nicolae Besleaga (andrei.besleaga@ieee.org)
 
    *  *Change controller*: IETF
 
    *  *Provisional registration?*: No
-
-
-
-
-
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 30]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
 
 9.  Internationalization Considerations
 
@@ -1689,19 +1669,33 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
    Form C ([RFC5198], Section 3).  Following BCP 18 ([RFC2277],
    Section 2), its members are protocol elements except where stated:
 
-   *  Member names, the values of the enumerated members, the
-      RECOMMENDED measurement-method tokens, the role tokens, the
-      extension names that key extensions, which are ASCII URIs and
-      never IRIs, functional-unit, the date members, the URI members,
-      and signed are ASCII protocol elements; where this document
+
+
+
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 30]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
+
+   *  The following are ASCII protocol elements: member names; the
+      values of the enumerated members; the RECOMMENDED measurement-
+      method tokens; the role tokens; the extension names that key
+      extensions (ASCII URIs, never IRIs); functional-unit; the date
+      members; the URI members; and signed.  Where this document
       compares them it does so octet-for-octet, never case-folded,
       normalized, translated, or localized.
 
    *  target is an opaque identifier and MUST NOT be translated or
-      transliterated.  Where it is a host, the ordinary case-insensitive
-      comparison rules for host names apply and an internationalized
-      host is given in A-label form ([RFC5890], Section 2.3.2.1); where
-      it is a path prefix, it carries the percent-decoded form.
+      transliterated.  Where it is a host, it is compared case-
+      insensitively as a host name ([RFC3986], Section 3.2.2) and an
+      internationalized host is given in A-label form ([RFC5890],
+      Section 2.3.2.1); where it is a path prefix, it carries the
+      percent-decoded form.
 
    *  provider, a measurement-method value outside the RECOMMENDED set,
       and human-readable values within extensions are text.  Language is
@@ -1717,8 +1711,8 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 10.  Acknowledgments
 
-   The author thanks Eliot Lear, Tim Bray, and the reviewers of earlier
-   revisions of this document.
+   The author thanks the reviewers of earlier revisions of this
+   document.
 
 11.  Normative References
 
@@ -1731,17 +1725,18 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
               Timestamps", RFC 3339, DOI 10.17487/RFC3339, July 2002,
               <https://www.rfc-editor.org/info/rfc3339>.
 
-
-
-Besleaga                  Expires 10 April 2027                [Page 31]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    [RFC3986]  Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform
               Resource Identifier (URI): Generic Syntax", STD 66,
               RFC 3986, DOI 10.17487/RFC3986, January 2005,
               <https://www.rfc-editor.org/info/rfc3986>.
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 31]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
    [RFC5234]  Crocker, D., Ed. and P. Overell, "Augmented BNF for Syntax
               Specifications: ABNF", STD 68, RFC 5234,
@@ -1783,21 +1778,21 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
 
-
-
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 32]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    [RFC8259]  Bray, T., Ed., "The JavaScript Object Notation (JSON) Data
               Interchange Format", STD 90, RFC 8259,
               DOI 10.17487/RFC8259, December 2017,
               <https://www.rfc-editor.org/info/rfc8259>.
+
+
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 32]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
    [RFC8610]  Birkholz, H., Vigano, C., and C. Bormann, "Concise Data
               Definition Language (CDDL): A Notational Convention to
@@ -1843,17 +1838,17 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
               (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
               <https://www.rfc-editor.org/info/rfc7519>.
 
-
-
-Besleaga                  Expires 10 April 2027                [Page 33]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    [RFC7643]  Hunt, P., Ed., Grizzle, K., Wahlstroem, E., and C.
               Mortimore, "System for Cross-domain Identity Management:
               Core Schema", RFC 7643, DOI 10.17487/RFC7643, September
               2015, <https://www.rfc-editor.org/info/rfc7643>.
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 33]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
    [RFC8288]  Nottingham, M., "Web Linking", RFC 8288,
               DOI 10.17487/RFC8288, October 2017,
@@ -1898,19 +1893,18 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
               discovering an origin's sustainability disclosures", 2026,
               <https://carbontxt.org/>.
 
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 34]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    [ESRS-E1]  European Commission, "Commission Delegated Regulation (EU)
               2023/2772 supplementing Directive 2013/34/EU as regards
               sustainability reporting standards (ESRS; Annex I, ESRS E1
               Climate change)", July 2023,
               <https://eur-lex.europa.eu/eli/reg_del/2023/2772/oj>.
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 34]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
    [EU-ESPR]  European Parliament and Council, "Regulation (EU)
               2024/1781 establishing a framework for the setting of
@@ -1955,16 +1949,18 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
               DOI 10.17487/RFC7903, September 2016,
               <https://www.rfc-editor.org/info/rfc7903>.
 
-
-
-Besleaga                  Expires 10 April 2027                [Page 35]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    [RFC8351]  Leonard, S., "The PKCS #8 EncryptedPrivateKeyInfo Media
               Type", RFC 8351, DOI 10.17487/RFC8351, June 2018,
               <https://www.rfc-editor.org/info/rfc8351>.
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 35]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
    [RFC9230]  Kinnear, E., McManus, P., Pauly, T., Verma, T., and C.A.
               Wood, "Oblivious DNS over HTTPS", RFC 9230,
@@ -1993,16 +1989,23 @@ Appendix A.  Worked Example: A Live Deployment
    This appendix walks through one deployment of this specification,
    from figures to verified retrieval.  Hostnames are illustrative.
 
-   1.  *Figures.* A small service on a hosted platform has no metering
-       of its own.  It takes an average draw for its container (an
-       assumed 3 W, replaced by the platform's reported average for the
-       months where one is available), multiplies by the hours in the
-       completed calendar month, and converts to emissions with a
-       published national grid intensity (245 gCO2e/kWh).  The draw is
-       an assumption or a platform estimate and the conversion is a
-       model, so measurement-method is third-party-modeled; the
-       methodology page states the formula, the basis of the draw for
-       each month, the intensity source, and what is not covered.
+   1.  *Figures.* A small hosted service has no metering.  It multiplies
+       an average draw for its container (an assumed 3 W, or the
+       platform's reported average where available) by the hours in the
+       completed month and converts with a published national grid
+       intensity (245 gCO2e/kWh).  The draw is assumed or estimated and
+       the conversion is a model, so measurement-method is third-party-
+       modeled; the methodology document states the formula, the basis
+       of each month's draw, the intensity source, and what is not
+       covered.
+
+   2.  *Declaration.* The object for the last completed month carries
+       target (an identifier of the service), target-type service,
+       capabilities extended (it also serves
+       ?period=<year>&granularity=monthly), a disclosure-uri and a
+       verifiable-attestation-uri.  The platform publishes no
+       declaration, so there is no upstream member and the methodology
+       document says so.
 
 
 
@@ -2010,52 +2013,36 @@ Appendix A.  Worked Example: A Live Deployment
 
 
 
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 36]
+Besleaga                  Expires 12 April 2027                [Page 36]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
-   2.  *Declaration.* The publisher generates the object for the last
-       completed month: target an identifier of the service, target-type
-       service, capabilities extended (it also serves
-       ?period=<year>&granularity=monthly), a disclosure-uri, and a
-       verifiable-attestation-uri.  The platform publishes no
-       declaration of its own, so there is no upstream member and the
-       methodology page says so.
+   3.  *Signing.* The publisher signs the serialized object with an
+       Ed25519 key (alg EdDSA, cty sustainability-data+json, the public
+       key as jwk) and inserts the result as signed; each object of the
+       monthly array likewise.
 
-   3.  *Signing.* At generation time the publisher serializes the
-       object, signs those bytes with an Ed25519 key (alg EdDSA, cty
-       sustainability-data+json, the public key carried as jwk), and
-       inserts the result as signed; the same for every object of the
-       monthly array.
-
-   4.  *Serving.* The declaration is served at /.well-known/
-       sustainability-data over HTTPS with Content-Type: application/
-       sustainability-data+json, Cache-Control: max-age=3600, an ETag,
-       and Access-Control-Allow-Origin: *; HEAD returns the same header
-       fields, and other methods receive 405.
+   4.  *Serving.* /.well-known/sustainability-data over HTTPS, with
+       Content-Type: application/sustainability-data+json, Cache-
+       Control: max-age=3600, an ETag and Access-Control-Allow-Origin:
+       *.
 
    5.  *Attestation.* An issuer that has reviewed the methodology and
        the figures issues a verifiable credential [VC-DATA-MODEL-2],
-       signs it with a key it publishes, and serves it at the
-       verifiable-attestation-uri.  Its credentialSubject carries the
-       derivation model, its constants and formulas, and the months
-       whose draw was entered, from which every period's figures follow;
-       it is re-issued whenever a constant or an entered month changes.
-       Here the issuer is not independent of the publisher; the
-       credential says so, and a consumer records the attestation as no
-       stronger than that relationship allows.
+       signed with a key it publishes and served at the verifiable-
+       attestation-uri.  Its credentialSubject carries the derivation
+       model, its constants and formulas, and the entered months; it is
+       re-issued when any of them changes.  Here the issuer is not
+       independent of the publisher; the credential says so, and a
+       consumer records the attestation as no stronger than that
+       relationship allows.
 
-   6.  *Retrieval.* A consumer fetches the declaration, validates it,
-       verifies signed with the key in the JOSE Header, pinned from an
-       earlier retrieval, fetches the credential, verifies its signature
-       against the issuer's key, and recomputes the verified payload's
-       figures from the credential's model.  It records: attributed to
-       the origin; integrity verified; attested by that issuer; accuracy
-       unknown.
+   6.  *Retrieval.* A consumer fetches and validates the declaration,
+       verifies signed with the pinned key, fetches and verifies the
+       credential, and recomputes the figures from its model.  It
+       records: attributed to the origin; integrity verified; attested
+       by that issuer; accuracy unknown.
 
    7.  *Static variant.* A publisher on static hosting produces the same
        object with an offline tool that signs and writes one file, and
@@ -2063,90 +2050,103 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 Appendix B.  Implementation Status
 
-      [Note to the RFC Editor: please remove this appendix before
-      publication.]
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 37]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
+      [Note to the RFC Editor: please remove this appendix and the
+      reference to RFC 7942 before publication.]
 
    This appendix records the status of known implementations of the
    format defined by this document at the time of posting of this
    Internet-Draft, and is based on a proposal described in [RFC7942].
    The description of implementations in this appendix is intended to
-   assist the Independent Submissions Editor in its decision process.
-   The listing of any individual implementation here does not imply
-   endorsement.  No effort has been spent to verify information supplied
-   by contributors.  This is not intended as, and must not be construed
-   to be, a catalog of available implementations or their features.
-   Readers are advised to note that other implementations may exist.
-
-B.1.  Software
-
-   Publisher library and command-line tool (sustainability-wellknown-
-   publisher, npm):  Maintained by the author; BSD-3-Clause.  Builds,
-      signs and serves declarations from a Node.js HTTP server, with an
-      offline signing tool for static hosts.  Implements every member,
-      the query parameters and the signed member.
-
-   Consumer library and command-line tool (sustainability-wellknown-
-   consumer, npm):  Maintained by the author; BSD-3-Clause.  Retrieves
-      and validates declarations, verifies signed, follows upstream
-      within the bounds of this document, verifies attestations, and
-      runs a conformance battery against an origin.
-
-   Validators:  Two validators maintained by the author, one for each
-      formal schema in this document (CDDL and JTD), built on different
-      libraries, run in continuous integration against the repository's
-      example documents; the JTD validator also runs daily against every
-      listed origin.
-
-   Reference gateway:  Maintained by the author; BSD-3-Clause.
-      Publishes its own signed and attested declaration, relays
-      declarations for third-party subjects, and offers a public check
-      of any origin's declaration.
-
-   Deployment kit:  Maintained by the author; BSD-3-Clause except where
-      noted.  Configuration for widely used web servers, hosting
-      platforms and application frameworks, of which ten are started and
-      validated against the consumer in continuous integration and the
-      others are reviewed by hand; a WordPress plugin (GPLv2 or later);
-      a one-click publisher; an initializer.
-
-   The software above is at https://github.com/andreibesleaga/rfc-
-   sustainability-wellknown (https://github.com/andreibesleaga/rfc-
-   sustainability-wellknown), with a behaviour test suite that cites
-   every normative sentence of this document.  The author is not aware
-   of an implementation maintained by another party.
+   assist the Independent Submissions Editor in the publication
+   decision.  The listing of any individual implementation here does not
+   imply endorsement.  No effort has been spent to verify information
+   supplied by contributors.  This is not intended as, and must not be
+   construed to be, a catalog of available implementations or their
+   features.  Readers are advised to note that other implementations may
+   exist.
 
 
 
-Besleaga                  Expires 10 April 2027                [Page 38]
+
+
+Besleaga                  Expires 12 April 2027                [Page 37]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
+B.1.  Software
+
+   *  Publisher (sustainability-wellknown-publisher, npm; BSD-3-Clause):
+      builds, signs and serves declarations from a Node.js HTTP server,
+      with an offline signing tool for static hosts; every member, the
+      query parameters and signed.
+
+   *  Consumer (sustainability-wellknown-consumer, npm; BSD-3-Clause):
+      retrieves and validates declarations, verifies signed, follows
+      upstream within the bounds of this document, verifies
+      attestations, and runs a conformance battery against an origin.
+
+   *  Validators: one per formal schema (CDDL, JTD), on different
+      libraries, run in continuous integration against the repository's
+      examples; the JTD validator also runs daily against every listed
+      origin.
+
+   *  Reference gateway (BSD-3-Clause): publishes its own signed and
+      attested declaration, relays declarations for third-party
+      subjects, and offers a public check of any origin's declaration.
+
+   *  Deployment kit (BSD-3-Clause except where noted): configuration
+      for widely used web servers, hosting platforms and application
+      frameworks, ten of them started and validated against the consumer
+      in continuous integration and the others reviewed by hand; a
+      WordPress plugin (GPLv2 or later); a one-click publisher; an
+      initializer.
+
+   The software is at https://github.com/andreibesleaga/rfc-
+   sustainability-wellknown (https://github.com/andreibesleaga/rfc-
+   sustainability-wellknown), with a behavior test suite that cites
+   every normative sentence of this document.  Maturity: production use
+   on the origins listed below, by the author only.  Coverage: the whole
+   of this document; the wire format has been stable since -07 and the
+   npm packages at 0.7.x implement it.  Contact: the author.
+   Information current at the posting of this revision.  No
+   implementation maintained by another party is known.
+
 B.2.  Deployments
 
-   Origins serving /.well-known/sustainability-data, as recorded in the
+   All origins below are operated by the author, which shows that
+   deployment is inexpensive and nothing more; no deployment by another
+   party is known at the time of posting.  Each is listed in the
    repository's machine-readable list and checked daily by a public
-   workflow for the media type and the schema.  "Author" marks an origin
-   operated by the author of this document; such origins show that
-   deployment is inexpensive, not that others have adopted the format.
+   workflow for the media type and the schema.
+
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 38]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
    *  https://sustainability.up.railway.app
-      (https://sustainability.up.railway.app): operated by the author;
-      served by the reference gateway; signed; serving since 2026-07.
+      (https://sustainability.up.railway.app): the reference gateway;
+      signed; serving since 2026-07.
 
-   *  https://andreibesleaga.com (https://andreibesleaga.com): operated
-      by the author; a static file signed offline with the publisher's
-      tool; serving since 2026-07.
+   *  https://andreibesleaga.com (https://andreibesleaga.com): a static
+      file signed offline with the publisher's tool; serving since
+      2026-07.
 
-   No deployment by another party is known at the time of posting.
+   *  https://agenticsystemcore.com (https://agenticsystemcore.com),
+      https://patterns.agenticsystemcore.com
+      (https://patterns.agenticsystemcore.com),
+      https://agenticsystempatterns.com
+      (https://agenticsystempatterns.com), https://medicine-
+      finder.up.railway.app (https://medicine-finder.up.railway.app),
+      https://zfeeder.up.railway.app (https://zfeeder.up.railway.app):
+      static files signed offline with the publisher's tool; serving
+      since 2026-10.
 
 Appendix C.  Changelog
 
@@ -2156,8 +2156,11 @@ Appendix C.  Changelog
 C.1.  Since -07
 
    This revision changes no member, no schema, no media type and no
-   registration: every -07 document is a valid -08 document and every
-   -07 publisher and consumer conforms unchanged.
+   registration (the Security and Interoperability considerations fields
+   of the media-type template, and the paragraph after the well-known
+   entry, are shortened without change of substance): every -07 document
+   is a valid -08 document and every -07 publisher and consumer conforms
+   unchanged.
 
    *  An Implementation Status appendix, after [RFC7942], replaces the
       Implementations appendix.
@@ -2170,24 +2173,23 @@ C.1.  Since -07
    *  The Digital Impacts Schema and Taxonomy is mentioned next to
       carbon.txt as a related, complementary convention.
 
-   *  Four sentences lose their BCP 14 keyword because they stated no
-      observable behaviour (partial-subject presentation, consumer
-      cross-checking, aggregator practice), or gain one (an intermediary
-      serves the produced body octet for octet); a sentence assigning
-      GHG Protocol scopes to upstream figures is removed as accounting
-      guidance outside this document's scope.  No member, schema, media
-      type or conformance condition changes.
+   *  Two sentences lose their BCP 14 keyword because they stated no
+      observable behavior (partial-subject presentation, consumer cross-
+      checking), and the sentence on aggregator practice is removed for
+      the same reason; the intermediary sentence in Operational
+      Considerations keeps its MUST and now says that the representation
 
 
 
-
-Besleaga                  Expires 10 April 2027                [Page 39]
+Besleaga                  Expires 12 April 2027                [Page 39]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
-   *  The author's contact address is updated, including in the
-      registration templates.
+      data is served unchanged, content codings aside; a sentence
+      assigning GHG Protocol scopes to upstream figures is removed as
+      accounting guidance outside this document's scope.  No member,
+      schema, media type or conformance condition changes.
 
    *  In answer to the ART-area early review of -07: the terms formerly
       listed under URI Definition are defined in Terminology, beside the
@@ -2202,10 +2204,12 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       a consumer handles an unexpected status code by its class (RFC
       9205, Section 4.6).  The media-type sentence loses its MUST NOT
       clause, which restated the MUST; the HTTPS, Accept, CORS and
-      redirect-attribution rules are unchanged.  The lead sentence
-      states that this document uses only the GET and HEAD methods and,
-      in one clause, that a declaration is attributed to an origin while
-      a server is whatever answers the request.
+      redirect-attribution rules are unchanged in substance.  The lead
+      sentence states that this document uses only the GET and HEAD
+      methods; the first bullet no longer promises a status code for
+      every response (RFC 9205, Section 3.1); the Terminology entry for
+      _server_ states, in one clause, that a declaration is attributed
+      to an origin while a server is whatever answers the request.
 
    *  Extended Query Parameters loses the ABNF rules for the query
       envelope (the per-parameter rules remain) and a rationale
@@ -2231,32 +2235,68 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       optional; the extension-name sentence cites RFC 3986, Section 4.3
       instead of restating it.
 
-   *  The sentence on figures covering part of the declared subject is
-      kept in plain language in Partial Knowledge and Incremental
-      Adoption.
 
 
-
-Besleaga                  Expires 10 April 2027                [Page 40]
+Besleaga                  Expires 12 April 2027                [Page 40]
 
 Internet-Draft     Sustainability-Data Well-Known URI       October 2026
 
 
-   *  Operational Considerations says "target URI", the term of RFC
-      9111, Section 4, for the shared-cache key.  The list of what the
-      methodology document holds gains the extension names used (already
-      a SHOULD in Extensions).  The replaced predecessor series is
-      corrected to -00 to -04, as the Datatracker lists it.  The
-      Acknowledgments name the Independent Submissions Editor and the
-      ART-area reviewer.
+   *  The sentence on figures covering part of the declared subject is
+      kept in plain language in Partial Knowledge and Incremental
+      Adoption.
 
-   *  The body is shortened throughout without removing a requirement:
-      the rendered text, from the Introduction to the References and
-      without page headers, is about 8,700 words against about 9,500 in
-      -07; the behaviour-test suite traces 92 normative sentences
-      against 97, the difference being the restated HTTP rules above.
-      Rationale and precedent sentences that were cut are recorded in
-      the repository named in Appendix B.
+   *  Operational Considerations states for how long a reading is
+      current (the freshness lifetime of the response), answering a
+      question from the review of -05.  The list of what the methodology
+      document holds gains the extension names used (already a SHOULD in
+      Extensions).  The replaced predecessor series is corrected to -00
+      to -04, as the Datatracker lists it.
+
+   *  The term _server_ is defined in Terminology; the period paragraph
+      of Extended Query Parameters says that a consumer reads a period
+      as UTC and that a publisher states differing accounting boundaries
+      in the methodology document; Denial of Service notes that the
+      parameter space is bounded by construction; the aggregation
+      procedure drops its rationale clauses and step 7 names the header
+      fields it repeats; the Implementation Status appendix carries the
+      RFC 7942 fields and lists seven origins.
+
+   *  Two examples are removed (the basic response, which the
+      Introduction already shows, and the default-units example, whose
+      rule Optional Members states); the repository keeps the default-
+      units example and basic single-object examples.  Relationship to
+      Other Work, Value Constraints, Extensions, Upstream Declarations,
+      Signing, Security, Appendix A and the Implementation Status
+      appendix are condensed.
+
+   *  The Abstract and the body are shortened throughout without
+      removing a requirement: measured on the rendered text from the
+      Introduction to the References, without page headers, the body is
+      about ten percent shorter than -07; the behavior-test suite traces
+      96 normative sentences against 97: the five restated HTTP rules,
+      the aggregator sentence and the partial-subject sentence lose
+      their id, three long sentences (redirect attribution, URI-valued
+      members, noise) are split into eight, and the partial-subject
+      sentence joins the hand-kept keyword-less list.  Long sentences in
+      Payload Format, Extensions, Signing, Security, Privacy and
+      Internationalization are split or set as lists with their keywords
+      kept; the sentences that were cut are preserved in the
+      repository's revision history.  The Privacy Considerations name
+      the publisher, not the server, as the party that chooses
+      granularity and noise.
+
+
+
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 41]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
 C.2.  Since -06
 
@@ -2288,16 +2328,6 @@ C.2.  Since -06
       evidence link; the conditions on the retrievability of the
       methodology resource are removed.
 
-
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 41]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    *  Extended Query Parameters now specify the syntax in ABNF and the
       processing as a numbered procedure; a repeated parameter, or a
       period that is malformed or names no real calendar date, receives
@@ -2315,6 +2345,14 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       exposes duplicates, and one whose parser does not applies its
       resolution consistently and states which it is.  The tolerance
       rules are stated to be exhaustive.
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 42]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
    *  Text that stated that publication is voluntary, that referred to
       IETF or IRTF groups, or that explained design rationale is
@@ -2344,16 +2382,6 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       record the result as a declaration of the origin it queried unless
       the object's target names that origin.
 
-
-
-
-
-
-Besleaga                  Expires 10 April 2027                [Page 42]
-
-Internet-Draft     Sustainability-Data Well-Known URI       October 2026
-
-
    *  A defective capabilities value is now read as basic, rather than
       disregarded in favor of observed server behavior; the tolerance
       rules otherwise apply to OPTIONAL members only.
@@ -2373,6 +2401,14 @@ Internet-Draft     Sustainability-Data Well-Known URI       October 2026
       NOT emit a numeric value that a receiver cannot represent as a
       finite number, and a consumer that promotes an x5c-validated key
       MUST require that the certificate identify the publisher.
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 43]
+
+Internet-Draft     Sustainability-Data Well-Known URI       October 2026
+
 
    *  Rules stated for the first time in this revision: a server that
       honors target MUST publish the set of prefixes it honors in the
@@ -2400,9 +2436,29 @@ Author's Address
 
    Andrei Nicolae Besleaga
    Independent
-   Email: andrei.besleaga.nicolae@gmail.com
+   Email: andrei.besleaga@ieee.org
 
 
 
 
-Besleaga                  Expires 10 April 2027                [Page 43]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Besleaga                  Expires 12 April 2027                [Page 44]

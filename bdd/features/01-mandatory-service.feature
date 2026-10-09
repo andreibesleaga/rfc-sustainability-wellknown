@@ -6,7 +6,7 @@ Feature: Mandatory minimum supported service
   Background:
     Given the reference gateway is running
 
-  @req-addcb130 @req-b22507d7 @req-b781809b @req-3bd371e9
+  @req-3f9a1155 @req-b22507d7 @req-0eaecebc @req-3bd371e9
   Scenario: A plain GET returns the declaration with the registered media type
     When I send GET "/.well-known/sustainability-data"
     Then the status is 200
@@ -67,25 +67,25 @@ Feature: Mandatory minimum supported service
     Then the fetch status is "ok"
     And the recorded request header "Accept" contains "application/sustainability-data+json"
 
-  @req-49ec34e8
+  @req-d7ffd3ac
   Scenario: The consumer processes the registered media type as a declaration
     Given a local server that answers the well-known path with "application/sustainability-data+json" and status 200
     When the consumer fetches the local origin allowing insecure transport
     Then the fetch status is "ok"
 
-  @req-49ec34e8
+  @req-d7ffd3ac
   Scenario: The consumer may still process the generic JSON type
     Given a local server that answers the well-known path with "application/json" and status 200
     When the consumer fetches the local origin allowing insecure transport
     Then the fetch status is "ok"
 
-  @req-49ec34e8
+  @req-d7ffd3ac
   Scenario: A 200 with an unrelated media type is not a declaration
     Given a local server that answers the well-known path with "text/html" and status 200
     When the consumer fetches the local origin allowing insecure transport
     Then the fetch did not succeed
 
-  @req-faf38e5f
+  @req-08defe2c @req-13788375
   Scenario: A followed redirect attributes the declaration to the final origin
     Given a local server that redirects the well-known path to another local origin
     When the consumer fetches the local origin allowing insecure transport

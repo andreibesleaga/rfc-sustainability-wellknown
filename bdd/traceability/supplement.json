@@ -5,7 +5,7 @@
       "id": "req-8fe518ba",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "If one of the three appears more than once, respond `400 Bad Request`; a server that has entered this procedure does so whether or not it supports the repeated parameter."
+      "text": "If one of the three appears more than once, respond `400 Bad Request`; this applies whether or not the server supports the repeated parameter."
     },
     {
       "id": "req-8ee496d1",
@@ -17,13 +17,13 @@
       "id": "req-d5507448",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "The tolerance rules above are exhaustive: a defect they do not name, such as an `extensions` key that is not an absolute URI or whose value is not an object, an `upstream` member that is an array of no entries, or a mandatory member other than `capabilities` whose value is malformed rather than absent, leaves the object non-conformant, and a consumer that validates reports it as such rather than disregarding the member."
+      "text": "The tolerance rules above are exhaustive. A defect they do not name leaves the object non-conformant, and a consumer that validates reports it as such rather than disregarding the member."
     },
     {
       "id": "req-86e23e83",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "A defective value of a mandatory member is a different matter, since disregarding it would leave the object without a member this document requires: a defective `capabilities` value, whether an unrecognized string or a value of the wrong JSON type, is read as `basic`, and a defective value of any other mandatory member leaves the object non-conformant."
+      "text": "A defective value of a mandatory member cannot be disregarded, since that would leave the object without a required member."
     },
     {
       "id": "req-61a943cf",

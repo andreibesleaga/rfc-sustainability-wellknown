@@ -258,18 +258,20 @@ depend on any of this and remains current.
 
 Two service levels:
 
-* **Basic (mandatory minimum)** — a parameterless `GET` (or `HEAD`) MUST return
-  `200 OK` with a **single JSON object** covering the whole origin for the most
-  recently completed period, media type `application/sustainability-data+json`. No published data ⇒
-  `404`. Any method other than GET/HEAD ⇒ `405` with `Allow: GET, HEAD`.
+* **Basic (mandatory minimum)** — the declaration is the representation of the
+  well-known URI: a `200 OK` to a parameterless `GET` carries it (one object or
+  an array), media type `application/sustainability-data+json`; methods, status
+  codes and `HEAD` are as RFC 9110 defines them (the draft cites it rather than
+  restating `404`/`405`). An origin that publishes no declaration has no
+  representation at the well-known URI.
 * **Extended (optional)** — three query parameters: `target` (path-prefix
   scoping, honored only for a deliberately published prefix set — a
   path-disclosure and cache-key-space defense), `period` (`YYYY` / `YYYY-MM` /
   `YYYY-MM-DD`), and `granularity` (`monthly` / `daily`). A granularity finer
   than the period yields a sorted **array** (trend); a `period` alone MUST NOT
   yield an array — a single (possibly aggregated) object, or 404 per the
-  no-data rule. Servers that do not support the
-  parameters MUST ignore them and return the Basic response — never an error.
+  no-data rule. A server ignores a parameter it does not support and answers the rest of the
+  request — never an error.
   As of `-07`, the syntax is specified in ABNF and processing as a numbered
   seven-step procedure: a duplicate parameter name is rejected with `400`, a
   malformed or non-real `period` is rejected with `400`, an unrecognized or
@@ -347,7 +349,7 @@ non-negative; `renewable-energy` is bounded 0–100 inclusive; `scope-1/2/3`
 to `kWh` and `gCO2e`; `sci-score` requires `functional-unit`. The `-04`
 revision adds the optional `target-type` member — an enumerated hint
 (`origin`/`path`/`organization`/`service`/`product`/`device`/`tenant`/`data-source`)
-classifying the reporting subject named by `target`; unrecognized values are
+classifying the subject named by `target`; unrecognized values are
 tolerated (the client reads `target` as if the hint were absent), and array
 entries share one value. **`-07` closes the top-level member set**: a
 publisher MUST NOT add other top-level members, and a consumer MUST ignore
@@ -396,7 +398,7 @@ classDiagram
         +measurement-method : string — free-form; recommended values exist
         +methodology-uri : string — link to calculation methodology
         +reporting-period : string — YYYY | YYYY-MM | YYYY-MM-DD
-        +target : string — reporting subject: origin host, path prefix, entity, tenant, product
+        +target : string — subject: origin host, path prefix, entity, tenant, product
     }
     note for SustainabilityMetrics "-06 and earlier also required an 8th mandatory
     member, version (informational label 2.0; never reject or branch on it).

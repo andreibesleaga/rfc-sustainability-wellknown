@@ -78,7 +78,7 @@ now and expensive to converge on later; the well-known registry contains no
 sustainability entry at all today.
 
 **Goals (from the draft).** A single discoverable location per origin for environmental
-metrics about a declared reporting subject; a minimal machine- and human-readable JSON
+metrics about a declared subject; a minimal machine- and human-readable JSON
 structure suitable for broad adoption; client/server interoperability; alignment with the
 GHG Protocol, EU CSRD/ESRS E1, and product-level regimes (ESPR DPP); and mitigation of
 the security and privacy risks of publishing the data.
@@ -138,7 +138,7 @@ fragmentation.
   rather than reject defective values (wrong JSON type, `null`, out-of-range, `sci-score`
   without `functional-unit`); and field-driven compatibility rules keep historical 1.x
   documents processable. A mandatory `target` member — an opaque identifier compared
-  octet-for-octet, never translated — names the reporting subject (origin host, path
+  octet-for-octet, never translated — names the subject (origin host, path
   prefix, entity, tenant, or data source), classified by an
   optional enumerated `target-type` hint
   (`origin`/`path`/`organization`/`service`/`product`/`device`/`tenant`/`data-source`)
@@ -623,7 +623,7 @@ model of the specification:
 
 1. **The name now satisfies RFC 8615 §3 by construction.** It names the specific
    application (a machine-readable sustainability-data document for a declared
-   reporting subject), follows the registry's accepted descriptive-compound pattern,
+   subject), follows the registry's accepted descriptive-compound pattern,
    and leaves the bare word "sustainability" unclaimed for the community.
 2. **No collision, no squatting, no prior-art conflict.** The IANA registry contains
    no sustainability/carbon/green/energy/ESG entry at all (verified 2026-07-26), and
@@ -1193,3 +1193,69 @@ use — details and sources in **§14.2**. Of all the evidence in this document,
 closest thing to a direct demonstration that this registration is needed: the demand arrived
 before the registry entry, and it arrived at the organization best placed to have solved the
 problem another way.
+
+## 17. Material moved from the root README (2026-10-09)
+
+The root README was shortened on 2026-10-09. The passages below were carried there until then and are kept here verbatim so that nothing is lost; where this document already argues the same point, the passage is a second record, not a change of position.
+
+### 17.1 Enterprise adapters and regulatory reporting
+
+Separately, the `provider` field names "the entity operating the origin," `measurement-method` is a token with RECOMMENDED machine-matchable values (or otherwise a short human-readable description), and the reference implementation's enterprise adapters (Salesforce Net Zero Cloud, Microsoft Sustainability Manager, Watershed) are written to publish *organization-level* figures through this same endpoint; they run in the gateway against recorded responses, none has been exercised against a live tenant, and the Microsoft adapter targets a preview API retired 2025-05-30. So it doubles as a discovery surface for the entity's regulatory reporting (CSRD, and analogues), not only a website's own hosting footprint. One concrete precedent: the EU's Markets in Crypto-Assets Regulation (MiCA) already mandates disclosure of a crypto-asset's consensus-mechanism energy consumption (and, above a threshold, renewable share, per-transaction energy intensity, and GHG emissions) — quantities this schema's optional fields already carry (with unit conversion), for an entity that is not a website at all.
+
+Product and organization names are used only to identify the data sources these adapters read; they are trademarks of their owners and imply no affiliation or endorsement.
+
+### 17.2 The IANA request as the README stated it
+
+IANA well-known URI registration requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)); the requested suffix is `sustainability-data` as of revision `-04` (earlier revisions requested `sustainability`; no IANA action had occurred on that name).
+
+### 17.3 Why? (what it solves, how, and why now) — the README's former section
+
+Sustainability data about digital services exists today — inside enterprise carbon platforms, annual PDF reports, cloud-billing dashboards, and regulatory filings — but there is **no universally known location to publish it and no common machine-readable shape to consume it**. Every consumer that wants the numbers (a regulator, an aggregator, a procurement team, a carbon-aware scheduler, an AI agent) must build a bespoke integration per provider, and most simply don't. Sometimes the gap is publication, sometimes measurement — and sometimes simply no agreed place to look.
+
+![C4 Level 1 — System Context](architecture/images/c4-context.png)
+
+**What it solves:**
+* **Discovery** — today there is no agreed place to look for an organization's or service's environmental metrics; every provider that publishes at all invents its own URL, format, and access path.
+* **Interoperability** — the data that does exist is trapped in incompatible vendor shapes (enterprise APIs, spreadsheets, PDFs), so it cannot be compared, aggregated, or acted on automatically.
+* **Verifiability** — sustainability claims scattered across marketing pages are neither checkable nor comparable, which fuels greenwashing and erodes trust in the claims that are honest.
+
+**How it solves it:**
+* One **fixed, well-known URL per origin** (`/.well-known/sustainability-data`, per RFC 8615) — publishable by any HTTP origin, from a corporate portal to an IoT device, with no central authority and no per-site registration.
+* One **minimal, formally specified JSON document** (CDDL (RFC 8610) and JSON Type Definition (RFC 8927) schemas; 7 mandatory + 19 optional members as of draft `-07`) with a declared subject (`target`), wire-level unit defaults, and rules under which publishers emit only valid documents and clients ignore what they do not recognize — so every consumer reads every publisher without bespoke integration.
+* A **mandatory methodology link** plus optional signed-attestation and disclosure links — claims arrive with their basis attached, checkable and comparable across providers.
+* **Zero new protocol machinery** — plain HTTP GET, standard caching, CORS for browsers, forward-compatible extensibility — so the cost of adoption is one JSON file at a fixed URL.
+
+**Why now:**
+* **Regulation now requires the data to exist.** The EU CSRD/ESRS E1 (the EU sustainability reporting standard on climate) obliges tens of thousands of companies to produce audited energy and emissions figures; MiCA already mandates energy-consumption disclosure for crypto-asset providers (with renewable share and per-transaction intensity above 500,000 kWh/year); the EU Ecodesign regulation's Digital Product Passport extends disclosure to products. The numbers are being produced anyway — what's missing is a discoverable, machine-readable place to publish them.
+* **The measurement gap is documented by the IAB itself.** RFC 9547 (the e-impact workshop report) records both the need for better data on the Internet's environmental impact and the absence of standardized ways to obtain it.
+* **Carbon-aware computing needs machine-readable inputs.** Schedulers, load balancers, CDNs, and procurement tooling can only weigh environmental impact as a real constraint (alongside cost and latency) if the data is fetchable and schema-validated — not locked in PDFs.
+* **The web has proven this exact pattern.** `robots.txt`, `security.txt` (RFC 9116), and carbon.txt show that a well-known, self-published file is the lowest-friction path to ecosystem-wide adoption — no central authority, no registration per site, no new protocol.
+* **Fragmentation is already happening.** Enterprise platforms (Salesforce, Microsoft, Watershed), estimation APIs, and grid-intensity feeds each expose incompatible shapes; a neutral, vendor-independent schema lets them interoperate instead of competing on format.
+* **Anti-greenwashing pressure demands verifiability.** A fixed location with a mandatory methodology link and optional signed attestations makes claims checkable — and comparable across providers — in a way scattered marketing pages never are.
+* **AI agents and M2M consumers are here now.** A fixed, schema-validatable document that is safe to ingest without negotiation makes sustainability data usable by automated consumers the day it is published.
+
+The regulatory disclosure wave (CSRD reporting cycles, MiCA, the Digital Product Passport) is rolling out now, and every organization it touches is deciding — this year, not eventually — how to expose its numbers. Without a neutral standard location, each platform, regulator, and vendor mints its own endpoint and format; once those ad-hoc choices ship and ecosystems build on them, converging later costs orders of magnitude more than agreeing first. The well-known registry exists precisely to pre-empt that fragmentation, and today it contains no sustainability entry at all: the anchor is missing at the exact moment the most publishers in history are looking for one. One provisional registry row now is cheap; unwinding a fragmented ecosystem later is not.
+
+**Why this — nothing else does this, and this is the first and most complete proposal that could help** (every claim below was verified against the live IANA registry, the IETF Datatracker, and the adjacent projects' own materials, as of 2026-07-26):
+
+* **Nothing in the IETF/IRTF space defines this.** No active or expired Internet-Draft or RFC specifies an application-layer sustainability disclosure format or well-known URI: the GREEN WG *excludes* carbon accounting and reporting by charter (its scope is network-device YANG management), and the adjacent expired drafts (sustainability-insights, green-metrics) were network-telemetry proposals with no disclosure endpoint. This draft is the only proposal of its kind on the Datatracker (as of 2026-07-26).
+* **The nearest neighbor is complementary, not competing.** carbon.txt (Green Web Foundation) is a discovery *index* — a TOML file of links to disclosure documents, which is a disclosure index and carries no quantitative metrics. This proposal publishes the metrics themselves; the two specs cross-reference each other by design.
+* **First in the registry.** The IANA Well-Known URIs registry has never contained a sustainability, carbon, green, energy, or ESG entry, and the only adjacent request, carbon.txt (issue #103, July 2026, declined as filed on 2026-08-17 because a bare name is reserved for recognised SDOs), is a disclosure index rather than a metrics document (see §13); this registration request (issue #95, June 2026) is the first for a metrics document.
+* **Everything else is proprietary, regulated-filing-shaped, or advisory.** Enterprise carbon platforms (Salesforce, Microsoft, Watershed) expose per-vendor, authenticated APIs with incompatible shapes; regulatory formats (ESRS/XBRL filings, the DPP) are entity-level compliance documents, not web-discoverable machine endpoints; the W3C's Web Sustainability Guidelines are guidance, not a data format. None of them gives an arbitrary consumer a fetchable, validated document at a known URL.
+* **Most complete by construction.** No other effort combines, in one specification: fixed-location discovery *and* the quantitative metrics themselves; a declared subject that spans organizations, sites, paths, devices, cloud tenants, and products; a mandatory methodology link plus optional signed attestations; dual formal schemas (CDDL + JTD); full security *and* privacy treatment (consumer-side DoS bounds, path-disclosure defense, fingerprinting noise, consumer hardening); explicit legacy compatibility and collision-proof extensibility; and two interoperating open-source implementations proving both sides of the wire. It arrives with a running reference implementation.
+* **Designed to stay compatible with later revisions and other formats.** The must-ignore rule plus the URI-keyed extension point mean any future metric (water use, hardware lifecycle, embodied carbon, whatever the next regulation demands) can be added by anyone, immediately, without touching the RFC or IANA: as of `-07`, a publisher packages such data as an object keyed by an absolute URI (RFC 3986) it chooses once — an `https` URI under its own control, which should identify documentation of the extension, or `urn:uuid:` plus a lowercase hyphenated UUID (RFC 9562) for a definer without a domain — inside the top-level `extensions` member — the top-level member set itself is now closed, and a consumer ignores an `extensions` entry, or any other top-level member, it does not implement. (Through `-06`, extensions instead used collision-proof reverse-domain member names directly at the top level, such as `com.example.pue`, with undotted names reserved for the specification, and a `version` label fixed at `"2.0"`; `-07` removes the `version` member entirely, since the media type and the must-ignore rule already do that job.) The same tolerance rules that absorb the future also absorb the past — historical documents remain readable by current clients. If the RFC is published, it freezes the text, not the ecosystem: nothing that matters is locked in, and no deployed client is ever stranded.
+
+### 17.4 Readiness — the README's former section
+
+By design (mirroring the draft's Introduction), the convention is usable, unchanged, in four consumption contexts:
+
+* **Web-ready** — a plain HTTPS GET on a fixed well-known URI, with standard HTTP caching and conditional requests.
+* **API/M2M-ready** — a stable JSON wire format with formal CDDL and JTD schemas and deterministic query and response semantics.
+* **Human-readable** — self-describing member names plus a mandatory link to the measurement methodology.
+* **AI/agent-ready** — machine-discoverable at a fixed location, schema-validatable, and safe to ingest without content negotiation or prior arrangement.
+
+These are properties of the specification itself, not add-ons: any conformant document has all four at once.
+
+### 17.5 Why the name `sustainability-data` — the README's former paragraph
+
+The well-known URI suffix was renamed from `sustainability` to `sustainability-data` in draft -04, following Independent-Stream review feedback on RFC 8615 §3, which asks registered names to be precise and discourages "squatting" on generic terms; whether the compound name settles the point is still open with the ISE (§14). The compound name registers the **specific application** — a machine-readable data document of sustainability metrics and disclosure links for a declared subject — rather than claiming the generic concept, matching the registry's accepted descriptive-compound pattern (`security.txt`, `api-catalog`, `sbom`, `traffic-advice`). `-data` was chosen over `-metrics` because the specification permits a metrics-free document (a declaration MUST carry at least one numeric metric or at least one of `disclosure-uri`/`verifiable-attestation-uri`) and always carries non-metric content (methodology, disclosure index, attestation, `target-type`, extensions) — so "data" is the *accurate* description, and it scales to future environmental members. Names rejected: `sustainability-report(ing)` (collides with the CSRD/ESRS regulated term), `esg-metrics` (overclaims — no Social/Governance members), `carbon-*` (underclaims scope; blurs against the complementary carbon.txt), and framework-branded names (a neutral community convention should be org-independent). The IANA registry contains no sustainability/carbon/green/ESG entry and no third-party use of the path exists, so the registration creates the category's missing neutral anchor at the cost of one provisional row in an existing registry — removable if unused, promotable once in broad use, per RFC 8615 §3.1. The complete argued case with verified sources is in §12.

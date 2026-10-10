@@ -1,7 +1,7 @@
 Feature: Mandatory minimum supported service
   The Basic service every publisher provides: one HTTPS GET, one declaration, the headers the
   draft requires, and what a consumer may and may not accept.
-  Draft -08 (prepared; -07 posted), section "Mandatory Minimum Supported Service".
+  Draft -08 (posted 2026-10-09), section "Mandatory Minimum Supported Service".
 
   Background:
     Given the reference gateway is running

@@ -11,8 +11,8 @@ Context → Level 2 Container → Level 3 Component), written in
 inline (Mermaid source) and as a pre-rendered image in [`images/`](images/); the
 sources live in [`diagrams/`](diagrams/).
 
-**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-07.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-07.md)
-(the latest posted draft — **`-07` was posted 2026-09-17**; see [§3](#3-the-protocol-subsystem) for what
+**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-08.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-08.md)
+(the latest posted draft is **`-08`, posted 2026-10-09**; the wire format is that of `-07`, posted 2026-09-17; see [§3](#3-the-protocol-subsystem) for what
 it changes), with [`internet-drafts/draft-besleaga-sustainability-wellknown-06.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-06.md)
 kept as the historical reference for the prior posted revision
 (2026-09-10, the "2.0"-labeled `sustainability-data` URI rename), [`../README.md`](../README.md),
@@ -218,7 +218,7 @@ flowchart TB
 ## 3. The protocol subsystem
 
 The normative artifact is the Internet-Draft (`internet-drafts/`). **`-07` is
-the latest posted draft (posted 2026-09-17 to the Datatracker).** Since `-06` it: withdraws the companion
+the revision that defines the current wire format (posted 2026-09-17; `-08`, posted 2026-10-09, is the latest posted revision and changes no member).** Since `-06` it: withdraws the companion
 `sustainability-data.jws` resource and its detached signature entirely, in
 favor of an OPTIONAL `signed` member embedded in each declaration object (a
 JWS Compact Serialization over the object itself, typed by `cty`); removes the
@@ -237,7 +237,7 @@ prefix set ⇒ 404); removes the server-side "cap at 366" MUST/RECOMMENDED in
 favor of a consumer-side bound; and removes the `X-Content-Type-Options:
 nosniff` recommendation. See the draft's own Changelog appendix for the full
 list.
-**`-06`** (schema `2.0`) is the *prior posted revision* —
+**`-06`** (schema `2.0`) is an *earlier posted revision* —
 posted to the Datatracker 2026-09-10 (superseded by `-07`, posted 2026-09-17, now under ISE review): it requires the
 dedicated `application/sustainability-data+json` media type, raises HTTPS
 from SHOULD to MUST, added `X-Content-Type-Options: nosniff` and the
@@ -499,7 +499,7 @@ predecessor series through `-02`, `-03` and `-04` (URI suffix renamed to
 `sustainability-data`, optional `target-type` added) to `-06`, the prior
 posted revision (media type required, HTTPS MUST, `nosniff`, the
 now-withdrawn OPTIONAL detached JWS), to `-07`, the latest *posted* revision
-(2026-09-17; `-08` is prepared in the repository and not yet posted) (embedded `signed` member, `version` removed, closed
+(2026-09-17) and to `-08`, the latest posted revision (2026-10-09; prose only) (embedded `signed` member, `version` removed, closed
 member set, `extensions` by absolute URI, `upstream`, `nosniff` recommendation
 withdrawn — §3), and the eventual Informational RFC + IANA registration.
 
@@ -998,7 +998,7 @@ same JTD schema enforced, identically, at every layer.
 * Diagrams rendered with
   [`@mermaid-js/mermaid-cli`](https://github.com/mermaid-js/mermaid-cli)
   (`mmdc -s 2 -b white`).
-* **Repository ground truth** — the `-07` draft (latest posted; the active
+* **Repository ground truth** — the `-08` draft (latest posted, 2026-10-09; wire format of `-07`; the active
   source for the protocol content in this document — see §3), with `-06` kept
   as the historical prior-posted reference, root `README.md`,
   `publisher/src/`, `consumer/src/`, `schemas-validators/`,

@@ -1,6 +1,6 @@
 Feature: Operational considerations, security, privacy, internationalization
   Caching and revalidation, bounds on both sides, what a declaration can never prove, the
-  privacy floors, and how text travels. Draft -08 (prepared; -07 posted), sections "Operational Considerations",
+  privacy floors, and how text travels. Draft -08 (posted 2026-10-09), sections "Operational Considerations",
   "Security Considerations", "Privacy Considerations", "Internationalization Considerations".
 
   @req-76f7d871 @req-7c267492

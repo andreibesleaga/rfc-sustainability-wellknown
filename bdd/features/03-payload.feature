@@ -1,6 +1,6 @@
 Feature: Payload format, mandatory and optional members, value constraints
   What a declaration object is, what it must carry, what it may carry, and how a consumer
-  treats a defective member. Draft -08 (prepared; -07 posted), sections "Payload Format", "Mandatory Members",
+  treats a defective member. Draft -08 (posted 2026-10-09), sections "Payload Format", "Mandatory Members",
   "Optional Members", "Value Constraints and Omitted Metrics".
 
   @req-87cef521 @req-6ff5a712

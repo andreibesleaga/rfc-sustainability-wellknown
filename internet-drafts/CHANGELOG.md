@@ -4,7 +4,7 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
-### **Version 07 to Version 08 (`draft-besleaga-sustainability-wellknown`) — in preparation, NOT posted**
+### **Version 07 to Version 08 (`draft-besleaga-sustainability-wellknown`) — posted 2026-10-09**
 
 Editorial only. **No member, schema, media type or registration changes: every `-07` document is a
 valid `-08` document and every `-07` publisher and consumer conforms unchanged.** Adds an

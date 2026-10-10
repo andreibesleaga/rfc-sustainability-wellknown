@@ -1,6 +1,6 @@
 Feature: Personas and usage scenarios
   The people the draft is written for, each doing the one thing they come for. Every scenario
-  runs against the real libraries or the real gateway. Draft -08 (prepared; -07 posted), "Roles and Processing Model"
+  runs against the real libraries or the real gateway. Draft -08 (posted 2026-10-09), "Roles and Processing Model"
   and Appendix "Worked Example: A Live Deployment".
 
   @persona-static-publisher @req-3f9a1155 @req-b22507d7

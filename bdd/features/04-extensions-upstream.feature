@@ -1,7 +1,7 @@
 Feature: Extensions and upstream declarations
   Extension data travels under names that are absolute URIs and are never fetched; upstream
   declarations name a provider's declaration and a consumer may walk the chain, bounded.
-  Draft -08 (prepared; -07 posted), sections "Extensions", "Upstream Declarations", "Consumer Considerations".
+  Draft -08 (posted 2026-10-09), sections "Extensions", "Upstream Declarations", "Consumer Considerations".
 
   @req-2a41a04d @req-470fc872
   Scenario: An https name under the definer's control is accepted, also when another party defined it

@@ -57,7 +57,7 @@ is the check to satisfy before opening a PR.
 
 The data model exists in four places, and they must stay identical (the embedded TypeScript copies are equal to the JSON schema as JSON values; the CDDL and JSON files are byte-identical):
 
-1. the CDDL and JTD blocks in `internet-drafts/draft-besleaga-sustainability-wellknown-07.md` (`-07` was posted 2026-09-17 and must not be edited, nor the posted `-05`/`-06` files; further changes go to the prepared, unposted `-08` file)
+1. the CDDL and JTD blocks in `internet-drafts/draft-besleaga-sustainability-wellknown-08.md` (`-08` was posted 2026-10-09 and must not be edited, nor the posted `-05`/`-06`/`-07` files; further changes go to a future `-09` file)
 2. `schemas-validators/response-schema.cddl` and `response-schema.json`
 3. `publisher/src/schema.ts`
 4. `consumer/src/schema.ts`

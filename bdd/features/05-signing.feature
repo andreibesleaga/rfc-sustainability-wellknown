@@ -1,6 +1,6 @@
 Feature: Signing and verification
   The optional signed member is a JWS over the object itself. A consumer verifies bytes and
-  key continuity, never accuracy. Draft -08 (prepared; -07 posted), sections "Signing", "The signed Member",
+  key continuity, never accuracy. Draft -08 (posted 2026-10-09), sections "Signing", "The signed Member",
   "Verification", "What a Signature Proves", "Media Type Registration".
 
   @req-5c792780 @req-68ff48e7

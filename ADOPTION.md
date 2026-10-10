@@ -401,7 +401,7 @@ responding to the ISE's second round and the first commissioned review: it regis
 requires the `application/sustainability-data+json` media type, makes HTTPS a MUST, adds an
 OPTIONAL detached-JWS signature mechanism, and adds the "Roles and Processing Model" and
 "Partial Knowledge and Incremental Adoption" sections — again with no wire-format change.
-`-07` (posted 2026-09-17) is the latest posted revision (under ISE review; an ART-area early review of 2026-10-03 is being answered in `-08`), and every answer below applies to it except where a [Superseded] row says otherwise. Earlier note: `-06` is now the latest posted revision (under ISE review), and every answer below applies
+`-08` (posted 2026-10-09) is the latest posted revision (under ISE review; it answers the ART-area early review of 2026-10-03 and changes no member), and every answer below applies to it except where a [Superseded] row says otherwise. Earlier note: `-06` is now the latest posted revision (under ISE review), and every answer below applies
 unchanged to it except where a **[Superseded 2026-09-10]** row says otherwise.)*
 
 *(**[Superseded 2026-09-16]** A further revision, **-07**, was posted to the Datatracker on
@@ -451,8 +451,8 @@ still applies unchanged to `-07`.)*
 
 ## 9. Readiness evidence (in this repository)
 
-- Draft at **draft-besleaga-sustainability-wellknown-07** — the latest **posted**
-  revision (posted 2026-09-17), under ISE review as an Independent Submission; `-06`
+- Draft at **draft-besleaga-sustainability-wellknown-08** — the latest **posted**
+  revision (posted 2026-10-09; the wire format is that of `-07`, posted 2026-09-17), under ISE review as an Independent Submission; `-06`
   (2026-09-10), `-05` (2026-07-28), `-04` and `-03` are the prior posted revisions.
   Earlier note: `-06` — posted to the Datatracker 2026-09-10, under ISE review as an Independent
   Submission, responding to the ISE's second round and the first commissioned review;

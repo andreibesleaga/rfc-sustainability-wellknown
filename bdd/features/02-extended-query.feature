@@ -1,7 +1,7 @@
 Feature: Extended query parameters
   A server may honour target, period and granularity. The seven-step procedure of the draft
   decides what comes back: one object, or a sorted array when a finer granularity is in effect.
-  Draft -08 (prepared; -07 posted), section "Extended Query Parameters".
+  Draft -08 (posted 2026-10-09), section "Extended Query Parameters".
 
   @req-684991a9 @req-5152df1a @req-7f1dbd9c
   Scenario: A yearly period at monthly granularity returns the sorted, non-overlapping months

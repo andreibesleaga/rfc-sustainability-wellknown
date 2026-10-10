@@ -7,7 +7,7 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-07` (2026-09-17), is under review by the Independent Submissions Editor and has received an ART-area early review; the answers are in `-08`, prepared in this repository and not yet posted. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md).
+**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-08` (posted 2026-10-09), is under review by the Independent Submissions Editor; it answers the ART-area early review of `-07` and changes no member, schema, media type or registration. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md).
 
 Presented at the IRTF Sustainability Research Group (IETF 126, July 2026); Independent Submission under review.
 
@@ -160,7 +160,7 @@ The normative specification is the Internet‑Draft; this repo provides non‑no
 
 ```
 rfc-sustainability-wellknown/
-├── internet-drafts/            # Draft sources (-05, -06, -07 posted; -08 prepared), build script, changelog, VC companion note
+├── internet-drafts/            # Draft sources (-05 to -08 posted), build script, changelog, VC companion note
 ├── example-responses/          # Valid JSON response examples (all validators pass)
 ├── schemas-validators/         # Formal schemas (CDDL, JTD) and validation tooling
 ├── example-scripts/            # Server-side security middleware + reference request handler (Python, JS, PHP), with tests
@@ -194,14 +194,14 @@ System architecture, with C4 diagrams: [architecture/README.md](architecture/REA
 ## internet-drafts/
 
 The draft in Markdown, xml2rfc XML and rendered text, plus supplementary documents. The directory keeps the posted
-`-05`, `-06` and `-07` and the prepared `-08`; earlier revisions are on the
+`-05`, `-06`, `-07` and `-08`; earlier revisions are on the
 [Datatracker](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/) and in this repository's
 git history. The full revision history is in [internet-drafts/README.md](internet-drafts/README.md).
 
 | File | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-08.md` | **Prepared, not posted.** Editorial: an RFC 7942 Implementation Status appendix, the worked example aligned with the live deployment, and the answers to the ART-area early review of `-07`. No change to the format, the schemas, the media type or the registration |
-| `draft-besleaga-sustainability-wellknown-07.md` / `.xml` / `.txt` | **Latest posted revision** (posted 2026-09-17, under ISE review). Defines the full data model, mandatory and optional members, CDDL and JTD schemas, security, privacy and internationalization considerations, and the IANA registration request |
+| `draft-besleaga-sustainability-wellknown-08.md` / `.xml` / `.txt` | **Latest posted revision** (posted 2026-10-09, under ISE review). Editorial: an RFC 7942 Implementation Status appendix, the worked example aligned with the live deployment, and the answers to the ART-area early review of `-07`. No change to the format, the schemas, the media type or the registration |
+| `draft-besleaga-sustainability-wellknown-07.md` / `.xml` / `.txt` | **Prior posted revision** (posted 2026-09-17; defines the current wire format). Defines the full data model, mandatory and optional members, CDDL and JTD schemas, security, privacy and internationalization considerations, and the IANA registration request |
 | `draft-besleaga-sustainability-wellknown-06.*`, `-05.*` | Prior posted revisions, kept as files for reference |
 | `draft-verifiable-credential.md` | Supplementary: W3C Verifiable Credential structure for anti-greenwashing attestations |
 | `CHANGELOG.md`, `REVISION-07-RATIONALE.md` | Changes between every revision; the reasons behind the `-07` changes, with their migration and reversal costs |
@@ -309,8 +309,7 @@ Both set the media type (MUST), `Cache-Control: public, max-age=86400` and `ETag
 
 ## Key data model fields
 
-The data model is **7 mandatory and 19 optional members (26 total)** as of draft `-07`, unchanged in the prepared
-`-08`. The authoritative definitions, with every requirement level, are in the draft itself; this README does not
+The data model is **7 mandatory and 19 optional members (26 total)** as of draft `-08` (posted 2026-10-09; unchanged from `-07`). The authoritative definitions, with every requirement level, are in the draft itself; this README does not
 restate them, so the two cannot drift apart:
 
 * **Member definitions** — draft `-07`, "Payload Format (JSON Data Model)".

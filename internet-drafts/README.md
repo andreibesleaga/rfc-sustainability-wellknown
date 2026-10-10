@@ -9,9 +9,9 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 Well-Known URI* — the Datatracker document name is unchanged).
 Individual submission on the IETF **Independent Submission Stream** (Informational).
 
-- **`-08`** is **in preparation and not posted** (editorial: an RFC 7942 Implementation Status appendix, the worked example aligned with the live deployment, a mention of DIST, and the answers to the ART-area early review of `-07`: a Terminology section, one term *subject*, Section 2.2 citing RFC 9110 instead of restating it, the query-envelope ABNF removed, the unknown-member rule stated once, `target-type` first among the optional members, a shorter body; no change to the format). It is built and checked by CI like every revision; it is posted only on the author's decision.
-- **`-07`** is the **latest posted** revision (posted 2026-09-17, under ISE review; sources in this
-  directory: `draft-besleaga-sustainability-wellknown-07.{md,xml,txt}`); `-06` is the prior posted
+- **`-08`** is the **latest posted** revision (posted 2026-10-09, under ISE review; editorial: an RFC 7942 Implementation Status appendix, the worked example aligned with the live deployment, a mention of DIST, and the answers to the ART-area early review of `-07`: a Terminology section, one term *subject*, Section 2.2 citing RFC 9110 instead of restating it, the query-envelope ABNF removed, the unknown-member rule stated once, `target-type` first among the optional members, a shorter body; no change to the format). It is built and checked by CI like every revision.
+- **`-07`** is the prior posted revision (posted 2026-09-17; sources in this
+  directory: `draft-besleaga-sustainability-wellknown-07.{md,xml,txt}`); `-06` is an earlier posted
   revision. `-07` withdraws the companion
   `/.well-known/sustainability-data.jws` resource and the detached signature entirely (no legacy
   support, no redirect, no fallback) and replaces it with an OPTIONAL `signed` member embedded in
@@ -32,7 +32,7 @@ Individual submission on the IETF **Independent Submission Stream** (Information
   [`REVISION-07-RATIONALE.md`](REVISION-07-RATIONALE.md), which gives the reason for each
   change, what it costs an existing publisher or consumer, and what reversing it would involve.
 
-- **`-06`** is the prior posted revision (posted 2026-09-10) — its sources live in this directory
+- **`-06`** is an earlier posted revision (posted 2026-09-10) — its sources live in this directory
   (`draft-besleaga-sustainability-wellknown-06.{md,xml,txt}`) and it was the revision under the ISE's
   review before `-07`. It carries the security package the ISE asked for ("security is not
   optional"): HTTPS raised from SHOULD to MUST, a dedicated
@@ -82,18 +82,21 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 |---|---|
 | `build.sh` | Build-and-check script for any revision (see "Building the draft" below). |
 | `v3-postprocess.py` | Run by `build.sh` and CI on the generated XML: drops `<?line?>` PIs, un-nests the References sections, removes cited-reference abstracts and the BCP 14 no-break space, so idnits3 reports no nits in any mode. |
-| `draft-besleaga-sustainability-wellknown-07.md` | Markdown source of the latest posted revision (posted 2026-09-17). Do not edit — it is a posted artifact; further changes go to the prepared, unposted `-08` file. |
+| `draft-besleaga-sustainability-wellknown-08.md` | Markdown source of the latest posted revision (posted 2026-10-09). Do not edit — it is a posted artifact; further changes go to a future `-09` file. |
+| `draft-besleaga-sustainability-wellknown-08.xml` | xml2rfc v3 XML of `-08` — the submission form. |
+| `draft-besleaga-sustainability-wellknown-08.txt` | Rendered plain-text form of `-08`. |
+| `draft-besleaga-sustainability-wellknown-07.md` | Markdown source of the prior posted revision (posted 2026-09-17). Do not edit — it is a posted artifact; further changes go to a future `-09` file. |
 | `draft-besleaga-sustainability-wellknown-07.xml` | xml2rfc v3 XML of `-07`. |
 | `draft-besleaga-sustainability-wellknown-07.txt` | Rendered plain-text form of `-07`. |
-| `draft-besleaga-sustainability-wellknown-06.md` | Markdown source of the prior posted revision (2026-09-10). Do not edit — it is a posted artifact. |
+| `draft-besleaga-sustainability-wellknown-06.md` | Markdown source of an earlier posted revision (2026-09-10). Do not edit — it is a posted artifact. |
 | `draft-besleaga-sustainability-wellknown-06.xml` | xml2rfc v3 XML of `-06` — the submission form. |
 | `draft-besleaga-sustainability-wellknown-06.txt` | Rendered plain-text form of `-06`. |
-| `draft-besleaga-sustainability-wellknown-05.md` | Markdown source of the prior posted revision. Do not edit — it is a posted artifact. |
+| `draft-besleaga-sustainability-wellknown-05.md` | Markdown source of an earlier posted revision. Do not edit — it is a posted artifact. |
 | `draft-besleaga-sustainability-wellknown-05.xml` | xml2rfc v3 XML of `-05` — the authoritative submission form. |
 | `draft-besleaga-sustainability-wellknown-05.txt` | Rendered plain-text form of `-05`. |
 
 `-05`, `-06` and `-07` are posted revisions kept as files for reference; `-07` (posted
-2026-09-17) is the latest. `-05` is kept in this directory for now.
+2026-09-17) is the prior posted revision; `-08` (posted 2026-10-09) is the latest. `-05` is kept in this directory for now.
 Revisions `-00` through `-04` were removed once posted; they remain on the Datatracker and in
 this repository's git history.
 

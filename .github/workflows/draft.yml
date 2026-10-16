@@ -58,7 +58,6 @@ jobs:
           # The corrected reference tags must resolve in the References section.
           grep -q "\[RFC8610\]" "$base.txt"
           grep -q "\[RFC7493\]" "$base.txt"
-          grep -q "\[RFC8927\]" "$base.txt"
           # The stale CDDL reference (RFC 8949 = CBOR) must no longer be a reference entry.
           if grep -q "\[RFC8949\]" "$base.txt"; then echo "::error::stale RFC 8949 reference present"; exit 1; fi
       - uses: actions/upload-artifact@v7

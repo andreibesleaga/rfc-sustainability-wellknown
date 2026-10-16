@@ -1,0 +1,654 @@
+---
+title: "The 'sustainability-data' Well-Known URI"
+abbrev: "Sustainability-Data Well-Known URI"
+docname: draft-besleaga-sustainability-wellknown-09
+workgroup: Independent Submission
+category: info
+submissiontype: independent
+ipr: trust200902
+keyword:
+  - Sustainability
+  - Carbon Accounting
+  - Well-Known URI
+  - Energy Efficiency
+
+author:
+  - ins: A. N. Besleaga
+    name: Andrei Nicolae Besleaga
+    organization: Independent
+    email: andrei.besleaga@ieee.org
+
+normative:
+  RFC2119:
+  RFC3339:
+  RFC3986:
+  RFC5234:
+  RFC6838:
+  RFC6839:
+  RFC7405:
+  RFC7493:
+  RFC7515:
+  RFC7518:
+  RFC8037:
+  RFC8174:
+  RFC8259:
+  RFC8610:
+  RFC8615:
+  RFC8725:
+  RFC9110:
+  RFC9864:
+  UAX9:
+    title: "Unicode Standard Annex #9: Unicode Bidirectional Algorithm"
+    author:
+      - org: The Unicode Consortium
+    target: https://www.unicode.org/reports/tr9/
+    date: 2024-09
+  RFC9111:
+
+informative:
+  RFC7942:
+  RFC9562:
+  RFC6454:
+  RFC9485:
+  VC-DATA-MODEL-2:
+    title: "Verifiable Credentials Data Model v2.0"
+    author:
+      - org: W3C Verifiable Credentials Working Group
+    target: https://www.w3.org/TR/vc-data-model-2.0/
+    date: 2025-05-15
+  GHG-PROTOCOL:
+    title: "The Greenhouse Gas Protocol: A Corporate Accounting and Reporting Standard (Revised Edition)"
+    author:
+      - org: World Resources Institute and World Business Council for Sustainable Development
+    target: https://ghgprotocol.org/corporate-standard
+    date: 2004
+  GHG-SCOPE2:
+    title: "GHG Protocol Scope 2 Guidance: An Amendment to the GHG Protocol Corporate Standard"
+    author:
+      - org: World Resources Institute and World Business Council for Sustainable Development
+    target: https://ghgprotocol.org/scope-2-guidance
+    date: 2015
+  GSF-SCI:
+    title: "Software Carbon Intensity (SCI) Specification (standardized as ISO/IEC 21031:2024)"
+    author:
+      - org: Green Software Foundation
+    target: https://sci.greensoftware.foundation/
+    date: 2024
+  RFC9547:
+  EU-CSRD:
+    title: "Directive (EU) 2022/2464 as regards corporate sustainability reporting (CSRD)"
+    author:
+      - org: European Parliament and Council
+    target: https://eur-lex.europa.eu/eli/dir/2022/2464/oj
+    date: 2022-12
+  ESRS-E1:
+    title: "Commission Delegated Regulation (EU) 2023/2772 supplementing Directive 2013/34/EU as regards sustainability reporting standards (ESRS; Annex I, ESRS E1 Climate change)"
+    author:
+      - org: European Commission
+    target: https://eur-lex.europa.eu/eli/reg_del/2023/2772/oj
+    date: 2023-07
+  EU-ESPR:
+    title: "Regulation (EU) 2024/1781 establishing a framework for the setting of ecodesign requirements for sustainable products (ESPR; Digital Product Passport)"
+    author:
+      - org: European Parliament and Council
+    target: https://eur-lex.europa.eu/eli/reg/2024/1781/oj
+    date: 2024-06
+
+--- abstract
+
+This document defines the "sustainability-data" well-known URI, at which a web origin publishes a JSON document declaring the energy consumption, carbon footprint, and related environmental and sustainability metrics of a target: the organization behind the origin, the origin itself, a part of it, a service, a device, or a product, for different reporting periods. The declaration links to a methodology and may carry a signature, name the declarations of upstream providers, and link to third-party attestations. The metrics are self-asserted claims of the publisher. This document registers the well-known URI and the media type `application/sustainability-data+json`.
+
+--- middle
+
+# Introduction
+
+Organizations increasingly publish energy and carbon figures: corporate greenhouse-gas accounting {{GHG-PROTOCOL}} defines the quantities, reporting regimes such as {{EU-CSRD}} require them, and the IAB workshop report {{RFC9547}} records the need for such data about Internet systems and the gaps in it. What is missing is a fixed place and form in which the figures an organization already produces, usually for a reporting year or a month, can be found and read by software that knows nothing but the organization's web origin.
+
+This document defines both. The place is a well-known URI {{RFC8615}}. The form is one small JSON document, the *declaration*, which a publisher can write by hand from its report and serve as a static file. Its mandatory `target` member names what it is about: an organization, an origin, or a narrower target such as a path, a service, or a tenant of a provider ({{terminology}}). A publisher that keeps monthly or per-service figures can publish several objects in one array, and can answer queries for a range of periods or for one target. A publisher that does neither serves one file and ignores the query. A small conformant declaration carries the seven mandatory members and at least one metric or evidence link; this one also classifies its target and states its unit:
+
+~~~ json
+{
+  "updated": "2026-03-01T12:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Corp (sustain@example.com)",
+  "measurement-method": "cloud-billing",
+  "methodology-uri": "/sustainability/methodology",
+  "period": { "start": "2025-01-01", "end": "2025-12-31" },
+  "target": "Example Corp",
+  "target-type": "organization",
+  "carbon-footprint": 4140,
+  "carbon-unit": "kgCO2e"
+}
+~~~
+
+How figures are measured, and whether any figure is true, are outside the scope of this document.
+A consumer retrieves the declaration ({{the-well-known-uri}}), reads it ({{the-declaration}}), takes every value as a claim of the publisher of the origin that served it, verifies a `signed` member when it chooses to, and follows the evidence links when it needs them ({{the-nature-of-the-response}}).
+
+## Terminology
+
+{::boilerplate bcp14-tagged}
+
+* **Origin**: the scheme, host, and port triple of an HTTP URI ({{RFC9110}}, Section 4.3.1; the web origin of {{?RFC6454}}).
+* **Publisher**: the party operating an origin and publishing a declaration from it.
+* **Consumer**: any client that retrieves a declaration.
+* **Declaration**: a JSON document as {{the-declaration}} defines it: one declaration object or an array of them. An origin's declaration is served at its well-known URI; an `upstream` entry may name one served elsewhere ({{upstream-declarations}}).
+* **Declaration object**: a JSON object carrying the members of {{mandatory-members}} and {{optional-members}}, about one target for one period.
+* **Target**: what a declaration object is about, named by its `target` member: an organization, an origin, a path of an origin, a service, a product, a device, a tenant, or a data source.
+* **Server**: the origin server for the well-known URI ({{RFC9110}}, Section 3.6), or an intermediary answering on the publisher's behalf ({{RFC9110}}, Section 3.7); whichever server answers, the declaration is the claim of the origin's publisher ({{self-asserted-claims}}).
+
+# The Well-Known URI
+
+## Location and Transport
+
+The declaration is published at the path `/.well-known/sustainability-data` on the origin, with the media type `application/sustainability-data+json`; this document registers both ({{iana-considerations}}). A declaration MUST be published and retrieved over HTTPS. A consumer MAY also process a `200 OK` response whose `Content-Type` is `application/json` as a declaration; a response carrying any other media type is not a declaration. Access control, caching, and every other aspect of the HTTP exchange are as {{RFC9110}} and {{RFC9111}} define them and are the publisher's to configure.
+
+## Query Parameters
+
+A server MAY support the query parameters `target`, `start`, `end`, and `granularity`, carried in the query component of the URI ({{RFC3986}}, Section 3.4) in the usual name=value form. A server that does not support a parameter ignores it and answers the rest of the request; a static file therefore satisfies every request. The `start`, `end`, and `granularity` parameters are defined by the following ABNF {{RFC5234}}, using the case-sensitive string notation of {{RFC7405}} and the `full-date` rule of {{RFC3339}}, Section 5.6:
+
+~~~ abnf
+start       = %s"start=" full-date
+end         = %s"end=" full-date
+granularity = %s"granularity=" granularity-value
+granularity-value = %s"yearly" / %s"monthly" / %s"daily"
+full-date   = <full-date, see [RFC3339], Section 5.6>
+~~~
+
+The value of the `target` parameter is a `target` member value ({{mandatory-members}}); a path prefix begins with "/".
+
+A server that supports these parameters selects, from the declaration objects it holds, those that satisfy every parameter it honors, and returns them as a JSON array in ascending order of `period.start`. An object satisfies `start` and `end` when its period has at least one day in common with the range they bound, both bounds included; an absent bound is unbounded. It satisfies the `target` parameter when its `target` member equals the parameter's value, compared as {{mandatory-members}} says. It satisfies `granularity` when its period is a whole calendar year, month, or day respectively. A server returns what it holds, as it holds it, and computes no aggregate. When nothing is selected, the response is an empty array.
+
+Because a server may ignore any parameter, a consumer MUST compare the `period` and `target` of every object it receives with what it requested, and MUST NOT record a response as covering a period or a target it does not name.
+
+## Partial Answers
+
+A publisher declares the target it can measure or estimate, for the periods it has figures for. Every metric member is optional, so an object carrying one measured quantity conforms, and a figure may rest on estimation for the parts not directly measured if the methodology document says what is measured and what is estimated. An object's `period` and `target` say what it covers; figures covering part of a target or part of a period MUST NOT be presented as though they covered the whole.
+
+# The Declaration
+
+## Body
+
+The body is a single JSON text ({{RFC8259}}, Section 2) whose value is either one declaration object or one JSON array of declaration objects. The objects of an array may cover different periods and different targets of the same origin: an organization's yearly figures beside its months, or an origin beside the services and paths it measures separately ({{parts-of-an-origin}}). Figures that differ only in their accounting method or functional unit are published as separate objects for the same `target` and `period`. A publisher that reports both location-based and market-based emissions, as the GHG Protocol's dual reporting asks for scope 2 {{GHG-SCOPE2}}, publishes one object for each; a publisher with several SCI scores publishes one object per `functional-unit`. A single object is equivalent to a one-object array, and a consumer MUST accept both forms. Publishers follow I-JSON {{RFC7493}}. A publisher MUST NOT add a top-level member this document does not define; other data goes in `extensions` ({{extensions}}). A consumer ignores a top-level member it does not recognize and MUST NOT treat its presence as an error ({{RFC7493}}, Section 4.2); this document defines no version member, since the media type identifies the format.
+
+## Mandatory Members
+
+* **updated** (string): The {{RFC3339}} `date-time` at which the object was last updated.
+* **capabilities** (string): `"basic"` when the server supports no query parameter, `"extended"` when it supports at least one. The member tells a consumer, before it asks, whether a query is worth sending; which parameters the server honored is seen in the response ({{query-parameters}}).
+* **provider** (string): Human-readable identification of the publisher, such as a name and a role contact address.
+* **measurement-method** (string): The method behind the figures. The tokens `hardware-metered`, `hardware-estimated`, `cloud-billing`, and `third-party-modeled` are RECOMMENDED; any other value is a brief human-readable description.
+* **methodology-uri** (string): A URI reference ({{uri-valued-members}}) to a document written for people, in any format and language, that describes the measurement or estimation method in enough detail to interpret the figures. It says what is measured and what is estimated, how figures are allocated to a part of a target, what any `functional-unit` means, which extension names are used, and whether any perturbation was applied ({{privacy-considerations}}). Nothing a consumer does under this document depends on reading it.
+* **period** (object): The period the object covers, as two members `start` and `end`, each an {{RFC3339}} `full-date`: the period runs from the start of the first day to the end of the last, inclusive, and `end` MUST NOT be before `start`. Calendar 2025 is `{"start": "2025-01-01", "end": "2025-12-31"}`; a reporting year ending on 31 March is written as it is. Whole calendar years and months are RECOMMENDED, since they are the periods reports state and the periods consumers compare. Day precision is the finest this document offers: reports state their periods as dates, and a day is the floor below which figures can be tied to individual requests ({{privacy-considerations}}).
+* **target** (string): Names what the object is about ({{terminology}}). It is an opaque protocol element: it MUST NOT be translated or transliterated, and it is compared octet-for-octet, except that where `target-type` is `origin` or the value is otherwise a host name the host-name rules of {{internationalization-considerations}} apply. For an organization its name is used; for an origin-wide report the origin's host (for example `"example.com"`) is RECOMMENDED; other targets are a path prefix (`"/api/v1"`), a service, a tenant, a product, a data source, or a device, as `target-type` can classify. Figures for a target other than the origin are a claim by the origin's publisher about that target ({{self-asserted-claims}}).
+
+## Optional Members
+
+Numeric members align with the GHG Protocol {{GHG-PROTOCOL}} and ESRS E1 {{ESRS-E1}}; product-level regimes such as {{EU-ESPR}} use the same quantities. Unless stated otherwise, a numeric member MUST NOT be negative, and a publisher MUST NOT emit a number whose magnitude or precision exceeds what IEEE 754 binary64 represents ({{RFC7493}}, Section 2.2).
+
+* **target-type** (string): Classifies the target as one of `organization`, `origin` (the publishing origin), `path`, `service`, `product`, `device`, `tenant`, or `data-source`. It does not change the syntax or comparison rules of `target`.
+* **energy-consumption** (number): Energy consumed by the target during the period, in the unit of `energy-unit`.
+* **energy-unit** (string): One of `Wh`, `kWh`, `MWh`, `GWh`; when absent, `kWh` applies.
+* **carbon-footprint** (number): Gross emissions of the target during the period, in the unit of `carbon-unit`.
+* **carbon-unit** (string): One of `gCO2e`, `kgCO2e`, `mtCO2e`; when absent, `gCO2e` applies to `carbon-footprint` and to the scope members.
+* **carbon-accounting** (string): `location-based` or `market-based` {{GHG-SCOPE2}}.
+* **scope-1**, **scope-2**, **scope-3** (number): Direct, purchased-energy, and value-chain emissions in the unit of `carbon-unit`. Where they accompany `carbon-footprint` for the same period they SHOULD account for it, and a publisher whose scopes cover only part of that figure says so in the methodology document. These MAY be negative where the declared accounting method conveys removals or net figures, which the methodology document then explains.
+* **sci-score** (number): Software Carbon Intensity {{GSF-SCI}}, in grams of CO2e per `functional-unit`, which MUST then be present.
+* **functional-unit** (string): The unit to which `sci-score` is expressed (for example `per-request`), defined in the methodology document.
+* **carbon-intensity-gCO2e-per-kWh** (number): Weighted carbon intensity of the energy consumed.
+* **estimated-annual-emissions-kgCO2e** (number): Annualized gross emissions in kilograms of CO2e regardless of `carbon-unit`; for a period shorter than a year it is an extrapolation described in the methodology document.
+* **renewable-energy** (number): Percentage of energy from renewable sources, between 0 and 100 inclusive.
+* **verifiable-attestation-uri** (string): A URI reference to a statement about the published metrics made and cryptographically signed by a party other than the publisher; a verifiable credential {{VC-DATA-MODEL-2}} is one such form. An object carries at most one; a target with more than one attestation links an index of them from `disclosure-uri`.
+* **disclosure-uri** (string): A URI reference to a machine-readable index of the target's sustainability disclosures (reports, certificates, hosting and energy-source evidence), in any format.
+* **upstream** (array): The declarations of providers from which this object's figures derive ({{upstream-declarations}}).
+* **extensions** (object): Members defined outside this document ({{extensions}}).
+* **signed** (string): A signature over this object ({{the-signed-member}}).
+
+A declaration object MUST carry at least one numeric metric member or at least one of `disclosure-uri` and `verifiable-attestation-uri`; a metric not reported for the target and period is omitted, and there is no in-band "not reported" value.
+
+### URI-Valued Members
+
+`methodology-uri`, `verifiable-attestation-uri`, `disclosure-uri`, and the `declaration` member of an `upstream` entry are URI references ({{RFC3986}}, Section 4.1), resolved as {{RFC3986}}, Section 5 specifies. For a retrieved declaration the base URI is the retrieval URI ({{RFC3986}}, Section 5.1.3), so a party that stores, forwards, or relays a declaration keeps the URI it retrieved it from.
+
+## Extensions
+
+Data that this document does not define is carried in the `extensions` member, an object whose member names are extension names and whose values are objects defined by the party that defined the name. An extension name is a URI ({{RFC3986}}, Section 3) under the definer's control when the name was minted; a definer without a domain can use a UUID URN ({{RFC9562}}). A name is an identifier: it is compared as a string, written as its definer published it, and never dereferenced. A consumer that implements a name's definition processes its value; a consumer that does not ignores the value and MUST NOT automatically dereference or execute anything within it. The definer publishes the definition wherever it chooses; no registry is defined. A later change of ownership, or the loss, of a domain in a name does not change the meaning of a document already published.
+
+## Upstream Declarations
+
+A target's figures commonly derive in part from what other providers deliver to it: hosting, cloud, content delivery, network transit, or electricity. The `upstream` member is an array of at least one object, each with a `declaration` member, a URI reference to that provider's declaration, and an OPTIONAL `role` member, a token such as `hosting`, `cloud`, `cdn`, `network`, or `electricity`. A provider that reports what it delivers to one customer publishes a declaration whose `target-type` is `tenant` and whose `target` is an identifier of its choosing, at any URI it chooses, for example a per-customer URI it gives that customer; its own `upstream` member, if any, names its sources in turn. What a consumer can conclude from an upstream declaration is described in {{evidence-and-upstream-consistency}}.
+
+## The signed Member
+
+The value of `signed` is a JSON Web Signature in the JWS Compact Serialization ({{RFC7515}}, Section 7.1) whose payload is the declaration object in which it appears, without the `signed` member, serialized as JSON by the publisher. In an array each signed object carries its own `signed` member. The JOSE Header MUST contain `alg` naming an asymmetric digital-signature algorithm; `Ed25519` ({{RFC9864}}, with the key representation of {{RFC8037}}) and `ES256` ({{RFC7518}}, Section 3.4) are RECOMMENDED, and `none` and MAC algorithms MUST NOT be used, since a consumer shares no secret with the publisher. The header MUST also contain `cty` ({{RFC7515}}, Section 4.1.10) with the value `sustainability-data+json`, which keeps the signature from being confused with a JWS produced for another purpose. The header SHOULD carry the verification key as `jwk` or `x5c`, so that verification needs nothing but the declaration; a publisher that distributes its key out of band MAY instead identify it with `kid`. A publisher regenerating an object regenerates its signature in the same step, so that the payload never differs from the object it accompanies. What a verified signature establishes is described in {{verifying-a-signature}}.
+
+## Formal Definition
+
+The structure of a declaration is described in CDDL {{RFC8610}}. Top-level members that this document does not define are ignored, as {{body}} says.
+
+~~~ cddl
+; Root: one declaration object, or an array of them
+sustainability-response =
+  sustainability-metrics / [* sustainability-metrics]
+
+sustainability-metrics = {
+  ; Mandatory members
+  updated: tstr,                  ; RFC 3339 date-time
+  capabilities: "basic" / "extended",
+  provider: tstr,
+  measurement-method: tstr,
+  methodology-uri: tstr,          ; URI reference
+  period: date-range,
+  target: tstr,                   ; what the object is about
+
+  ; Energy; when energy-unit is absent, kWh applies
+  ? energy-consumption: number,   ; non-negative
+  ? energy-unit: "Wh" / "kWh" / "MWh" / "GWh",
+
+  ; Carbon; when carbon-unit is absent, gCO2e applies
+  ? carbon-footprint: number,     ; non-negative
+  ? carbon-unit: "gCO2e" / "kgCO2e" / "mtCO2e",
+  ? carbon-accounting: "location-based" / "market-based",
+  ? scope-1: number,              ; in carbon-unit; may be negative
+  ? scope-2: number,
+  ? scope-3: number,
+
+  ; Other metrics
+  ? sci-score: number,            ; requires functional-unit
+  ? functional-unit: tstr,
+  ? carbon-intensity-gCO2e-per-kWh: number,
+  ? estimated-annual-emissions-kgCO2e: number,
+  ? renewable-energy: number,     ; 0 to 100
+
+  ; Classification, evidence, provenance
+  ? target-type: "origin" / "path" / "organization" / "service"
+               / "product" / "device" / "tenant" / "data-source",
+  ? verifiable-attestation-uri: tstr,  ; URI reference
+  ? disclosure-uri: tstr,              ; URI reference
+  ? upstream: [+ upstream-entry],
+  ? extensions: { * ext-name => { * tstr => any } },
+  ? signed: tstr,                 ; JWS Compact Serialization
+
+  ; Members a later revision may define; a consumer ignores them
+  * tstr => any
+}
+
+; Inclusive range of calendar days; end is not before start
+date-range = {
+  start: full-date,               ; RFC 3339 full-date
+  end: full-date,
+  * tstr => any
+}
+full-date = tstr .regexp "[0-9]{4}-[0-9]{2}-[0-9]{2}"
+
+upstream-entry = {
+  declaration: tstr,              ; URI reference
+  ? role: tstr,                   ; hosting, cloud, cdn, network, ...
+  * tstr => any
+}
+
+ext-name = tstr                   ; a URI, compared as a string
+~~~
+
+The regular expression is an I-Regexp ({{?RFC9485}}), a subset of the XSD regular expressions that the `.regexp` control of {{RFC8610}}, Section 3.8.3, uses.
+
+# Examples
+
+## An Organization's Yearly Figures
+
+Request: `GET /.well-known/sustainability-data`
+
+A static file written from the organization's annual report. It names the cloud provider whose tenant-scoped declaration covers what the organization consumed there, and carries two extensions: water and waste figures under an "https" name the organization defined, and one member defined by an industry group under a UUID URN.
+
+~~~ json
+{
+  "updated": "2026-02-15T08:00:00Z",
+  "capabilities": "basic",
+  "provider": "Acme Retail plc (sustainability@acme.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "/esg/methodology",
+  "period": { "start": "2025-01-01", "end": "2025-12-31" },
+  "target": "Acme Retail plc",
+  "target-type": "organization",
+  "energy-consumption": 2.4,
+  "energy-unit": "GWh",
+  "carbon-footprint": 610,
+  "carbon-unit": "mtCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 90,
+  "scope-2": 220,
+  "scope-3": 300,
+  "disclosure-uri": "https://acme.example/esg/disclosures",
+  "upstream": [
+    {
+      "declaration": "https://cloud.example/tenants/acme.json",
+      "role": "cloud"
+    }
+  ],
+  "extensions": {
+    "https://acme.example/esg/extensions/water-and-waste": {
+      "water-consumption-m3": 1250,
+      "waste-generated-kg": 340,
+      "waste-recycled-percent": 62
+    },
+    "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": {
+      "packaging-recycled-percent": 71
+    }
+  }
+}
+~~~
+
+The upstream's tenant-scoped declaration, retrieved from the URI above, has `"target-type": "tenant"` and `"target": "acme"`, and its `energy-consumption` and `carbon-footprint` are what the cloud provider states it delivered to that tenant in 2025.
+
+## A Year of Months
+
+Request: `GET /.well-known/sustainability-data?start=2025-01-01&end=2025-12-31&granularity=monthly`
+
+A publisher that holds monthly figures returns one object per month; two are shown. Without `granularity` the same publisher would also return the object for the whole year, if it holds one.
+
+~~~ json
+[
+  {
+    "updated": "2026-01-05T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "CloudProvider Ops (ops@example.com)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://example.com/methodology",
+    "period": { "start": "2025-01-01", "end": "2025-01-31" },
+    "target": "example.com",
+    "target-type": "origin",
+    "energy-consumption": 1100,
+    "energy-unit": "kWh",
+    "carbon-footprint": 302,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "location-based",
+    "renewable-energy": 45
+  },
+  {
+    "updated": "2026-01-05T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "CloudProvider Ops (ops@example.com)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://example.com/methodology",
+    "period": { "start": "2025-02-01", "end": "2025-02-28" },
+    "target": "example.com",
+    "target-type": "origin",
+    "energy-consumption": 1050,
+    "energy-unit": "kWh",
+    "carbon-footprint": 288,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "location-based",
+    "renewable-energy": 48
+  }
+]
+~~~
+
+## An Origin and One of Its Services
+
+Request: `GET /.well-known/sustainability-data`
+
+One array carries the origin and a service it measures separately, the API under the path prefix `/api/v1`, which `target-type` classifies as a `path`. The service's figures are the publisher's allocation of shared resources to that service ({{parts-of-an-origin}}); the methodology document says how. A request with `?target=/api/v1` would return an array holding the second object alone.
+
+~~~ json
+[
+  {
+    "updated": "2026-04-02T12:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "/sustainability/methodology",
+    "period": { "start": "2026-03-01", "end": "2026-03-31" },
+    "target": "example.com",
+    "target-type": "origin",
+    "energy-consumption": 46,
+    "energy-unit": "kWh",
+    "carbon-footprint": 12.7,
+    "carbon-unit": "kgCO2e"
+  },
+  {
+    "updated": "2026-04-02T12:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "/sustainability/methodology",
+    "period": { "start": "2026-03-01", "end": "2026-03-31" },
+    "target": "/api/v1",
+    "target-type": "path",
+    "energy-consumption": 31,
+    "energy-unit": "kWh",
+    "carbon-footprint": 8.6,
+    "carbon-unit": "kgCO2e",
+    "sci-score": 12,
+    "functional-unit": "per-thousand-requests"
+  }
+]
+~~~
+
+## A Signed Declaration with Scopes and an Attestation
+
+Request: `GET /.well-known/sustainability-data?target=/app/storage&start=2026-03-20&end=2026-03-20`
+
+The `signed` value is a JWS whose payload is this object without `signed`; it is elided here.
+
+~~~ json
+[
+  {
+    "updated": "2026-03-21T00:05:00Z",
+    "capabilities": "extended",
+    "provider": "Global Storage Inc. (compliance@storage.example)",
+    "measurement-method": "hardware-estimated",
+    "methodology-uri": "https://storage.example/methods",
+    "period": { "start": "2026-03-20", "end": "2026-03-20" },
+    "target": "/app/storage",
+    "target-type": "path",
+    "energy-consumption": 12,
+    "energy-unit": "kWh",
+    "carbon-footprint": 3.2,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "market-based",
+    "scope-1": 0.0,
+    "scope-2": 2.1,
+    "scope-3": 1.1,
+    "carbon-intensity-gCO2e-per-kWh": 175,
+    "estimated-annual-emissions-kgCO2e": 1168,
+    "renewable-energy": 45,
+    "verifiable-attestation-uri": "https://verify.example/vc/42",
+    "disclosure-uri": "https://storage.example/disclosures",
+    "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3Vz...(elided)"
+  }
+]
+~~~
+
+# The Nature of the Response
+
+## Self-Asserted Claims
+
+Every value in a declaration is a claim of the publisher of the origin that served the final response. Retrieval establishes that the origin published these claims and nothing more: a consumer MUST NOT treat the presence of a declaration, or of any member in it, as verification of a claim, and one that presents, stores, or forwards the data MUST NOT represent it as verified. These are processing rules on conforming consumers, not statements about what any party may conclude by other means. The declaration is a discovery mechanism: a consumer that needs evidence follows `methodology-uri`, `disclosure-uri`, `verifiable-attestation-uri`, and the `upstream` declarations, and checks claims against external sources when it matters.
+
+## Parts of an Origin
+
+Parts of one origin, such as a service, a path prefix, a device, or a product, can account for more or less of what it uses, and a publisher may measure or estimate each separately. Such an object's figures are the publisher's allocation of the origin's or the organization's resources to that part, by the method the methodology document describes. Parts need not add up to the whole, since infrastructure is shared and estimation intervenes, and a consumer does not assume that they do; an object for the whole and objects for its parts may be present together.
+
+## Periods and Freshness
+
+A period is what its two dates say, and no more. A year and its months are two views of the same figures, not additional ones. A consumer that wants a total adds `energy-consumption`, `carbon-footprint`, and the scope members, after conversion to one unit, across objects for one `target` whose periods do not overlap and that declare the same `carbon-accounting` value or none. A publisher whose accounting day does not start at midnight UTC states its boundary in the methodology document; for periods of a month or more the difference is immaterial. A reading is current for the freshness lifetime of the response that carried it ({{RFC9111}}, Section 4.2); a consumer that keeps it longer revalidates before relying on it, and presents the figures as covering their `period`, not as current.
+
+## Verifying a Signature
+
+A consumer that verifies `signed` MUST reject the member when `alg` is `none` or a MAC algorithm, when `cty` is absent or identifies any other media type, or when the header carries a `crit` parameter the consumer does not understand. It determines the acceptable algorithm from the key and its own policy, never from `alg` alone ({{RFC8725}}, Sections 3.1 and 3.2). On success it parses the payload as a JSON object and reads it as a declaration object; a consumer MUST treat the object as unverified when the payload is not one or when the payload's `target`, `period.start`, or `period.end` differs from the object's.
+
+What a verified payload is worth depends on how far the key is trusted. The payload's members take precedence over the members around them when the key was obtained out of band, pinned from an earlier retrieval, or validated through an `x5c` chain to an anchor the consumer already trusts, with an end-entity certificate that identifies the publisher ({{RFC9110}}, Section 4.3.4). "Out of band" means from a source the consumer chose independently of the declaration, never from a URI the declaration or its JOSE Header names. Any other key is trusted no further than the declaration carrying it, and the members served by the origin remain the ones the consumer uses. A key that arrives in its own header is as self-asserted as the metrics: whoever can publish the declaration can publish a key. A verified signature establishes integrity and, with pinning, continuity of authorship; it establishes nothing about accuracy ({{self-asserted-claims}}). An absent `signed` member means only that the publisher did not sign; a member that fails to verify leaves the object unverified, never false.
+
+## Evidence and Upstream Consistency
+
+The methodology document explains the figures. An attestation at `verifiable-attestation-uri` speaks to their authenticity only once the consumer has retrieved it and validated it against an issuer it trusts. `disclosure-uri` leads to the reports and certificates behind them.
+
+Where an upstream publishes a `tenant` declaration about what it delivers to this target, a consumer MAY compare the two for the same period after conversion to one unit. A target whose declared scope covers what the upstream delivers cannot have consumed less energy, or caused fewer emissions, than the upstream states it delivered, a shortfall within rounding aside. A smaller figure is an inconsistency between two claims, something to investigate and not a conformance failure. The comparison is limited: the format does not say whether a target's scope covers a given upstream, it carries no per-upstream share, and `carbon-footprint` is comparable only where both objects declare the same `carbon-accounting` value or neither does. A consumer that follows upstream declarations applies the bounds of {{security-considerations}}.
+
+# Security Considerations
+
+A declaration is meant for automated ingestion from an origin the consumer does not control. The threats, and what answers each:
+
+* spoofing: mandatory HTTPS, taking a declaration as a claim of the publisher of the origin that served the final response, and the `signed` member;
+* tampering: HTTPS, the registered media type, and the signature;
+* false or selective figures: the methodology link, the attestation channel, and the rule that a consumer never labels a claim as verified ({{self-asserted-claims}});
+* disclosure through the figures: {{privacy-considerations}}.
+
+Nothing here makes a published figure true: an attacker who controls DNS, the certificate, or the origin can publish false data, and key pinning is the only defense against such an attacker removing signatures. A publisher behind a content delivery network or reverse proxy serves the bytes it produced unchanged, content codings aside, since an intermediary that rewrites the data invalidates any `signed` member.
+
+A consumer:
+
+* SHOULD bound the time, size, and redirects of every fetch, dereference only "https" references, and refuse URIs that resolve to private or link-local addresses;
+* MUST limit the bytes and objects it accepts and treat an excess as an error;
+* SHOULD parse with a JSON parser hardened against untrusted input ({{RFC8259}}, Section 12) and treat every value as data; one whose parser exposes duplicate member names SHOULD reject an object containing them;
+* that follows upstream declarations MUST NOT go deeper than three declarations below the one it started from, MUST refuse any URI it has already retrieved during the walk, and MUST bound the total number of retrievals in one walk.
+
+A server that computes responses to query parameters on demand SHOULD rate-limit requests to the well-known URI and SHOULD cache what it computes.
+
+## Privacy Considerations
+
+A declaration is readable by whoever the publisher lets retrieve it. Energy and utilization figures can reveal capacity and load patterns, precise metrics can reveal hardware, per-part objects reveal which services and paths exist, and contact strings can carry personal data. The publisher decides what to publish and at what aggregation. A period is a day or longer ({{mandatory-members}}), and real-time telemetry is NOT RECOMMENDED. A publisher MAY perturb the published values by multiplicative noise within 1% of the true values to blunt hardware fingerprinting. Noise is applied once, at generation time, deterministically per period, and consistently across arithmetically related members, including any annualized or derived member, so that ratios are preserved and no unperturbed member discloses a perturbed one. The methodology document states that noise is applied and bounds its magnitude. A publisher SHOULD aggregate or omit any metric that could be linked to individual users or small groups, and SHOULD use a role rather than a personal contact address in `provider`.
+
+# Internationalization Considerations
+
+A declaration is JSON and therefore UTF-8 ({{RFC8259}}, Section 8.1). The following are protocol elements: member names, the values of the enumerated members, the RECOMMENDED `measurement-method` tokens, the `role` tokens, extension names (ASCII URIs, never IRIs), `functional-unit`, the date members, the URI-valued members, and `signed`. They are compared octet-for-octet where this document compares them, and never case-folded, normalized, translated, or localized. Where `target` is a host name it is compared case-insensitively ({{RFC3986}}, Section 3.2.2), and an internationalized host is given in A-label form ({{?RFC5890}}, Section 2.3.2.1). The value of `provider`, a `measurement-method` value outside the RECOMMENDED set, and human-readable values within `extensions` are text. Their language is conveyed at the HTTP layer by `Content-Language` ({{RFC9110}}, Section 8.5). A consumer that displays such text SHOULD render it under the Unicode Bidirectional Algorithm {{UAX9}} and isolate it from surrounding text. No in-document language-tagging mechanism is defined.
+
+# IANA Considerations
+
+## Well-Known URI Registration
+
+IANA is requested to register the following entry in the "Well-Known URIs" registry, per {{RFC8615}}, Section 3.1:
+
+* **URI Suffix**: sustainability-data
+* **Change Controller**: Andrei Nicolae Besleaga (andrei.besleaga@ieee.org)
+* **Specification Document(s)**: This document.
+* **Status**: provisional
+* **Related Information**: Used with the "https" URI scheme. The resource is an `application/sustainability-data+json` document, described in CDDL {{RFC8610}} in the specification, and accepts the optional query parameters `target`, `start`, `end`, and `granularity`, defined in the specification.
+
+The suffix names the data the resource carries, not the topic of sustainability at large ({{RFC8615}}, Section 3). Provisional status is requested, as {{RFC8615}}, Section 3.1, directs for a document that is not an open standard.
+
+## Media Type Registration
+
+IANA is requested to register `application/sustainability-data+json` in the "Media Types" registry, in the standards tree, per {{RFC6838}}; the "+json" suffix is registered in {{RFC6839}}, Section 3.1. As an Independent Submission, this document requests the standards-tree registration subject to IESG approval under {{RFC6838}}, Section 3.1, as {{?RFC7351}}, {{?RFC7903}}, {{?RFC8351}}, and {{?RFC9230}} did; change control is assigned to the IETF. The security analysis that {{RFC6838}}, Section 4.6, requires is in the "Security considerations" field below and in full in {{security-considerations}} of this document.
+
+* **Type name**: application
+* **Subtype name**: sustainability-data+json
+* **Required parameters**: N/A
+* **Optional parameters**: N/A
+* **Encoding considerations**: binary. Documents are JSON text encoded in UTF-8 ({{RFC8259}}, Section 8.1); publishers follow I-JSON {{RFC7493}}.
+* **Security considerations**: Documents of this type are JSON text and inherit the security considerations of JSON ({{RFC8259}}, Section 12), notably the parsing of untrusted input and the implementation-dependent handling of duplicate member names and of numbers outside IEEE 754 double precision. The format carries no active content. Its URI-valued members may be dereferenced, which exposes a consumer to server-side request forgery and redirect-based attacks; the specification directs consumers to bound and restrict such retrieval. The names that key its `extensions` member are identifiers and are never dereferenced. The content is self-asserted and carries no assurance of accuracy; misrepresentation is the principal content-level risk, mitigated only by a mandatory link to a methodology and by channels to third-party attestation, and consumers must not treat an instance as verified. Instances can reveal infrastructure characteristics or traffic patterns and can carry personal data in contact strings; the specification directs publishers to aggregate and bounds the period to a day or longer. An OPTIONAL embedded JWS {{RFC7515}} provides integrity outside the TLS session, with this media type as its `cty`; it does not establish accuracy. The full analysis is in the Security Considerations of the specification.
+* **Interoperability considerations**: The structure of an instance is described in CDDL {{RFC8610}} in the specification; consumers ignore top-level members they do not recognize. Publishers follow I-JSON {{RFC7493}}; generic JSON parsers differ in their treatment of duplicate names and of large or high-precision numbers.
+* **Published specification**: This document.
+* **Applications that use this media type**: Publishers of environmental-impact, energy, and carbon-footprint declarations; clients, aggregators, procurement and reporting tools, and automated agents that retrieve them from the "/.well-known/sustainability-data" URI. The type also names, in the `cty` header parameter, the payload of the embedded signature the specification defines.
+* **Fragment identifier considerations**: As specified for "application/json" ({{RFC6839}}, Section 3.1).
+* **Additional information**: Deprecated alias names: N/A. Magic number(s): N/A. File extension(s): .json. Macintosh file type code(s): TEXT.
+* **Person & email address to contact for further information**: Andrei Nicolae Besleaga (andrei.besleaga@ieee.org)
+* **Intended usage**: COMMON
+* **Restrictions on usage**: None.
+* **Author**: Andrei Nicolae Besleaga (andrei.besleaga@ieee.org)
+* **Change controller**: IETF
+* **Provisional registration?**: No
+
+# Acknowledgments
+
+The author thanks those who reviewed earlier revisions of this document.
+
+--- back
+
+# Worked Example: A Live Deployment
+
+This appendix walks through one deployment of this specification, from figures to verified retrieval.
+
+1. **Figures.** A small hosted service has no metering. It multiplies an average draw for its container (an assumed 3 W, or the platform's reported average where available) by the hours in the completed month and converts with a published national grid intensity (245 gCO2e/kWh). The draw is assumed or estimated and the conversion is a model, so `measurement-method` is `third-party-modeled`; the methodology document states the formula, the basis of each month's draw, the intensity source, and what is not covered.
+2. **Declaration.** The object for the last completed month carries `target` (an identifier of the service), `target-type` `service`, `capabilities` `extended` (it also answers `?start=` and `?end=` with its months), a `disclosure-uri` and a `verifiable-attestation-uri`. The platform publishes no declaration, so there is no `upstream` member and the methodology document says so.
+3. **Signing.** The publisher signs the serialized object with an Ed25519 key (`alg` `Ed25519`, `cty` `sustainability-data+json`, the public key as `jwk`) and inserts the result as `signed`; each object of the monthly array likewise.
+4. **Serving.** `/.well-known/sustainability-data` over HTTPS, with `Content-Type: application/sustainability-data+json`, `Cache-Control: max-age=3600`, and an `ETag`.
+5. **Attestation.** An issuer that has reviewed the methodology and the figures issues a verifiable credential {{VC-DATA-MODEL-2}}, signed with a key it publishes and served at the `verifiable-attestation-uri`. Its `credentialSubject` carries the derivation model, its constants and formulas, and the entered months; it is re-issued when any of them changes. Here the issuer is not independent of the publisher; the credential says so, and a consumer records the attestation as no stronger than that relationship allows.
+6. **Retrieval.** A consumer fetches the declaration, verifies `signed` with the pinned key, fetches and verifies the credential, and recomputes the figures from its model. It records: a claim of the origin; integrity verified; attested by that issuer; accuracy unknown.
+7. **Static variant.** An organization with a yearly report writes the object by hand, or produces it with an offline tool that signs and writes one file, and uploads it.
+
+# Implementation Status
+
+> \[Note to the RFC Editor: please remove this appendix and the reference to RFC 7942 before publication.]
+
+This appendix records the status of known implementations of the format defined by this document at the time of posting of this Internet-Draft, and is based on a proposal described in {{RFC7942}}. The description of implementations in this appendix is intended to assist the Independent Submissions Editor in the publication decision. The listing of any individual implementation here does not imply endorsement. The information here was supplied by the author and has not been verified by anyone else. This is not intended as, and must not be construed to be, a catalog of available implementations or their features. Readers are advised to note that other implementations may exist.
+
+## Software
+
+* Publisher (`sustainability-wellknown-publisher`, npm; BSD-3-Clause): builds, signs and serves declarations from a Node.js HTTP server, with an offline signing tool for static hosts; every member, the query parameters and `signed`.
+* Consumer (`sustainability-wellknown-consumer`, npm; BSD-3-Clause): retrieves declarations, verifies `signed`, follows `upstream` within the bounds of this document, verifies attestations, and runs a conformance battery against an origin.
+* Validators: a CDDL validator and a JSON Type Definition validator, on different libraries, run in continuous integration against the repository's examples and daily against every listed origin.
+* Reference gateway (BSD-3-Clause): publishes its own signed and attested declaration, relays declarations for third-party targets, and offers a public check of any origin's declaration.
+* Deployment kit (BSD-3-Clause except where noted): configuration for widely used web servers, hosting platforms and application frameworks, ten of them started and validated against the consumer in continuous integration and the others reviewed by hand; a WordPress plugin (GPLv2 or later); a one-click publisher; an initializer.
+
+The software is at <https://github.com/andreibesleaga/rfc-sustainability-wellknown>, with a behavior test suite that cites the normative sentences of this document. Maturity: production use on the origins listed below, by the author only. Coverage: at the posting of this revision the software implements the -08 format (`reporting-period` as a calendar string, absolute URIs, server-side aggregation); the update to this revision's `period` object, URI references, and range queries is in progress, and the consumer will read both forms. Contact: the author. No implementation maintained by another party is known.
+
+## Deployments
+
+All origins below are operated by the author, which shows that deployment is inexpensive and nothing more; no deployment by another party is known at the time of posting. Each is listed in the repository's machine-readable list and checked daily by a public workflow for the media type and the schema. At the posting of this revision they serve the -08 format ({{software}}); the deployment that {{worked-example-a-live-deployment}} describes answers `?period=` and `?granularity=` until that update is deployed.
+
+* <https://sustainability.up.railway.app>: the reference gateway; signed; serving since 2026-07.
+* <https://andreibesleaga.com>: a static file signed offline with the publisher's tool; serving since 2026-07.
+
+# Changelog
+
+> \[Note to the RFC Editor: please remove this appendix before publication.]
+
+## Since -08
+
+This revision changes the wire format and restructures the document, in answer to the Independent Submissions Editor's comments on -08 and the ART-area early review of -07. A -08 document is not a valid -09 document: the `reporting-period` member is replaced by `period`.
+
+Wire format:
+
+* `reporting-period` (a calendar string `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`) is replaced by `period`, an object with `start` and `end`, each an RFC 3339 `full-date`, inclusive, so that any reporting year can be written and every date in the document is an RFC 3339 production. Whole calendar years and months remain RECOMMENDED. The UTC rule and the rule to publish a non-calendar year as its months are gone.
+* The `period` query parameter is replaced by `start` and `end`; `granularity` remains, as a filter on whole calendar years, months, or days (`yearly` is new). A server returns the objects it holds that overlap the range and never computes an aggregate; the aggregation procedure, the parsing procedure, the `400` and `404` rules, and the rule that an array has one target and one precision are gone. Objects of one array may cover different targets of the origin and may overlap; `target` selects by exact match, and the rule to publish the honored prefix set in the methodology document is gone with the prefix matching.
+* `methodology-uri`, `verifiable-attestation-uri`, `disclosure-uri`, and `upstream[].declaration` are URI references resolved against the retrieval URI, instead of absolute "https" URIs; a party that relays a declaration keeps the retrieval URI. Extension names are URIs compared as strings; the lowercase-scheme rule and the UUID-case rules are gone.
+* The consumer tolerance rules of -08 Section 2.5.3, and every statement about validating against the schemas, are removed; the JSON Type Definition schema leaves the document and remains in the repository as a validator's input; the CDDL describes the object with an open map.
+* The statements that the declaration is public data retrieved without authentication, the `Access-Control-Allow-Origin` recommendation, the `Accept` header field recommendation, the HEAD method sentence, the redirect rules, the cache-key advice, and the `Content-Language` negotiation rules are removed; access control and caching are the publisher's to configure under RFC 9110 and RFC 9111.
+* `capabilities` is kept, with `basic` meaning that the server supports no query parameter.
+* In answer to the ART-area reviewer's further comments on -08: the defined term is now *target*, the same word as the member, and *subject* is gone; the Origin entry also cites RFC 6454; the HTTPS rule is one sentence on publication and retrieval, with no mention of authentication; the partial-answer rule carries MUST NOT; the methodology document is described as written for people, and the list of what it holds is shortened; the word "attribute" is replaced by "a claim of the publisher of the origin that served the final response"; a path-prefix `target` value is noted to begin with "/"; the regular expression in the CDDL is noted to be an I-Regexp (RFC 9485). Earlier revisions avoided wire changes while the author's deployments ran; this revision changes the wire at the Editor's direction, and the author's software follows it.
+* The RECOMMENDED signature algorithm identifier is `Ed25519` (RFC 9864), which replaces `EdDSA`, deprecated by that RFC; the key and the signature are the same. `carbon-accounting` cites the GHG Protocol Scope 2 Guidance, which defines its two values; a consumer that totals figures adds only objects for one target with the same accounting method.
+* An empty array is a valid body, returned where a query selects nothing; -08 required at least one object. The exclusion of the Nil and Max UUIDs from extension names goes with the UUID-case rules. A publisher still adds no top-level member this document does not define.
+
+Structure: the document now has four parts, as the Editor described: the well-known URI and its query parameters (Section 2), the declaration (Section 3), the nature of the response (Section 5, which absorbs the former Roles and Processing Model, Operational Considerations, the verification and "what a signature proves" parts of Signing, and Trust and Spoofing), and IANA Considerations, with Security, Privacy and Internationalization Considerations kept short. Section 5.2 answers the Editor's question on origin granularity. The introduction leads with the organization that already reports. Examples lead with an organization's yearly file and add an origin with one of its services. Measured from the Introduction to the References in the rendered text, page headers excluded, the body is about a third shorter than -08 and carries fewer than half of its sentences with a BCP 14 keyword. Also removed or merged: the path-scoped one-day example; Goals and Non-Goals (folded into the Introduction) and Relationship to Other Work (removed, with its references); the Terminology entry for the Basic response; the separate Privacy Considerations section (now a subsection of Security Considerations); the `Accept` recommendation, the recommendation that a verifier implement both signature algorithms, the Normalization Form C recommendation, and the `Content-Language` negotiation rules; the noise rules and the intermediary rule keep their substance without BCP 14 keywords. References no longer cited are dropped, and RFC 9562 becomes informative. Appendix A follows the new parameters; Appendix B records that the software still implements -08.
+
+## Since -07
+
+This revision changes no member, no schema, no media type and no registration (the Security and Interoperability considerations fields of the media-type template, and the paragraph after the well-known entry, are shortened without change of substance): every -07 document is a valid -08 document and every -07 publisher and consumer conforms unchanged.
+
+* An Implementation Status appendix, after {{RFC7942}}, replaces the Implementations appendix.
+* The worked example is brought in line with the live deployment it describes: a platform-reported draw where available, a national grid intensity, and a credential that names the months whose draw was entered and is re-issued when its model changes.
+* The Digital Impacts Schema and Taxonomy is mentioned next to carbon.txt as a related, complementary convention.
+* Two sentences lose their BCP 14 keyword because they stated no observable behavior (partial-subject presentation, consumer cross-checking), and the sentence on aggregator practice is removed for the same reason; the intermediary sentence in Operational Considerations keeps its MUST and now says that the representation data is served unchanged, content codings aside; a sentence assigning GHG Protocol scopes to upstream figures is removed as accounting guidance outside this document's scope. No member, schema, media type or conformance condition changes.
+* In answer to the ART-area early review of -07: the terms formerly listed under URI Definition are defined in Terminology, beside the BCP 14 text, after the model of RFC 9116, and the Origin entry defers to RFC 9110, Section 4.3.1; the defined term is *subject* (formerly *reporting subject*), and the `target` member is unchanged.
+* Mandatory Minimum Supported Service no longer restates RFC 9110: the sentences on HEAD, on 404, on 401/403/429, on 405 with Allow, and on the permission to redirect are replaced by a citation, and a consumer handles an unexpected status code by its class (RFC 9205, Section 4.6). The media-type sentence loses its MUST NOT clause, which restated the MUST; the HTTPS, Accept, CORS and redirect-attribution rules are unchanged in substance. The lead sentence states that this document uses only the GET and HEAD methods; the first bullet no longer promises a status code for every response (RFC 9205, Section 3.1); the Terminology entry for *server* states, in one clause, that a declaration is attributed to an origin while a server is whatever answers the request.
+* Extended Query Parameters loses the ABNF rules for the query envelope (the per-parameter rules remain) and a rationale sentence; the statement that this grammar, not RFC 3986, forbids a bare "&" or "=" in a `target` value is corrected; the origin cache-key rule is stated once, in Operational Considerations; the reason the honored `target` prefix set is not carried in-band is corrected.
+* Payload Format states that the body is a single JSON text whose value is one object or one JSON array, and states in one place that an unrecognized top-level member is a publisher non-conformance which a consumer ignores and never treats as an error (RFC 7493, Section 4.2); the ignore step of the processing model is folded into its validation step.
+* The `target` definition is split so that the prohibition governs only translation and transliteration, with the octet-for-octet comparison and the host-name exception stated separately; `methodology-uri` is stated to identify a human-readable document in any format on which no consumer behavior depends; the absolute-URI rule carries its reason; `target-type` is now the first optional member and is cross-referenced from its earlier uses, and remains optional; the extension-name sentence cites RFC 3986, Section 4.3 instead of restating it.
+* The sentence on figures covering part of the declared subject is kept in plain language in Partial Knowledge and Incremental Adoption.
+* Operational Considerations states for how long a reading is current (the freshness lifetime of the response), answering a question from the review of -05. The list of what the methodology document holds gains the extension names used (already a SHOULD in Extensions). The replaced predecessor series is corrected to -00 to -04, as the Datatracker lists it.
+* The term *server* is defined in Terminology; the period paragraph of Extended Query Parameters says that a consumer reads a period as UTC and that a publisher states differing accounting boundaries in the methodology document; Denial of Service notes that the parameter space is bounded by construction; the aggregation procedure drops its rationale clauses and step 7 names the header fields it repeats; the Implementation Status appendix carries the RFC 7942 fields and lists seven origins.
+* Two examples are removed (the basic response, which the Introduction already shows, and the default-units example, whose rule Optional Members states); the repository keeps the default-units example and basic single-object examples. Relationship to Other Work, Value Constraints, Extensions, Upstream Declarations, Signing, Security, Appendix A and the Implementation Status appendix are condensed.
+* The Abstract and the body are shortened throughout without removing a requirement: measured on the rendered text from the Introduction to the References, without page headers, the body is about ten percent shorter than -07; the behavior-test suite traces 96 normative sentences against 97: the five restated HTTP rules, the aggregator sentence and the partial-subject sentence lose their id, three long sentences (redirect attribution, URI-valued members, noise) are split into eight, and the partial-subject sentence joins the hand-kept keyword-less list. Long sentences in Payload Format, Extensions, Signing, Security, Privacy and Internationalization are split or set as lists with their keywords kept; the sentences that were cut are preserved in the repository's revision history. The Privacy Considerations name the publisher, not the server, as the party that chooses granularity and noise.
+
+## Since -06
+
+* One registered resource: the companion signature suffix "sustainability-data.jws" and the detached signature are withdrawn. The signature is now the OPTIONAL `signed` member embedded in each declaration object, a JWS over the object itself, typed by `cty` with the existing media type.
+* The `version` member is removed; the media type identifies the format. Seven members are mandatory.
+* Extension members are no longer top-level reverse-domain names: that form is withdrawn. They live under `extensions`, keyed by an absolute URI, in practice an "https" URI under the definer's control when the name was minted or a `urn:uuid` name, and the top-level member set is closed. A URI is used rather than a reverse-domain name because it is a collision-resistant name in the sense of RFC 7519, Section 2, and because a name is an identifier compared as a string, so a later change of domain ownership does not change what an existing document means; the `urn:uuid` form exists for a definer that has no domain.
+* New OPTIONAL `upstream` member linking to the declarations of providers a subject's figures derive from, with tenant-scoped upstream declarations and a bounded consumer comparison.
+* A declaration object MUST carry at least one numeric metric or one evidence link; the conditions on the retrievability of the methodology resource are removed.
+* Extended Query Parameters now specify the syntax in ABNF and the processing as a numbered procedure; a repeated parameter, or a `period` that is malformed or names no real calendar date, receives 400, while an unusable `granularity` is ignored and an unmatched `target` receives 404.
+* The server-side array cap is removed in favor of a consumer-side bound.
+* The `Accept` header field and the processing of `Content-Type` values are specified separately. The `X-Content-Type-Options` recommendation is removed. Access control is stated to be outside the scope of this document, and a server MAY restrict access. The duplicate-member-name rule now binds a consumer whose parser exposes duplicates, and one whose parser does not applies its resolution consistently and states which it is. The tolerance rules are stated to be exhaustive.
+* Text that stated that publication is voluntary, that referred to IETF or IRTF groups, or that explained design rationale is removed; Security Considerations is condensed; a worked deployment example is added as an appendix.
+* Verification of `signed` is specified: a consumer rejects `alg` `none` or a MAC algorithm, an absent or foreign `cty`, and a `crit` parameter it does not understand, and treats the object as unverified when the payload is not a declaration object or when the payload's `target` or `reporting-period` differs from the object's. Precedence between the payload and the surrounding members is conditional on how far the key is trusted: a key obtained out of band, pinned from an earlier retrieval, or validated through an `x5c` chain to an already-trusted anchor gives the payload precedence, while a key trusted no further than the declaration that carries it leaves the members served by the origin as the ones the consumer uses.
+* The Basic response is no longer required to be a single JSON object, and the rules that it MUST cover the most recently completed reporting period and the full declared reporting subject are gone; what remains is the Partial Knowledge rule that figures covering part of a declared subject MUST NOT be presented as the whole.
+* A consumer that follows a redirect to another origin MUST NOT record the result as a declaration of the origin it queried unless the object's `target` names that origin.
+* A defective `capabilities` value is now read as `basic`, rather than disregarded in favor of observed server behavior; the tolerance rules otherwise apply to OPTIONAL members only.
+* The anti-fingerprinting noise rules are tightened: noise MUST also be consistent across annualized and otherwise derived members, and the methodology document MUST state that noise is applied and bound its magnitude, where -06 only SHOULD have disclosed it.
+* The separate Interoperability and Deployment sections and the "Alternatives Considered" discussion are removed; the deployment material that remains is in Operational Considerations, and an Implementations appendix, marked for removal before publication, records the three reference implementations.
+* Two requirements a -06 implementer must act on: a publisher MUST NOT emit a numeric value that a receiver cannot represent as a finite number, and a consumer that promotes an `x5c`-validated key MUST require that the certificate identify the publisher.
+* Rules stated for the first time in this revision: a server that honors `target` MUST publish the set of prefixes it honors in the document identified by `methodology-uri`, and SHOULD make an unmatched value indistinguishable from a no-data response; a declaration carries at most one `verifiable-attestation-uri`, and a subject with more than one attestation links an index of them from `disclosure-uri`; where scope members accompany `carbon-footprint` for the same period they SHOULD account for it; and pinning a key establishes continuity of authorship, not identity, which is what the precedence rule rests on.
+
+## Earlier revisions
+
+-06 (2026-09-10) added mandatory HTTPS, the dedicated media type, and a detached signature; -05 (2026-07-28) added Internationalization Considerations and format-agnostic disclosure links; -04 renamed the suffix to "sustainability-data" and added `target-type`; -03 reworked the data model around member omission and a mandatory `target`; -00 to -02 were the first revisions under the present name; the document replaces draft-besleaga-green-sustainability-wellknown, whose revisions -00 to -04 preceded it.

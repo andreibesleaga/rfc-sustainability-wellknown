@@ -348,7 +348,7 @@ describe("closed base object, URI-keyed extensions", () => {
       { name: "x", capabilities: "extended", fetch: async () => okRaw({ extra: { "x-vendor": 1 } }) },
       { cacheTtlMs: 0 },
     );
-    await expect(pub.getDocument()).rejects.toThrow(/unknown top-level member.*"x-vendor"/s);
+    await expect(pub.getDocument()).rejects.toThrow(/undefined top-level member.*"x-vendor"/s);
   });
 
   it("still rejects a document missing a mandatory member", () => {

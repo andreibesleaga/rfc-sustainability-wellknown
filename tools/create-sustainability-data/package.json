@@ -1,13 +1,37 @@
 {
   "name": "create-sustainability-data",
-  "version": "0.1.0",
-  "description": "Answer seven questions, get a conformant /.well-known/sustainability-data file and the configuration for your host (Cloudflare Pages, Netlify, Vercel, nginx, Apache, Caddy, or a plain file).",
+  "version": "0.2.0",
+  "description": "Answer a few questions, get a conformant /.well-known/sustainability-data file (signed with Ed25519 if you give a key) and the configuration for your host (Cloudflare Pages, Netlify, Vercel, nginx, Apache, Caddy, or a plain file).",
   "license": "BSD-3-Clause",
   "type": "module",
-  "bin": { "create-sustainability-data": "bin/create.mjs" },
-  "files": ["bin", "README.md", "LICENSE"],
-  "engines": { "node": ">=22.12" },
-  "scripts": { "test": "node --test test/*.test.mjs" },
-  "keywords": ["sustainability", "well-known", "carbon", "energy", "esg"],
-  "repository": { "type": "git", "url": "https://github.com/andreibesleaga/rfc-sustainability-wellknown", "directory": "tools/create-sustainability-data" }
+  "bin": {
+    "create-sustainability-data": "bin/create.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": [
+    "sustainability",
+    "well-known",
+    "carbon",
+    "energy",
+    "esg"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andreibesleaga/rfc-sustainability-wellknown",
+    "directory": "tools/create-sustainability-data"
+  },
+  "dependencies": {
+    "sustainability-wellknown-publisher": "^0.8.0"
+  }
 }

@@ -1,18 +1,29 @@
 <?php
 /**
- * Tests for security.php (plain PHP asserts, zero dependencies).
+ * Tests for security.php (plain PHP checks, zero dependencies).
  * Run: php test_security.php
  */
 
 // security.php sends a header() at include time; harmless under CLI SAPI.
 require __DIR__ . '/security.php';
 
-function entry(string $period, float $energy = 10.0, float $carbon = 100.0, array $extra = []): array {
+function day(string $start, string $end, string $target = 'example.com', array $extra = []): array {
     return array_merge([
-        'reporting-period' => $period,
-        'energy-consumption' => $energy,
-        'carbon-footprint' => $carbon,
+        'period' => ['start' => "{$start}T00:00:00Z", 'end' => "{$end}T00:00:00Z"],
+        'target' => $target,
+        'energy-consumption' => 100,
+        'carbon-footprint' => 300,
     ], $extra);
+}
+
+function sixHours(): array {
+    $object = day('2026-01-01', '2026-01-02');
+    $object['period']['end'] = '2026-01-01T06:00:00Z';
+    return $object;
+}
+
+function starts(array $objects): array {
+    return array_map(fn ($o) => $o['period']['start'], $objects);
 }
 
 $passed = 0;
@@ -29,48 +40,113 @@ function check(string $name, bool $ok): void {
     }
 }
 
-$out = secureSustainabilityReport([entry('2026-03'), entry('2026-01'), entry('2026-02')]);
-check('sorts ascending by reporting-period', array_column($out, 'reporting-period') === ['2026-01', '2026-02', '2026-03']);
+function throws(callable $fn): bool {
+    try {
+        $fn();
+    } catch (InvalidArgumentException $e) {
+        return true;
+    }
+    return false;
+}
 
-$subdaily = entry('2026-01-01T12:00:00Z');
-$daily = [entry('2026-01-01'), entry('2026-02-01')];
-$out = secureSustainabilityReport(array_merge([$subdaily], $daily));
-check('drops sub-daily entries before capping', count($out) === 2);
+$plusFive = day('2026-03-01', '2026-03-02');
+$plusFive['period'] = ['start' => '2026-03-01T00:00:00+05:00', 'end' => '2026-03-02T00:00:00+05:00'];
+$out = secureSustainabilityReport([day('2026-03-01', '2026-03-02'), $plusFive, day('2026-02-01', '2026-02-02')]);
+check('sorts by the instant of period.start, whatever the offsets',
+    starts($out) === ['2026-02-01T00:00:00Z', '2026-03-01T00:00:00+05:00', '2026-03-01T00:00:00Z']);
+
+$out = secureSustainabilityReport([
+    day('2026-01-01', '2026-02-01', '/b'),
+    day('2026-01-01', '2026-01-02', '/z'),
+    day('2026-01-01', '2026-02-01', '/a'),
+]);
+check('ties on start go by end, then by target',
+    array_map(fn ($o) => $o['target'] . '|' . $o['period']['end'], $out)
+    === ['/z|2026-01-02T00:00:00Z', '/a|2026-02-01T00:00:00Z', '/b|2026-02-01T00:00:00Z']);
+
+$warnings = [];
+$out = secureSustainabilityReport([sixHours(), day('2026-01-02', '2026-01-03')], ['onWarning' => function ($m) use (&$warnings) { $warnings[] = $m; }]);
+check('day floor drops by default, with a warning', starts($out) === ['2026-01-02T00:00:00Z'] && count($warnings) === 1);
+
+$warnings = [];
+$collect = function ($m) use (&$warnings) { $warnings[] = $m; };
+$kept = count(secureSustainabilityReport([sixHours()], ['dayFloor' => 'warn', 'onWarning' => $collect]));
+$afterWarn = count($warnings);
+$silent = count(secureSustainabilityReport([sixHours()], ['dayFloor' => 'off', 'onWarning' => $collect]));
+check('day floor warn keeps and off keeps silently', $kept === 1 && $afterWarn === 1 && $silent === 1 && count($warnings) === 1);
+
+check('a 23-hour day of a daylight-saving change is a calendar day',
+    isOnDayBoundaries(['start' => '2026-03-29T00:00:00+01:00', 'end' => '2026-03-30T00:00:00+02:00'])
+    && !isOnDayBoundaries(['start' => '2026-03-29T01:00:00+01:00', 'end' => '2026-03-30T01:00:00+02:00']));
 
 $data = [];
+$first = new DateTimeImmutable('2025-01-01', new DateTimeZone('UTC'));
 for ($i = 0; $i < 400; $i++) {
-    $year = 2020 + intdiv($i, 365);
-    $month = intdiv($i % 365, 30) + 1;
-    $day = ($i % 28) + 1;
-    $data[] = entry(sprintf('%04d-%02d-%02d', $year, $month, $day));
+    $data[] = day($first->modify("+$i day")->format('Y-m-d'), $first->modify('+' . ($i + 1) . ' day')->format('Y-m-d'));
 }
-$out = secureSustainabilityReport($data);
-check('caps at 366 keeping most recent', count($out) <= 366);
+$out = secureSustainabilityReport(array_merge([sixHours()], $data));
+check('caps at 366 keeping the most recent, after the day floor',
+    count($out) === 366 && $out[365]['period']['start'] === '2026-02-04T00:00:00Z');
 
-$data = [entry('2026-01'), entry('2026-02')];
-check('deterministic across calls', secureSustainabilityReport($data) === secureSustainabilityReport($data));
+$out = secureSustainabilityReport([day('2026-01-01', '2026-01-02')]);
+check('values are exact unless noise is turned on', $out[0]['energy-consumption'] === 100);
 
-$out = secureSustainabilityReport([entry('2026-01', 100.0, 1000.0)]);
-check('noise bounded within ~1%', $out[0]['energy-consumption'] >= 99.0 && $out[0]['energy-consumption'] <= 101.0
-    && $out[0]['carbon-footprint'] >= 990.0 && $out[0]['carbon-footprint'] <= 1010.0);
+check('noise needs the operator\'s confirmation that it is disclosed',
+    throws(fn () => secureSustainabilityReport([], ['applyNoise' => true])));
 
-// -03: no "not reported" sentinel; scope values MAY legitimately be negative
-// (removals / net accounting) and are noised like any other value —
-// multiplication preserves the sign and the sums.
-$out = secureSustainabilityReport([entry('2026-01', 100.0, 300.0, ['scope-1' => -50.0, 'scope-2' => 250.0, 'scope-3' => 100.0])]);
-$fuzz = fuzzFactorFor('2026-01');
-check('negative scope is noised and sign preserved',
-    $fuzz !== 1.0 // guard: noise is observable for this period
-    && $out[0]['scope-1'] === round(-50.0 * $fuzz, 2)
-    && $out[0]['scope-1'] !== -50.0 // noise was applied
-    && $out[0]['scope-1'] < 0 // sign preserved
-    && abs(($out[0]['scope-1'] + $out[0]['scope-2'] + $out[0]['scope-3']) - $out[0]['carbon-footprint']) < 0.05);
+$object = day('2026-01-01', '2026-02-01', 'example.com', [
+    'scope-1' => -50, 'scope-2' => 250, 'scope-3' => 100,
+    'estimated-annual-emissions-kgCO2e' => 3650, 'sci-score' => 2,
+    'carbon-intensity-gCO2e-per-kWh' => 270, 'renewable-energy' => 100,
+]);
+$out = secureSustainabilityReport([$object], ['applyNoise' => true, 'noiseDisclosed' => true])[0];
+$fuzz = fuzzFactorFor(canonicalKey($object['period']));
+$moved = true;
+foreach (NOISE_MEMBERS as $member) {
+    $moved = $moved && $out[$member] === (float)sprintf('%.5e', $object[$member] * $fuzz);
+}
+check('one factor within 1% moves every perturbed member, ratios and percentages stay',
+    $fuzz >= 0.99 && $fuzz <= 1.01 && $moved && $out['scope-1'] < 0
+    && $out['carbon-intensity-gCO2e-per-kWh'] === 270 && $out['renewable-energy'] === 100);
 
-$out = secureSustainabilityReport([entry('2026-01', 10.0, 300.0, ['scope-1' => 100.0, 'scope-2' => 100.0, 'scope-3' => 100.0])]);
-$total = $out[0]['scope-1'] + $out[0]['scope-2'] + $out[0]['scope-3'];
-check('single fuzz factor keeps scopes consistent', abs($total - $out[0]['carbon-footprint']) < 0.05);
+$key = '2026-01-01T00:00:00Z/2026-02-01T00:00:00Z';
+check('the factor depends on the instants of the period, not on its spelling',
+    canonicalKey(['start' => '2026-01-01T00:00:00Z', 'end' => '2026-02-01T00:00:00Z']) === $key
+    && canonicalKey(['start' => '2026-01-01T00:00:00.000Z', 'end' => '2026-02-01T00:00:00Z']) === $key
+    && canonicalKey(['start' => '2026-01-01T01:00:00+01:00', 'end' => '2026-02-01T01:00:00+01:00']) === $key
+    && fuzzFactorFor($key) === 1.00418); // the same value in the JavaScript and Python kits
 
-check('fuzzFactorFor is a pure function of period', fuzzFactorFor('2026-01') === fuzzFactorFor('2026-01') && fuzzFactorFor('2026-01') !== fuzzFactorFor('2026-02'));
+$allBad = true;
+foreach (['2026-01-01', '2026-01-01t00:00:00z', '2026-02-30T00:00:00Z', '2026-01-01T24:00:00Z'] as $bad) {
+    $allBad = $allBad && throws(fn () => canonicalKey(['start' => $bad, 'end' => '2026-02-01T00:00:00Z']));
+}
+check('a bound that is not a date-time of the draft is an error', $allBad);
+
+check('query values that do not match the draft are ignored, never an error',
+    honoredQuery('start=2025-03-01&end=2025-04-01t00:00:00z&granularity=Monthly&target=') === []
+    && honoredQuery('start=2025-03-01T00:00:00%2B01:00&end=2025-02-30T00:00:00Z') === []
+    && honoredQuery('start=2016-12-31T23:59:60Z') === [] // second 60 would be read as 59
+    && honoredQuery('granularity=monthly&granularity=daily&period=2025') === [] // repeated, and the name of the previous revision
+    && honoredQuery('start=2025-03-01T00%3A00%3A00Z') === ['start' => '2025-03-01T00:00:00Z']);
+
+// A dataset of queries.json is the served file of that name; basic is example-response.json.
+function servedObjects(string $dataset): array {
+    $name = str_replace('.example', '', $dataset);
+    $dir = __DIR__ . '/../example-responses/';
+    $file = $name === 'basic' ? 'example-response.json' : (file_exists($dir . "example-response-$name.json") ? "example-response-$name.json" : "example-response_$name.json");
+    $body = json_decode(file_get_contents($dir . $file), true);
+    return array_is_list($body) ? $body : [$body];
+}
+
+$rows = json_decode(file_get_contents(__DIR__ . '/../schemas-validators/examples/queries.json'), true);
+$wrong = [];
+foreach ($rows as $row) {
+    $got = array_map(fn ($o) => $o['target'] . '|' . $o['period']['start'], answerQuery(servedObjects($row['dataset']), $row['query']));
+    if ($got !== $row['expect']) {
+        $wrong[] = $row['id'];
+    }
+}
+check('every row of queries.json selects what the oracle says, in its order (' . implode(',', $wrong) . ')', count($rows) === 75 && $wrong === []);
 
 check('empty input', secureSustainabilityReport([]) === []);
 

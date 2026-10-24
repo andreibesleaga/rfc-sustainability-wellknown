@@ -8,7 +8,8 @@
  */
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { dirname, resolve } from "node:path";
+import { readdirSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -19,12 +20,12 @@ const cfg = require(resolve(ROOT, "gateway", "dist", "config.js"));
 const publisher = require(resolve(ROOT, "publisher", "dist", "index.js"));
 
 const MEDIA_TYPE = "application/sustainability-data+json";
-const NOW = new Date("2026-03-10T00:00:00Z");
+const NOW = new Date("2026-10-17T12:00:00Z"); // the gateway's fixed clock
 let gw;
 let base;
 
 before(async () => {
-  const key = await publisher.generateSigningKey("EdDSA");
+  const key = await publisher.generateSigningKey("Ed25519");
   const config = cfg.loadConfig({
     port: 0,
     host: "127.0.0.1",
@@ -33,8 +34,6 @@ before(async () => {
     rateLimit: { perMinute: 0, trustProxy: 1 },
     signingKeyJwk: JSON.stringify(await publisher.exportPrivateJwk(key)),
   });
-  config.self.period = "2025";
-  config.self.liveSince = "2025-01-01T00:00:00Z";
   config.self.measured = false;
   gw = await app.createGateway({ config, log: () => undefined, now: NOW, clock: () => NOW, fetchImpl: null, env: {} });
   await new Promise((r) => gw.server.listen(0, "127.0.0.1", r));
@@ -91,13 +90,29 @@ test("every served declaration carries the full header set, and HEAD matches GET
   }
 });
 
+test("a query this gateway cannot read is ignored: 200 and the same body as without it, for every subject", async () => {
+  const unreadable = "?granularity=weekly&start=2026-02-30T00:00:00Z&end=yesterday&granularity=daily";
+  for (const path of await subjects()) {
+    const plain = await fetch(`${base}${path}`);
+    const ignored = await fetch(`${base}${path}${unreadable}`);
+    assert.equal(ignored.status, 200, `${path}: a bad query is never a 400`);
+    assert.equal(await ignored.text(), await plain.text(), `${path}: the bad parameters changed the answer`);
+  }
+});
+
+test("a range or target that selects nothing is 200 with an empty array, never 404", async () => {
+  for (const query of ["start=1999-01-01T00:00:00Z&end=2000-01-01T00:00:00Z", "target=/nothing-here"]) {
+    const r = await fetch(`${base}/.well-known/sustainability-data?${query}`);
+    assert.equal(r.status, 200, query);
+    assert.equal(r.headers.get("content-type"), MEDIA_TYPE, query);
+    assert.deepEqual(await r.json(), [], query);
+  }
+});
+
 test("every error class is JSON, nosniff, CORS-readable and language-tagged", async () => {
   const cases = [
     ["/nobody.example/.well-known/sustainability-data", 404],
-    ["/.well-known/sustainability-data?period=2025-02-30", 400],
-    ["/.well-known/sustainability-data?period=2025&period=2024", 400],
-    ["/.well-known/sustainability-data?target=/x", 404],
-    ["/.well-known/sustainability-data?period=1999", 404],
+    ["/not-a-route", 404],
   ];
   for (const [path, status] of cases) {
     const r = await fetch(`${base}${path}`);
@@ -109,14 +124,23 @@ test("every error class is JSON, nosniff, CORS-readable and language-tagged", as
     const body = await r.json();
     assert.equal(typeof body.error, "string", path);
   }
-  const post = await fetch(`${base}/.well-known/sustainability-data`, { method: "POST" });
-  assert.equal(post.status, 405);
-  assert.equal(post.headers.get("allow"), "GET, HEAD");
-  assert.equal(post.headers.get("x-content-type-options"), "nosniff");
+  for (const method of ["POST", "PUT", "DELETE"]) {
+    const r = await fetch(`${base}/.well-known/sustainability-data`, { method });
+    assert.equal(r.status, 405, method);
+    assert.equal(r.headers.get("allow"), "GET, HEAD", method);
+    assert.equal(r.headers.get("x-content-type-options"), "nosniff", method);
+  }
 });
 
-test("the two 404 shapes a privacy rule cares about are byte-identical", async () => {
-  const a = await (await fetch(`${base}/.well-known/sustainability-data?target=/nothing`)).text();
-  const b = await (await fetch(`${base}/.well-known/sustainability-data?period=1999`)).text();
-  assert.equal(a, b);
+test("an unknown subject and a withheld one answer with byte-identical 404s", async () => {
+  const withheld = readdirSync(resolve(ROOT, "gateway", "data", "withheld")).filter((f) => f.endsWith(".json")).map((f) => basename(f, ".json"));
+  assert.ok(withheld.length > 0, "no withheld subject to compare");
+  const unknown = await fetch(`${base}/never-heard-of-it.example/.well-known/sustainability-data`);
+  const unknownBody = await unknown.text();
+  assert.equal(unknown.status, 404);
+  for (const domain of withheld) {
+    const r = await fetch(`${base}/${domain}/.well-known/sustainability-data`);
+    assert.equal(r.status, 404, domain);
+    assert.equal(await r.text(), unknownBody, `${domain}: the 404 tells a withheld subject from an unknown one`);
+  }
 });

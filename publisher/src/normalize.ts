@@ -27,7 +27,7 @@ import {
   UPSTREAM_ROLES,
 } from "./tokens";
 import { Extensions, extensionNameError, isUriReference, NormalizeOptions, RawMetrics, SustainabilityMetrics, UpstreamEntry } from "./types";
-import { aLabelOf, hasReportableContent, nowDateTime, round } from "./util";
+import { aLabelOf, hasReportableContent, nowDateTime } from "./util";
 
 const UPGRADE = "for a document of an earlier revision run sustainability-publisher upgrade";
 
@@ -55,7 +55,7 @@ export function convertEnergy(value: number, from: EnergyUnit, to: EnergyUnit): 
   if (fromWh === undefined || toWh === undefined) {
     throw new Error(
       `convertEnergy: unrecognized energy unit (from="${from}", to="${to}"); ` +
-        `must be one of ${Object.keys(ENERGY_TO_WH).join(", ")}`,
+        `must be one of ${Object.keys(ENERGY_TO_WH).join(", ")}; ${UPGRADE}`,
     );
   }
   return (value * fromWh) / toWh;
@@ -71,7 +71,7 @@ export function convertCarbon(value: number, from: CarbonUnit, to: CarbonUnit): 
   if (fromG === undefined || toG === undefined) {
     throw new Error(
       `convertCarbon: unrecognized carbon unit (from="${from}", to="${to}"); ` +
-        `must be one of ${Object.keys(CARBON_TO_G).join(", ")}`,
+        `must be one of ${Object.keys(CARBON_TO_G).join(", ")}; ${UPGRADE}`,
     );
   }
   return (value * fromG) / toG;
@@ -309,11 +309,11 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   // then: an energy-unit without energy-consumption "has no effect and SHOULD
   // be omitted".
   if (energyValue !== undefined) {
-    out["energy-consumption"] = round(energyValue);
+    out["energy-consumption"] = energyValue;
     out["energy-unit"] = energyUnit as EnergyUnit;
   }
   if (carbonValue !== undefined) {
-    out["carbon-footprint"] = round(carbonValue);
+    out["carbon-footprint"] = carbonValue;
     out["carbon-unit"] = carbonUnit as CarbonUnit;
   }
 
@@ -332,7 +332,7 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
     carbonUnit = opts.carbonUnit ?? scopeSourceUnit;
     out["carbon-unit"] = carbonUnit;
   }
-  const toScope = (v: number) => round(convertCarbon(v, scopeSourceUnit, carbonUnit as CarbonUnit));
+  const toScope = (v: number) => convertCarbon(v, scopeSourceUnit, carbonUnit as CarbonUnit);
   if (raw.scope1 !== undefined) out["scope-1"] = toScope(raw.scope1);
   if (raw.scope2 !== undefined) out["scope-2"] = toScope(raw.scope2);
   if (raw.scope3 !== undefined) out["scope-3"] = toScope(raw.scope3);
@@ -355,11 +355,11 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
           "omit the metric instead (draft, Optional Members)",
       );
     }
-    out["sci-score"] = round(raw.sciScore);
+    out["sci-score"] = raw.sciScore;
   }
   if (raw.functionalUnit !== undefined) out["functional-unit"] = raw.functionalUnit;
   if (raw.carbonIntensity !== undefined) {
-    out["carbon-intensity-gCO2e-per-kWh"] = round(raw.carbonIntensity);
+    out["carbon-intensity-gCO2e-per-kWh"] = raw.carbonIntensity;
   }
   if (raw.estimatedAnnualEmissionsKg !== undefined) {
     if (raw.estimatedAnnualEmissionsKg < 0) {
@@ -368,7 +368,7 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
           "omit the metric instead (draft, Optional Members)",
       );
     }
-    out["estimated-annual-emissions-kgCO2e"] = round(raw.estimatedAnnualEmissionsKg);
+    out["estimated-annual-emissions-kgCO2e"] = raw.estimatedAnnualEmissionsKg;
   }
   if (raw.renewableEnergy !== undefined) {
     // Draft §Optional Members: renewable-energy is between 0 and 100
@@ -381,7 +381,7 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
           "omit the metric if it is not reported (draft, Optional Members)",
       );
     }
-    out["renewable-energy"] = round(raw.renewableEnergy);
+    out["renewable-energy"] = raw.renewableEnergy;
   }
   if (raw.verifiableAttestationUri !== undefined) {
     out["verifiable-attestation-uri"] = raw.verifiableAttestationUri;
@@ -419,8 +419,8 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
     const names = Object.keys(raw.extra);
     if (names.length > 0) {
       throw new Error(
-        `normalize: unknown top-level member(s) ${names.map((n) => `"${n}"`).join(", ")}; ` +
-          "the declaration object admits no member the draft does not define (draft, Body) — carry " +
+        `normalize: undefined top-level member(s) ${names.map((n) => `"${n}"`).join(", ")}: a member this document does not define; ` +
+          "the declaration object admits none (draft, Body) — carry " +
           'publisher-defined data under extensions["<URI>"] instead',
       );
     }

@@ -3,7 +3,7 @@
  * Plugin Name:       Sustainability Data (well-known)
  * Plugin URI:        https://github.com/andreibesleaga/rfc-sustainability-wellknown
  * Description:       Publishes this site's energy and carbon figures at /.well-known/sustainability-data, signed with a key generated on this site.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Andrei Nicolae Besleaga

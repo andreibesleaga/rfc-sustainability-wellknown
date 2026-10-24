@@ -144,9 +144,13 @@ describe("what is held and what is served", () => {
     expect(selected.map((o) => o.period.start.slice(0, 7))).toEqual(["2026-01", "2026-02"]);
   });
 
-  it("answers 404 only when nothing is held for a request that names no parameter, and 200 [] for an empty selection", async () => {
+  it("an extended publisher with nothing held answers a parameterless request 200 [], and 404 only when it is set to answer one object", async () => {
     const empty = new Publisher(trendAdapter([]), { cacheTtlMs: 0 });
-    expect((await handleRequest(empty, {})).status).toBe(404);
+    const bare = await handleRequest(empty, {});
+    expect(bare.status).toBe(200);
+    expect(bare.body).toBe("[]");
+    const single = new Publisher(trendAdapter([]), { cacheTtlMs: 0, representation: "single" });
+    expect((await handleRequest(single, {})).status).toBe(404);
     const empty200 = await handleRequest(empty, { target: "/x" });
     expect(empty200.status).toBe(200);
     expect(empty200.body).toBe("[]");
@@ -283,7 +287,22 @@ describe("the day floor (draft §Mandatory Members and §Privacy Considerations)
   it("drops through the publisher, and a selection that is left empty is the empty array", async () => {
     const publisher = new Publisher(trendAdapter([raw(1, { period: twelveHours })]), { cacheTtlMs: 0 });
     expect(await publisher.getDocument({ granularity: "daily" })).toEqual([]);
-    expect((await handleRequest(publisher, {})).status).toBe(404);
+    const bare = await handleRequest(publisher, {});
+    expect(bare.status).toBe(200);
+    expect(bare.body).toBe("[]");
+  });
+
+  it("reports a period below the floor once, as the dayFloor option says: silent for off, one warning for warn and drop", async () => {
+    for (const [dayFloor, count] of [["off", 0], ["warn", 1], ["drop", 1]] as const) {
+      const warnings: string[] = [];
+      const publisher = new Publisher(trendAdapter([raw(1, { period: twelveHours })]), {
+        cacheTtlMs: 0,
+        security: { dayFloor },
+        onWarning: (w) => warnings.push(w),
+      });
+      await publisher.getDocument();
+      expect(warnings, dayFloor).toHaveLength(count);
+    }
   });
 });
 
@@ -294,7 +313,7 @@ describe("the cap on the objects of a response", () => {
     const warnings: string[] = [];
     const kept = secureReports(days, { maxObjects: 3, onWarning: (w) => warnings.push(w) });
     expect(kept.map((o) => o.period.start.slice(8, 10))).toEqual(["08", "09", "10"]);
-    expect(warnings).toEqual(["10 objects selected; the 3 most recent are published (maxObjects)"]);
+    expect(warnings).toEqual(["10 objects selected; the 3 most recent are published and 7 older omitted (maxObjects)"]);
   });
 
   it("cuts a selection, not the objects held: a range over old days is served in full", async () => {

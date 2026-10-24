@@ -2,8 +2,11 @@ name: live-deployments
 
 # Daily check that every deployment listed in implementations.json still serves a
 # schema-valid /.well-known/sustainability-data document with a JSON media type.
-# It reads public URLs only and needs no secret. The CSV artifact is a dated
-# record of each run.
+# It reads public URLs only and needs no secret. An origin that still serves an
+# earlier form of the document (-08 or -09) is converted in memory and reported
+# as "legacy", not failed; once the last origin serves -10, add `--require 10`
+# to the command below so that an origin on an older form fails. The CSV artifact
+# is a dated record of each run.
 
 on:
   schedule:
@@ -14,6 +17,7 @@ on:
     paths:
       - implementations.json
       - schemas-validators/check-live.py
+      - schemas-validators/requirements.txt
       - schemas-validators/response-schema.json
       - .github/workflows/live-deployments.yml
 
@@ -28,12 +32,16 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
-      - run: python3 -m pip install -r schemas-validators/requirements.txt
+      - name: Install the validator library (in a virtual environment)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install -r schemas-validators/requirements.txt
+          echo "PYTHON=$RUNNER_TEMP/venv/bin/python" >> "$GITHUB_ENV"
       - name: Check every listed deployment
         run: |
           set -o pipefail
           cd schemas-validators
-          python3 check-live.py --csv live-deployments.csv | tee -a "$GITHUB_STEP_SUMMARY"
+          "$PYTHON" check-live.py --csv live-deployments.csv | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

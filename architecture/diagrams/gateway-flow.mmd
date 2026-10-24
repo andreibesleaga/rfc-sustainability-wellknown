@@ -15,13 +15,13 @@ flowchart TD
 
     AD["SourceAdapter.fetch(query)"] -- "RawMetrics | RawMetrics[]" --> N
 
-    N["normalize()<br/>· joules → kWh, unit conversion (Wh…GWh, g…mtCO2e)<br/>· carbon = energy × grid intensity when absent<br/>· defaults: capabilities basic, updated now<br/>· mandatory target (adapter value or configured fallback)<br/>· reject negative gross metrics, renewable outside 0–100,<br/>  sci-score without functional-unit, bad periods"]
+    N["normalize()<br/>· joules → kWh, unit conversion (Wh…GWh, g…tCO2e)<br/>· carbon = energy × grid intensity when absent<br/>· defaults: capabilities basic, updated now<br/>· mandatory target (adapter value or configured fallback)<br/>· reject negative gross metrics, renewable outside 0–100,<br/>  sci-score without functional-unit, bad periods"]
 
     N -- "SustainabilityMetrics[]" --> G1
 
     subgraph SAFE["secureReports() — operational safeguards"]
-        G1["Daily floor: drop entries with<br/>reporting-period finer than 24h"] --> G2
-        G2["Sort ascending by reporting-period"] --> G3
+        G1["Daily floor: drop entries with<br/>period shorter than a calendar day"] --> G2
+        G2["Sort ascending by period.start"] --> G3
         G3["Defensive cap: max 366 objects,<br/>keep most recent (a deployment safeguard;<br/>-07 puts the binding bound on the consumer)"] --> G4
         G4["Optional anti-fingerprinting noise:<br/>~±1% multiplicative, deterministic per period,<br/>consistent across related fields"]
     end

@@ -23,13 +23,14 @@ final class Sustainability_Data_Wellknown {
 	public const PATH         = '/.well-known/sustainability-data';
 	public const MEDIA_TYPE   = 'application/sustainability-data+json';
 	public const METHODS      = array( 'hardware-metered', 'hardware-estimated', 'cloud-billing', 'third-party-modeled' );
-	public const TARGET_TYPES = array( 'origin', 'path', 'organization', 'service', 'product', 'device', 'tenant', 'data-source' );
+	public const TARGET_TYPES = array( 'origin', 'path', 'organization', 'facility', 'service', 'product', 'device', 'tenant', 'data-source' );
 	public const ACCOUNTING   = array( 'location-based', 'market-based' );
 	public const FIELDS       = array(
 		'target',
 		'provider',
 		'methodology_uri',
-		'period',
+		'period_start',
+		'period_end',
 		'measurement_method',
 		'target_type',
 		'energy_kwh',
@@ -157,8 +158,8 @@ final class Sustainability_Data_Wellknown {
 		if ( ! self::is_https( $s( 'methodology_uri' ) ) ) {
 			$p['methodology_uri'] = __( 'Methodology page must be an https:// address.', 'sustainability-data-wellknown' );
 		}
-		if ( ! self::is_period( $s( 'period' ) ) ) {
-			$p['period'] = __( 'Reporting period must be YYYY, YYYY-MM or YYYY-MM-DD, a real calendar date.', 'sustainability-data-wellknown' );
+		if ( ! self::is_period( $s( 'period_start' ), $s( 'period_end' ) ) ) {
+			$p['period'] = __( 'Period start and end must be real RFC 3339 date-times such as 2026-01-01T00:00:00Z (upper-case T and Z), start before end.', 'sustainability-data-wellknown' );
 		}
 		if ( ! in_array( $s( 'measurement_method' ), self::METHODS, true ) ) {
 			$p['measurement_method'] = __( 'Choose how the figures were obtained.', 'sustainability-data-wellknown' );
@@ -189,19 +190,48 @@ final class Sustainability_Data_Wellknown {
 		return (bool) preg_match( '#^https://[^\s/]+#', $u );
 	}
 
-	private static function is_period( string $p ): bool {
-		if ( ! preg_match( '/^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/', $p, $m ) ) {
-			return false;
+	/** A real RFC 3339 date-time with upper-case T and Z, as the draft writes it; the instant, or null. */
+	private static function date_time( string $v ): ?DateTimeImmutable {
+		$re = '/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-](\d{2}):(\d{2}))$/';
+		if ( ! preg_match( $re, $v, $m ) ) {
+			return null;
 		}
-		$month = isset( $m[2] ) ? (int) $m[2] : 1;
-		$day   = isset( $m[3] ) ? (int) $m[3] : 1;
-		return checkdate( $month, $day, (int) $m[1] );
+		$offset_ok = 'Z' === $m[7] || ( (int) $m[8] <= 23 && (int) $m[9] <= 59 );
+		if ( ! $offset_ok || ! checkdate( (int) $m[2], (int) $m[3], (int) $m[1] ) || (int) $m[4] > 23 || (int) $m[5] > 59 || (int) $m[6] > 60 ) {
+			return null;
+		}
+		return new DateTimeImmutable( $v );
+	}
+
+	/** Whether the two bounds are date-times and start is before end as instants (the period is half-open). */
+	private static function is_period( string $start, string $end ): bool {
+		$a = self::date_time( $start );
+		$b = self::date_time( $end );
+		return null !== $a && null !== $b && $a < $b;
+	}
+
+	/**
+	 * The saved settings, with a period saved by version 0.1 (one label: YYYY, YYYY-MM or YYYY-MM-DD) turned into
+	 * the start and end it stood for, in UTC. Nothing is written; saving the form stores the new fields.
+	 */
+	public static function saved_settings(): array {
+		$o     = get_option( self::OPTION );
+		$o     = is_array( $o ) ? $o : array();
+		$label = trim( (string) ( $o['period'] ?? '' ) );
+		if ( ! isset( $o['period_start'] ) && preg_match( '/^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/', $label, $m ) && checkdate( (int) ( $m[2] ?? 1 ), (int) ( $m[3] ?? 1 ), (int) $m[1] ) ) {
+			$start             = new DateTimeImmutable( sprintf( '%04d-%02d-%02dT00:00:00Z', (int) $m[1], (int) ( $m[2] ?? 1 ), (int) ( $m[3] ?? 1 ) ) );
+			$step              = isset( $m[3] ) ? 'P1D' : ( isset( $m[2] ) ? 'P1M' : 'P1Y' );
+			$o['period_start'] = $start->format( 'Y-m-d\TH:i:s\Z' );
+			$o['period_end']   = $start->add( new DateInterval( $step ) )->format( 'Y-m-d\TH:i:s\Z' );
+		}
+		unset( $o['period'] );
+		return $o;
 	}
 
 	/** The declaration object from the saved settings, or null when the settings do not make one. */
 	public static function declaration(): ?array {
-		$o = get_option( self::OPTION );
-		if ( ! is_array( $o ) || self::problems( $o ) !== array() ) {
+		$o = self::saved_settings();
+		if ( self::problems( $o ) !== array() ) {
 			return null;
 		}
 		$s   = static fn( string $k ): string => trim( (string) ( $o[ $k ] ?? '' ) );
@@ -211,7 +241,10 @@ final class Sustainability_Data_Wellknown {
 			'provider'           => $s( 'provider' ),
 			'measurement-method' => $s( 'measurement_method' ),
 			'methodology-uri'    => $s( 'methodology_uri' ),
-			'reporting-period'   => $s( 'period' ),
+			'period'             => array(
+				'start' => $s( 'period_start' ),
+				'end'   => $s( 'period_end' ),
+			),
 			'target'             => $s( 'target' ) !== '' ? $s( 'target' ) : (string) wp_parse_url( home_url(), PHP_URL_HOST ),
 			'target-type'        => in_array( $s( 'target_type' ), self::TARGET_TYPES, true ) ? $s( 'target_type' ) : 'origin',
 		);
@@ -254,7 +287,7 @@ final class Sustainability_Data_Wellknown {
 		return rtrim( strtr( base64_encode( $bytes ), '+/', '-_' ), '=' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- JWS encoding (RFC 7515).
 	}
 
-	/** The object with its `signed` member (EdDSA JWS over the object without it), or unchanged without a key. */
+	/** The object with its `signed` member (Ed25519 JWS over the object without it), or unchanged without a key. */
 	public static function sign( array $doc ): array {
 		$key = self::ensure_key();
 		if ( null === $key || ! function_exists( 'sodium_crypto_sign_detached' ) ) {
@@ -267,14 +300,12 @@ final class Sustainability_Data_Wellknown {
 			return $doc;
 		}
 		$header        = array(
-			'alg' => 'EdDSA',
+			'alg' => 'Ed25519',
 			'cty' => 'sustainability-data+json',
 			'jwk' => array(
 				'kty' => 'OKP',
 				'crv' => 'Ed25519',
 				'x'   => self::b64url( $public ),
-				'alg' => 'EdDSA',
-				'use' => 'sig',
 			),
 		);
 		$h             = self::b64url( (string) wp_json_encode( $header, JSON_UNESCAPED_SLASHES ) );
@@ -407,8 +438,7 @@ final class Sustainability_Data_Wellknown {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$o         = get_option( self::OPTION, array() );
-		$o         = is_array( $o ) ? $o : array();
+		$o         = self::saved_settings();
 		$url       = home_url( self::PATH );
 		$published = self::declaration() !== null;
 
@@ -431,7 +461,8 @@ final class Sustainability_Data_Wellknown {
 		echo '<table class="form-table" role="presentation">';
 		self::text_row( $o, 'provider', __( 'Provider (required)', 'sustainability-data-wellknown' ), __( 'Example Ltd (https://example.com/contact)', 'sustainability-data-wellknown' ), __( 'Who publishes these figures and how to reach them; a role, not a personal address.', 'sustainability-data-wellknown' ) );
 		self::text_row( $o, 'methodology_uri', __( 'Methodology page (required, https)', 'sustainability-data-wellknown' ), 'https://example.com/sustainability/methodology', __( 'A public page that says how the figures were obtained.', 'sustainability-data-wellknown' ) );
-		self::text_row( $o, 'period', __( 'Reporting period (required)', 'sustainability-data-wellknown' ), '2026', __( 'YYYY, YYYY-MM or YYYY-MM-DD, a completed period.', 'sustainability-data-wellknown' ) );
+		self::text_row( $o, 'period_start', __( 'Period start (required)', 'sustainability-data-wellknown' ), '2026-01-01T00:00:00Z', __( 'RFC 3339 date-time with upper-case T and Z; the first moment the figures cover.', 'sustainability-data-wellknown' ) );
+		self::text_row( $o, 'period_end', __( 'Period end (required)', 'sustainability-data-wellknown' ), '2027-01-01T00:00:00Z', __( 'The first moment after the period, so a calendar year ends on 1 January of the next; the end is not part of the period.', 'sustainability-data-wellknown' ) );
 		self::select_row( $o, 'measurement_method', __( 'Measurement method (required)', 'sustainability-data-wellknown' ), self::METHODS, true, __( 'hardware-metered only for a meter reading; a model or a calculator is third-party-modeled.', 'sustainability-data-wellknown' ) );
 		self::text_row( $o, 'target', __( 'Target', 'sustainability-data-wellknown' ), (string) wp_parse_url( home_url(), PHP_URL_HOST ), __( 'What the figures are about; the site host by default.', 'sustainability-data-wellknown' ) );
 		self::select_row( $o, 'target_type', __( 'Target type', 'sustainability-data-wellknown' ), self::TARGET_TYPES, false, '' );

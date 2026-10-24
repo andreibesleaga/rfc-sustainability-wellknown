@@ -1,0 +1,16 @@
+{
+ "updated": "2026-03-01T12:00:00Z",
+ "capabilities": "basic",
+ "provider": "p",
+ "measurement-method": "third-party-modeled",
+ "methodology-uri": "/m",
+ "period": {
+  "start": "2025-01-01T00:00:00Z",
+  "end": "2026-01-01T00:00:00Z"
+ },
+ "target": "Example Corp",
+ "target-type": "organization",
+ "carbon-footprint": 1,
+ "energy-consumption": 1,
+ "energy-unit": "kWh"
+}

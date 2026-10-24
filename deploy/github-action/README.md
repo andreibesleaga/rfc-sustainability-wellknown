@@ -22,9 +22,9 @@ jobs:
 ```
 
 Inputs:
-- `origin`: fetch and check a live origin with every MUST of the draft (`--strict`; a present `signed` member is verified).
-- `file`: validate a file in the repository with the consumer's validator; errors and warnings appear as annotations on the file.
-- `consumer-version`: the exact consumer version to use; defaults to the version this action was tested with. Any published version works.
+- `origin`: fetch and check a live origin with every MUST of the draft (`--strict`; a present `signed` member is verified). The document is read as served: a revision -08 or -09 file (a `reporting-period` label, a period of two dates) is reported invalid, not converted.
+- `file`: validate a file in the repository with the consumer's validator, again without converting older revisions; errors and warnings appear as annotations on the file (a warning reads `code: message`). A `signed` member is verified: a signature that fails, or members changed after signing, is an error; `EdDSA` in the header is a warning (write `Ed25519`). To bring an older file to -10 first, run `sustainability-publisher upgrade`.
+- `consumer-version`: the exact consumer version to use; defaults to the version this action was tested with (0.8.0, the first to implement revision -10). Earlier versions do not read -10 documents.
 
 Output `status`: `valid` or `invalid`. The consumer is installed in the runner's temporary folder with install
 scripts disabled; the action never touches the repository's own dependencies. Needs Node (present on GitHub's hosted runners).

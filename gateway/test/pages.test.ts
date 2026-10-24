@@ -118,6 +118,22 @@ describe("GET /index.json (G13)", () => {
   });
 });
 
+describe("the allocation label of a part of an origin", () => {
+  it("is carried by every wire example whose target is a service, a path, a device or a product, and by no other", async () => {
+    const srv = await startGateway();
+    try {
+      const idx = await (await fetch(`${srv.base}/index.json`)).json();
+      const wire = idx["wire-format-examples"].entries as { domain: string; "target-type"?: string; allocation?: string }[];
+      const parts = wire.filter((e) => ["service", "path", "device", "product"].includes(e["target-type"] ?? ""));
+      expect(parts.map((e) => e.domain)).toEqual(expect.arrayContaining(["service.example", "device.example", "product.example"]));
+      for (const e of parts) expect(e.allocation, e.domain).toMatch(/allocation.*methodology document/);
+      for (const e of wire.filter((x) => !parts.includes(x))) expect(e.allocation, e.domain).toBeUndefined();
+    } finally {
+      await srv.close();
+    }
+  });
+});
+
 describe("a document with hostile strings (G12)", () => {
   it("is shown as escaped text in / and as plain data in /index.json", async () => {
     const dir = mkdtempSync(join(tmpdir(), "gw-data-"));

@@ -2,11 +2,16 @@
 
 Gherkin scenarios, run with cucumber-js against the **built** publisher and consumer libraries
 and the **built** reference gateway (started on a loopback port with a fixed clock, no network,
-no wall clock). One feature file per draft section, plus one for the people the draft is written
-for (static publisher, dynamic publisher, hosting provider, device, organisation, HPC centre,
-aggregator, auditor, regulator reader, relay).
+no wall clock). Nine feature files, one per area of the draft: the mandatory service, query
+parameters, payload and periods, closed token sets, signing, security and privacy, the
+compatibility reading of older forms, the people the draft is written for (static publisher,
+dynamic publisher, hosting provider, device, organisation, HPC centre, aggregator, auditor,
+regulator reader, relay), and the reference gateway with its demos.
 
 Every scenario is tagged with the ids of the normative sentences it cites (and is written to exercise) (`@req-xxxxxxxx`).
+Scenarios also carry `@REQ-<AREA>-<nn>` (a requirement), `@UC-x.y` (a use case), `@rk-<key>` (a rule key,
+shared with the example corpus) and `@golden`, `@error` or `@edge`; [REQUIREMENTS.md](REQUIREMENTS.md) lists
+what each tag means and cites the draft sentence behind every requirement.
 `traceability/requirements.json` is generated from the draft's markdown by `traceability/extract.mjs`
 (every sentence carrying an RFC 2119 keyword, outside code blocks and the changelog; ids are a
 hash of the sentence). `traceability/check.mjs` fails when:
@@ -18,9 +23,9 @@ hash of the sentence). `traceability/check.mjs` fails when:
 
 ## Which revision the suite tracks
 
-The revision the suite tracks, named in `traceability/requirements.json` (`source`): the posted `-08` (posted 2026-10-09). `npm run trace:next` compares the newest draft file in
+The revision the suite tracks, named in `traceability/requirements.json` (`source`): the posted `-10` (posted 2026-10-24). `npm run trace:next` compares the newest draft file in
 `internet-drafts/` with the tracked one, report only, and lists the normative sentences it adds, removes or
-rewords (nothing while both are `-08`). When a new revision is posted: `node traceability/extract.mjs --write
+rewords (nothing while both are `-10`). When a new revision is posted: `node traceability/extract.mjs --write
 ../internet-drafts/<draft>.md`, then re-point the tags `npm run trace` lists, and change the `trace:extract`
 script to the new file.
 
@@ -31,6 +36,9 @@ script to the new file.
 (cd ../publisher && npm ci && npm run build)
 (cd ../consumer  && npm ci && npm run build)
 (cd ../gateway   && npm ci && npm run build)
+# until publisher and consumer 0.8.0 are on npm, the gateway's lockfile still names 0.7, so
+# replace the gateway line above with this one (installs the local builds, then builds the gateway):
+#   (cd .. && bash scripts/overlay-source-libs.sh)
 npm ci
 npm run all          # traceability check, then the scenarios
 ```

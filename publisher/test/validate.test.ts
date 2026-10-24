@@ -24,6 +24,11 @@ describe("the mandatory members and the schema", () => {
     expect(r).toEqual({ valid: true, errors: [], warnings: [] });
   });
 
+  it("names the members of a closed set a value is outside of", () => {
+    const r = check({ ...base(), "measurement-method": "metered" });
+    expect(r.errors.join(";")).toContain("/measurement-method must be one of hardware-metered, hardware-estimated, cloud-billing, third-party-modeled");
+  });
+
   it("requires each of the seven, and names it", () => {
     for (const member of ["updated", "capabilities", "provider", "measurement-method", "methodology-uri", "period", "target"]) {
       const doc = base();

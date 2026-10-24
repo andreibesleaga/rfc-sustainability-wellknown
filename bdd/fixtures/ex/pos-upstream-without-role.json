@@ -1,0 +1,37 @@
+{
+  "updated": "2026-02-15T08:00:00Z",
+  "capabilities": "basic",
+  "provider": "Acme Retail plc (sustainability@acme.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "/esg/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
+  "target": "Acme Retail plc",
+  "target-type": "organization",
+  "energy-consumption": 2.4,
+  "energy-unit": "GWh",
+  "carbon-footprint": 610,
+  "carbon-unit": "tCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 90,
+  "scope-2": 220,
+  "scope-3": 300,
+  "disclosure-uri": "https://acme.example/esg/disclosures",
+  "upstream": [
+    {
+      "declaration": "https://cloud.example/tenants/acme.json"
+    }
+  ],
+  "extensions": {
+    "https://acme.example/esg/extensions/water-and-waste": {
+      "water-consumption-m3": 1250,
+      "waste-generated-kg": 340,
+      "waste-recycled-percent": 62
+    },
+    "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": {
+      "packaging-recycled-percent": 71
+    }
+  }
+}

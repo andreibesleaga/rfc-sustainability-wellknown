@@ -4,15 +4,17 @@ The plugin folder `sustainability-data-wellknown/` is what gets zipped for the W
 (GPLv2-or-later, as the directory requires). It serves `/.well-known/sustainability-data` from figures
 entered in Settings → Sustainability data, with the draft's media type and the right headers, HEAD and
 405 handling, ETag/304, and an Ed25519 signature made with a key generated on the site at activation.
-It makes no external calls.
+It makes no external calls. Version 0.2.0 follows revision -10: the period is entered as a start and an end
+(RFC 3339 date-times, the end excluded), a 0.1 label such as `2026-09` is converted when read, and every query
+parameter is ignored (the plugin is a basic server).
 
 Structure: `sustainability-data-wellknown.php` (header, loader), `includes/class-sustainability-data-wellknown.php`
 (the plugin), `uninstall.php` (removes both options, on every site of a network), `readme.txt`, `LICENSE` (GPLv2
 text), `.distignore` (`tests/` is not shipped).
 
 Checks, all run in CI by `deploy-kit.yml`:
-- `php tests/run.php` — offline, with WordPress function stubs: settings rules and their error messages, the
-  declaration, the Ed25519 signature, GET/HEAD/304/405, the path check, the settings page. With
+- `php tests/run.php` — offline, with WordPress function stubs: settings rules and their error messages (period forms, offsets, order), the
+  declaration (period object, closed tokens), the Ed25519 signature, GET/HEAD/304/405, the path check, ignored query values, a 0.1 period converted, the settings page. With
   `SDWK_DUMP=<file>` it writes the served body, which CI validates and whose signature it verifies with the consumer.
 - `phpcs --standard=WordPress-Extra` and `--standard=PHPCompatibilityWP --runtime-set testVersion 8.1-`: clean.
 - `bash ../wordpress-e2e.sh`: a real WordPress in Docker (MariaDB + the official image + WP-CLI), the plugin

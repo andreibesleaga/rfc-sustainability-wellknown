@@ -100,6 +100,12 @@ describe("csv: every unusable row is reported, never guessed, never fatal", () =
     expect(skipsOf("period,energy\n2025,\"1,234.5\"\n").rows[0].energy?.value).toBe(1234.5);
   });
 
+  it("names the draft's member and the four tokens when a row carries an older measurement method", () => {
+    const { rows, skipped } = skipsOf("period,energy,measurement_method\n2025-01,1,metered\n2025-02,1,hardware-metered\n");
+    expect(rows).toHaveLength(1);
+    expect(skipped).toEqual(['2: measurement-method "metered" is not one of hardware-metered, hardware-estimated, cloud-billing, third-party-modeled']);
+  });
+
   it("reports non-numeric cells, an out-of-range share, bad links, a bad date and unknown enumerations", () => {
     const text = [
       "period,energy,renewable_percent,methodology_uri,disclosure_uri,updated,carbon_accounting,target_type",
@@ -120,7 +126,7 @@ describe("csv: every unusable row is reported, never guessed, never fatal", () =
     expect(skipped[3]).toMatch(/disclosure_uri/);
     expect(skipped[4]).toMatch(/updated "yesterday"/);
     expect(skipped[5]).toMatch(/carbon_accounting "mixed"/);
-    expect(skipped[6]).toMatch(/target type "spaceship"/);
+    expect(skipped[6]).toMatch(/target-type "spaceship"/);
     expect(rows).toHaveLength(1);
     expect(rows[0].targetType).toBe("organization");
   });
@@ -212,9 +218,16 @@ describe("no data and an empty selection", () => {
     const bodies: string[] = [];
     const csvEmpty = new Publisher(csvAdapter({ ...base, text: "period,energy\n" }), { cacheTtlMs: 0 });
     bodies.push((await handleRequest(csvEmpty, {}, { onError: () => {} })).body);
-    const sacctEmpty = new Publisher(slurmSacctAdapter({ ...slurmBase, text: "JobID|Start|End|ConsumedEnergyRaw\n" }), { cacheTtlMs: 0 });
+    const sacctEmpty = new Publisher(slurmSacctAdapter({ ...slurmBase, capabilities: "basic", text: "JobID|Start|End|ConsumedEnergyRaw\n" }), { cacheTtlMs: 0 });
     bodies.push((await handleRequest(sacctEmpty, {}, { onError: () => {} })).body);
     expect(new Set(bodies).size, JSON.stringify(bodies)).toBe(1);
+  });
+
+  it("an extended publisher with nothing held answers a bare request 200 with the empty array", async () => {
+    const empty = new Publisher(slurmSacctAdapter({ ...slurmBase, text: "JobID|Start|End|ConsumedEnergyRaw\n" }), { cacheTtlMs: 0 });
+    const r = await handleRequest(empty, {}, { onError: () => {} });
+    expect(r.status).toBe(200);
+    expect(r.body).toBe("[]");
   });
 
   it("an unmatched period and an unmatched target are 200 with the empty array and the registered media type", async () => {

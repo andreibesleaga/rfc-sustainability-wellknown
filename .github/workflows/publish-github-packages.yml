@@ -11,7 +11,9 @@ name: publish-github-packages
 # files are never modified. Authentication is the job's GITHUB_TOKEN with
 # `packages: write` — no secret. The version published is the one in each
 # package.json (the repository's tags carry a draft/schema suffix, so the tag
-# name is deliberately not parsed).
+# name is deliberately not parsed). The publisher and the consumer are released
+# together at one version (0.8.0 implements draft -10); the job stops when the two
+# package.json files disagree.
 #
 # Triggers: every version tag and manual dispatch (backfills whatever version
 # the checked-out ref carries). Re-runs are safe: a version already on GitHub
@@ -52,6 +54,12 @@ jobs:
           node-version: "22"
           registry-url: "https://npm.pkg.github.com"
           scope: "@andreibesleaga"
+      - name: The publisher and the consumer carry the same version
+        working-directory: .
+        run: |
+          pub=$(node -p "require('./publisher/package.json').version")
+          con=$(node -p "require('./consumer/package.json').version")
+          if [ "$pub" != "$con" ]; then echo "::error::publisher $pub and consumer $con differ"; exit 1; fi
       - run: npm ci
       - run: npm run build
       - name: Rename to the owner scope (runner checkout only)

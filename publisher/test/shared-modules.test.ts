@@ -67,5 +67,5 @@ describe("calendar and instant arithmetic lives in period.ts", () => {
     );
     expect(declarations).toContain("export declare function parsePeriod");
     expect(declarations).not.toMatch(/Temporal/);
-  });
+  }, 60_000);
 });

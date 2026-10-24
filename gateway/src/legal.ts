@@ -35,7 +35,8 @@ route listed at ${OPERATOR_CONTACT_URL}.
 
 Some documents served here describe real organizations. Each of them is an
 ILLUSTRATIVE MAPPING prepared by the operator from figures the organization has
-itself published. These documents:
+itself published. The figures in them are therefore claims of the operator, who
+made each mapping, and not claims of the organization. These documents:
 
 - are NOT published, reviewed, authorized or endorsed by the organizations they
   describe;

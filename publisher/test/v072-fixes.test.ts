@@ -4,7 +4,6 @@
  */
 import { describe, expect, it } from "vitest";
 import { NotFoundError, Publisher, handleRequest, keplerPrometheusAdapter, type RawMetrics, type ServiceQuery, type SourceAdapter } from "../src";
-import { round } from "../src/util";
 
 const base = (period: string, wh: number): RawMetrics => ({
   provider: "Example (ops@example.com)",
@@ -14,20 +13,6 @@ const base = (period: string, wh: number): RawMetrics => ({
   updated: "2026-10-01T00:00:00Z",
   capabilities: "extended",
   energy: { value: wh / 1000, unit: "kWh" },
-});
-
-describe("round keeps at least four significant figures", () => {
-  it("leaves ordinary values at four decimal places", () => {
-    expect(round(9802.441234)).toBe(9802.4412);
-    expect(round(1.23456)).toBe(1.2346);
-    expect(round(0.12345)).toBe(0.1235);
-  });
-  it("does not turn a small value into zero or a large relative error", () => {
-    expect(round(0.0003576)).toBe(0.0003576); // was 0.0004 (+12%)
-    expect(round(0.0000144)).toBe(0.0000144); // was 0
-    expect(round(-0.0000123456)).toBe(-0.00001235);
-    expect(round(0)).toBe(0);
-  });
 });
 
 describe("granularity selects among the objects held, whatever the adapter returns", () => {
@@ -48,7 +33,7 @@ describe("granularity selects among the objects held, whatever the adapter retur
 
 describe("the library's own error responses carry nosniff", () => {
   it("on a no-data 404", async () => {
-    const empty: SourceAdapter = { name: "empty", capabilities: "extended", async fetch() { return []; } };
+    const empty: SourceAdapter = { name: "empty", capabilities: "basic", async fetch() { return []; } };
     const pub = new Publisher(empty, { normalize: { target: "example.com" } });
     const r = await handleRequest(pub, {});
     expect(r.status).toBe(404);

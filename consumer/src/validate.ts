@@ -15,7 +15,7 @@
  * invalid here; an `energy-unit`, `carbon-accounting` or `capabilities` outside
  * its set, a wrong type and a negative figure are invalid in both cases.
  */
-import Ajv, { ValidateFunction } from "ajv/dist/jtd";
+import Ajv, { ErrorObject, ValidateFunction } from "ajv/dist/jtd";
 import { domainToASCII } from "node:url";
 import { compareDateTimes, dateTimeError, hasLeapSecond, isFullDate, isOnDayBoundaries, Period } from "./period";
 import { RESPONSE_JTD_SCHEMA } from "./schema";
@@ -156,6 +156,21 @@ export function extensionNameError(key: string): string | undefined {
 /** Whether `key` is a usable `extensions` member name (draft -10 §Extensions). */
 export function isExtensionName(key: string): boolean {
   return extensionNameError(key) === undefined;
+}
+
+/**
+ * One schema error as a sentence. A member outside a closed set names the
+ * members of the set, so the reader knows what to write.
+ */
+function schemaErrorMessage(e: ErrorObject): string {
+  const where = e.instancePath || "/";
+  if (e.keyword === "enum" && Array.isArray(e.params.allowedValues)) {
+    return `${where} must be one of ${e.params.allowedValues.join(", ")}`;
+  }
+  if (e.keyword === "properties" && typeof e.params.missingProperty === "string") {
+    return `${where === "/" ? "" : where}/${e.params.missingProperty} is a mandatory member and is missing${e.schemaPath ? ` (${e.schemaPath})` : ""}`;
+  }
+  return `${where} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -370,7 +385,7 @@ function validateObjectRules(obj: unknown): ValidationResult {
 
   if (!validateObject(obj)) {
     for (const e of validateObject.errors ?? []) {
-      errors.push(`${e.instancePath || "/"} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`);
+      errors.push(schemaErrorMessage(e));
     }
     const hint = isRecord(obj) ? olderFormHint(obj) : undefined;
     if (hint !== undefined) errors.push(hint);

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { PeriodError } from "../src/period";
 import type { SustainabilityMetrics } from "../src/types";
-import { aLabelOf, fromWire, hasReportableContent, lastFullMonthPeriod, nowDateTime, olderPeriodOf, readJson, round } from "../src/util";
+import { aLabelOf, fromWire, hasReportableContent, lastFullMonthPeriod, nowDateTime, olderPeriodOf, readJson } from "../src/util";
 import { normalize } from "../src/normalize";
 
 const wire = (over: Record<string, unknown> = {}): SustainabilityMetrics =>
@@ -204,11 +204,5 @@ describe("small helpers", () => {
     expect(hasReportableContent({ "disclosure-uri": "" })).toBe(false);
     expect(hasReportableContent({ "energy-unit": "kWh" })).toBe(false);
     expect(hasReportableContent(null)).toBe(false);
-  });
-
-  it("round keeps four significant figures at least", () => {
-    expect(round(0.000358)).toBe(0.000358);
-    expect(round(12.34567)).toBe(12.3457);
-    expect(round(0)).toBe(0);
   });
 });

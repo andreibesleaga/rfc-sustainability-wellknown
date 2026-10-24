@@ -2,7 +2,7 @@
 
 **Status:** normative profile, version 1.1, 2026-10-03; version 1.0 (2026-09-16) in
 [PROFILE-1.0.md](PROFILE-1.0.md). **Applies to:**
-draft-besleaga-sustainability-wellknown-07 (the *draft* below). **Version:** profile
+draft-besleaga-sustainability-wellknown-10 (the *draft* below). **Version:** profile
 1.1, 2026-10-03. Section 11 lists what changed from 1.0. **Short name:** the SFC
 disclosure profile (its companion, the SFC ledger profile, says what a ledger records).
 
@@ -46,7 +46,7 @@ differently.
 | What the declaration is about | the whole system, counting every participant | one participant, such as one validator or one node operator |
 | `target` | the network's name, for example `ledger.example` | the operator's origin host, for example `validator.operator7.example` |
 | `target-type` | `service` | `origin` |
-| `reporting-period` | a whole calendar year, the `YYYY` form | any period the operator can stand behind |
+| `period` | a whole calendar year: `start` and `end` on 1 January 00:00 of consecutive years, in the same offset | any period the operator can stand behind |
 | Who publishes it | the foundation, consortium or other body that can speak for the system | the operator |
 | Criterion 1 evaluated on it | yes, this is the only level where it means anything | no, refused with a stated reason |
 | `upstream` | usually absent | names the hosting, cloud and electricity providers the operator buys from |
@@ -90,7 +90,7 @@ the data provider, so a reader compares figures only on the same boundary.
 |---|---|---|---|
 | the quantity | `energy-consumption` | the unit named by `energy-unit` | MUST at network level |
 | the unit | `energy-unit` | one of `Wh`, `kWh`, `MWh`, `GWh` | MUST when `energy-consumption` is present |
-| the period | `reporting-period` | `YYYY` at network level | MUST |
+| the period | `period` (`start`, `end`) | a whole calendar year at network level | MUST |
 | who measured and how | `measurement-method` | token | MUST |
 | the method in prose | `methodology-uri` | https URI | MUST, the draft makes it mandatory anyway |
 
@@ -163,7 +163,7 @@ business-to-consumer commercial practices from 27 September 2026 (Directive (EU)
 | What is published | Draft member | Unit | Required by this profile |
 |---|---|---|---|
 | gross emissions | `carbon-footprint` | the unit named by `carbon-unit` | MUST at network level |
-| the unit | `carbon-unit` | one of `gCO2e`, `kgCO2e`, `mtCO2e` | MUST when a carbon figure is present |
+| the unit | `carbon-unit` | one of `gCO2e`, `kgCO2e`, `tCO2e` | MUST when a carbon figure is present |
 | the basis | `carbon-accounting` | `location-based` or `market-based` | MUST |
 | purchased energy emissions | `scope-2` | the unit named by `carbon-unit` | MUST at network level |
 | value chain emissions | `scope-3` | the unit named by `carbon-unit` | MUST at network level |
@@ -217,7 +217,7 @@ This is the part the draft satisfies by being implemented. Nothing else is neede
 | a machine checkable format | the JTD schema and the CDDL schema in `schemas-validators/` |
 | use from a browser | `Access-Control-Allow-Origin: *` on the response |
 | polite retrieval | cache directives, `ETag` or `Last-Modified`, `HEAD`, and `405` with `Allow: GET, HEAD` |
-| a trend for a reader who wants one | the extended query parameters `period` and `granularity`, with `capabilities: "extended"` |
+| a trend for a reader who wants one | the extended query parameters `start`, `end` and `granularity`, with `capabilities: "extended"` |
 | the filed reports themselves | `disclosure-uri`, pointing at a machine readable **index** of them |
 
 `disclosure-uri` names an index, not a report. A publisher pointing it straight at one PDF
@@ -364,7 +364,7 @@ profile's.
 | `ledger-access-uri` | string, absolute https URI | yes | where a verifier obtains the attestation events and the Registry keys; access MAY be restricted to consortium members and auditors |
 | `hash-algorithm` | string | yes | `"sha-256"` |
 | `event-encoding` | string | yes | `"rfc8785"` |
-| `period-start`, `period-end` | string, full date | yes | first and last day covered; both inside the declaration's `reporting-period` |
+| `period-start`, `period-end` | string, full date | yes | first and last day covered; both inside the declaration's `period` |
 | `operators` | array of objects, at least one | yes | one entry per operator counted (exactly one in an operator declaration) |
 | `network-offset-coverage` | boolean | network level only | Σ(S2 + S3) ≤ Σ R over the period, from the totals below |
 | `anchor` | object | no | `{ "ledger": <name of the public chain>, "reference": <transaction or root identifier> }` for the last anchor covering `period-end` |
@@ -480,7 +480,7 @@ are gone, and each is replaced by something a stranger can find:
 | a per operator figures endpoint | the operator level declaration at the operator's own origin |
 | a disclosures endpoint | `disclosure-uri`, naming a machine readable index |
 | an attestation endpoint | `verifiable-attestation-uri`, naming a signed statement by another party |
-| a trend or history endpoint | the extended query parameters `period` and `granularity` on the same URI |
+| a trend or history endpoint | the extended query parameters `start`, `end` and `granularity` on the same URI |
 
 A bespoke endpoint has to be documented, discovered and agreed before anyone can read it,
 which is the problem the well known URI removes. Keeping one beside the declaration would
@@ -561,8 +561,8 @@ both say in band, in `provider`, that every figure in them is invented.
 | `examples/sfc-operator.example.json` | operator | one validator operator, `upstream` naming its cloud and electricity providers, and membership declared in `network-topology` |
 
 The network example is internally coherent, which a reader can check by hand: 800 MWh is
-800 000 kWh, times 41.4 gCO2e per kWh is 33.1 mtCO2e, the declared `scope-2`; the three
-scopes sum to 95.5, the declared `carbon-footprint`; and 95.5 mtCO2e is 95 500 kg, the
+800 000 kWh, times 41.4 gCO2e per kWh is 33.1 tCO2e, the declared `scope-2`; the three
+scopes sum to 95.5, the declared `carbon-footprint`; and 95.5 tCO2e is 95 500 kg, the
 declared `estimated-annual-emissions-kgCO2e`. A publisher SHOULD make its own figures
 reconcile the same way, and a reader SHOULD check.
 

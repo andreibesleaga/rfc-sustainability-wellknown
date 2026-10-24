@@ -4,24 +4,23 @@ classDiagram
         single SustainabilityMetrics object
         OR array of SustainabilityMetrics — a trend
     }
-    note for SustainabilityDocument "Array rules — MUST: ascending reporting-period,
-    non-overlapping, uniform period precision,
-    same target (and target-type, when present) in every entry.
-    No server-side size cap since -07 (a full calendar year at daily
-    granularity is naturally at most 366 entries; the consumer MUST bound
+    note for SustainabilityDocument "Array rules (-10): the objects may cover different periods and
+    targets of the origin, in any order, and may overlap; a query answer
+    is in ascending order of period.start.
+    No server-side size cap (the consumer MUST bound
     what it accepts - see Consumer Considerations).
     A single object == a one-element array."
 
     SustainabilityDocument "1" *-- "1..*" SustainabilityMetrics
 
     class SustainabilityMetrics {
-        <<7 mandatory members as of -07>>
+        <<7 mandatory members as of -10>>
         +updated : string — RFC 3339 date-time of generation
         +capabilities : "basic" | "extended" — query-parameter support only
         +provider : string — entity operating the origin
-        +measurement-method : string — free-form; recommended values exist
+        +measurement-method : "hardware-metered" | "hardware-estimated" | "cloud-billing" | "third-party-modeled"
         +methodology-uri : string — link to calculation methodology
-        +reporting-period : string — YYYY | YYYY-MM | YYYY-MM-DD
+        +period : object { start, end } — RFC 3339 date-times, start included, end excluded
         +target : string — reporting subject: origin host, path prefix, entity, tenant, product
     }
     note for SustainabilityMetrics "-06 and earlier also required an 8th mandatory
@@ -29,25 +28,25 @@ classDiagram
     -07 removes version entirely; it is not carried forward."
 
     class OptionalMetrics {
-        <<19 optional members as of -07 - omission is the ONLY not-reported mechanism>>
-        +target-type : "origin" | "path" | "organization" | "service" | "product" | "device" | "tenant" | "data-source" — hint classifying target; unrecognized values tolerated
+        <<19 optional members as of -10 - omission is the ONLY not-reported mechanism>>
+        +target-type : "organization" | "facility" | "origin" | "path" | "service" | "product" | "device" | "tenant" | "data-source" — classifies target
         +energy-consumption : number — MUST NOT be negative
         +energy-unit : "Wh" | "kWh" | "MWh" | "GWh" — default kWh when absent
         +carbon-footprint : number — gross, MUST NOT be negative
-        +carbon-unit : "gCO2e" | "kgCO2e" | "mtCO2e" — default gCO2e, also scales scopes
+        +carbon-unit : "gCO2e" | "kgCO2e" | "tCO2e" — default gCO2e, also scales scopes
         +carbon-accounting : "location-based" | "market-based"
         +scope-1 : number — MAY be negative: removals, net accounting
         +scope-2 : number — MAY be negative
         +scope-3 : number — MAY be negative
         +sci-score : number — non-negative; REQUIRES functional-unit
-        +functional-unit : string — e.g. per-request
+        +functional-unit : one of twelve, e.g. per-request, per-session, per-vcpu-hour
         +carbon-intensity-gCO2e-per-kWh : number — non-negative
         +estimated-annual-emissions-kgCO2e : number — non-negative
         +renewable-energy : number — percent, 0..100 inclusive
         +verifiable-attestation-uri : string — W3C Verifiable Credential link
         +disclosure-uri : string — disclosure index, e.g. carbon.txt
         +upstream : array of UpstreamEntry — providers this object's figures derive from, new in -07
-        +signed : string — OPTIONAL embedded JWS (alg EdDSA or ES256, cty sustainability-data+json) over this object minus signed; absence is not an error, new in -07
+        +signed : string — OPTIONAL embedded JWS (alg Ed25519 or ES256, cty sustainability-data+json) over this object minus signed; absence is not an error, new in -07
     }
 
     SustainabilityMetrics "1" o-- "0..1" OptionalMetrics : MAY carry

@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - "internet-drafts/**"
+      - "schemas-validators/response-schema.cddl"
       - ".github/workflows/draft.yml"
   pull_request:
     paths:
       - "internet-drafts/**"
+      - "schemas-validators/response-schema.cddl"
 
 jobs:
   build-id:
@@ -28,7 +30,7 @@ jobs:
       - name: Determine latest draft
         id: draft
         run: |
-          latest=$(ls internet-drafts/draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
+          latest=$(ls internet-drafts/draft-besleaga-sustainability-wellknown-[0-9][0-9].md | sort -V | tail -1)
           echo "md=$latest" >> "$GITHUB_OUTPUT"
           echo "Latest draft: $latest"
       - name: Build XML + text
@@ -50,9 +52,15 @@ jobs:
           n=$(npx --yes @ietf-tools/idnits -m normal -o count --no-progress "$base.xml" | tail -1)
           npx --yes @ietf-tools/idnits -m normal --no-progress --no-color "$base.xml" || true
           if [ "$n" != "0" ]; then echo "::error::idnits3 reports $n nit(s)"; exit 1; fi
+      - name: The CDDL block of the draft is the schema file
+        run: |
+          md="${{ steps.draft.outputs.md }}"
+          awk '/^~~~ cddl/{f=1;next} /^~~~/{if(f)exit} f' "$md" | cmp - schemas-validators/response-schema.cddl
       - name: Sanity checks
         run: |
           base="${{ steps.draft.outputs.md }}"; base="${base%.md}"
+          # The rendered text names the revision that was built.
+          grep -q "$(basename "$base")" "$base.txt"
           # No leaked code-fence markers in the rendered text.
           if grep -q '```' "$base.txt"; then echo "::error::leaked code fences in rendered draft"; exit 1; fi
           # The corrected reference tags must resolve in the References section.

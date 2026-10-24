@@ -10,27 +10,39 @@
  * say it was checked.
  */
 
+import {
+  ALLOWED_METHODS, CARBON_ACCOUNTING, CARBON_UNITS, ENERGY_UNITS, LEGACY_CARBON_UNIT, TARGET_TYPES,
+} from "./tokens.mjs";
+import { PeriodError, hasEnded, isYearLabel, labelYears, periodFromLabel } from "./period.mjs";
+
+export { ALLOWED_METHODS, TARGET_TYPES };
+
 export const ENUMS = {
-  "energy-unit": ["Wh", "kWh", "MWh", "GWh"],
-  "carbon-unit": ["gCO2e", "kgCO2e", "mtCO2e"],
-  "carbon-accounting": ["location-based", "market-based"],
+  "energy-unit": ENERGY_UNITS,
+  "carbon-unit": CARBON_UNITS,
+  "carbon-accounting": CARBON_ACCOUNTING,
 };
 const NUMERIC = new Set([
   "energy-consumption", "carbon-footprint", "scope-1", "scope-2", "scope-3",
   "renewable-energy", "carbon-intensity-gCO2e-per-kWh",
 ]);
 const SCOPES = new Set(["scope-1", "scope-2", "scope-3"]);
+// The members a report can give once per accounting basis; each basis becomes its own object.
+const BY_BASIS = new Set(["carbon-footprint", "scope-2"]);
 const MAX_QUOTE = 300;
 
 /** The members a model may propose. `measurement-method` is not one: it is the human's to state. */
 export const EXTRACTABLE = [
-  "reporting-period", "energy-consumption", "energy-unit", "carbon-footprint", "carbon-unit",
+  "period", "energy-consumption", "energy-unit", "carbon-footprint", "carbon-unit",
   "carbon-accounting", "scope-1", "scope-2", "scope-3", "renewable-energy",
   "carbon-intensity-gCO2e-per-kWh",
 ];
 
-/** Methods this tool writes. Never `hardware-metered`: a figure read from a report is not a meter reading. */
-export const ALLOWED_METHODS = ["third-party-modeled", "hardware-estimated", "cloud-billing"];
+// Replies recorded before the draft replaced reporting-period still replay.
+const MEMBER_ALIAS = { "reporting-period": "period" };
+
+// Words that make a whole-year label doubtful: the report may cover only part of the year.
+const PARTIAL_YEAR = /\b(?:half[\s-]?year|first half|second half|H[12]|Q[1-4]|(?:[1-4](?:st|nd|rd|th)|first|second|third|fourth)\s+quarter|quarterly|year[\s-]to[\s-]date|YTD|interim|first\s+(?:\d+|three|four|five|six|seven|eight|nine|ten|eleven)\s+months)\b|(?<!twelve |12 |twelve-|12-)\bmonths?\s+(?:ended|ending)\b/i;
 
 /** Normalize invisible and typographic spaces, then collapse whitespace. */
 export function squash(s) {
@@ -106,7 +118,7 @@ const UNIT_IN_QUOTE = {
     gCO2e: /(^|[^kKmM])\bg\s*CO[2₂]/,
     kgCO2e: /\bkg\s*CO[2₂]/i,
     // Metric tonnes. Megatonnes (MtCO2e) and kilotonnes (ktCO2e) are NOT this unit.
-    mtCO2e: /(\bt\s*CO[2₂]|\btonnes?\b|\bmetric tons?\b|\btons?\s+of\s+CO[2₂]|\bmtCO[2₂])/i,
+    tCO2e: /(\bt\s*CO[2₂]|\btonnes?\b|\bmetric tons?\b|\btons?\s+of\s+CO[2₂]|\bmtCO[2₂])/i,
   },
   "carbon-accounting": { "location-based": /location[\s-]?based/i, "market-based": /market[\s-]?based/i },
 };
@@ -122,28 +134,18 @@ function proposedNumber(v) {
   return toks[0].values[0];
 }
 
-/** End of a calendar period as a UTC instant, or undefined when the date does not exist. */
-function periodEnd(p) {
-  const m = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(p);
-  if (!m) return undefined;
-  const y = Number(m[1]), mo = m[2] ? Number(m[2]) : undefined, d = m[3] ? Number(m[3]) : undefined;
-  if (mo !== undefined && (mo < 1 || mo > 12)) return undefined;
-  if (d !== undefined) {
-    const t = new Date(Date.UTC(y, mo - 1, d));
-    if (t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== d) return undefined;
-    return Date.UTC(y, mo - 1, d + 1);
-  }
-  if (mo !== undefined) return Date.UTC(y, mo, 1);
-  return Date.UTC(y + 1, 0, 1);
-}
-
-export function verifyFigures(figures, sourceText, { now = new Date() } = {}) {
+/**
+ * `offset` is the fixed offset (`Z` or ±hh:mm) the period's bounds are written in;
+ * `wholePeriod` confirms that a report speaking of a quarter or half-year still
+ * covers the whole calendar year it names.
+ */
+export function verifyFigures(figures, sourceText, { now = new Date(), offset = "Z", wholePeriod = false } = {}) {
   const haystack = squash(sourceText);
   const candidates = [];
   const rejected = [];
 
   for (const f of Array.isArray(figures) ? figures : []) {
-    const member = f?.member;
+    const member = MEMBER_ALIAS[f?.member] ?? f?.member;
     const reject = (reason) => rejected.push({ member: typeof member === "string" ? member : String(member), value: f?.value, quote: f?.quote, reason });
 
     if (typeof member !== "string" || !EXTRACTABLE.includes(member)) { reject("not a member this tool extracts"); continue; }
@@ -162,6 +164,9 @@ export function verifyFigures(figures, sourceText, { now = new Date() } = {}) {
     if (NUMERIC.has(member)) {
       const value = proposedNumber(f.value);
       if (value === undefined) { reject("the value is not one plain number"); continue; }
+      const basis = accountingOf(f, member);
+      if (basis === null) { reject(`accounting must be ${CARBON_ACCOUNTING.join(" or ")} or absent`); continue; }
+      if (basis && !UNIT_IN_QUOTE["carbon-accounting"][basis].test(quote)) { reject(`the quote does not write ${basis}`); continue; }
       if (value < 0 && !SCOPES.has(member)) { reject("a negative value is not allowed for this member"); continue; }
       if (member === "renewable-energy" && (value < 0 || value > 100)) { reject("renewable-energy must be between 0 and 100"); continue; }
       if (SCALE_IN_QUOTE.test(quote)) { reject("the quote states the figure in thousands, millions or kt/Mt: convert it by hand, this tool does not"); continue; }
@@ -187,38 +192,59 @@ export function verifyFigures(figures, sourceText, { now = new Date() } = {}) {
       if (member === "renewable-energy" && /electricit/i.test(quote)) {
         flags.push("the quote may give a share of electricity, while renewable-energy is a share of all energy — CHECK BY HAND");
       }
-      candidates.push({ ...f, member, value, quote, page, checks, flags });
+      candidates.push({ ...f, member, value, quote, page, checks, flags, accounting: basis });
     } else if (ENUMS[member]) {
-      if (!ENUMS[member].includes(f.value)) { reject(`not one of ${ENUMS[member].join(", ")}`); continue; }
-      const written = UNIT_IN_QUOTE[member][f.value];
-      if (!written.test(quote) || (member === "carbon-unit" && f.value === "mtCO2e" && NOT_TONNES.test(quote))) {
-        reject(`the quote does not write ${f.value}`);
+      // The unit of earlier revisions is read as the metric tonne it meant; the quote must still write it.
+      const unit = member === "carbon-unit" && f.value === LEGACY_CARBON_UNIT ? "tCO2e" : f.value;
+      if (!ENUMS[member].includes(unit)) { reject(`not one of ${ENUMS[member].join(", ")}`); continue; }
+      if (!UNIT_IN_QUOTE[member][unit].test(quote) || (unit === "tCO2e" && NOT_TONNES.test(quote))) {
+        reject(`the quote does not write ${unit}`);
         continue;
       }
-      checks.push(`${f.value} is written in the quote`);
-      candidates.push({ ...f, member, value: f.value, quote, page, checks, flags });
-    } else if (member === "reporting-period") {
+      checks.push(`${unit} is written in the quote`);
+      if (unit !== f.value) checks.push(`${f.value} is the spelling of earlier revisions for ${unit}`);
+      candidates.push({ ...f, member, value: unit, quote, page, checks, flags });
+    } else if (member === "period") {
       const value = String(f.value);
-      const end = periodEnd(value);
-      if (end === undefined) { reject("not a real calendar YYYY, YYYY-MM or YYYY-MM-DD period"); continue; }
-      if (!quote.includes(value.slice(0, 4))) { reject("the year does not appear in its own quote"); continue; }
-      if (end > now.getTime()) { reject("the period has not ended: a year in the future or in progress is a target, not a reported figure"); continue; }
+      let period;
+      try {
+        period = periodFromLabel(value, offset);
+      } catch (e) {
+        if (!(e instanceof PeriodError)) throw e;
+        reject(e.message);
+        continue;
+      }
+      if (!labelYears(value).some((y) => quote.includes(y))) { reject("the year does not appear in its own quote"); continue; }
+      if (!hasEnded(period, now)) { reject("the period has not ended: a year in the future or in progress is a target, not a reported figure"); continue; }
+      if (isYearLabel(value) && !wholePeriod && PARTIAL_YEAR.test(quote)) {
+        reject("the quote speaks of part of a year (a quarter, a half-year, year to date): the period would claim the whole year; use a YYYY-MM-DD/YYYY-MM-DD range, or --period-is-whole if the report covers all of it");
+        continue;
+      }
       if (/\b(baseline|target|goal|aim|by 20\d\d|commit)/i.test(quote)) {
         flags.push("the quote speaks of a baseline or a target — CHECK BY HAND that this is the reporting period");
       }
+      if (value.includes("/")) flags.push("the dates of this range are the model's reading of the report — CHECK BY HAND the first and last day");
       checks.push("real calendar period, already ended", "year appears in the quote");
-      candidates.push({ ...f, member, value, quote, page, checks, flags });
+      candidates.push({ ...f, member, value, period, quote, page, checks, flags });
     }
   }
 
   // One member, one value; different values for one member are left to the person.
   const accepted = [];
   const byMember = new Map();
+  const tagged = new Set(candidates.filter((c) => c.accounting).map((c) => c.member));
   for (const c of candidates) {
-    if (!byMember.has(c.member)) byMember.set(c.member, []);
-    byMember.get(c.member).push(c);
+    if (tagged.has(c.member) && !c.accounting) {
+      rejected.push({ member: c.member, value: c.value, quote: c.quote,
+        reason: "the report gives this member by accounting basis; this figure does not say which one" });
+      continue;
+    }
+    const key = `${c.member}|${c.accounting ?? ""}`;
+    if (!byMember.has(key)) byMember.set(key, []);
+    byMember.get(key).push(c);
   }
-  for (const [member, list] of byMember) {
+  for (const list of byMember.values()) {
+    const { member } = list[0];
     const values = [...new Set(list.map((c) => String(c.value)))];
     if (values.length === 1) {
       const keep = list[0];
@@ -233,19 +259,38 @@ export function verifyFigures(figures, sourceText, { now = new Date() } = {}) {
     }
   }
 
-  const period = accepted.find((f) => f.member === "reporting-period");
+  const period = accepted.find((f) => f.member === "period");
   if (period) {
-    const y = String(period.value).slice(0, 4);
+    const years = labelYears(period.value);
     for (const f of accepted) {
-      if (NUMERIC.has(f.member) && !f.quote.includes(y)) {
-        f.flags.push(`the quote does not name ${y}: confirm it is that year's figure — CHECK BY HAND`);
+      if (NUMERIC.has(f.member) && !years.some((y) => f.quote.includes(y))) {
+        f.flags.push(`the quote does not name ${years.join(" or ")}: confirm it is that period's figure — CHECK BY HAND`);
       }
     }
   }
   return { accepted: crossCheck(accepted), rejected };
 }
 
+/** The accounting basis a figure is tagged with: undefined for none, null for a tag outside the set. */
+function accountingOf(figure, member) {
+  const tag = figure.accounting;
+  if (!BY_BASIS.has(member) || tag === undefined || tag === null || tag === "" || tag === "not-stated") return undefined;
+  return CARBON_ACCOUNTING.includes(tag) ? tag : null;
+}
+
+/** The figures that belong in the object of one accounting basis (all of them when there is none). */
+const figuresOf = (accepted, basis) => accepted.filter((f) => !f.accounting || f.accounting === basis);
+
+/** The distinct accounting bases the figures are tagged with, in the order of the draft. */
+const basesOf = (accepted) => CARBON_ACCOUNTING.filter((b) => accepted.some((f) => f.accounting === b));
+
 function crossCheck(accepted) {
+  const bases = basesOf(accepted);
+  for (const basis of bases.length ? bases : [undefined]) crossCheckOne(figuresOf(accepted, basis));
+  return accepted;
+}
+
+function crossCheckOne(accepted) {
   const by = Object.fromEntries(accepted.map((f) => [f.member, f]));
   const scopes = ["scope-1", "scope-2", "scope-3"].filter((s) => by[s]);
   if (by["carbon-footprint"] && scopes.length === 3) {
@@ -259,13 +304,12 @@ function crossCheck(accepted) {
   }
   if (by["carbon-intensity-gCO2e-per-kWh"] && by["energy-consumption"] && by["scope-2"] && by["energy-unit"] && by["carbon-unit"]) {
     const toKwh = { Wh: 1e-3, kWh: 1, MWh: 1e3, GWh: 1e6 }[by["energy-unit"].value];
-    const toG = { gCO2e: 1, kgCO2e: 1e3, mtCO2e: 1e6 }[by["carbon-unit"].value];
+    const toG = { gCO2e: 1, kgCO2e: 1e3, tCO2e: 1e6 }[by["carbon-unit"].value];
     const implied = (by["scope-2"].value * toG) / (by["energy-consumption"].value * toKwh);
     by["carbon-intensity-gCO2e-per-kWh"].flags.push(
       `scope 2 over energy gives ${implied.toFixed(1)}; that is the intensity only if the energy figure is electricity alone`,
     );
   }
-  return accepted;
 }
 
 /** Refuse a model whose price is unknown, negative (a router) or above the budget. */
@@ -288,7 +332,7 @@ export function assessPrice(modelEntry, maxCostUsd, { promptTokens, completionTo
 /** A stable fingerprint of what a reviewer approves: the accepted figures and their evidence. */
 export function figuresFingerprint(accepted) {
   return JSON.stringify(
-    accepted.map((f) => [f.member, f.value, f.quote, f.page ?? null]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+    accepted.map((f) => [f.member, f.value, f.quote, f.page ?? null, f.accounting ?? null, f.period ?? null]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
   );
 }
 
@@ -301,13 +345,13 @@ const CLAIMS_REVIEW = /\b(checked|reviewed?|audited?|verified|assured|approved)\
  * publisher and may not itself claim a review.
  */
 export function buildDeclaration({ accepted, opts, meta, approval, now = new Date() }) {
-  const by = Object.fromEntries(accepted.map((f) => [f.member, f.value]));
-  const problems = [];
+  const problems = new Set();
 
   const method = opts.measurementMethod ?? "third-party-modeled";
-  if (!ALLOWED_METHODS.includes(method)) problems.push(`measurement-method "${method}" is not one this tool writes (${ALLOWED_METHODS.join(", ")})`);
+  if (!ALLOWED_METHODS.includes(method)) problems.add(`measurement-method "${method}" is not one this tool writes (${ALLOWED_METHODS.join(", ")})`);
+  if (opts.targetType && !TARGET_TYPES.includes(opts.targetType)) problems.add(`target-type "${opts.targetType}" is not one of ${TARGET_TYPES.join(", ")}`);
   if (opts.provider && CLAIMS_REVIEW.test(opts.provider)) {
-    problems.push("--provider may name the publisher but may not claim a review: that sentence is added only by --approve --reviewer");
+    problems.add("--provider may name the publisher but may not claim a review: that sentence is added only by --approve --reviewer");
   }
   const extractedBy = meta?.replayed ? "a recorded model reply" : `the model ${meta?.model ?? "unknown"}`;
   const who = opts.provider ? `${opts.provider}. ` : "";
@@ -319,31 +363,54 @@ export function buildDeclaration({ accepted, opts, meta, approval, now = new Dat
     ? `${base} Each figure checked by ${approval.reviewer} on ${approval.date}.`
     : `CANDIDATE, NOT REVIEWED — must not be published. ${base}`;
 
-  const document = {
+  // Figures that differ only in their accounting basis are separate objects for the same target and period.
+  const tagged = basesOf(accepted);
+  const stated = accepted.find((f) => f.member === "carbon-accounting")?.value;
+  if (stated && tagged.length && (tagged.length > 1 || tagged[0] !== stated)) {
+    problems.add(`carbon-accounting says ${stated}, but the carbon figures are given for ${tagged.join(" and ")}`);
+  }
+  const objects = (tagged.length ? tagged : [undefined]).map((basis) => {
+    return objectFor(figuresOf(accepted, basis), { opts, method, provider, now, basis, problems });
+  });
+  const document = objects.length === 1 ? objects[0] : objects;
+  return { document, conformant: problems.size === 0, problems: [...problems] };
+}
+
+const METRICS = ["energy-consumption", "carbon-footprint", "scope-1", "scope-2", "scope-3", "renewable-energy", "carbon-intensity-gCO2e-per-kWh"];
+
+function objectFor(figures, { opts, method, provider, now, basis, problems }) {
+  const by = Object.fromEntries(figures.map((f) => [f.member, f]));
+  const value = (member) => by[member]?.value;
+
+  const object = {
     updated: now.toISOString().replace(/\.\d{3}Z$/, "Z"),
     capabilities: "basic",
     provider,
     "measurement-method": method,
     "methodology-uri": opts.methodologyUri,
-    "reporting-period": by["reporting-period"] ?? "",
-    target: opts.target,
   };
+  if (by.period) object.period = by.period.period;
+  object.target = opts.target;
+  if (opts.targetType) object["target-type"] = opts.targetType;
   for (const m of ["energy-consumption", "energy-unit", "carbon-footprint", "carbon-unit", "carbon-accounting",
                    "scope-1", "scope-2", "scope-3", "renewable-energy", "carbon-intensity-gCO2e-per-kWh"]) {
-    if (by[m] !== undefined) document[m] = by[m];
+    if (value(m) !== undefined) object[m] = value(m);
   }
-  if (opts.targetType) document["target-type"] = opts.targetType;
+  if (basis) object["carbon-accounting"] = basis;
 
-  if (!document["reporting-period"]) problems.push("no reporting period was found in the source");
-  if (document["energy-unit"] !== undefined && document["energy-consumption"] === undefined) delete document["energy-unit"];
-  const hasMetric = ["energy-consumption", "carbon-footprint", "scope-1", "scope-2", "scope-3",
-    "renewable-energy", "carbon-intensity-gCO2e-per-kWh"].some((m) => document[m] !== undefined);
-  if (!hasMetric) problems.push("no metric survived verification, and this tool adds no evidence link of its own");
-  if (["carbon-footprint", "scope-1", "scope-2", "scope-3"].some((m) => document[m] !== undefined) && document["carbon-unit"] === undefined) {
-    problems.push("a carbon figure was found but no unit was quoted — the format would read it as gCO2e, which would be a guess");
+  if (!object.period) problems.add("no reporting period was found in the source");
+  if (object["energy-unit"] !== undefined && object["energy-consumption"] === undefined) delete object["energy-unit"];
+  if (object["carbon-unit"] !== undefined && !["carbon-footprint", "scope-1", "scope-2", "scope-3"].some((m) => object[m] !== undefined)) {
+    delete object["carbon-unit"];
   }
-  if (document["energy-consumption"] !== undefined && document["energy-unit"] === undefined) {
-    problems.push("an energy figure was found but no unit was quoted — the format would read it as kWh, which would be a guess");
+  if (!METRICS.some((m) => object[m] !== undefined)) {
+    problems.add("no metric survived verification, and this tool adds no evidence link of its own");
   }
-  return { document, conformant: problems.length === 0, problems };
+  if (["carbon-footprint", "scope-1", "scope-2", "scope-3"].some((m) => object[m] !== undefined) && object["carbon-unit"] === undefined) {
+    problems.add("a carbon figure was found but no unit was quoted — the format would read it as gCO2e, which would be a guess");
+  }
+  if (object["energy-consumption"] !== undefined && object["energy-unit"] === undefined) {
+    problems.add("an energy figure was found but no unit was quoted — the format would read it as kWh, which would be a guess");
+  }
+  return object;
 }

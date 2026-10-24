@@ -27,9 +27,9 @@ jobs:
       # profile can be checked with nothing but what is on the registry. So
       # `npm install`, never `npm ci`.
       #
-      # THIS JOB IS RED UNTIL `sustainability-wellknown-consumer@0.7.0` IS
+      # THIS JOB IS RED UNTIL `sustainability-wellknown-consumer@0.8.0` IS
       # PUBLISHED TO npm. Until then the install resolves nothing that satisfies
-      # `^0.7.0` and the job fails on the first step. That is deliberate: it is
+      # `^0.8.0` and the job fails on the first step. That is deliberate: it is
       # the same signal gateway.yml gives, and it goes green the moment the
       # owner publishes the release. Locally the same suite runs against the
       # tarball in ../consumer (see sfc-compliance/README.md).

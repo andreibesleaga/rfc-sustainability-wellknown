@@ -7,7 +7,7 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-10` is under review by the Independent Submissions Editor; it answers the ART-area early review of `-07, -08`. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md). Current repo software implements Internet-Draft version `-08`.
+**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-10` (posted 2026-10-24), is under review by the Independent Submissions Editor; it answers the Editor's suggestions on `-09`: every date is an RFC 3339 `date-time` and every token member takes one of a listed set. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md). Current repo software implements Internet-Draft version `-10`: the publisher and the consumer `0.8.0`, the gateway `0.2.0`.
 
 Presented at the IRTF Sustainability Research Group (IETF 126, July 2026); Independent Submission under review.
 
@@ -59,14 +59,14 @@ The gateway also serves illustrative mappings of real organizations' own publish
 | | |
 |---|---|
 | **Real organisations** | Figures transcribed from each organisation's own report, with the source document, retrieval date and licence recorded per figure. Served only where the source's terms allow reuse; seven are withheld: six because their terms forbid reuse, one (Fastly) because its terms could not be read. |
-| **Every case in the draft** | 22 wire-format examples: every `target-type`, unit, accounting basis, period precision, trend shape, negative scope, upstream chain, both kinds of extension name, and one really signed declaration. |
+| **Every case in the draft** | 42 wire-format examples: every `target-type`, unit, accounting basis, period precision, trend shape, negative scope, upstream chain, both kinds of extension name, and one really signed declaration. |
 | **Every adapter** | Eleven demonstrations (Kepler/Prometheus, NESO grid intensity, CO2.js, carbon.txt, Climatiq, Salesforce Net Zero Cloud, Microsoft emissions, Watershed, the IETF GREEN power-and-energy YANG model, the Green Web Foundation's DIST file, and an experimental, synthetic ledger example). Each shows **its raw input next to the declaration it becomes** at `/{domain}/input`, with the licence and a live-upstream link where one exists. |
-| **Its own report** | Extended service: any period since go-live, sliced monthly or daily, following the draft's seven-step query procedure. Energy from the host's usage metrics where entered (else a stated assumption), the Netherlands grid factor (EEA), an embedded `signed` member, and a Verifiable Credential attesting the model. |
-| **HTTP behaviour** | The dedicated media type, strong ETags and `304`s, CORS, `405` with `Allow`, identical `404`s for unknown prefixes and missing data, rate limiting, and a legal notice with a removal route. |
+| **Its own report** | Extended service: the objects it holds since go-live, selected by `start`, `end`, `granularity` and `target` and returned as they are held, never summed. Energy from the host's usage metrics where entered (else a stated assumption), the Netherlands grid factor (EEA), an embedded `signed` member, and a Verifiable Credential attesting the model. |
+| **HTTP behaviour** | The dedicated media type, strong ETags and `304`s, CORS, `405` with `Allow`, identical `404`s for an unknown subject and a withheld one, `200` with an empty array when a range or target selects nothing, rate limiting, and a legal notice with a removal route. |
 | **For people** | A plain-language page that follows the system light/dark theme, with captioned tables, keyboard-scrollable regions and a link for every request it advertises. |
 | **Check any origin** | `/validate?origin=https://host` fetches an origin's declaration once with the published consumer and says whether it is a schema-valid declaration; `/badge/<host>.svg` shows the same result as a README badge. At most one fetch per host per hour, `https` and public names only, a stricter limit for checks that cause a fetch, a `503` with `Retry-After` when the service's own budget is spent, no result stored, an exclusion list for operators who ask. A check describes the bytes served at that moment; it is never an endorsement. |
 
-[`tools/report-to-declaration/`](tools/report-to-declaration/) turns a published PDF or HTML report into a
+[`tools/report-to-declaration/`](tools/report-to-declaration/) (`0.3.0`) turns a published PDF or HTML report into a
 **candidate** declaration through any OpenRouter model. A figure survives only if its quote is found in the
 source and the number is inside that quote. Conflicting values and targets are refused. Nothing says it was
 checked until a named reviewer approves it.
@@ -83,7 +83,7 @@ tested the way its platform expects. Details and the verification status of each
 | A web server or proxy (nginx, Apache or LiteSpeed via `.htaccess`, Caddy, HAProxy, Envoy, Traefik, IIS) | the few lines in [`deploy/proxies/`](deploy/proxies/) | nginx, Apache and Caddy started and checked in strict mode in CI; HAProxy configuration-checked |
 | An application (Express, Fastify, Koa, Next.js, Nuxt, SvelteKit, Astro; Flask, FastAPI, Django; PHP, Laravel, Symfony; Go; Spring Boot; ASP.NET Core; Rails; Axum) | one route in [`deploy/frameworks/`](deploy/frameworks/), or the publisher library for a signed, Extended service | ten servers started in CI, each checked for every MUST of the draft, `405` with `Allow`, `HEAD` like `GET`, `ETag`/`304` |
 | WordPress | the plugin [Sustainability Data (well-known)](deploy/wordpress/): a settings page that checks what you enter, a signed declaration, multisite, translation-ready, no external calls (GPLv2-or-later) | WordPress coding standards, PHP 8.1 compatibility, offline tests, and a run in a real WordPress in Docker checked by the consumer |
-| Nothing yet | `npx create-sustainability-data`: seven questions, the file and your host's configuration ([`tools/create-sustainability-data/`](tools/create-sustainability-data/)) | tests, including the command run the way `npx` runs it |
+| Nothing yet | `npx create-sustainability-data` (`0.2.0`, writes the `-10` form): a few questions, the file and your host's configuration ([`tools/create-sustainability-data/`](tools/create-sustainability-data/)) | tests, including the command run the way `npx` runs it |
 | A container platform (Railway or any other) | the one-click node in [`deploy/one-click/railway/`](deploy/one-click/railway/): figures from environment variables, served and signed by the publisher library | tests; the image built and run |
 | A home energy meter | the Home Assistant add-on in [`deploy/home-assistant/`](deploy/home-assistant/): a signed monthly `hardware-metered` declaration from the Energy dashboard's sensor, never a partial month | tests against a simulated Home Assistant; not yet run on a real instance |
 | A spreadsheet or an ESG tool's export | the publisher's `csvAdapter`: one row per period, every cell checked, an unusable row reported and never published | publisher tests |
@@ -101,7 +101,7 @@ tested the way its platform expects. Details and the verification status of each
 
 [publisher/](publisher/) publishes a draft-conformant `/.well-known/sustainability-data` document. It is on npm as
 **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)**; the
-current release, **`0.7.3`**, implements draft `-07`.
+current release, **`0.8.0`**, implements draft `-10`.
 
 - **What it does:** takes figures from pluggable adapters, normalises them to the draft's members, validates every
   document against this repository's JTD and CDDL schemas before serving it (nothing invalid is published), and
@@ -117,7 +117,7 @@ current release, **`0.7.3`**, implements draft `-07`.
 
 [consumer/](consumer/) reads `/.well-known/sustainability-data` from any origin. It is on npm as
 **[`sustainability-wellknown-consumer`](https://www.npmjs.com/package/sustainability-wellknown-consumer)**; the
-current release, **`0.7.0`**, implements draft `-07`.
+current release, **`0.8.0`**, implements draft `-10`; by default it also reads the `-08` and `-09` forms that `-10` replaced.
 
 - **What it does:** fetches, validates defensively (schema plus the draft's cross-entry rules), verifies the embedded
   `signed` member, walks `upstream` declarations (depth three at most, no URI twice), and transforms a document to
@@ -126,8 +126,8 @@ current release, **`0.7.0`**, implements draft `-07`.
   `--strict` mode is a conformance checker for any implementation. API, CLI and the version history:
   [consumer/README.md](consumer/README.md) and [consumer/USAGE.md](consumer/USAGE.md).
 
-Both packages are also mirrored on GitHub Packages; npmjs.com is the canonical registry. The reference gateway's
-tests and its live deployment use both together.
+Both packages are also mirrored on GitHub Packages; npmjs.com is the canonical registry. The reference gateway (`0.2.0`)
+uses both together in its tests and its live deployment.
 
 ## Verify a live deployment
 
@@ -150,7 +150,7 @@ curl -sI https://example.org/sustainability-methodology.html | head -1
 ```
 
 The walkthrough, the expected output, the `--strict` severity model (a failed `MUST` is `FAIL`; an unmet `SHOULD`
-is `WARN` and does not fail the check) and the consumer version needed for a `-07` document are in
+is `WARN` and does not fail the check) and the consumer version needed for a `-10` document are in
 [consumer/README.md § Verify a live deployment](consumer/README.md#verify-a-live-deployment).
 
 ---
@@ -160,7 +160,7 @@ The normative specification is the Internet‑Draft; this repo provides non‑no
 
 ```
 rfc-sustainability-wellknown/
-├── internet-drafts/            # Draft sources (-05 to -08 posted), build script, changelog, VC companion note
+├── internet-drafts/            # Draft sources (-05 to -10 posted), build script, changelog, VC companion note
 ├── example-responses/          # Valid JSON response examples (all validators pass)
 ├── schemas-validators/         # Formal schemas (CDDL, JTD) and validation tooling
 ├── example-scripts/            # Server-side security middleware + reference request handler (Python, JS, PHP), with tests
@@ -175,7 +175,7 @@ rfc-sustainability-wellknown/
 ├── architecture/               # System overview diagram and architecture notes
 ├── sfc-compliance/             # The SFC profile of this well-known URI: normative PROFILE.md, two reference declarations, and a checker
 ├── .github/                    # CI workflows (build, test, conformance battery, package publishing) and Dependabot policy
-├── SIGNING-AND-ATTESTATION.md  # How to deploy the OPTIONAL signature and a Verifiable Credential (publisher, attester, consumer); covers -07's embedded `signed` member
+├── SIGNING-AND-ATTESTATION.md  # How to deploy the OPTIONAL signature and a Verifiable Credential (publisher, attester, consumer); covers the embedded `signed` member of -10
 ├── ADOPTION.md                 # The case for RFC/IANA adoption (business, technical, regulatory benefits)
 ├── IMPLEMENTATIONS.md          # Implementations and live deployments (RFC 7942 style); implementations.json is the checked list
 ├── scripts/test-everything.sh  # Builds and tests every area in one run, from a clean clone
@@ -194,23 +194,25 @@ System architecture, with C4 diagrams: [architecture/README.md](architecture/REA
 ## internet-drafts/
 
 The draft in Markdown, xml2rfc XML and rendered text, plus supplementary documents. The directory keeps the posted
-`-05`, `-06`, `-07` and `-08`; earlier revisions are on the
+`-05` to `-10`; earlier revisions are on the
 [Datatracker](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/) and in this repository's
 git history. The full revision history is in [internet-drafts/README.md](internet-drafts/README.md).
 
 | File | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-08.md` / `.xml` / `.txt` | **Latest posted revision** (posted 2026-10-09, under ISE review). Editorial: an RFC 7942 Implementation Status appendix, the worked example aligned with the live deployment, and the answers to the ART-area early review of `-07`. No change to the format, the schemas, the media type or the registration |
-| `draft-besleaga-sustainability-wellknown-07.md` / `.xml` / `.txt` | **Prior posted revision** (posted 2026-09-17; defines the current wire format). Defines the full data model, mandatory and optional members, CDDL and JTD schemas, security, privacy and internationalization considerations, and the IANA registration request |
+| `draft-besleaga-sustainability-wellknown-10.md` / `.xml` / `.txt` | **Latest posted revision** (posted 2026-10-24, under ISE review). Changes the wire format at the Editor's suggestions on `-09`: every date is an RFC 3339 `date-time`, `period` is a half-open range of two such values, the `start` and `end` query parameters are UTC date-times, and `measurement-method`, `functional-unit`, `carbon-unit` and the `upstream` `role` take one of a listed set (the Internationalization Considerations section is removed and Security Considerations is shortened) |
+| `draft-besleaga-sustainability-wellknown-09.md` / `.xml` / `.txt` | **Prior posted revision** (posted 2026-10-16). Restructured the document and replaced `reporting-period` and the `period` query parameter with `period` (an object) and `start`, `end` and `granularity` |
+| `draft-besleaga-sustainability-wellknown-08.*`, `-07.*` | Earlier posted revisions (`-08` 2026-10-09, `-07` 2026-09-17; `-07` defined the embedded `signed` member, `upstream` and `extensions`) |
 | `draft-besleaga-sustainability-wellknown-06.*`, `-05.*` | Prior posted revisions, kept as files for reference |
 | `draft-verifiable-credential.md` | Supplementary: W3C Verifiable Credential structure for anti-greenwashing attestations |
 | `CHANGELOG.md`, `REVISION-07-RATIONALE.md` | Changes between every revision; the reasons behind the `-07` changes, with their migration and reversal costs |
 
-**Compatibility between the last two revisions.** `-07` and `-08` have the same wire format: the same seven mandatory
-and nineteen optional members, the same schemas in `schemas-validators/`, the same media type. The current
-library releases (`0.7.x`) implement it: the embedded `signed` member, `upstream` walked to depth three, and
-URI-keyed `extensions`. The consumer still accepts the generic `application/json` with a WARN while the media type
-registration is pending, and the publisher can emit it with `mediaType: "json"` (not conformant). What earlier revisions
+**Compatibility between revisions.** `-07` and `-08` have the same wire format. `-09` replaced `reporting-period` with a
+`period` object of two full-dates, and `-10` changed it again: a `-09` document is not a valid `-10` document (the bounds
+of `period` are date-times, and a token outside its set is no longer allowed). The current library releases (`0.8.0`)
+implement `-10`; the consumer also reads the `-08` and `-09` forms by default and reports what it converted, and
+`sustainability-publisher upgrade` converts a file. The consumer still accepts the generic `application/json` while the media
+type registration is pending, and the publisher can emit it with `mediaType: "json"` (not conformant). What earlier revisions
 changed, and which library releases implemented them, is in [internet-drafts/README.md](internet-drafts/README.md#compatibility-between-draft-revisions-moved-from-the-root-readme-2026-10-09).
 
 ---
@@ -222,11 +224,12 @@ changed, and which library releases implemented them, is in [internet-drafts/REA
 | File | Description |
 |---|---|
 | `example-response.json` | Basic service — single object, aggregate host metrics |
-| `example-response-extended.json` | Extended service — single object, every optional field but `upstream` and `signed`, including GHG scopes, `verifiable-attestation-uri`, `disclosure-uri` (market-based) and a URI-keyed `extensions` object |
+| `example-response-extended.json` | Extended service — single day of a path (`target-type: "path"`), every optional field but `upstream` and `signed`, including GHG scopes, `verifiable-attestation-uri`, `disclosure-uri` (market-based) and a URI-keyed `extensions` object |
 | `example-response_yearly.json` | Extended service — array of 12 monthly objects for a full year trend (location-based) |
-| `example-response-yearly-monthly-target.json` | Extended service — array scoped to a specific path prefix, echoed in the mandatory `target` member |
+| `example-response-yearly-monthly-target.json` | Extended service — two monthly objects of the path `/api/v1`, named in the mandatory `target` member |
+| `example-response-year-and-months.json` | Extended service — calendar 2025 beside its twelve months in one array; the year states the sums of the months |
 | `example-response-unreported.json` | Partial reporting — demonstrates metric omission (the only "not reported" mechanism the format defines) and the default units (`kWh`/`gCO2e`), with a `disclosure-uri` pointer |
-| `example-response-organization.json` | Organization-level reporting (`target-type: "organization"`) — a synthetic corporate GHG inventory in the shape a real one takes: Scope 1/2/3 in `mtCO2e`, the three scopes summing to `carbon-footprint`, location-based accounting. Every value is invented; no real organization is named. |
+| `example-response-organization.json` | Organization-level reporting (`target-type: "organization"`) — a synthetic corporate GHG inventory in the shape a real one takes: Scope 1/2/3 in `tCO2e`, the three scopes summing to `carbon-footprint`, location-based accounting. Every value is invented; no real organization is named. |
 | `example-response-comprehensive.json` | Comprehensive organization report (`target-type: "organization"`) for a fictional data-centre operator — every optional member that fits an organization, plus six `https`-keyed `extensions` carrying what the base format does not define: ISO/IEC 30134 facility KPIs (PUE/REF/ITEU/ERF/CER/WUE) and CUE, water, waste, hardware circularity, refrigerant and generator emissions, and renewable procurement. Every figure is invented and internally coherent (the scopes sum to `carbon-footprint`; `carbon-intensity-gCO2e-per-kWh` times `energy-consumption` is `scope-2`). |
 | `example-response-origin-annual.json` | Basic service — annual origin-level report (`target-type: "origin"`), the primary real-world static-file use case: no query parameters, one calendar year |
 | `example-response-service.json` | Basic service — SaaS `target-type: "service"` annual report, with `sci-score`/`functional-unit` |
@@ -235,14 +238,28 @@ changed, and which library releases implemented them, is in [internet-drafts/REA
 | `example-response-tenant.json` | Basic service — cloud tenant allocation (`target-type: "tenant"`, `measurement-method: "cloud-billing"`), full Scope 1/2/3 |
 | `example-response-data-source.json` | Basic service — metrics-feed/data-source report (`target-type: "data-source"`) |
 | `example-response-minimal.json` | Minimum-conformance example — the 7 mandatory members plus `disclosure-uri`, the minimum evidence a declaration may carry in place of a numeric metric |
-| `example-response-organization-trend.json` | Basic service — 4-year annual trend array (2022-2025, `target-type: "organization"`), demonstrating array ordering/non-overlap/uniformity rules |
-| `example-response-upstream-organization.json` | The downstream half of the `-07` `upstream` pair — an organization naming the tenant-scoped declaration of the cloud provider its figures partly derive from |
+| `example-response-organization-trend.json` | Basic service — 4-year annual trend array (2022-2025, `target-type: "organization"`); the objects of an array may cover any periods, in any order |
+| `example-response-two-targets.json` | An origin and one of its paths in one array, for the same month (`target` `example.com` and `/api/v1`) |
+| `example-response-accounting-pair.json` | One organization and year in two objects, location-based and market-based scope 2, as the draft asks for figures that differ only in their accounting method |
+| `example-response-target-types.json` | One object for each of the nine `target-type` values |
+| `example-response-functional-units.json` | One service and year in twelve objects, one `sci-score` for each of the twelve `functional-unit` values |
+| `example-response-unit-grid.json` | Twelve monthly objects that between them use every pair of `energy-unit` and `carbon-unit`, each month 1.2 MWh and 0.45 tCO2e |
+| `example-response-dst-month.json` | A month across a change of daylight-saving time, each bound written in the offset in force at that boundary (`+01:00` to `+02:00`) |
+| `example-response-dst-days.json` | Two whole local days of one facility, one 23 hours long (spring) and one 25 hours long (autumn), each bound in its own offset |
+| `example-response-local-days.json` | Three consecutive local days of a metered device, each bound at local midnight in the offset `+08:00` |
+| `example-response-mixed-offsets.json` | Two objects for the same month whose bounds carry different offsets (`-05:00` and `Z`), held out of instant order, so ordering by `period.start` as an instant shows |
+| `example-response-daily-trend.json` | Extended service — a `daily` series for a metered device, in watt-hours and grams: three days of the series the device holds, the response to `?granularity=daily` |
+| `example-response-upstream-organization.json` | The downstream half of the `upstream` pair — an organization naming the tenant-scoped declaration of the cloud provider its figures partly derive from |
 | `example-response-upstream-tenant.json` | The upstream half of the pair — what that provider states it delivered to one tenant (`target-type: "tenant"`, an opaque `target`), the only shape the draft defines a comparison for |
 | `example-response-upstream-multiple.json` | Several `upstream` entries with different roles — `cloud` and `cdn` name tenant-scoped declarations about this customer (comparable), `electricity` names the supplier's own totals (no comparison defined); each entry is compared on its own |
-| `example-response-signed.json` | The OPTIONAL `signed` member, real and verifiable: an EdDSA JWS whose payload is the object without `signed`, `cty: sustainability-data+json`, public key in the header as `jwk`. The origin is an internationalized host, so `target` and every URI carry its A-label (`xn--grn-ioa.example`) while `provider` is UTF-8 text |
-| `example-response-removals.json` | A negative scope — `scope-1` nets 320 t of inventoried removals against 140 t of direct emissions, as the draft allows where the accounting method conveys removals; `carbon-footprint` stays gross (140 + 400 + 700 = 1240), so the scopes as published no longer sum to it and the methodology document explains why. Also a free-text `measurement-method`, an omitted `energy-unit` (kWh applies) and an attestation link for the removals claim |
-| `example-response-daily-trend.json` | Extended service — a `daily` series for a metered device, in watt-hours and grams: the response to `?period=2026-03&granularity=daily` for the three days held. The same month requested without `granularity` is `404`: three days do not cover March, so no honest aggregate exists |
-| `example-response-aggregate.json` | What the Extended aggregation rule produces: the answer `example-response_yearly.json` gives to `?period=2025` when it holds only months — energy and carbon summed in the last entry's unit, `capabilities: "extended"`, `renewable-energy` omitted (a percentage is not a sum), `carbon-accounting` kept because every month agrees |
+| `example-response-upstream-roles.json` | One `upstream` entry for each of the six `role` values (`hosting`, `colocation`, `cloud`, `cdn`, `network`, `electricity`) and one with no `role` |
+| `example-response-chain-org.json`, `-chain-tenant.json`, `-chain-host.json`, `-chain-colo.json`, `-chain-grid.json` | A chain of five declarations, each naming the next as its `upstream` (organization, tenant, hosting facility, colocation facility, electricity supplier), to walk to the depth a consumer allows |
+| `example-response-chain-inconsistent.json` | An organization whose figures are smaller than what the tenant declaration it names says it delivered, so the comparison reports a difference |
+| `example-response-loop-a.json`, `-loop-b.json` | Two declarations that name each other as `upstream`, so a consumer's no-revisit rule stops the walk |
+| `example-response-signed.json` | The OPTIONAL `signed` member, real and verifiable: an `Ed25519` JWS whose payload is the object without `signed`, `cty: sustainability-data+json`, public key in the header as `jwk`. The origin is an internationalized host, so `target` and every URI carry its A-label (`xn--grn-ioa.example`) while `provider` is UTF-8 text |
+| `example-response-signed-array.json` | An array of three monthly objects, each carrying its own `signed` member (`Ed25519`, the public RFC 8032 test key) |
+| `example-response-signed-es256.json` | One object signed with `ES256` (a P-256 test key), so that both recommended algorithms are served and verify |
+| `example-response-removals.json` | A negative scope — `scope-1` nets 320 t of inventoried removals against 140 t of direct emissions, as the draft allows where the accounting method conveys removals; `carbon-footprint` stays gross (140 + 400 + 700 = 1240), so the scopes as published no longer sum to it and the methodology document explains why. Also an attestation link for the removals claim |
 
 ---
 
@@ -256,15 +273,17 @@ Formal schemas and validation tooling. See [schemas-validators/README.md](schema
 | `response-schema.cddl` | CDDL (RFC 8610) schema — matches the formal definition in the draft |
 | `validator-json.py` | Validates a JSON file against the JTD schema; handles single objects and arrays |
 | `validator-cddl.py` | Validates a JSON file against the CDDL schema using the `cddl` Ruby gem |
-| `validate-all.sh` | Runs both validators against all files in `example-responses/` |
-| `requirements.txt` | Python dependencies (`jtd`) |
+| `validate-all.sh` | Runs both validators over the example corpus (`schemas-validators/examples/` and `example-responses/`) and compares every verdict with the one recorded in `examples/manifest.json` |
+| `check-live.py` | Checks every origin of `implementations.json` against the schema; run daily by CI |
+| `gen/` | Generators of the all-pairs set, the signed files and the served examples; `--check` compares the committed files with a fresh run |
+| `requirements.txt` | Python dependencies (`jtd`); `cddl` gem 0.12.14 for the CDDL validator |
 | `install.py` | Installs all dependencies: `jtd` via pip, `cddl` via gem |
 
 **Quick start:**
 ```bash
 cd schemas-validators/
 python3 install.py
-./validate-all.sh
+./validate-all.sh --example-responses
 ```
 
 ---
@@ -309,10 +328,10 @@ Both set the media type (MUST), `Cache-Control: public, max-age=86400` and `ETag
 
 ## Key data model fields
 
-The data model is **7 mandatory and 19 optional members (26 total)** as of draft `-08` (posted 2026-10-09; unchanged from `-07`). The authoritative definitions, with every requirement level, are in the draft itself; this README does not
+The data model is **7 mandatory and 19 optional members (26 total)** as of draft `-10` (posted 2026-10-24; the member names are those of `-07`, except that `reporting-period` became the `period` object in `-09`). The authoritative definitions, with every requirement level, are in the draft itself; this README does not
 restate them, so the two cannot drift apart:
 
-* **Member definitions** — draft `-07`, "Payload Format (JSON Data Model)".
+* **Member definitions** — draft `-10`, "The Declaration".
 * **Formal schemas** — [`schemas-validators/response-schema.cddl`](schemas-validators/response-schema.cddl)
   and [`response-schema.json`](schemas-validators/response-schema.json) (JSON Type Definition).
   These are identical to the draft's own blocks and to both packages' embedded copies (the embedded TypeScript copies are equal to the JSON schema as JSON values; the CDDL and JSON files are byte-identical);
@@ -332,10 +351,10 @@ else:
   recognize, which is how a later revision reaches a deployed client without stranding it.
   The top-level member set is closed (a publisher MUST NOT add other top-level members), and
   private extension data lives inside the OPTIONAL top-level `extensions` object, keyed by an
-  absolute URI (RFC 3986) the definer chooses once: an `https` URI under its own control, which
-  should identify human-readable documentation of the extension, or `urn:uuid:` plus a
-  lowercase hyphenated UUID (RFC 9562) for a definer without a domain. A key is an identifier
-  compared as a string and is never dereferenced, and there is no registry.
+  URI (RFC 3986) the definer chooses once: a URI under its own control, which
+  should identify human-readable documentation of the extension, or a UUID URN (RFC 9562) for a
+  definer without a domain. A key is an identifier compared as a string and is never
+  dereferenced, and there is no registry.
 * **The subject is declared, not inferred.** The mandatory `target` member says what
   the figures describe — an origin, a subdomain, a service, a device, a tenant, a product, or
   the organization itself.
@@ -356,7 +375,9 @@ How to deploy it, and the draft's other optional mechanism, the `signed` member 
   posted draft by id; a check fails if a sentence has no scenario, and a report lists what a draft in preparation
   changes.
 - **Fitness functions** ([`fitness/`](fitness/)): rules that span the packages, such as the full header set on every
-  response of the gateway, the libraries' dependency direction, package size, and clocks injected in every test.
+  response of the gateway, the libraries' dependency direction, package size, clocks injected in every test, and the
+  coverage of the example corpus: the manifest lists exactly the files on disk, and every closed-set value and every
+  member occurs in a valid example.
 - **One command** runs everything: `bash scripts/test-everything.sh` (schemas, both libraries, the gateway and its
   conformance battery, the SFC profile, the example scripts, the tools, the scenarios, the fitness functions, and the
   draft build with zero nits). CI runs the same steps, plus every deployment recipe.

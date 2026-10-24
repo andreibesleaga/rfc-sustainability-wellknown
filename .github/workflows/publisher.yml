@@ -1,5 +1,7 @@
 name: publisher
 
+# Node 22 and 24 must pass; Node 26 is reported but does not block.
+
 on:
   push:
     paths:
@@ -17,6 +19,11 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    continue-on-error: ${{ matrix.node == '26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24", "26"]
     defaults:
       run:
         working-directory: publisher
@@ -24,16 +31,17 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "${{ matrix.node }}"
           cache: npm
           cache-dependency-path: publisher/package-lock.json
       - run: npm ci
+      - run: npm run typecheck
       - run: npm run build
       - run: npm test
 
   cross-validate:
     # Generate a live document and validate it with the repo's independent
-    # Python (JTD) and Ruby (CDDL) validators — proves the gateway is conformant.
+    # Python (JTD) and Ruby (CDDL) validators — proves the publisher's output is conformant.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: build-test
@@ -45,10 +53,13 @@ jobs:
         with: { python-version: "3.12" }
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.2" }
-      - name: Install validators
+      - name: Install validators (jtd in a virtual environment, cddl gem 0.12.14 on the PATH)
         run: |
-          python3 -m pip install jtd
-          gem install cddl
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install -r schemas-validators/requirements.txt
+          echo "PYTHON=$RUNNER_TEMP/venv/bin/python" >> "$GITHUB_ENV"
+          gem install cddl -v 0.12.14
+          echo "$(ruby -e 'print Gem.bindir')" >> "$GITHUB_PATH"
       - name: Build publisher
         working-directory: publisher
         run: |
@@ -56,9 +67,10 @@ jobs:
           npm run build
       - name: Generate a document and validate it
         run: |
+          cddl --version | grep -q '0.12.14'
           node publisher/bin/sustainability-publisher.js \
-            --config publisher/examples/config.computed.json --once > /tmp/gen.json
-          cat /tmp/gen.json
+            --config publisher/examples/config.computed.json --once > "$RUNNER_TEMP/gen.json"
+          cat "$RUNNER_TEMP/gen.json"
           cd schemas-validators
-          python3 validator-json.py /tmp/gen.json
-          python3 validator-cddl.py /tmp/gen.json
+          "$PYTHON" validator-json.py "$RUNNER_TEMP/gen.json"
+          "$PYTHON" validator-cddl.py "$RUNNER_TEMP/gen.json"

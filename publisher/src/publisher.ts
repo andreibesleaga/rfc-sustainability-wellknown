@@ -146,6 +146,11 @@ export class Publisher {
     return this.adapter.capabilities === "extended" || heldAsArray ? held : held[0];
   }
 
+  /** True when a request that honors no parameter is answered with an array, even an empty one. */
+  private answersWithArray(): boolean {
+    return this.adapter.capabilities === "extended" && this.options.representation !== "single";
+  }
+
   /** Build, validate, sign and return the document for a query (uncached). */
   async build(query: ServiceQuery = {}): Promise<SustainabilityDocument> {
     // The adapter sees only the honored parameters, so its output cannot vary
@@ -162,14 +167,21 @@ export class Publisher {
     const chosen = honorsAny(honored) ? selectDeclarations(metrics, honored) : metrics;
     const secured = secureReports(chosen, { onWarning: this.options.onWarning, ...this.options.security });
 
-    // Nothing is held to answer a request that names no parameter. A selection
-    // that is empty is a valid answer, the empty array (draft §Query Parameters).
-    if (secured.length === 0 && !honorsAny(honored)) throw new NotFoundError();
+    // A selection that is empty is a valid answer, the empty array (draft §Query
+    // Parameters). So is the answer of an extended publisher to a request that
+    // names no parameter when nothing is left to publish: its default
+    // representation is the array of the objects it holds (REQ-QRY-19). A
+    // publisher with nothing to answer as a single object, or a Basic one, has
+    // no object to serve and answers 404.
+    if (secured.length === 0 && !honorsAny(honored) && !this.answersWithArray()) throw new NotFoundError();
 
     const document = this.represent(secured, honored, Array.isArray(raw));
 
     assertValid(document);
-    for (const warning of validateDocument(document, { legacyCompat: false }).warnings) this.options.onWarning?.(warning.message);
+    // The day floor is reported once, by the safeguards, according to the dayFloor option.
+    for (const warning of validateDocument(document, { legacyCompat: false }).warnings) {
+      if (warning.code !== "period-below-day-floor") this.options.onWarning?.(warning.message);
+    }
 
     // Draft §Signing: the OPTIONAL `signed` member, added after validation so
     // the payload is exactly the object the gate passed, minus `signed`. This

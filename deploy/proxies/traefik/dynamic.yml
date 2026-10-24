@@ -1,5 +1,6 @@
 # Traefik (file provider): a headers middleware in front of whatever serves the file
 # (Traefik serves no static files itself). Attach `sustainability-headers` to the router of your app.
+# The router matches the path only, so any query string reaches the backend unchanged.
 http:
   middlewares:
     sustainability-headers:
@@ -9,10 +10,15 @@ http:
           X-Content-Type-Options: nosniff
           Access-Control-Allow-Origin: "*"
           Cache-Control: public, max-age=86400
+    # Only needed when the backend computes answers to query parameters (an Extended server); harmless for a file.
+    sustainability-ratelimit:
+      rateLimit:
+        average: 10
+        burst: 20
   routers:
     sustainability-data:
       rule: "Path(`/.well-known/sustainability-data`)"
-      middlewares: [sustainability-headers]
+      middlewares: [sustainability-ratelimit, sustainability-headers]
       service: app
   services:
     app:

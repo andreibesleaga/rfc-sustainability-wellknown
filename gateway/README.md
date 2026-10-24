@@ -124,7 +124,7 @@ Anything invented lives under a reserved `.example` name (RFC 2606), says
 
 ## Quick start
 
-**Node.js 22.12 or newer** is required (runtime and tests: the JOSE library is loaded as an ES module through `require()`, unflagged since 22.12; Vitest 5 needs 22.12 too).
+**Node.js 22.13 or newer** is required (the publisher and consumer 0.8.0 declare 22.13; the JOSE library is loaded as an ES module through `require()`, unflagged since 22.12, and Vitest 5 needs 22.12).
 
 ```bash
 npm install

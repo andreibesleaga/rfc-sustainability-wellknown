@@ -1,34 +1,47 @@
 name: gateway
 
+# The gateway consumes the PUBLISHED publisher and consumer packages from the registry (not the sibling source
+# trees), at the versions package-lock.json records, so a broken release would surface here. The behaviour
+# scenarios and the fitness functions run it against the source builds instead (bdd.yml).
+# Node 22 and 24 must pass; Node 26 is reported but does not block.
+
 on:
   push:
     paths:
       - "gateway/**"
+      - "example-responses/**"
       - "schemas-validators/**"
       - ".github/workflows/gateway.yml"
   pull_request:
     paths:
       - "gateway/**"
+      - "example-responses/**"
       - "schemas-validators/**"
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    continue-on-error: ${{ matrix.node == '26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24", "26"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "${{ matrix.node }}"
           cache: npm
           cache-dependency-path: gateway/package-lock.json
 
-      # The gateway consumes the PUBLISHED publisher/consumer packages from the
-      # registry (not the sibling source trees), so no local build is needed
-      # first — but that also means a broken release would surface here.
       - name: Install dependencies
         working-directory: gateway
         run: npm ci
+
+      - name: Typecheck
+        working-directory: gateway
+        run: npm run typecheck
 
       - name: Build
         working-directory: gateway
@@ -42,10 +55,12 @@ jobs:
       # against the root report and every registered subject. Startup is
       # fail-loud: any data file that does not round-trip through the
       # publisher pipeline aborts the boot, so this also gates data/*.json.
+      # The battery fires hundreds of requests from one address, so the
+      # per-client rate limit is switched off for it (the limiter has its own tests).
       - name: Conformance battery against a live instance
         working-directory: gateway
         run: |
-          PORT=8080 node dist/index.js &
+          RATE_LIMIT_PER_MINUTE=0 PORT=8080 node dist/index.js &
           GATEWAY_PID=$!
           for _ in $(seq 1 30); do
             curl -sf http://127.0.0.1:8080/healthz >/dev/null && break

@@ -113,7 +113,7 @@ export function secureReports(reports: SustainabilityMetrics[], opts: SecurityOp
     out = out.filter((r) => {
       if (isOnDayBoundaries(r.period)) return true;
       warn(
-        `period ${r.period.start} to ${r.period.end} of ${JSON.stringify(r.target)} is not a calendar day or longer on day boundaries` +
+        `period ${r.period.start}/${r.period.end} of ${JSON.stringify(r.target)} is not a calendar day or longer on day boundaries` +
           (dayFloor === "drop" ? "; the object is not published (dayFloor: drop)" : ""),
       );
       return dayFloor === "warn";
@@ -123,7 +123,7 @@ export function secureReports(reports: SustainabilityMetrics[], opts: SecurityOp
   // Ascending by the instants of the period; when the cap is exceeded, keep the MOST RECENT.
   out = sortDeclarations(out);
   if (out.length > maxObjects) {
-    warn(`${out.length} objects selected; the ${maxObjects} most recent are published (maxObjects)`);
+    warn(`${out.length} objects selected; the ${maxObjects} most recent are published and ${out.length - maxObjects} older omitted (maxObjects)`);
     out = out.slice(out.length - maxObjects);
   }
 

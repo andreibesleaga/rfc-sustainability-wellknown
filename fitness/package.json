@@ -5,6 +5,6 @@
   "description": "Architecture fitness functions: cross-package rules of the sustainability-data repository, run as tests.",
   "license": "BSD-3-Clause",
   "type": "module",
-  "engines": { "node": ">=22.12" },
+  "engines": { "node": ">=22.13" },
   "scripts": { "test": "node --test *.test.mjs" }
 }

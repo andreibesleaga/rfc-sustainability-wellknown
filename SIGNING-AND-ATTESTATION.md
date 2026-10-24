@@ -1,9 +1,9 @@
 # Signing and attestation: how to deploy them
 
-Draft -07 defines two OPTIONAL mechanisms next to the document itself. This page
+Draft -10 defines two OPTIONAL mechanisms next to the document itself. This page
 is the short procedure for each, for the three kinds of party involved, using the
 reference implementation (`sustainability-wellknown-publisher` and
-`sustainability-wellknown-consumer`, 0.7.0 or later). It is non-normative; the
+`sustainability-wellknown-consumer`, 0.8.0 or later). It is non-normative; the
 draft's "Signing" section and the `verifiable-attestation-uri`
 member definition are the rules.
 
@@ -16,7 +16,7 @@ itself removed.
 
 | Mechanism | What it is | What it establishes | What it does not |
 |---|---|---|---|
-| **Embedded signature**, the `signed` member of a declaration object | A JWS Compact Serialization (RFC 7515) whose payload is the object it appears in, minus `signed`, serialized by the publisher; `cty: "sustainability-data+json"`; EdDSA or ES256; key as `jwk`/`x5c`/`kid` | Integrity after the fact and key continuity: the object a consumer holds is the object this key signed, and successive documents came from the same key. Precedence follows Verification: the payload's values replace the plain members only where the key is trusted out of band, pinned (which gives continuity of authorship, not identity), or chained through `x5c` to an anchor already trusted; a key trusted no further than the declaration that carries it leaves the origin-served members in use | Who holds the key; whether the figures are right. An absent `signed` member is not evidence of anything; a failing one makes the object *unverified*, never *false* |
+| **Embedded signature**, the `signed` member of a declaration object | A JWS Compact Serialization (RFC 7515) whose payload is the object it appears in, minus `signed`, serialized by the publisher; `cty: "sustainability-data+json"`; `Ed25519` (RFC 9864) or `ES256`; key as `jwk` (the public key only), `x5c` or `kid` | Integrity after the fact and key continuity: the object a consumer holds is the object this key signed, and successive documents came from the same key. Precedence follows Verification: the payload's values replace the plain members only where the key is trusted out of band, pinned (which gives continuity of authorship, not identity), or chained through `x5c` to an anchor already trusted; a key trusted no further than the declaration that carries it leaves the origin-served members in use | Who holds the key; whether the figures are right. An absent `signed` member is not evidence of anything; a failing one makes the object *unverified*, never *false* |
 | **Attestation** linked by `verifiable-attestation-uri` | A statement signed by a party **other than the publisher**. The reference shape is a W3C Verifiable Credential (Data Model 2.0) secured as `vc+jwt`, whose `credentialSubject` carries a copy of the declaration object (`signed` omitted) or, for a model attestation, the formula that produces it; `application/vc+jwt` | Whatever the credential says, backed by the attester's key — about the figures, or about the method that produces them | Anything about the served bytes on its own: editing the document does not invalidate the credential. A consumer fetches both and compares |
 
 Keys: one Ed25519 key per role, generated with `sustainability-publisher keygen`.
@@ -58,6 +58,12 @@ sustainability-publisher sign /var/www/.well-known/sustainability-data \
 mv /var/www/.well-known/sustainability-data.signed.json /var/www/.well-known/sustainability-data
 # serve unchanged, as: Content-Type: application/sustainability-data+json
 ```
+
+The header names the verification key in one of three ways. By default the public key travels in it as `jwk`,
+with only `kty`, `crv` and `x` (and `y` for ES256). `--x5c chain.pem` carries a certificate chain, leaf first, as `x5c`
+instead; `--kid <id>` names a key you distribute out of band (given with `--x5c` it is added next to `x5c`). The algorithm
+identifier written is `Ed25519`; a key file made by 0.7.x that names `EdDSA` is the same key and still imports, and `EdDSA`
+is never written. A consumer verifies a signature made with `Ed25519` from 0.8.0 on.
 
 Re-run `sign` every time the document file changes, in the same deployment step.
 Any reformatting of the object after signing (key reordering, re-serialization)

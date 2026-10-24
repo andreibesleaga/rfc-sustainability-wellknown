@@ -115,9 +115,10 @@ describe("loadSubjectFile", () => {
 
   it("rejects a document the pipeline would silently alter", async () => {
     const dir = scratch();
-    // 5 decimal places: the normalizer rounds to 4, so what would be served
-    // differs from the curated file. That must fail loudly, not ship.
-    const drift = { ...VALID, "carbon-footprint": 10.123456 };
+    // A provider name in decomposed form: the publisher writes it in Normalization
+    // Form C, so what would be served differs from the curated file. That must
+    // fail loudly, not ship.
+    const drift = { ...VALID, provider: "Cafe\u0301 Example (ops@example.com)" };
     await expect(loadSubjectFile(write(dir, "drift.example.json", drift))).rejects.toThrow(
       /would serve it differently/,
     );

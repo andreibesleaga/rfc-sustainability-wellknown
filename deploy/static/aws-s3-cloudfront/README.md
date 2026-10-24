@@ -21,9 +21,11 @@ permanent origin before then (your site, with the methodology page quoting the A
 4. Verify: `npx -y -p sustainability-wellknown-consumer sustainability-fetch https://<host> --strict`.
 5. Month 2 onward: AWS Sustainability (console, or `aws sustainability get-estimated-carbon-emissions`)
    gives the account's monthly MTCO2e by about the 21st of the following month. Publish it as
-   `carbon-footprint` in `mtCO2e`, `measurement-method: cloud-billing`, and name the AWS model version
+   `carbon-footprint` in `tCO2e` (the AWS tool prints MTCO2e, metric tonnes: write tCO2e), `measurement-method: cloud-billing`, and name the AWS model version
    in your methodology page. Publish no kWh unless AWS prints one.
 
 `main.tf` is the same deployment as Terraform for people who prefer it (not run in CI).
 
 **Figures:** this publishes what you give it. For the easiest real sources (your cloud's or host's report, a meter, or an estimate from monthly data transfer) see [FIGURES.md](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md).
+
+**Methodology, security and privacy:** point `methodology-uri` at a page that follows the [methodology template](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/METHODOLOGY-TEMPLATE.md) (what is measured and estimated, allocation, what counts as one unit, extension names, perturbation). Nobody but you should be able to write under `/.well-known/` on this origin (RFC 8615, Section 4); serve the file over HTTPS only; publish only figures you intend to be public, with a role address in `provider`, and omit, or report at a coarser level, anything linkable to individual users. A declaration does not protect against someone who controls your server, DNS zone, certificate or signing key, and it does not vouch for the accuracy of the figures. More: [kit README](https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/README.md#https-and-the-well-known-path).

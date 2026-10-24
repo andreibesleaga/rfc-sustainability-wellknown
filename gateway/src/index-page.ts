@@ -92,6 +92,10 @@ export interface ExampleEntry {
   "source-file": string;
   note: string;
   target: string;
+  /** The `target-type` of the object served to a request that names no parameter, when it has one. */
+  "target-type"?: string;
+  /** For a part of an origin (a service, a path, a device or a product): what the figures are (draft, Parts of an Origin). */
+  allocation?: string;
   /** The `provider` text of the object served to a request that names no parameter, shown as a tooltip. */
   provider: string;
   /** The period of the object served to a request that names no parameter (the newest, for an array). */
@@ -266,6 +270,13 @@ function demoEntry(m: ManagedSubject): DemoEntry {
   return e;
 }
 
+/** The target types that name a part of an origin or of an organization; their figures are an allocation. */
+const PART_TARGET_TYPES = new Set(["service", "path", "device", "product"]);
+
+const ALLOCATION_NOTE =
+  "The figures are the publisher's allocation of the origin's or the organization's resources to this part, " +
+  "by the method the methodology document describes.";
+
 function exampleEntry(x: WireExample): ExampleEntry {
   const d = x.subject.document;
   const e: ExampleEntry = {
@@ -282,6 +293,9 @@ function exampleEntry(x: WireExample): ExampleEntry {
     provider: d.provider,
     period: d.period,
   };
+  const targetType = (d as { "target-type"?: string })["target-type"];
+  if (targetType !== undefined) e["target-type"] = targetType;
+  if (targetType !== undefined && PART_TARGET_TYPES.has(targetType)) e.allocation = ALLOCATION_NOTE;
   if (x.extended && x.range) {
     e.range = x.range;
     if (x.granularity) e.granularity = x.granularity;

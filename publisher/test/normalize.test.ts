@@ -10,6 +10,29 @@ import {
 import { assertValid, validateDocument, validateMetrics } from "../src/validate";
 import type { SustainabilityMetrics } from "../src/types";
 
+describe("figures are published as given", () => {
+  const raw = {
+    provider: "Example Org (https://example.com/contact)",
+    measurementMethod: "hardware-metered" as const,
+    methodologyUri: "https://example.com/methodology",
+    period: "2025-01",
+    updated: "2026-02-01T00:00:00Z",
+    target: "example.com",
+  };
+
+  it("keeps a sum such as 0.1 + 0.2 and a small figure unrounded", () => {
+    const m = normalize({ ...raw, energy: { value: 0.1 + 0.2, unit: "kWh" }, sciScore: 0.123456789, functionalUnit: "per-request", renewableEnergy: 12.3456789 });
+    expect(m["energy-consumption"]).toBe(0.30000000000000004);
+    expect(m["sci-score"]).toBe(0.123456789);
+    expect(m["renewable-energy"]).toBe(12.3456789);
+    expect(normalize({ ...raw, energy: { value: 0.0000144, unit: "kWh" } })["energy-consumption"]).toBe(0.0000144);
+  });
+
+  it("refuses an older carbon unit and names the upgrade tool", () => {
+    expect(() => normalize({ ...raw, carbon: { value: 1, unit: "mtCO2e" as never } })).toThrow(/sustainability-publisher upgrade/);
+  });
+});
+
 describe("unit conversions", () => {
   it("converts joules to kWh", () => {
     expect(joulesToKwh(3_600_000)).toBe(1);
@@ -684,7 +707,7 @@ describe("draft -07 members and rules", () => {
 
   it("refuses a top-level member the draft does not define, naming extensions", () => {
     expect(() => normalize({ ...raw, extra: { "com.example.pue": 1.21 } })).toThrow(
-      /unknown top-level member.*extensions/s,
+      /undefined top-level member.*a member this document does not define.*extensions/s,
     );
     // The schema accepts it and a consumer ignores it: the validator notes it, and the publisher's gate refuses it.
     const withExtra = { ...normalize(raw), "com.example.pue": 1.21 };
@@ -756,7 +779,7 @@ describe("normalize refuses what the draft does not allow", () => {
   it("a target-type outside the nine, a carbon unit of the earlier revision, an energy unit outside the four", () => {
     expect(() => normalize({ ...base, targetType: "datacenter" as never })).toThrow(/target-type must be one of/);
     expect(normalize({ ...base, targetType: "facility" })["target-type"]).toBe("facility");
-    expect(() => normalize({ ...base, carbon: { value: 1, unit: "mtCO2e" as never } })).toThrow(/unrecognized carbon unit/);
+    expect(() => normalize({ ...base, carbon: { value: 1, unit: "mtCO2e" as never } })).toThrow(/unrecognized carbon unit.*sustainability-publisher upgrade/);
     expect(() => normalize({ ...base, energy: { value: 1, unit: "TWh" as never } })).toThrow(/unrecognized energy unit/);
     expect(normalize({ ...base, carbon: { value: 2, unit: "tCO2e" } })["carbon-unit"]).toBe("tCO2e");
   });

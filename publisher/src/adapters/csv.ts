@@ -183,7 +183,7 @@ export function rowsToMetrics(text: string, cfg: CsvAdapterConfig): RawMetrics[]
     const accounting = col(row, "carbonAccounting");
     if (accounting && !isCarbonAccounting(accounting)) return skip(`carbon_accounting ${JSON.stringify(accounting)} is not ${CARBON_ACCOUNTING.join(" or ")}`);
     const targetType = col(row, "targetType") || cfg.targetType;
-    if (targetType && !isTargetType(targetType)) return skip(`target type ${JSON.stringify(targetType)} is not one of ${TARGET_TYPES.join(", ")}`);
+    if (targetType && !isTargetType(targetType)) return skip(`target-type ${JSON.stringify(targetType)} is not one of ${TARGET_TYPES.join(", ")}`);
     const methodologyUri = col(row, "methodologyUri") || cfg.methodologyUri;
     if (!isUriReference(methodologyUri)) return skip(`methodology_uri ${JSON.stringify(methodologyUri)} is not a URI reference`);
     const disclosureUri = col(row, "disclosureUri") || cfg.disclosureUri;
@@ -192,7 +192,7 @@ export function rowsToMetrics(text: string, cfg: CsvAdapterConfig): RawMetrics[]
     if (updated && !isDateTime(updated)) return skip(`updated ${JSON.stringify(updated)} is not an RFC 3339 date-time`);
     const measurementMethod = col(row, "measurementMethod") || cfg.measurementMethod;
     if (!measurementMethod) return skip("no measurement method: give the measurement_method column or the adapter's measurementMethod");
-    if (!isMeasurementMethod(measurementMethod)) return skip(`measurement_method ${JSON.stringify(measurementMethod)} is not one of ${MEASUREMENT_METHODS.join(", ")}`);
+    if (!isMeasurementMethod(measurementMethod)) return skip(`measurement-method ${JSON.stringify(measurementMethod)} is not one of ${MEASUREMENT_METHODS.join(", ")}`);
     if (energy === undefined && carbon === undefined && !disclosureUri) return skip("no figure and no disclosure link: not a declaration");
 
     const m: RawMetrics = {

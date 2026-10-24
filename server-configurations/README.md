@@ -9,9 +9,12 @@ Server configuration snippets for publishing the `/.well-known/sustainability-da
 | `nginx.conf` | Nginx location block snippet |
 | `apache.conf` | Apache VirtualHost / .htaccess snippet |
 
-Both snippets serve **one static Basic-service document** — no query-parameter
-handling. For the Extended service (`target`/`period`/`granularity`, dynamic
-per-request responses), see "Optional: dynamic Extended service" below.
+Both snippets serve **one static Basic-service document**. A static file ignores
+every query parameter (`target`, `start`, `end`, `granularity`), whatever its
+value: the answer is `200` with the same file and the same `ETag`, never a `400`
+or a `404`, which is what the draft says a server that does not support a
+parameter does. For the Extended service (the same four parameters, dynamic
+per-request selection), see "Optional: dynamic Extended service" below.
 
 ## What each configuration provides
 
@@ -114,10 +117,11 @@ location @sustainability_405 {
 5. For rate limiting, use a reverse proxy (nginx, HAProxy) or a WAF in front of Apache — `mod_ratelimit` only throttles bandwidth, not request rate.
 6. Run `apache2ctl configtest` (or `httpd -t`) before reloading.
 
-## Optional: dynamic Extended service (target/period/granularity)
+## Optional: dynamic Extended service (target/start/end/granularity)
 
-Static file serving cannot compute a response for `?target=`, `?period=`, or
-`?granularity=` — those require real query-parameter logic. Rather than
+Static file serving cannot compute a response for `?target=`, `?start=`, `?end=`,
+or `?granularity=` — those require real query-parameter logic (a selection of the
+held objects, returned as a JSON array in ascending order of `period.start`). Rather than
 reimplementing that logic in nginx/Apache configuration (fragile, and it would
 duplicate the already-tested behavior in `publisher/`), reverse-proxy the well-known
 path to a real implementation — this repo's `publisher/` gateway, or an equivalent
@@ -137,7 +141,7 @@ every upstream header (including the 405/Allow path) passed through correctly.
 
 ## Security notes (per draft §Security)
 
-- **Rate limiting** is RECOMMENDED on requests that include `period` or `granularity` query parameters, as dynamic aggregation can be CPU/DB-intensive.
-- **Array size cap**: the specification does not require a server-side cap on the number of objects returned — a consumer is required to bound what it accepts instead. An application-layer cap of 366 objects is nonetheless a reasonable deployment safeguard against unbounded aggregation (see `example-scripts/security.*`, or `publisher/` if running the dynamic gateway).
+- **Rate limiting** is RECOMMENDED on requests that include query parameters when a dynamic service computes the answer, as a selection can be CPU/DB-intensive.
+- **Array size cap**: the specification does not require a server-side cap on the number of objects returned — a consumer is required to bound what it accepts instead. An application-layer cap of 366 objects is nonetheless a reasonable deployment safeguard against an unbounded selection (see `example-scripts/security.*`, or `publisher/` if running the dynamic gateway).
 - **HTTPS** is a **MUST** — configure TLS in your server block separately; these snippets cover the endpoint behaviour only.
-- The endpoint publishes no PII; metrics SHOULD be aggregated to ≥ 24-hour granularity before serving (enforced in `example-scripts/security.*`).
+- The endpoint publishes no PII; a period SHOULD be a calendar day or longer, each bound the first instant of a calendar day in its own offset (enforced by default in `example-scripts/security.*`).

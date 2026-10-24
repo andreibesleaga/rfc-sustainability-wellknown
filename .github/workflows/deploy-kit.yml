@@ -6,9 +6,9 @@ name: deploy-kit
 # with the consumer, and runs it in a real WordPress.
 on:
   push:
-    paths: ["deploy/**", "tools/create-sustainability-data/**", "repository.yaml", ".github/workflows/deploy-kit.yml"]
+    paths: ["deploy/**", "tools/create-sustainability-data/**", "publisher/**", "scripts/overlay-source-publisher.sh", "repository.yaml", ".github/workflows/deploy-kit.yml"]
   pull_request:
-    paths: ["deploy/**", "tools/create-sustainability-data/**", "repository.yaml"]
+    paths: ["deploy/**", "tools/create-sustainability-data/**", "publisher/**", "scripts/overlay-source-publisher.sh", "repository.yaml"]
   workflow_dispatch: {}
 
 permissions:
@@ -53,9 +53,11 @@ jobs:
       - name: Home Assistant add-on tests (fake Core API)
         working-directory: deploy/home-assistant/sustainability-data
         run: npm ci --no-audit --no-fund && npm test
-      - name: Initializer tests (including the bin run through a symlink, as npx runs it)
-        working-directory: tools/create-sustainability-data
-        run: node --test test/*.test.mjs
+      - name: Initializer tests (including the bin run through a symlink, as npx runs it), against the source publisher
+        run: |
+          (cd publisher && npm ci --no-audit --no-fund && npm run build)
+          bash scripts/overlay-source-publisher.sh tools/create-sustainability-data
+          cd tools/create-sustainability-data && node --test test/*.test.mjs
 
   wordpress:
     runs-on: ubuntu-latest

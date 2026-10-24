@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * sfc-check: read one sustainability declaration and report the four criteria of
- * PROFILE.md (the SFC profile of draft-besleaga-sustainability-wellknown-07).
+ * PROFILE.md (the SFC profile of draft-besleaga-sustainability-wellknown-10).
  *
  * Nothing here extends the draft. The document is validated by the published
  * consumer library, and every criterion is read off the members the draft
@@ -28,6 +28,8 @@ import {
   fetchSustainability,
   verifyAttestation,
   isExtensionName,
+  periodError,
+  isWholeCalendarPeriod,
 } from "sustainability-wellknown-consumer";
 
 export const NS = "https://andreibesleaga.com/sfc/extensions/";
@@ -40,8 +42,16 @@ export const LEDGER_EVIDENCE = NS + "ledger-evidence";
 export const CAP_GWH = 1;
 /** PROFILE.md section 2. The draft's target-type enumeration has no "network". */
 export const NETWORK_TARGET_TYPE = "service";
-/** The period form C1 is evaluated on. */
-export const ANNUAL_PERIOD_RE = /^\d{4}$/;
+
+/**
+ * Whether an object's period is the form C1 is evaluated on: a whole calendar
+ * year, both bounds on 1 January 00:00 of consecutive years (the consumer's
+ * period helpers do the date work).
+ */
+export const isAnnualPeriod = (o) => !periodError(o.period) && isWholeCalendarPeriod(o.period, "yearly");
+
+/** An object's period as text for the report: "start to end", or "(none)". */
+export const periodLabel = (o) => (periodError(o.period) ? "(none)" : `${o.period.start} to ${o.period.end}`);
 
 /**
  * The clock. Injected everywhere a library reads one, so that a run is
@@ -66,9 +76,9 @@ export function objectsOf(doc) {
  * PROFILE.md section 2: a whole year, and the network level.
  */
 export function selectAnnualNetworkObject(objects) {
-  const annual = objects.filter((o) => ANNUAL_PERIOD_RE.test(String(o["reporting-period"] ?? "")));
+  const annual = objects.filter(isAnnualPeriod);
   if (annual.length === 0) {
-    const periods = objects.map((o) => String(o["reporting-period"] ?? "(none)")).join(", ");
+    const periods = objects.map(periodLabel).join(", ");
     return {
       object: undefined,
       reason: `no object covers a whole calendar year. C1 is an annual figure, and this document reports ${periods || "nothing"}`,
@@ -94,7 +104,7 @@ export function selectAnnualNetworkObject(objects) {
 /** The object the other criteria are read from. */
 export function selectSubjectObject(objects, annualNetwork) {
   if (annualNetwork) return annualNetwork;
-  const annual = objects.filter((o) => ANNUAL_PERIOD_RE.test(String(o["reporting-period"] ?? "")));
+  const annual = objects.filter(isAnnualPeriod);
   return annual[0] ?? objects[0];
 }
 
@@ -124,7 +134,7 @@ function checkC1(rows, selection) {
     rows.push(row("REFUSED", "C1-energy", `energy-unit "${unit}" is not one of Wh, kWh, MWh, GWh, so the figure cannot be converted`));
     return false;
   }
-  const detail = `${o["energy-consumption"]} ${unit} = ${gwh} GWh against the cap of ${CAP_GWH} GWh, for ${o.target} over ${o["reporting-period"]}`;
+  const detail = `${o["energy-consumption"]} ${unit} = ${gwh} GWh against the cap of ${CAP_GWH} GWh, for ${o.target} over ${periodLabel(o)}`;
   if (gwh < CAP_GWH) {
     rows.push(row("PASS", "C1-energy", detail));
     return false;
@@ -230,6 +240,7 @@ async function checkAttestation(rows, obj, options) {
   let result;
   try {
     result = await verifyAttestation(uri, {
+      base: options.base,
       now: options.clock,
       declaration: obj,
       timeoutMs: options.timeoutMs,
@@ -330,6 +341,7 @@ export async function checkDocument(doc, options = {}) {
     timeoutMs: options.timeoutMs,
     fetchImpl: options.fetchImpl,
     lookup: options.lookup,
+    base: options.base,
   };
   const rows = [];
   const objects = objectsOf(doc);
@@ -341,15 +353,15 @@ export async function checkDocument(doc, options = {}) {
   const validation = validateDocument(doc);
   rows.push(
     validation.valid
-      ? row("PASS", "draft-conformance", "valid against the -07 schema and prose rules")
+      ? row("PASS", "draft-conformance", "valid against the -10 schema and prose rules")
       : row("FAIL", "draft-conformance", validation.errors.join("; "))
   );
-  for (const warning of validation.warnings) rows.push(row("WARN", "draft-warning", warning));
+  for (const warning of validation.warnings) rows.push(row("WARN", "draft-warning", warning.message));
 
   const selection = selectAnnualNetworkObject(objects);
   const subject = selectSubjectObject(objects, selection.object);
   if (objects.length > 1) {
-    rows.push(row("INFO", "subject", `${objects.length} objects in this document; the criteria below are read from the one covering ${subject["reporting-period"]}`));
+    rows.push(row("INFO", "subject", `${objects.length} objects in this document; the criteria below are read from the one covering ${periodLabel(subject)}`));
   }
   for (const key of Object.keys((isObject(subject.extensions) ? subject.extensions : {}))) {
     if (!isExtensionName(key)) rows.push(row("WARN", "ext-name", `${JSON.stringify(key)} is not a usable extension name`));
@@ -371,6 +383,12 @@ export async function checkDocument(doc, options = {}) {
   };
 }
 
+/** The fetch status, with the detail the consumer gives for the statuses that carry one. */
+function describeFetchFailure(fetched) {
+  const detail = fetched.detail ?? (fetched.status === "http-error" ? `HTTP ${fetched.httpStatus}` : undefined);
+  return detail ? `${fetched.status} (${detail})` : fetched.status;
+}
+
 /** The HTTP half of C4, which needs a live origin. */
 export async function checkOrigin(origin, options = {}) {
   const clock = options.clock ?? DEFAULT_CLOCK;
@@ -381,13 +399,13 @@ export async function checkOrigin(origin, options = {}) {
   });
   if (fetched.status !== "ok") {
     return {
-      rows: [row("FAIL", "draft-conformance", `the origin did not serve a declaration: ${fetched.status}`)],
+      rows: [row("FAIL", "draft-conformance", `the origin did not serve a declaration: ${describeFetchFailure(fetched)}`)],
       conformant: false,
       capExceeded: false,
       exitCode: 1,
     };
   }
-  const result = await checkDocument(fetched.document, options);
+  const result = await checkDocument(fetched.document, { ...options, base: fetched.url });
   const report = await runConformanceChecks(origin, options.fetchImpl, {
     now: () => clock,
     timeoutMs: options.timeoutMs,

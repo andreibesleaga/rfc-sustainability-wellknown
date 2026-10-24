@@ -10,6 +10,14 @@ describe("parseStrict reads I-JSON", () => {
   it("refuses a duplicate member name, at any depth", () => {
     expect(() => parseStrict('{"a":1,"a":2}')).toThrow(/Duplicate key 'a'/);
     expect(() => parseStrict('{"x":{"a":1,"b":2,"a":3}}')).toThrow(/Duplicate key/);
+  });
+
+  it("refuses a repeated member name whose values are equal, spelled alike or by escape", () => {
+    expect(() => parseStrict('{"a":1,"a":1}')).toThrow(/Duplicate key 'a'/);
+    expect(() => parseStrict('{"p":{"x":1},"p":{"x":1}}')).toThrow(/Duplicate key 'p'/);
+    expect(() => parseStrict('{"a":1,"\\u0061":1}')).toThrow(/Duplicate key 'a'/);
+    expect(() => parseStrict('[{"a":1},{"a":1}]')).not.toThrow();
+    expect(parseStrict('{"a":{"a":1},"b":["a",{"a":2}],"c ":"\\"a\\":"}')).toEqual({ a: { a: 1 }, b: ["a", { a: 2 }], "c ": '"a":' });
     expect(() => parseStrict('[{"a":1},{"a":1}]')).not.toThrow();
     expect(() => parseStrict('{"a":{"a":1}}')).not.toThrow();
   });
@@ -19,6 +27,13 @@ describe("parseStrict reads I-JSON", () => {
       expect(() => parseStrict(text), text).toThrow(/binary64/);
       expect(() => parseStrict(`{"v":${text}}`), text).toThrow(/binary64/);
     }
+  });
+
+  it("names the member in each refusal", () => {
+    expect(() => parseStrict('{"energy-consumption":1e400}')).toThrow(/member "energy-consumption".*binary64/);
+    expect(() => parseStrict('{"x":{"energy-consumption":9007199254740993}}')).toThrow(/member "energy-consumption"/);
+    expect(() => parseStrict('{"list":[1,12345678901234567890]}')).toThrow(/array item 1/);
+    expect(() => parseStrict('{"provider":"ab\\ud800cd"}')).toThrow(/member "provider".*unpaired surrogate/);
   });
 
   it("accepts the numbers binary64 holds, at its limits too", () => {

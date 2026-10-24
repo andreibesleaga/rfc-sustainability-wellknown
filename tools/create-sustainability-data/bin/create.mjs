@@ -1,196 +1,107 @@
 #!/usr/bin/env node
 /**
- * create-sustainability-data: seven questions, one conformant file, the host's configuration.
+ * create-sustainability-data: a few questions, one conformant file, the host's configuration.
  *
  *   npx create-sustainability-data                 # interactive
- *   npx create-sustainability-data --target example.com --provider "Example Ltd (https://example.com/contact)" \
- *       --methodology-uri https://example.com/methodology --period 2026-09 --energy-kwh 12.5 \
- *       --carbon-kgco2e 3.06 --host netlify --out ./site
+ *   npx create-sustainability-data --target "Acme Retail plc" --target-type organization \
+ *       --provider "Acme Retail plc (sustainability@acme.example)" --methodology-uri /esg/methodology \
+ *       --period 2025 --carbon-footprint 610 --carbon-unit tCO2e --disclosure-uri https://acme.example/esg \
+ *       --host netlify --out ./site --key ./private.jwk
  *
- * Writes <out>/.well-known/sustainability-data plus the host's file (_headers, vercel.json, a
- * server snippet) and prints the command that checks the result. Nothing is estimated: a figure
- * you do not have is left out, and a file with no figure needs a disclosure link.
+ * Writes <out>/.well-known/sustainability-data plus the host's file (_headers, vercel.json, a server
+ * snippet) and prints the command that checks the result. Nothing is estimated: a figure you do not
+ * have is left out, and a file with no figure needs a link to evidence. The file is validated as the
+ * strict reader validates it before anything is written, and is signed only when you give an Ed25519 key.
  */
 import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createInterface } from "node:readline/promises";
-import { stdin, stdout, argv, exit } from "node:process";
+import { stdin, stdout, stderr, argv, exit } from "node:process";
+import { checkedDocument, declarationFrom } from "../src/declaration.mjs";
+import { AGGREGATE_ADVICE, PRIVACY_WARNINGS, FUNCTIONAL_UNIT_MEANINGS, METHOD_MEANINGS, TARGET_TYPE_MEANINGS, menu } from "../src/descriptions.mjs";
+import { HOSTS, filesFor } from "../src/hosts.mjs";
+import { interview } from "../src/interview.mjs";
+import { parseArgs } from "../src/options.mjs";
+import { loadEd25519Key, signed } from "../src/sign.mjs";
+import { methodologyStub } from "../src/stub.mjs";
 
-export const HOSTS = ["file", "cloudflare-pages", "netlify", "vercel", "nginx", "apache", "caddy"];
-const METHODS = ["third-party-modeled", "hardware-estimated", "cloud-billing", "hardware-metered"];
-const TYPES = ["origin", "path", "organization", "service", "product", "device", "tenant", "data-source"];
+export { HOSTS, declarationFrom, filesFor, parseArgs, checkedDocument };
 
-const KNOWN_OPTIONS = ["out", "host", "target", "target-type", "provider", "methodology-uri", "period", "energy-kwh", "carbon-kgco2e", "disclosure-uri", "measurement-method", "updated"];
+const USAGE = `usage: create-sustainability-data [options]
+  --target TEXT --target-type TYPE --provider TEXT --methodology-uri URI_REFERENCE
+  --period 2025 | 2025-03 | 2025-03-14 [--offset Z|+02:00]   a whole calendar year, month or day (default: last year)
+  --period-start DATE-TIME --period-end DATE-TIME           explicit bounds, start included, end excluded
+  --first-day YYYY-MM-DD --last-day YYYY-MM-DD              inclusive days, e.g. a year ending 31 March
+  --energy-consumption N --energy-unit Wh|kWh|MWh|GWh       (or --energy-kwh N)
+  --carbon-footprint N --carbon-unit gCO2e|kgCO2e|tCO2e     (or --carbon-kgco2e N)
+  --carbon-accounting location-based|market-based --scope-1 N --scope-2 N --scope-3 N
+  --renewable-energy PERCENT --sci-score N --functional-unit UNIT
+  --disclosure-uri URI_REFERENCE --verifiable-attestation-uri URI_REFERENCE
+  --measurement-method TOKEN --upstream [ROLE:]URI_REFERENCE --extension 'NAME={"member": 1}'
+  --key PRIVATE.jwk       sign with an Ed25519 key (sustainability-publisher keygen)
+  --methodology-stub [--noise PERCENT]   also write methodology.md to fill in
+  --host ${HOSTS.join("|")} --out DIR --updated DATE-TIME --yes
 
-export function parseArgs(args) {
-  const o = { out: ".", host: "file", "target-type": "origin", "measurement-method": "third-party-modeled" };
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i];
-    if (!a.startsWith("--")) continue;
-    const k = a.slice(2);
-    if (k === "help" || k === "yes") { o[k] = true; continue; }
-    if (!KNOWN_OPTIONS.includes(k)) throw new Error(`unknown option ${a} (see --help)`);
-    const v = args[++i];
-    if (v === undefined || v.startsWith("--")) throw new Error(`${a} needs a value`);
-    o[k] = v;
-  }
-  return o;
-}
-
-const HEADERS = `/.well-known/sustainability-data
-  Content-Type: application/sustainability-data+json
-  X-Content-Type-Options: nosniff
-  Access-Control-Allow-Origin: *
-  Cache-Control: public, max-age=86400
+target-type:
+${menu(TARGET_TYPE_MEANINGS)}
+measurement-method, from the most to the least direct:
+${menu(METHOD_MEANINGS)}
+functional-unit:
+${menu(FUNCTIONAL_UNIT_MEANINGS)}
+upstream roles: hosting, colocation, cloud, cdn, network, electricity
 `;
 
-/** YYYY, YYYY-MM or YYYY-MM-DD that exists in the calendar. */
-export function isPeriod(p) {
-  const m = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(p);
-  if (!m) return false;
-  const [, y, mo, d] = m;
-  if (mo !== undefined && (Number(mo) < 1 || Number(mo) > 12)) return false;
-  if (d !== undefined) {
-    const date = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d)));
-    if (date.getUTCMonth() !== Number(mo) - 1 || date.getUTCDate() !== Number(d)) return false;
-  }
-  return true;
+function noiseBound(a) {
+  if (a.noise === undefined) return undefined;
+  const n = Number(a.noise);
+  if (!Number.isFinite(n) || n <= 0 || n > 1) throw new Error("noise is a percentage above 0 and at most 1 (the draft's bound)");
+  return n;
 }
 
-/** The declaration from answers; throws when the answers cannot make one. */
-export function declarationFrom(a) {
-  const need = (k) => {
-    if (!a[k] || String(a[k]).trim() === "") throw new Error(`${k} is required`);
-    return String(a[k]).trim();
-  };
-  const num = (k) => {
-    if (a[k] === undefined || a[k] === "") return undefined;
-    const n = Number(a[k]);
-    if (!Number.isFinite(n) || n < 0) throw new Error(`${k} must be a non-negative number`);
-    return n;
-  };
-  const methodology = need("methodology-uri");
-  if (!/^https:\/\//.test(methodology)) throw new Error("methodology-uri must start with https://");
-  const period = need("period");
-  if (!isPeriod(period)) throw new Error("period must be YYYY, YYYY-MM or YYYY-MM-DD, a real calendar date");
-  const energy = num("energy-kwh");
-  const carbon = num("carbon-kgco2e");
-  const disclosure = a["disclosure-uri"] ? String(a["disclosure-uri"]).trim() : "";
-  if (disclosure && !/^https:\/\//.test(disclosure)) throw new Error("disclosure-uri must start with https://");
-  if (energy === undefined && carbon === undefined && !disclosure) {
-    throw new Error("give energy-kwh, carbon-kgco2e or disclosure-uri: a declaration carries a figure or an evidence link");
-  }
-  if (!METHODS.includes(a["measurement-method"])) throw new Error(`measurement-method must be one of ${METHODS.join(", ")}`);
-  if (!TYPES.includes(a["target-type"])) throw new Error(`target-type must be one of ${TYPES.join(", ")}`);
-  const updated = a.updated ? new Date(a.updated) : new Date();
-  if (Number.isNaN(updated.getTime())) throw new Error("updated must be a date and time, e.g. 2026-10-01T00:00:00Z");
-  const doc = {
-    updated: updated.toISOString().replace(/\.\d{3}Z$/, "Z"),
-    capabilities: "basic",
-    provider: need("provider"),
-    "measurement-method": a["measurement-method"],
-    "methodology-uri": methodology,
-    "reporting-period": period,
-    target: need("target"),
-    "target-type": a["target-type"],
-  };
-  if (energy !== undefined) { doc["energy-consumption"] = energy; doc["energy-unit"] = "kWh"; }
-  if (carbon !== undefined) { doc["carbon-footprint"] = carbon; doc["carbon-unit"] = "kgCO2e"; }
-  if (disclosure) doc["disclosure-uri"] = disclosure;
-  return doc;
-}
-
-/** The files to write for a host, relative to the output folder. */
-export function filesFor(host, doc) {
-  const body = `${JSON.stringify(doc, null, 2)}\n`;
-  const files = { ".well-known/sustainability-data": body };
-  switch (host) {
-    case "cloudflare-pages":
-    case "netlify":
-      files["_headers"] = HEADERS;
-      break;
-    case "vercel":
-      files["vercel.json"] = `${JSON.stringify({ headers: [{ source: "/.well-known/sustainability-data", headers: [
-        { key: "Content-Type", value: "application/sustainability-data+json" },
-        { key: "X-Content-Type-Options", value: "nosniff" },
-        { key: "Access-Control-Allow-Origin", value: "*" },
-        { key: "Cache-Control", value: "public, max-age=86400" },
-      ] }] }, null, 2)}\n`;
-      break;
-    case "nginx":
-      files["sustainability-data.nginx.conf"] = `location = /.well-known/sustainability-data {
-    default_type application/sustainability-data+json;
-    add_header Cache-Control "public, max-age=86400" always;
-    add_header Access-Control-Allow-Origin "*" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    limit_except GET HEAD { deny all; }  # other methods get 403 here; for 405 with Allow: GET, HEAD use server-configurations/nginx.conf
-}
-`;
-      break;
-    case "apache":
-      files[".htaccess"] = `<Files "sustainability-data">
-    ForceType application/sustainability-data+json
-    Header set X-Content-Type-Options "nosniff"
-    Header set Access-Control-Allow-Origin "*"
-    Header set Cache-Control "public, max-age=86400"
-</Files>
-`;
-      break;
-    case "caddy":
-      files["Caddyfile.snippet"] = `@decl path /.well-known/sustainability-data
-handle @decl {
-\theader Content-Type application/sustainability-data+json
-\theader X-Content-Type-Options nosniff
-\theader Access-Control-Allow-Origin *
-\theader Cache-Control "public, max-age=86400"
-\tfile_server
-}
-`;
-      break;
-    case "file":
-      break;
-    default:
-      throw new Error(`host must be one of ${HOSTS.join(", ")}`);
-  }
-  return files;
-}
-
-async function ask(rl, q, d) {
-  const v = (await rl.question(d ? `${q} [${d}]: ` : `${q}: `)).trim();
-  return v === "" ? d : v;
+/**
+ * Everything the run will write and say, or an Error before any of it. `now` is the clock and
+ * `loadKey` reads the signing key; both are passed in so that a test controls them.
+ */
+export async function build(a, { now = new Date(), loadKey = loadEd25519Key } = {}) {
+  const noise = noiseBound(a);
+  const { doc, notes } = declarationFrom(a, now);
+  const warnings = checkedDocument(doc);
+  const advice = [...PRIVACY_WARNINGS];
+  if (["per-user", "per-device"].includes(doc["functional-unit"])) advice.push(`consider whether to ${AGGREGATE_ADVICE}`);
+  if (a["methodology-uri"] && /^http:/i.test(a["methodology-uri"])) warnings.push("methodology-uri uses http; https is expected");
+  let out = doc;
+  if (a.key) out = await signed(doc, await loadKey(a.key));
+  else notes.push("the file is unsigned; add --key <private.jwk> (an Ed25519 key from sustainability-publisher keygen) to sign it");
+  const files = filesFor(a.host, out);
+  if (a["methodology-stub"]) files["methodology.md"] = methodologyStub(doc, { noise });
+  return { doc: out, files, notes, warnings, advice };
 }
 
 async function main() {
   const a = parseArgs(argv.slice(2));
-  if (a.help) {
-    console.log(`usage: create-sustainability-data [--target HOST] [--provider TEXT] [--methodology-uri URL] [--period YYYY-MM] [--energy-kwh N] [--carbon-kgco2e N] [--disclosure-uri URL] [--measurement-method TOKEN] [--target-type TYPE] [--host ${HOSTS.join("|")}] [--out DIR]`);
-    return;
-  }
-  const interactive = stdin.isTTY && !a.yes && (!a.target || !a.provider || !a["methodology-uri"] || !a.period);
-  if (interactive) {
+  if (a.help) { console.log(USAGE); return; }
+  if (stdin.isTTY && !a.yes && (!a.target || !a.provider || !a["methodology-uri"])) {
     const rl = createInterface({ input: stdin, output: stdout });
-    a.target = await ask(rl, "1/7 What are the figures about? (your host name, e.g. example.com)", a.target);
-    a.provider = await ask(rl, "2/7 Who publishes them, and how to reach you? (a role, not a person)", a.provider);
-    a["methodology-uri"] = await ask(rl, "3/7 Public page that says how you obtained them (https://...)", a["methodology-uri"]);
-    a.period = await ask(rl, "4/7 Reporting period (YYYY, YYYY-MM or YYYY-MM-DD, completed)", a.period);
-    a["energy-kwh"] = await ask(rl, "5/7 Energy in kWh (leave empty if you do not have it)", a["energy-kwh"] ?? "");
-    a["carbon-kgco2e"] = await ask(rl, "6/7 Carbon in kgCO2e (leave empty if you do not have it)", a["carbon-kgco2e"] ?? "");
-    a["disclosure-uri"] = await ask(rl, "7/7 Link to your report or disclosure page (https://..., optional)", a["disclosure-uri"] ?? "");
-    a["measurement-method"] = await ask(rl, `How were they obtained? (${METHODS.join(" | ")})`, a["measurement-method"]);
-    a.host = await ask(rl, `Host (${HOSTS.join(" | ")})`, a.host);
-    a.out = await ask(rl, "Output folder", a.out);
+    const ask = async (q, d) => {
+      const v = (await rl.question(d ? `${q} [${d}]: ` : `${q}: `)).trim();
+      return v === "" ? d : v;
+    };
+    await interview(ask, a, (t) => console.log(t));
     rl.close();
   }
-  const doc = declarationFrom(a);
-  const files = filesFor(a.host, doc);
-  for (const [rel, text] of Object.entries(files)) {
+  const result = await build(a);
+  for (const w of result.advice) stderr.write(`warning: ${w}\n`);
+  for (const w of result.warnings) stderr.write(`warning: ${w}\n`);
+  for (const n of result.notes) stderr.write(`note: ${n}\n`);
+  for (const [rel, text] of Object.entries(result.files)) {
     const p = join(a.out, rel);
     mkdirSync(dirname(p), { recursive: true });
     writeFileSync(p, text);
     console.log(`wrote ${p}`);
   }
-  console.log(`\nDeploy, then check:\n  npx -y -p sustainability-wellknown-consumer sustainability-fetch https://${doc.target} --strict`);
+  const host = result.doc["target-type"] === "origin" ? result.doc.target : "your-host.example";
+  console.log(`\nDeploy, then check:\n  npx -y -p sustainability-wellknown-consumer sustainability-fetch https://${host} --strict`);
 }
 
 /** True when this file is the program being run, also through an npm bin symlink or on Windows. */

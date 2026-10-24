@@ -54,7 +54,7 @@ layers**, sharing the GHG Protocol vocabulary:
   requires auditability "compatible with CSRD and ESG reporting (e.g., accessible via
   APIs)" — a conformant well-known document *is* that API, vendor-neutral and
   schema-validated, and a consumer can check C1 mechanically from it (an annual
-  `reporting-period` with `energy-consumption` < 1 and `energy-unit: "GWh"`, or the same
+  `period` with `energy-consumption` < 1 and `energy-unit: "GWh"`, or the same
   figure in another unit after conversion).
 
 ```
@@ -70,7 +70,7 @@ layers**, sharing the GHG Protocol vocabulary:
 
 | SFC concept | Draft member(s) | Notes |
 |---|---|---|
-| Annualized network energy (C1) | `energy-consumption` + `energy-unit` (`Wh`/`kWh`/`MWh`/`GWh`) with a yearly `reporting-period` | C1's 1 GWh cap is directly checkable |
+| Annualized network energy (C1) | `energy-consumption` + `energy-unit` (`Wh`/`kWh`/`MWh`/`GWh`) with a whole-year `period` | C1's 1 GWh cap is directly checkable |
 | Carbon intensity (C3, grid data) | `carbon-intensity-gCO2e-per-kWh` | the framework's regional grid-intensity monitoring |
 | GHG Scope 2 / Scope 3 (C3) | `scope-2`, `scope-3` (+ `carbon-accounting`) | -07 allows a negative scope value only where the declared accounting method conveys removals, with the basis explained in `methodology-uri`; `carbon-footprint` is gross and MUST NOT be negative, so a position reached after offsets (the framework's net zero, an offset-coverage position) is carried in an extension instead (see [PROFILE.md](PROFILE.md) rule 1) |
 | Net Zero / verified offsets (C3) | the `carbon-neutrality` extension (the position and the retired credits), `verifiable-attestation-uri` (a third party's signed statement), `renewable-energy` (%) | the draft links to attestations rather than defining them (its stated non-goal); the profile counts only retired credits and reads the framework's "Net Zero" as an offset-coverage position ([PROFILE.md](PROFILE.md) section 3.3) |
@@ -78,7 +78,7 @@ layers**, sharing the GHG Protocol vocabulary:
 | CSRD/ESG machine-readable auditability (C4) | the document itself + `disclosure-uri` (e.g., a carbon.txt index to filed reports) | one GET, schema-validated |
 | The evaluated system as reporting subject | `target` (+ optional `target-type`: e.g., `service` for a network, `device` for a node, `organization` for the operator) | -07's generalized reporting subject fits network-, node-, and operator-level reporting |
 
-Unit bridging (`kgCO2e`↔`gCO2e`↔`mtCO2e`, `Wh`↔`kWh`↔`MWh`↔`GWh`) is handled by the
+Unit bridging (`kgCO2e`↔`gCO2e`↔`tCO2e`, `Wh`↔`kWh`↔`MWh`↔`GWh`) is handled by the
 reference publisher's `normalize()`, so operator-scale figures land on the wire in
 conformant units.
 
@@ -142,7 +142,7 @@ all the assets named are in this repository:
 1. **One static JSON file (minutes).** The foundation, operator, or gateway team writes
    one document (copy `example-responses/example-response.json`, set `provider`,
    `methodology-uri` — e.g., a CCRI report or the foundation's published methodology —
-   annual `reporting-period`, `target` = the network name, `target-type: "service"`,
+   annual `period`, `target` = the network name, `target-type: "service"`,
    `energy-consumption` + `energy-unit`) and serves it at
    `/.well-known/sustainability-data` on any HTTP origin they already run. The
    `server-configurations/nginx.conf` and `apache.conf` files are copy-paste ready
@@ -239,15 +239,15 @@ In short: **apply SFC-style evaluation to whatever system is at hand; publish th
 evidence with the draft** — the two compose into a complete, regulation-aligned,
 publicly implemented evaluate-then-disclose loop for any digital infrastructure.
 
-## 9. Profile for draft -07
+## 9. Profile for draft -10
 
 Everything above is the non-normative account of how the two layers fit together, and it
 is kept as it was written. The **normative** profile now lives beside it, in
-**[PROFILE.md](PROFILE.md)**, written against draft -07 and standing on that draft alone.
+**[PROFILE.md](PROFILE.md)**, written against draft -10 and standing on that draft alone.
 It states:
 
 - the **two declaration levels** — network level (`target-type: "service"`, an annual
-  `YYYY` period, the full member set) and operator level (`target-type: "origin"`,
+  whole-year `period`, the full member set) and operator level (`target-type: "origin"`,
   `upstream` naming hosting, cloud and electricity providers, and a declared network
   membership);
 - the **four criteria** mapped member by member, with units and with what each level MUST

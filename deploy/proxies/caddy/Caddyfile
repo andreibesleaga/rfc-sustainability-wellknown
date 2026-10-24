@@ -1,4 +1,6 @@
 # Caddy: serves the document from ./www with the four headers; other methods get 405.
+# The path matcher ignores the query string, so ?start=..., ?target=... and any other parameter get the same file (Basic server).
+# file_server sends ETag and Last-Modified and answers If-None-Match with 304. Add TLS by naming your domain instead of :8080.
 :8080 {
 	root * www
 	@decl path /.well-known/sustainability-data

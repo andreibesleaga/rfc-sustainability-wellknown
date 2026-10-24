@@ -12,7 +12,7 @@
  * draft only recommends is a warning, with a code, and never makes a document
  * invalid.
  */
-import Ajv, { ValidateFunction } from "ajv/dist/jtd";
+import Ajv, { ErrorObject, ValidateFunction } from "ajv/dist/jtd";
 import { compareDateTimes, dateTimeError, hasLeapSecond, isOnDayBoundaries, Period, PeriodError } from "./period";
 import { RESPONSE_JTD_SCHEMA } from "./schema";
 import {
@@ -87,6 +87,21 @@ const URI_MEMBERS = ["methodology-uri", "verifiable-attestation-uri", "disclosur
 
 /** Local parts of an address in `provider` that name a role, not a person (draft §Privacy Considerations). */
 const ROLE_ADDRESSES = ["sustainability", "sustain", "esg", "ops", "compliance", "contact", "info", "admin", "support", "security"];
+
+/**
+ * One schema error as a sentence. A member outside a closed set names the
+ * members of the set, so the reader knows what to write.
+ */
+function schemaErrorMessage(e: ErrorObject): string {
+  const where = e.instancePath || "/";
+  if (e.keyword === "enum" && Array.isArray(e.params.allowedValues)) {
+    return `${where} must be one of ${e.params.allowedValues.join(", ")}`;
+  }
+  if (e.keyword === "properties" && typeof e.params.missingProperty === "string") {
+    return `${where === "/" ? "" : where}/${e.params.missingProperty} is a mandatory member and is missing${e.schemaPath ? ` (${e.schemaPath})` : ""}`;
+  }
+  return `${where} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`;
+}
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -291,7 +306,7 @@ export function validateMetrics(obj: unknown, options: ValidateOptions = {}): Va
 
   if (!validateObject(subject)) {
     for (const e of validateObject.errors ?? []) {
-      errors.push(`${e.instancePath || "/"} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`);
+      errors.push(schemaErrorMessage(e));
     }
     if (isRecord(obj) && ("reporting-period" in obj || isRecord(obj.period) && /^\d{4}-\d{2}-\d{2}$/.test(String(obj.period.start)))) {
       errors.push(`/period is ${OLDER_FORM}`);

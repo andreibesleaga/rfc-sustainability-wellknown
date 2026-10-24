@@ -1,5 +1,5 @@
 /**
- * sfc-check against the nine fixtures. No network: the attestation test
+ * sfc-check against the eleven fixtures. No network: the attestation test
  * injects its own fetch, and every clock is fixed, so a run means the same
  * thing today and in ten years.
  */
@@ -121,11 +121,22 @@ describe("fixture: non-conformant", () => {
 });
 
 describe("fixture: http-uri", () => {
-  it("warns about the non https evidence link and stays valid", async () => {
+  // -10 no longer restricts URI members to https (the -07 consumer warned), so the
+  // consumer says nothing here and the document stays valid.
+  it("stays valid, and the consumer raises no warning for an http link", async () => {
     const result = await checkDocument(fixture("http-uri.json"));
     expect(result.conformant).toBe(true);
     expect(result.exitCode).toBe(0);
-    expect(statusOf(result, "draft-warning")).toContain("WARN");
+    expect(statusOf(result, "draft-warning")).toEqual([]);
+  });
+});
+
+describe("fixture: bad-uri", () => {
+  it("reports the consumer's warning (an object with a message) as a WARN row and stays valid", async () => {
+    const result = await checkDocument(fixture("bad-uri.json"));
+    expect(result.conformant).toBe(true);
+    expect(result.exitCode).toBe(0);
+    expect(statusOf(result, "draft-warning")).toEqual(["WARN"]);
     expect(detailOf(result, "draft-warning")).toContain("disclosure-uri");
   });
 });
@@ -159,6 +170,19 @@ describe("the attestation flag", () => {
   });
 });
 
+describe("fixture: legacy-08", () => {
+  // A file still written for -08 (reporting-period, mtCO2e). The checker reads the strict
+  // -10 wire exactly as the consumer's validateDocument does, so it is reported invalid.
+  it("is reported as not conforming, and C1 is refused for lack of a period", async () => {
+    const result = await checkDocument(fixture("legacy-08.json"));
+    expect(result.conformant).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect(statusOf(result, "draft-conformance")).toEqual(["FAIL"]);
+    expect(detailOf(result, "draft-conformance")).toContain("period");
+    expect(statusOf(result, "C1-energy")).toEqual(["REFUSED"]);
+  });
+});
+
 describe("determinism", () => {
   it("two runs of the same document are identical", async () => {
     const a = await checkDocument(fixture("pass.json"));
@@ -169,10 +193,19 @@ describe("determinism", () => {
 
 describe("selection", () => {
   it("reads a trend array and refuses C1 when no year is covered", () => {
-    const objects = objectsOf([fixture("sub-annual.json"), { ...fixture("sub-annual.json"), "reporting-period": "2025-07" }]);
+    const july = { start: "2025-07-01T00:00:00Z", end: "2025-08-01T00:00:00Z" };
+    const objects = objectsOf([fixture("sub-annual.json"), { ...fixture("sub-annual.json"), period: july }]);
     const selection = selectAnnualNetworkObject(objects);
     expect(selection.object).toBeUndefined();
-    expect(selection.reason).toContain("2025-06, 2025-07");
+    expect(selection.reason).toContain("2025-06-01T00:00:00Z to 2025-07-01T00:00:00Z, 2025-07-01T00:00:00Z to 2025-08-01T00:00:00Z");
+  });
+
+  it("takes a whole calendar year in any one offset and refuses twelve months from another day", () => {
+    const year = (start, end) => ({ ...fixture("pass.json"), period: { start, end } });
+    const pick = (o) => selectAnnualNetworkObject([o]).object;
+    expect(pick(year("2025-01-01T00:00:00+02:00", "2026-01-01T00:00:00+02:00"))).toBeDefined();
+    expect(pick(year("2025-02-01T00:00:00Z", "2026-02-01T00:00:00Z"))).toBeUndefined();
+    expect(pick(year("2025-01-01T00:00:00Z", "2025-12-31T00:00:00Z"))).toBeUndefined();
   });
 
   it("parses the command line", () => {

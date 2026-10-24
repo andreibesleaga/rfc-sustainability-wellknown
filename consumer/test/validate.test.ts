@@ -94,6 +94,22 @@ const object = (over: Record<string, unknown> = {}, drop: string[] = []): Record
 };
 const errorsOf = (doc: unknown): string => validateDocument(doc).errors.join("; ");
 
+describe("a member outside a closed set names the set", () => {
+  const sets: [string, string, string[]][] = [
+    ["functional-unit", "per-minute", ["per-request", "per-device"]],
+    ["measurement-method", "metered", ["hardware-metered", "hardware-estimated", "cloud-billing", "third-party-modeled"]],
+    ["carbon-unit", "mtCO2e", ["gCO2e", "kgCO2e", "tCO2e"]],
+    ["energy-unit", "kwh", ["Wh", "kWh", "MWh", "GWh"]],
+  ];
+  for (const [member, value, allowed] of sets) {
+    it(member, () => {
+      const errors = errorsOf(object({ [member]: value, ...(member === "functional-unit" ? { "sci-score": 1 } : {}) }));
+      expect(errors).toContain(`/${member} must be one of `);
+      for (const token of allowed) expect(errors).toContain(token);
+    });
+  }
+});
+
 describe("a valid object", () => {
   it("has no errors and no warnings", () => {
     expect(validateDocument(good)).toEqual({ valid: true, errors: [], warnings: [] });

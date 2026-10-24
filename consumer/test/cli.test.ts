@@ -14,16 +14,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import * as path from "node:path";
-import * as fs from "node:fs";
 import * as jose from "jose";
 import { normalizeOrigin, runCli } from "../src/cli";
 import { WELL_KNOWN_PATH } from "../src/fetch";
 import { DECLARATION_CTY } from "../src/jws";
 
-const EXAMPLE_DOC = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, "../../example-responses/example-response.json"), "utf8"),
-);
+const EXAMPLE_DOC = {
+  updated: "2026-03-01T12:00:00Z",
+  capabilities: "basic",
+  provider: "CLI Test Co",
+  "measurement-method": "cloud-billing",
+  "methodology-uri": "https://cli.example/methodology",
+  period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
+  target: "cli.example",
+  "energy-consumption": 100,
+  "energy-unit": "kWh",
+  "carbon-footprint": 40,
+  "carbon-unit": "kgCO2e",
+};
 
 let server: Server | undefined;
 /** Extra fixture servers a single test starts (an upstream, a dead credential host). */
@@ -190,7 +198,7 @@ describe("runCli() argument handling", () => {
   });
 });
 
-describe("-07: the CLI's HTTPS requirement and the --allow-http escape hatch", () => {
+describe("-10: the CLI's HTTPS requirement and the --allow-http escape hatch", () => {
   it("refuses an http:// origin without --allow-http, in one line naming the flag", async () => {
     const errors: string[] = [];
     vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
@@ -284,17 +292,17 @@ describe("--verify, --upstream and --verify-attestation", () => {
     provider: "CLI Test Co",
     "measurement-method": "cloud-billing",
     "methodology-uri": "https://cli.example/methodology",
-    "reporting-period": "2025",
+    period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
     target: "cli.example",
     "energy-consumption": 100,
     "energy-unit": "kWh",
   };
 
-  async function signed(object: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async function signed(object: Record<string, unknown>, alg = "Ed25519"): Promise<Record<string, unknown>> {
     const key = await jose.generateKeyPair("EdDSA", { crv: "Ed25519", extractable: true });
     const publicJwk = { ...(await jose.exportJWK(key.publicKey)), kid: "cli-key" };
     const jws = await new jose.CompactSign(new TextEncoder().encode(JSON.stringify(object)))
-      .setProtectedHeader({ alg: "EdDSA", cty: DECLARATION_CTY, kid: "cli-key", jwk: publicJwk })
+      .setProtectedHeader({ alg, cty: DECLARATION_CTY, kid: "cli-key", jwk: publicJwk })
       .sign(key.privateKey);
     return { ...object, signed: jws };
   }
@@ -306,7 +314,28 @@ describe("--verify, --upstream and --verify-attestation", () => {
     const code = await runCli([origin, "--verify", "--allow-http"]);
     expect(code).toBe(0);
     expect(JSON.parse(out.join("\n")).target).toBe("cli.example");
-    expect(err.find((l) => l.startsWith("signature:"))).toMatch(/^signature: verified EdDSA kid=/);
+    const line = err.find((l) => l.startsWith("signature:"));
+    expect(line).toMatch(/^signature: integrity verified Ed25519 kid=\S*cli-key\S*: the holder of the key with thumbprint [A-Za-z0-9_-]{43} signed the other members of this object only/);
+    // What it does not say: that the provider signed, or that a figure is accurate.
+    expect(line).toContain("accuracy unknown");
+    expect(line).toContain("not the array around it, the HTTP header fields or the retrieval URI");
+    expect(line).not.toMatch(/signed by|accurate|\btrue\b/);
+  });
+
+  it("--verify on an EdDSA-signed origin names the identifier as deprecated", async () => {
+    const origin = await startWith(await signed(DECLARATION, "EdDSA"));
+    captureStdout();
+    const err = captureStderr();
+    expect(await runCli([origin, "--verify", "--allow-http"])).toBe(0);
+    expect(err.find((l) => l.startsWith("signature:"))).toMatch(/^signature: integrity verified EdDSA \(deprecated identifier, same algorithm as Ed25519\) kid=\S*cli-key/);
+  });
+
+  it("--require-signed exits 1 and names the unsigned object", async () => {
+    const origin = await startWith(DECLARATION);
+    captureStdout();
+    const err = captureStderr();
+    expect(await runCli([origin, "--require-signed", "--allow-http"])).toBe(1);
+    expect(err.join("\n")).toContain("object 1 is unsigned");
   });
 
   it("--verify against an unsigned origin reports `unsigned`, exit 0", async () => {
@@ -385,6 +414,263 @@ describe("--verify, --upstream and --verify-attestation", () => {
     const err = captureStderr();
     const code = await runCli([origin, "--strict", "--verify-attestation", "--allow-http"]);
     expect(code).toBe(1);
-    expect(err.find((l) => l.startsWith("attestation:"))).toMatch(/^attestation: invalid \(network-error/);
+    expect(err.find((l) => l.startsWith("attestation:"))).toMatch(/^attestation: invalid \((tls-error|network-error)/);
+  });
+});
+
+describe("flags, output and exit codes", () => {
+  const stderr = () => {
+    const lines: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      lines.push(args.map(String).join(" "));
+    });
+    return lines;
+  };
+
+  /** Serve `body` (any value) for every well-known request and record the URLs. */
+  function startRecording(body: unknown): Promise<{ origin: string; asked: string[] }> {
+    const asked: string[] = [];
+    const text = JSON.stringify(body);
+    return new Promise((resolve) => {
+      server = createServer((req, res) => {
+        asked.push(req.url ?? "");
+        res.writeHead(200, { "Content-Type": "application/sustainability-data+json", ETag: '"flags"' });
+        res.end(text);
+      });
+      server.listen(0, "127.0.0.1", () => resolve({ origin: `http://127.0.0.1:${(server!.address() as AddressInfo).port}`, asked }));
+    });
+  }
+
+  const month = (n: number) => ({
+    ...EXAMPLE_DOC,
+    period: { start: `2025-${String(n).padStart(2, "0")}-01T00:00:00Z`, end: n === 12 ? "2026-01-01T00:00:00Z" : `2025-${String(n + 1).padStart(2, "0")}-01T00:00:00Z` },
+  });
+
+  it("--period is gone: it prints the migration line and exits 2 before any request", async () => {
+    const { origin, asked } = await startRecording(EXAMPLE_DOC);
+    const err = stderr();
+    expect(await runCli([origin, "--period=2025", "--allow-http"])).toBe(2);
+    expect(err.join("\n")).toContain("--period is gone since draft -10: use --start=<date-time> and --end=<date-time>");
+    expect(asked).toEqual([]);
+  });
+
+  it("--help does not mention --period=", async () => {
+    const out = captureStdout();
+    await runCli(["--help"]);
+    expect(out.join("\n")).not.toContain("--period");
+    expect(out.join("\n")).toContain("--start=");
+  });
+
+  it("an unknown option, a flag without its value and a value on a switch are usage errors", async () => {
+    const { origin, asked } = await startRecording(EXAMPLE_DOC);
+    for (const bad of ["--stict", "--start", "--target=", "--strict=yes", "--format=xml", "--max-bytes=0", "--max-objects=many", "--timeout=-1"]) {
+      const err = stderr();
+      expect(await runCli([origin, bad, "--allow-http"]), bad).toBe(2);
+      expect(err.join("\n"), bad).toContain("Usage: sustainability-fetch");
+      vi.restoreAllMocks();
+    }
+    expect(asked).toEqual([]);
+  });
+
+  it("rejects a malformed --start or --end before any request, with the reason", async () => {
+    const { origin, asked } = await startRecording(EXAMPLE_DOC);
+    for (const bad of ["--start=2025-01-01", "--end=2025-02-30T00:00:00Z", "--start=2025-01-01t00:00:00z", "--start=yesterday"]) {
+      const err = stderr();
+      expect(await runCli([origin, bad, "--allow-http"]), bad).toBe(2);
+      expect(err.join("\n"), bad).toContain(`--${bad.slice(2, bad.indexOf("="))}:`);
+      vi.restoreAllMocks();
+    }
+    expect(asked).toEqual([]);
+  });
+
+  it("rejects a granularity outside the three tokens", async () => {
+    const err = stderr();
+    expect(await runCli(["https://example.org", "--granularity=weekly"])).toBe(2);
+    expect(err.join("\n")).toContain("--granularity must be one of yearly, monthly, daily");
+  });
+
+  it("sends --start with an offset as UTC with Z, and the other parameters as given", async () => {
+    const { origin, asked } = await startRecording([EXAMPLE_DOC]);
+    captureStdout();
+    stderr();
+    const code = await runCli([
+      origin, "--allow-http", "--start=2025-01-01T08:00:00+08:00", "--end=2026-01-01T00:00:00Z", "--granularity=yearly", "--target=cli.example",
+    ]);
+    expect(code).toBe(0);
+    const q = new URL(asked[0], "http://x").searchParams;
+    expect(q.get("start")).toBe("2025-01-01T00:00:00Z");
+    expect(q.get("end")).toBe("2026-01-01T00:00:00Z");
+    expect(q.get("granularity")).toBe("yearly");
+    expect(q.get("target")).toBe("cli.example");
+  });
+
+  it("an empty array prints [] and a note, and exits 0", async () => {
+    const { origin } = await startRecording([]);
+    const out = captureStdout();
+    const err = stderr();
+    expect(await runCli([origin, "--allow-http", "--start=2030-01-01T00:00:00Z"])).toBe(0);
+    expect(JSON.parse(out.join("\n"))).toEqual([]);
+    expect(err.join("\n")).toContain("empty array");
+  });
+
+  it("--format=csv has the two period columns and the source of every row", async () => {
+    const { origin } = await startRecording([month(1), month(2)]);
+    const out = captureStdout();
+    stderr();
+    expect(await runCli([origin, "--allow-http", "--format=csv"])).toBe(0);
+    const rows = out.join("\n").split("\n");
+    expect(rows[0]).toContain("source-url,claimed-by,signature,provider,target");
+    expect(rows[0]).toContain("period-start,period-end");
+    expect(rows).toHaveLength(3);
+    for (const row of rows.slice(1)) expect(row.startsWith(`${origin}/.well-known/sustainability-data,${origin},`)).toBe(true);
+    expect(rows[2]).toContain("2025-02-01T00:00:00Z,2025-03-01T00:00:00Z");
+  });
+
+  it("--format=ndjson wraps each object in its source and claimant", async () => {
+    const { origin } = await startRecording([month(1), month(2)]);
+    const out = captureStdout();
+    stderr();
+    expect(await runCli([origin, "--allow-http", "--format=ndjson", "--verify"])).toBe(0);
+    const lines = out.join("\n").split("\n").map((l) => JSON.parse(l));
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatchObject({ "source-url": `${origin}/.well-known/sustainability-data`, "claimed-by": origin, signature: "unsigned" });
+    expect(lines[1].declaration.period.start).toBe("2025-02-01T00:00:00Z");
+  });
+
+  it("every run says whose claim the figures are, and that retrieval checks nothing", async () => {
+    const { origin } = await startRecording(EXAMPLE_DOC);
+    captureStdout();
+    const err = stderr();
+    expect(await runCli([origin, "--allow-http"])).toBe(0);
+    expect(err.join("\n")).toContain(`claim: every figure above is a claim of ${origin}`);
+    expect(err.join("\n")).toContain("retrieval does not check it");
+  });
+
+  it("--total prints the sum of twelve months under the rule of Section 5.3", async () => {
+    const { origin } = await startRecording(Array.from({ length: 12 }, (_, i) => month(i + 1)));
+    const out = captureStdout();
+    stderr();
+    expect(await runCli([origin, "--allow-http", "--total"])).toBe(0);
+    expect(JSON.parse(out.join("\n"))).toMatchObject({
+      target: "cli.example",
+      "energy-consumption": 1200,
+      "energy-unit": "kWh",
+      "carbon-footprint": 480,
+      "carbon-unit": "kgCO2e",
+      coverage: "contiguous",
+      objects: 12,
+      period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
+    });
+  });
+
+  it("--total over a year and one of its months is refused with the reason, exit 1", async () => {
+    const { origin } = await startRecording([EXAMPLE_DOC, month(1)]);
+    const out = captureStdout();
+    const err = stderr();
+    expect(await runCli([origin, "--allow-http", "--total"])).toBe(1);
+    expect(out).toEqual([]);
+    expect(err.join("\n")).toContain("total refused (overlapping-periods)");
+  });
+
+  it("converts an old-format declaration by default, says so line by line, and not under --strict", async () => {
+    const old: Record<string, unknown> = { ...EXAMPLE_DOC, "reporting-period": "2025" };
+    delete old.period;
+    const { origin } = await startRecording(old);
+    const out = captureStdout();
+    const err = stderr();
+    expect(await runCli([origin, "--allow-http"])).toBe(0);
+    expect(JSON.parse(out.join("\n")).period).toEqual({ start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" });
+    expect(err.join("\n")).toMatch(/compatibility: converted period/);
+    vi.restoreAllMocks();
+    captureStdout();
+    expect(await runCli([origin, "--allow-http", "--strict"])).toBe(1);
+  });
+
+  it("--strict prints the section of every check and the capabilities", async () => {
+    const { origin } = await startRecording(EXAMPLE_DOC);
+    const out = captureStdout();
+    expect(await runCli([origin, "--allow-http", "--strict"])).toBe(0);
+    expect(out.join("\n")).toContain("(Section 2.2, Query Parameters)");
+    expect(out).toContain("capabilities: basic");
+  });
+
+  it("--conformance is the same as --strict", async () => {
+    const { origin } = await startRecording(EXAMPLE_DOC);
+    const out = captureStdout();
+    expect(await runCli([origin, "--allow-http", "--conformance"])).toBe(0);
+    expect(out.join("\n")).toContain("PASS");
+  });
+
+  it("--strict exits 1 when a MUST fails (an origin that refuses a bad query value)", async () => {
+    const origin = await new Promise<string>((resolve) => {
+      server = createServer((req, res) => {
+        const q = new URL(req.url ?? "/", "http://x").searchParams;
+        if (q.get("granularity") === "Monthly") return void res.writeHead(400).end();
+        res.writeHead(200, { "Content-Type": "application/sustainability-data+json", ETag: '"x"' });
+        res.end(JSON.stringify(EXAMPLE_DOC));
+      });
+      server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
+    });
+    const out = captureStdout();
+    expect(await runCli([origin, "--allow-http", "--strict"])).toBe(1);
+    expect(out.find((l) => l.startsWith("FAIL"))).toContain("Query Parameters");
+  });
+
+  it("--disclosure makes no request and says so when the declaration has no disclosure-uri", async () => {
+    const { origin, asked } = await startRecording(EXAMPLE_DOC);
+    captureStdout();
+    const err = stderr();
+    expect(await runCli([origin, "--allow-http", "--disclosure"])).toBe(0);
+    expect(err.join("\n")).toContain("disclosure: none");
+    expect(asked).toHaveLength(1);
+  });
+
+  it("--disclosure resolves a relative reference against the URL retrieved from, and an http one is refused, exit unchanged", async () => {
+    const { origin, asked } = await startRecording({ ...EXAMPLE_DOC, "disclosure-uri": "/reports/index.json" });
+    captureStdout();
+    const err = stderr();
+    expect(await runCli([origin, "--allow-http", "--disclosure"])).toBe(0);
+    expect(err.join("\n")).toContain(`refusing to dereference "${origin}/reports/index.json"`);
+    expect(err.join("\n")).toContain("could not be retrieved");
+    expect(err.join("\n")).toContain("only https URIs");
+    expect(asked).toHaveLength(1);
+  });
+
+  it("--max-objects bounds what is accepted", async () => {
+    const { origin } = await startRecording([month(1), month(2), month(3)]);
+    captureStdout();
+    const err = stderr();
+    expect(await runCli([origin, "--allow-http", "--max-objects=2"])).toBe(1);
+    expect(err.join("\n")).toContain("above this consumer's limit of 2");
+  });
+
+  it("a redirect loop exits 1 with the reason, not a stack trace", async () => {
+    server = createServer((_req, res) => {
+      res.writeHead(302, { Location: WELL_KNOWN_PATH });
+      res.end();
+    });
+    const origin = await new Promise<string>((resolve) =>
+      server!.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`)),
+    );
+    captureStdout();
+    const err = stderr();
+    expect(await runCli([origin, "--allow-http"])).toBe(1);
+    expect(err.join("\n")).toContain("Too many redirects");
+  });
+
+  it("--allow-http alone does not reach a private address; --allow-private is the separate flag", async () => {
+    captureStdout();
+    const err = stderr();
+    expect(await runCli(["http://10.0.0.1", "--allow-http"])).toBe(1);
+    expect(err.join("\n")).toContain("blocked-address");
+    expect(err.join("\n")).toContain("--allow-private");
+  });
+
+  it("--follow-upstream is --upstream", async () => {
+    const { origin } = await startRecording(EXAMPLE_DOC);
+    captureStdout();
+    const err = stderr();
+    expect(await runCli([origin, "--allow-http", "--follow-upstream"])).toBe(0);
+    expect(err.find((l) => l.startsWith("upstream:"))).toContain("none");
   });
 });

@@ -1,0 +1,19 @@
+{
+  "updated": "2026-02-16T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "ES256 Signer Ltd (sustainability@signed-es256.example)",
+  "measurement-method": "cloud-billing",
+  "methodology-uri": "https://signed-es256.example/sustainability/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
+  "target": "signed-es256.example",
+  "target-type": "origin",
+  "energy-consumption": 5200,
+  "energy-unit": "kWh",
+  "carbon-footprint": 1480,
+  "carbon-unit": "kgCO2e",
+  "carbon-accounting": "location-based",
+  "signed": "eyJhbGciOiJFUzI1NiIsImN0eSI6InN1c3RhaW5hYmlsaXR5LWRhdGEranNvbiIsImp3ayI6eyJrdHkiOiJFQyIsImNydiI6IlAtMjU2IiwieCI6ImhvZHdqenFTNWlFYnM4UkJNQXM5a245dmFnZUQzc3FDVmY2dXhMUnJvSTgiLCJ5IjoicUVzdXJIclh1TUI4S0RFeUdGMG1WQlNFemM1LVhwbVdGOUxNSHlFZkpIUSJ9fQ.eyJ1cGRhdGVkIjoiMjAyNi0wMi0xNlQwOTowMDowMFoiLCJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsInByb3ZpZGVyIjoiRVMyNTYgU2lnbmVyIEx0ZCAoc3VzdGFpbmFiaWxpdHlAc2lnbmVkLWVzMjU2LmV4YW1wbGUpIiwibWVhc3VyZW1lbnQtbWV0aG9kIjoiY2xvdWQtYmlsbGluZyIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vc2lnbmVkLWVzMjU2LmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvbWV0aG9kb2xvZ3kiLCJwZXJpb2QiOnsic3RhcnQiOiIyMDI1LTAxLTAxVDAwOjAwOjAwWiIsImVuZCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIn0sInRhcmdldCI6InNpZ25lZC1lczI1Ni5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJvcmlnaW4iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjUyMDAsImVuZXJneS11bml0Ijoia1doIiwiY2FyYm9uLWZvb3RwcmludCI6MTQ4MCwiY2FyYm9uLXVuaXQiOiJrZ0NPMmUiLCJjYXJib24tYWNjb3VudGluZyI6ImxvY2F0aW9uLWJhc2VkIn0.o5-2mXSlHoJnO28GalFteY0yvZ1Kg_IjDSOcJT-iNbSVDwXDWGyqHNmlxvbau8Z-30plotjRsml4NMKDBki_bg"
+}

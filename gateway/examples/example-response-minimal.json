@@ -4,7 +4,10 @@
   "provider": "Example Minimal Systems (sustainability@minimal.example)",
   "measurement-method": "third-party-modeled",
   "methodology-uri": "https://minimal.example/sustainability-methodology",
-  "reporting-period": "2025",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
   "target": "minimal.example",
   "disclosure-uri": "https://minimal.example/disclosures"
 }

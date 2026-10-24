@@ -1,0 +1,29 @@
+[
+  {
+    "updated": "2026-03-21T00:05:00Z",
+    "capabilities": "extended",
+    "provider": "Global Storage Inc. (compliance@storage.example)",
+    "measurement-method": "hardware-estimated",
+    "methodology-uri": "https://storage.example/methods",
+    "period": {
+      "start": "2026-03-20T00:00:00Z",
+      "end": "2026-03-21T00:00:00Z"
+    },
+    "target": "/app/storage",
+    "target-type": "path",
+    "energy-consumption": 12,
+    "energy-unit": "kWh",
+    "carbon-footprint": 3.2,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "market-based",
+    "scope-1": 0,
+    "scope-2": 2.1,
+    "scope-3": 1.1,
+    "carbon-intensity-gCO2e-per-kWh": 175,
+    "estimated-annual-emissions-kgCO2e": 1168,
+    "renewable-energy": 45,
+    "verifiable-attestation-uri": "https://verify.example/vc/42",
+    "disclosure-uri": "https://storage.example/disclosures",
+    "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIiwiandrIjp7Imt0eSI6Ik9LUCIsImNydiI6IkVkMjU1MTkiLCJ4IjoiMTFxWUFZS3hDcmZWU183VHlXUUhPZzdoY3ZQYXBpTWxyd0lhYVBjSFVSbyJ9fQ.eyJ1cGRhdGVkIjoiMjAyNi0wMy0yMVQwMDowNTowMFoiLCJjYXBhYmlsaXRpZXMiOiJleHRlbmRlZCIsInByb3ZpZGVyIjoiR2xvYmFsIFN0b3JhZ2UgSW5jLiAoY29tcGxpYW5jZUBzdG9yYWdlLmV4YW1wbGUpIiwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtZXN0aW1hdGVkIiwibWV0aG9kb2xvZ3ktdXJpIjoiaHR0cHM6Ly9zdG9yYWdlLmV4YW1wbGUvbWV0aG9kcyIsInBlcmlvZCI6eyJzdGFydCI6IjIwMjYtMDMtMjBUMDA6MDA6MDBaIiwiZW5kIjoiMjAyNi0wMy0yMVQwMDowMDowMFoifSwidGFyZ2V0IjoiL2FwcC9zdG9yYWdlIiwidGFyZ2V0LXR5cGUiOiJwYXRoIiwiZW5lcmd5LWNvbnN1bXB0aW9uIjoxMiwiZW5lcmd5LXVuaXQiOiJrV2giLCJjYXJib24tZm9vdHByaW50IjozLjIsImNhcmJvbi11bml0Ijoia2dDTzJlIiwiY2FyYm9uLWFjY291bnRpbmciOiJtYXJrZXQtYmFzZWQiLCJzY29wZS0xIjowLCJzY29wZS0yIjoyLjEsInNjb3BlLTMiOjEuMSwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjoxNzUsImVzdGltYXRlZC1hbm51YWwtZW1pc3Npb25zLWtnQ08yZSI6MTE2OCwicmVuZXdhYmxlLWVuZXJneSI6NDUsInZlcmlmaWFibGUtYXR0ZXN0YXRpb24tdXJpIjoiaHR0cHM6Ly92ZXJpZnkuZXhhbXBsZS92Yy80MiIsImRpc2Nsb3N1cmUtdXJpIjoiaHR0cHM6Ly9zdG9yYWdlLmV4YW1wbGUvZGlzY2xvc3VyZXMifQ.tvfeJk6he0L1iVrNkz4U5J5mkMqG176E7DHG_ECf4L2altAOEIeJQ5sn3pVVsrA710EwY0r1rxyGdRXR5AhWDA"
+  }
+]

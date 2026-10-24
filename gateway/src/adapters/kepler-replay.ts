@@ -21,6 +21,8 @@
  */
 import {
   keplerPrometheusAdapter,
+  yearPeriod,
+  type Period,
   type PromQueryResponse,
   type RawMetrics,
   type SourceAdapter,
@@ -54,7 +56,8 @@ export interface KeplerReplayConfig {
   methodologyUri: string;
   /** gCO2e/kWh applied to the metered energy. */
   gridIntensity: number;
-  reportingPeriod?: string;
+  /** The period the figures cover; default calendar 2025. */
+  period?: Period;
   fixture?: PromQueryResponse;
 }
 
@@ -65,11 +68,11 @@ const SYNTHETIC_PROVIDER =
   "Gateway operator: Andrei Besleaga";
 
 export function keplerReplayAdapter(config: KeplerReplayConfig): SourceAdapter {
-  const period = config.reportingPeriod ?? "2025";
+  const period = config.period ?? yearPeriod(2025);
   const inner = keplerPrometheusAdapter({
     provider: SYNTHETIC_PROVIDER,
     methodologyUri: config.methodologyUri,
-    reportingPeriod: period,
+    period,
     gridIntensity: config.gridIntensity,
     // Replay: no network call is made. Swap `fixture` for `prometheusUrl` to
     // run this against a live Prometheus instead.

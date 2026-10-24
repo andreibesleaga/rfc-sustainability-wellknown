@@ -12,7 +12,7 @@ import {
 } from "../src/adapters";
 import { sumPromValues } from "../src/adapters/kepler-prometheus";
 import { Publisher } from "../src/publisher";
-import { readJson } from "../src/util";
+import { lastFullMonthPeriod, readJson } from "../src/util";
 import { validateDocument } from "../src/validate";
 
 const FX = (name: string) => resolve(process.cwd(), "test/fixtures", name);
@@ -30,14 +30,15 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
       computedAdapter({
         provider: "Example Corp",
         methodologyUri: "https://example.com/m",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         energy: { value: 1250, unit: "kWh" },
         gridIntensity: 276,
         capabilities: "extended",
       }),
     );
     expect(validateDocument(doc).valid).toBe(true);
-    expect((doc as any)["carbon-footprint"]).toBe(345_000);
+    // An Extended publisher answers a request without parameters with the objects it holds, as an array.
+    expect((doc as any[]).map((object) => object["carbon-footprint"])).toEqual([345_000]);
   });
 
   it("static (inline)", async () => {
@@ -47,7 +48,7 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
           provider: "p",
           measurementMethod: "cloud-billing",
           methodologyUri: "https://x/y",
-          reportingPeriod: "2026-01",
+          period: "2026-01",
           energy: { value: 10, unit: "kWh" },
           carbon: { value: 2, unit: "kgCO2e" },
         },
@@ -72,7 +73,7 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
       keplerPrometheusAdapter({
         provider: "SRE",
         methodologyUri: "https://x/kepler",
-        reportingPeriod: "2026-05",
+        period: "2026-05",
         gridIntensity: 230,
         fixture: readJson(FX("kepler-prom-query.json")),
       }),
@@ -80,6 +81,32 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
     expect(validateDocument(doc).valid).toBe(true);
     // (486e9 + 522e9) J = 1.008e12 J = 280,000 kWh
     expect((doc as any)["energy-consumption"]).toBeCloseTo(280_000, 0);
+  });
+
+  it("kepler-prometheus writes a calendar month in its zone, each bound in the offset in force", async () => {
+    const config = { provider: "SRE", methodologyUri: "https://x/kepler", gridIntensity: 230, fixture: readJson(FX("kepler-prom-query.json")) };
+    const berlin = (await docOf(keplerPrometheusAdapter({ ...config, period: "2026-03", zone: "Europe/Berlin" }))) as any;
+    expect(berlin.period).toEqual({ start: "2026-03-01T00:00:00+01:00", end: "2026-04-01T00:00:00+02:00" });
+    expect(validateDocument(berlin).valid).toBe(true);
+    const fixed = (await docOf(keplerPrometheusAdapter({ ...config, period: "2026-05", zone: "+08:00" }))) as any;
+    expect(fixed.period).toEqual({ start: "2026-05-01T00:00:00+08:00", end: "2026-06-01T00:00:00+08:00" });
+    const object = { start: "2026-05-01T00:00:00Z", end: "2026-05-08T00:00:00Z" };
+    expect(((await docOf(keplerPrometheusAdapter({ ...config, period: object, zone: "Europe/Berlin" }))) as any).period).toEqual(object);
+  });
+
+  it("an adapter without a period publishes the last full month, and the computed adapter carries extensions", async () => {
+    const doc = (await docOf(
+      computedAdapter({
+        provider: "P",
+        methodologyUri: "https://x/m",
+        energy: { value: 1, unit: "kWh" },
+        gridIntensity: 100,
+        extensions: { "https://example.com/ext/score": { unit: "per-minute", value: 3 } },
+      }),
+    )) as any;
+    expect(validateDocument(doc).valid).toBe(true);
+    expect(doc.period).toEqual(lastFullMonthPeriod());
+    expect(doc.extensions["https://example.com/ext/score"].value).toBe(3);
   });
 
   it("climatiq live mode requires dataVersion and sends it as data_version", async () => {
@@ -92,7 +119,7 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
       return new Response(JSON.stringify({ co2e: 1, co2e_unit: "kg" }), { status: 200 });
     }) as typeof fetch;
     try {
-      await climatiqAdapter({ ...base, apiKey: "k", dataVersion: "^34", reportingPeriod: "2026-03" }).fetch({});
+      await climatiqAdapter({ ...base, apiKey: "k", dataVersion: "^34", period: "2026-03" }).fetch({});
     } finally {
       globalThis.fetch = realFetch;
     }
@@ -104,7 +131,7 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
       climatiqAdapter({
         provider: "Example",
         methodologyUri: "https://x/climatiq",
-        reportingPeriod: "2026-03",
+        period: "2026-03",
         activityId: "electricity-supply_grid-source_residual_mix",
         region: "US",
         energy: { value: 2500, unit: "kWh" },
@@ -125,8 +152,8 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
       }),
     );
     expect(validateDocument(doc).valid).toBe(true);
-    expect((doc as any)["reporting-period"]).toBe("2025");
-    expect((doc as any)["carbon-unit"]).toBe("mtCO2e");
+    expect((doc as any).period).toEqual({ start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" });
+    expect((doc as any)["carbon-unit"]).toBe("tCO2e");
     expect((doc as any)["energy-unit"]).toBe("MWh");
     expect((doc as any)["scope-3"]).toBe(41850.9);
   });
@@ -136,7 +163,7 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
       msSustainabilityAdapter({
         provider: "Contoso Cloud",
         methodologyUri: "https://contoso/methodology",
-        reportingPeriod: "2026-04",
+        period: "2026-04",
         energyField: "energyKwh",
         fixturePages: [readJson(FX("ms-odata-page1.json")), readJson(FX("ms-odata-page2.json"))],
       }),
@@ -152,13 +179,21 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
       watershedAdapter({
         provider: "RetailCo",
         methodologyUri: "https://retailco/methodology",
-        reportingPeriod: "2026-03",
+        period: "2026-03",
         fixture: readJson(FX("watershed-footprint.json")),
       }),
     );
     expect(validateDocument(doc).valid).toBe(true);
     expect((doc as any)["scope-3"]).toBe(46340.0);
     expect((doc as any)["renewable-energy"]).toBe(62);
+  });
+
+  it("watershed maps its own quarter label to the quarter", async () => {
+    const doc = await docOf(
+      watershedAdapter({ provider: "RetailCo", methodologyUri: "https://retailco/methodology", fixture: readJson(FX("watershed-footprint.json")) }),
+    );
+    expect(validateDocument(doc).valid).toBe(true);
+    expect((doc as any).period).toEqual({ start: "2026-01-01T00:00:00Z", end: "2026-04-01T00:00:00Z" });
   });
 });
 
@@ -172,7 +207,7 @@ describe("adapters refuse to publish a fabricated 0 (fail loud)", () => {
     const a = keplerPrometheusAdapter({
       provider: "SRE",
       methodologyUri: "https://x/kepler",
-      reportingPeriod: "2026-05",
+      period: "2026-05",
       gridIntensity: 230,
       query: "sum(kepler_node_platform_joules_total)",
       fixture: empty as any,
@@ -186,7 +221,7 @@ describe("adapters refuse to publish a fabricated 0 (fail loud)", () => {
     const a = watershedAdapter({
       provider: "P",
       methodologyUri: "https://x/m",
-      reportingPeriod: "2026-03",
+      period: "2026-03",
       fixture: { energyKwh: 50 } as any, // no total, no scopes
     });
     await expect(a.fetch({})).rejects.toThrow(/no carbon data/i);

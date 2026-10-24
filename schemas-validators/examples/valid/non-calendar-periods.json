@@ -1,0 +1,62 @@
+[
+  {
+    "updated": "2026-05-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-04-01T00:00:00Z",
+      "end": "2026-04-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "carbon-footprint": 4140,
+    "carbon-unit": "kgCO2e"
+  },
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-04-01T00:00:00Z",
+      "end": "2025-07-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "carbon-footprint": 1000,
+    "carbon-unit": "kgCO2e"
+  },
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-03-03T00:00:00Z",
+      "end": "2025-03-10T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "carbon-footprint": 80,
+    "carbon-unit": "kgCO2e"
+  },
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-03-01T00:00:00Z",
+      "end": "2025-05-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "carbon-footprint": 690,
+    "carbon-unit": "kgCO2e"
+  }
+]

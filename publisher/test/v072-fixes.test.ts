@@ -10,7 +10,7 @@ const base = (period: string, wh: number): RawMetrics => ({
   provider: "Example (ops@example.com)",
   measurementMethod: "hardware-metered",
   methodologyUri: "https://example.com/methodology",
-  reportingPeriod: period,
+  period: period,
   updated: "2026-10-01T00:00:00Z",
   capabilities: "extended",
   energy: { value: wh / 1000, unit: "kWh" },
@@ -30,41 +30,27 @@ describe("round keeps at least four significant figures", () => {
   });
 });
 
-describe("granularity without a period slices the Basic response's period (draft step 2)", () => {
-  // An adapter that shapes its output to the query, as a model-based one does.
-  const queryShaped: SourceAdapter = {
-    name: "query-shaped",
+describe("granularity selects among the objects held, whatever the adapter returns", () => {
+  const days: SourceAdapter = {
+    name: "days",
     capabilities: "extended",
-    async fetch(q: ServiceQuery) {
-      const p = q.period ?? "2026-09";
-      if (q.granularity === "daily" && p.length === 7) {
-        return Array.from({ length: 30 }, (_, i) => base(`${p}-${String(i + 1).padStart(2, "0")}`, 1));
-      }
-      return base(p, 30);
+    async fetch() {
+      return Array.from({ length: 30 }, (_, i) => base(`2026-09-${String(i + 1).padStart(2, "0")}`, 1));
     },
   };
 
-  it("returns every day of the default month, not the last day alone", async () => {
-    const pub = new Publisher(queryShaped, { normalize: { target: "example.com" } });
-    const days = await pub.getDocument({ granularity: "daily" });
-    expect(Array.isArray(days)).toBe(true);
-    expect((days as { "reporting-period": string }[]).map((d) => d["reporting-period"])).toHaveLength(30);
-    expect(days).toEqual(await pub.getDocument({ period: "2026-09", granularity: "daily" }));
-  });
-
-  it("ignores a granularity that is not finer than the default period", async () => {
-    const pub = new Publisher(queryShaped, { normalize: { target: "example.com" } });
-    const doc = await pub.getDocument({ granularity: "monthly" });
-    expect(Array.isArray(doc)).toBe(false);
-    expect((doc as { "reporting-period": string })["reporting-period"]).toBe("2026-09");
+  it("returns every held day for daily and none for monthly", async () => {
+    const pub = new Publisher(days, { normalize: { target: "example.com" } });
+    expect(await pub.getDocument({ granularity: "daily" })).toHaveLength(30);
+    expect(await pub.getDocument({ granularity: "monthly" })).toEqual([]);
   });
 });
 
 describe("the library's own error responses carry nosniff", () => {
   it("on a no-data 404", async () => {
-    const empty: SourceAdapter = { name: "empty", capabilities: "extended", async fetch() { return base("2026-09", 1); } };
+    const empty: SourceAdapter = { name: "empty", capabilities: "extended", async fetch() { return []; } };
     const pub = new Publisher(empty, { normalize: { target: "example.com" } });
-    const r = await handleRequest(pub, { period: "1999" });
+    const r = await handleRequest(pub, {});
     expect(r.status).toBe(404);
     expect(r.headers["X-Content-Type-Options"]).toBe("nosniff");
   });

@@ -5,14 +5,17 @@
     "provider": "Example Corp (sustain@example.org)",
     "measurement-method": "third-party-modeled",
     "methodology-uri": "https://example.com/sustainability/api-modeling",
-    "reporting-period": "2026-01",
+    "period": {
+      "start": "2026-01-01T00:00:00Z",
+      "end": "2026-02-01T00:00:00Z"
+    },
     "target": "/api/v1",
     "energy-consumption": 45,
     "energy-unit": "kWh",
     "carbon-footprint": 12450,
     "carbon-unit": "gCO2e",
-    "sci-score": 12,
-    "functional-unit": "per-thousand-requests"
+    "sci-score": 0.012,
+    "functional-unit": "per-request"
   },
   {
     "updated": "2026-03-21T07:00:00Z",
@@ -20,13 +23,16 @@
     "provider": "Example Corp (sustain@example.org)",
     "measurement-method": "third-party-modeled",
     "methodology-uri": "https://example.com/sustainability/api-modeling",
-    "reporting-period": "2026-02",
+    "period": {
+      "start": "2026-02-01T00:00:00Z",
+      "end": "2026-03-01T00:00:00Z"
+    },
     "target": "/api/v1",
     "energy-consumption": 42,
     "energy-unit": "kWh",
     "carbon-footprint": 11800,
     "carbon-unit": "gCO2e",
-    "sci-score": 10,
-    "functional-unit": "per-thousand-requests"
+    "sci-score": 0.01,
+    "functional-unit": "per-request"
   }
 ]

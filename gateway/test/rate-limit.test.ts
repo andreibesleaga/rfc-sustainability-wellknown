@@ -3,7 +3,7 @@
  * rate-limit requests to the well-known URI). The limiter is
  * `rate-limiter-flexible`; these tests cover the gateway's policy around it.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { clientKey, createRateLimiter } from "../src/rate-limit";
 import { startGateway, type TestServer } from "./helpers";
 
@@ -77,5 +77,38 @@ describe("gateway wiring", () => {
     // A different client (proxy-appended address) has its own budget.
     const other = await fetch(path, { headers: { "x-forwarded-for": "203.0.113.77" } });
     expect(other.status).toBe(200);
+  });
+});
+
+describe("the default budget: 600 requests a minute per client (G30 to G32)", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("lets the first 600 through, answers the 601st with 429, Retry-After and a JSON error, and never caches the 429 as a declaration", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-17T12:00:00Z"));
+    const srv = await startGateway({ rateLimitPerMinute: 600 });
+    try {
+      const path = `${srv.base}/.well-known/sustainability-data`;
+      const first = await fetch(path);
+      const etag = first.headers.get("etag");
+      expect(first.status).toBe(200);
+      for (let i = 1; i < 600; i++) expect((await fetch(path, { method: "HEAD" })).status).toBe(200);
+      const refused = await fetch(path);
+      expect(refused.status).toBe(429);
+      expect(Number(refused.headers.get("retry-after"))).toBeGreaterThanOrEqual(1);
+      expect(refused.headers.get("content-type")).toBe("application/json");
+      expect(await refused.json()).toMatchObject({ status: 429 });
+      // G32: the health check is exempt, and the 429 left no mark on the declaration.
+      expect((await fetch(`${srv.base}/healthz`)).status).toBe(200);
+      // G31: past the window the same client is served again.
+      vi.setSystemTime(new Date("2026-10-17T12:01:01Z"));
+      const again = await fetch(path);
+      expect(again.status).toBe(200);
+      expect(again.headers.get("etag")).toBe(etag);
+      expect(again.headers.get("content-type")).toBe("application/sustainability-data+json");
+      expect(again.headers.get("retry-after")).toBeNull();
+    } finally {
+      await srv.close();
+    }
   });
 });

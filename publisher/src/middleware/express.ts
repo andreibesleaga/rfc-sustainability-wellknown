@@ -10,13 +10,13 @@
  * compiles and runs without Express installed for non-Express users.
  */
 import {
-  badRequestResult,
   CarbonTxtServeOptions,
   CARBON_TXT_PATHS,
   carbonTxtResult,
   handleRequest,
   HandlerOptions,
   parseQuery,
+  rateLimitGate,
   WELL_KNOWN_PATH,
 } from "../handler";
 import { Publisher } from "../publisher";
@@ -27,6 +27,8 @@ interface ReqLike {
   url?: string;
   query?: Record<string, unknown>;
   headers?: Record<string, unknown>;
+  ip?: string;
+  socket?: { remoteAddress?: string };
 }
 interface ResLike {
   status(code: number): ResLike;
@@ -46,6 +48,7 @@ export function expressSustainability(
   opts: ExpressSustainabilityOptions = {},
 ) {
   const carbonPaths = new Set(opts.carbonTxt ? CARBON_TXT_PATHS : []);
+  const rateLimited = rateLimitGate(opts);
   return async function sustainabilityMiddleware(
     req: ReqLike,
     res: ResLike,
@@ -80,11 +83,17 @@ export function expressSustainability(
 
     if (path !== WELL_KNOWN_PATH) return next();
 
+    const limited = rateLimited(req.ip ?? req.socket?.remoteAddress);
+    if (limited) {
+      res.status(limited.status).set(limited.headers);
+      if (req.method === "HEAD") res.end();
+      else res.end(limited.body);
+      return;
+    }
+
     const ifNoneMatch = req.headers?.["if-none-match"] as string | undefined;
-    const parsed = parseQuery(req.query ?? {});
-    const result = parsed.ok
-      ? await handleRequest(publisher, parsed.query, opts, ifNoneMatch)
-      : badRequestResult(parsed.error, opts);
+    const { query } = parseQuery(req.query ?? {});
+    const result = await handleRequest(publisher, query, opts, ifNoneMatch);
 
     res.status(result.status).set(result.headers);
     // `res.end`, not `res.send`: send() appends "; charset=utf-8" to the

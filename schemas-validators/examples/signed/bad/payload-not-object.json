@@ -1,0 +1,19 @@
+{
+  "updated": "2026-03-01T12:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Corp (sustain@example.com)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "/sustainability/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
+  "target": "Example Corp",
+  "target-type": "organization",
+  "carbon-footprint": 4140,
+  "carbon-unit": "kgCO2e",
+  "carbon-accounting": "market-based",
+  "functional-unit": "per-request",
+  "sci-score": 0.002,
+  "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIiwiandrIjp7Imt0eSI6Ik9LUCIsImNydiI6IkVkMjU1MTkiLCJ4IjoiMTFxWUFZS3hDcmZWU183VHlXUUhPZzdoY3ZQYXBpTWxyd0lhYVBjSFVSbyJ9fQ.W3sidXBkYXRlZCI6IjIwMjYtMDMtMDFUMTI6MDA6MDBaIiwiY2FwYWJpbGl0aWVzIjoiYmFzaWMiLCJwcm92aWRlciI6IkV4YW1wbGUgQ29ycCAoc3VzdGFpbkBleGFtcGxlLmNvbSkiLCJtZWFzdXJlbWVudC1tZXRob2QiOiJ0aGlyZC1wYXJ0eS1tb2RlbGVkIiwibWV0aG9kb2xvZ3ktdXJpIjoiL3N1c3RhaW5hYmlsaXR5L21ldGhvZG9sb2d5IiwicGVyaW9kIjp7InN0YXJ0IjoiMjAyNS0wMS0wMVQwMDowMDowMFoiLCJlbmQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiJ9LCJ0YXJnZXQiOiJFeGFtcGxlIENvcnAiLCJ0YXJnZXQtdHlwZSI6Im9yZ2FuaXphdGlvbiIsImNhcmJvbi1mb290cHJpbnQiOjQxNDAsImNhcmJvbi11bml0Ijoia2dDTzJlIiwiY2FyYm9uLWFjY291bnRpbmciOiJtYXJrZXQtYmFzZWQiLCJmdW5jdGlvbmFsLXVuaXQiOiJwZXItcmVxdWVzdCIsInNjaS1zY29yZSI6MC4wMDJ9XQ.OV8BxIHFiBShtWWx96hB70VHHzrNR8Q_U_zFKWV7rD15kB4-w_PH1gmvRN2YiJOhfuuzd5CAa_034QStAzmaDw"
+}

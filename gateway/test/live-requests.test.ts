@@ -33,6 +33,20 @@ describe("front-page live requests", () => {
     }
   });
 
+  it("states no request with period= anywhere, and shows the range query of the wire examples and of the self report", async () => {
+    const rows = liveRequests(srv.gw.index);
+    expect(rows.some((r) => /[?&]period=/.test(r.href))).toBe(false);
+    expect(rows.some((r) => /start=\d{4}-\d{2}-\d{2}T00:00:00Z&end=/.test(r.href) && r.href.startsWith("/.well-known/"))).toBe(true);
+    const trend = rows.find((r) => r.what.includes("wire-format example declaring Extended"));
+    expect(trend?.href).toMatch(/^\/[a-z-]+\.example\/\.well-known\/sustainability-data\?start=.*Z&end=.*Z&granularity=/);
+    const html = await (await fetch(`${srv.base}/`)).text();
+    expect(html).not.toMatch(/[?&;]period=/);
+    // An ignored value is a 200 with the bare answer, a target nobody reports is [] and not 404, a repeated parameter is no 400.
+    const promises = rows.filter((r) => /ignored|\[\]/.test(r.expect)).map((r) => promised(r));
+    expect(promises.every((p) => p === 200)).toBe(true);
+    expect(rows.some((r) => promised(r) === 400)).toBe(false);
+  });
+
   it("renders the table in the HTTP behaviour section with one hyperlink per request", async () => {
     const html = await (await fetch(`${srv.base}/`)).text();
     const section = html.slice(html.indexOf("<h2>HTTP behaviour</h2>"), html.indexOf("<h2>Verify it yourself</h2>"));

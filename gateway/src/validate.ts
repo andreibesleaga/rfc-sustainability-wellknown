@@ -28,10 +28,11 @@ import {
   fetchSustainability,
   isBlockedAddress,
   systemAddressLookup,
-  verifyEmbeddedSignature,
   type AddressLookup,
   type FetchResult,
   type MediaTypeClassification,
+  type Period,
+  type SignatureResult,
 } from "sustainability-wellknown-consumer";
 import { createRateLimiter, type RateLimiter } from "./rate-limit";
 
@@ -58,10 +59,24 @@ export interface ValidationOutcome {
   /** When the check was made (not when the badge was viewed). */
   checked: string;
   mediaType?: MediaTypeClassification;
-  signature?: "verified" | "unverified" | "unsigned";
-  reportingPeriod?: string;
-  target?: string;
+  /**
+   * `current`: the body is a declaration of the current revision as served.
+   * `legacy`: the consumer's compatibility reading changed it (`converted`,
+   * `disregarded`): the origin has not moved to the current revision. Only
+   * set on a `valid` outcome.
+   */
+  format?: "current" | "legacy";
+  /** What the compatibility reading read in another spelling, as member paths (`period`, `[1].carbon-unit`). */
+  converted?: string[];
+  /** What the compatibility reading did not use, as member paths (`measurement-method`). */
   disregarded?: string[];
+  /** The `unsigned`, `verified` or `unverified` outcome of the embedded signature, over every object of the body. */
+  signature?: "verified" | "unverified" | "unsigned";
+  /** The `period` of the first object of the body, when there is one. */
+  period?: Period;
+  target?: string;
+  /** Advisory findings that do not make the declaration invalid (`code: message`). */
+  warnings?: string[];
   detail: string;
   /** Always present: the check says nothing about accuracy. */
   note: string;
@@ -78,6 +93,7 @@ export function isBusy(r: ValidationOutcome | Busy): r is Busy {
 }
 
 export interface ValidatorDeps {
+  /** Replaces the consumer's own connection (tests). Leave unset in a deployment: see the constructor. */
   fetchImpl?: typeof fetch;
   lookup?: AddressLookup;
   clock?: () => Date;
@@ -105,6 +121,7 @@ export function parseOrigin(raw: string | undefined): { host: string } | HostRef
     return { status: 400, error: "origin is not a URL" };
   }
   if (url.protocol !== "https:") return { status: 400, error: "only https origins are checked" };
+  if (url.port) return { status: 400, error: "only port 443 is checked" };
   if (url.username || url.password) return { status: 400, error: "credentials in the origin are not accepted" };
   if (url.pathname !== "/" || url.search || url.hash) return { status: 400, error: "give the origin only, without a path" };
   return checkHost(url.hostname);
@@ -125,7 +142,7 @@ export class Validator {
   private readonly cache = new Map<string, { outcome: ValidationOutcome; expires: number }>();
   private readonly inFlight = new Map<string, Promise<ValidationOutcome>>();
   readonly limiter: RateLimiter | undefined;
-  private readonly fetchImpl: typeof fetch;
+  private readonly fetchImpl: typeof fetch | undefined;
   private readonly lookup: AddressLookup;
   private readonly clock: () => Date;
   private readonly ttlMs: number;
@@ -134,7 +151,10 @@ export class Validator {
   private outbound: number[] = [];
 
   constructor(deps: ValidatorDeps = {}) {
-    this.fetchImpl = deps.fetchImpl ?? globalThis.fetch;
+    // Unset in production, on purpose: the consumer then makes the request itself, through a connection whose
+    // address check refuses a private, loopback or link-local answer at every hop. A fetch passed in (a test's
+    // stand-in) opens no connection through the consumer, so that check does not apply to it.
+    this.fetchImpl = deps.fetchImpl;
     this.lookup = deps.lookup ?? systemAddressLookup;
     this.clock = deps.clock ?? (() => new Date());
     this.ttlMs = deps.ttlMs ?? CACHE_TTL_MS;
@@ -198,35 +218,63 @@ export class Validator {
     let result: FetchResult;
     try {
       result = await fetchSustainability(origin, {
-        fetchImpl: this.fetchImpl,
+        ...(this.fetchImpl ? { fetchImpl: this.fetchImpl } : {}),
         lookup: this.lookup,
         timeoutMs: TIMEOUT_MS,
         maxBytes: MAX_BODY_BYTES,
         maxObjects: 400,
+        // Every signed object is verified, with the compatibility reading the objects get.
+        verifySignature: true,
       });
     } catch (err) {
       return { origin, status: "unreachable", checked, detail: err instanceof Error ? err.message : String(err), note: NOTE };
     }
     if (result.status === "ok") {
-      const first = Array.isArray(result.document) ? result.document[0] : result.document;
-      const sig = await verifyEmbeddedSignature(first);
+      const objects = Array.isArray(result.document) ? result.document : [result.document];
+      const first = objects[0];
+      const signature = signatureOf(result.signatures ?? []);
+      const converted = result.converted ?? [];
+      const disregarded = result.disregarded ?? [];
+      const legacy = result.legacy === true;
       return {
         origin,
         status: "valid",
         checked,
         mediaType: result.mediaType,
-        signature: sig.result.status,
-        reportingPeriod: typeof first?.["reporting-period"] === "string" ? first["reporting-period"] : undefined,
-        target: typeof first?.target === "string" ? first.target : undefined,
-        ...(result.disregarded?.length ? { disregarded: result.disregarded } : {}),
-        detail: `schema-valid declaration served as ${result.mediaType === "json" ? "application/json (tolerated; the draft's media type is application/sustainability-data+json)" : "application/sustainability-data+json"}`,
-        note: NOTE,
+        format: legacy ? "legacy" : "current",
+        converted,
+        disregarded,
+        signature,
+        ...(first ? { period: first.period, target: first.target } : {}),
+        ...(result.warnings?.length ? { warnings: result.warnings } : {}),
+        detail:
+          objects.length === 0
+            ? "no report: the body is an empty array, which is valid and states nothing"
+            : `schema-valid declaration served as ${result.mediaType === "json" ? "application/json (tolerated; the draft's media type is application/sustainability-data+json)" : "application/sustainability-data+json"}` +
+              (legacy ? "; read from an earlier revision of the draft, so the origin has not moved to the current one" : ""),
+        note: noteOf(result.signatures ?? [], result.warnings ?? []),
       };
     }
-    const reachable = new Set(["invalid", "wrong-media-type", "no-report", "too-many-objects", "too-large"]);
+    const reachable = new Set(["invalid", "wrong-media-type", "too-many-objects", "too-large"]);
     const detail = describe(result);
     return { origin, status: reachable.has(result.status) ? "invalid" : "unreachable", checked, detail, note: NOTE };
   }
+}
+
+/** One word for the signatures of a body: any that failed makes it unverified, else any that verified makes it verified. */
+function signatureOf(signatures: SignatureResult[]): "verified" | "unverified" | "unsigned" {
+  if (signatures.some((s) => s.status === "unverified")) return "unverified";
+  return signatures.some((s) => s.status === "verified") ? "verified" : "unsigned";
+}
+
+/** The standing note, with what a reader needs to know about a verified signature and about the advisory findings. */
+function noteOf(signatures: SignatureResult[], warnings: string[]): string {
+  let note = NOTE;
+  if (signatures.some((s) => s.status === "verified" && s.keyTrust === "declaration-only")) {
+    note += " A verified signature made with the key the declaration carries in its own header proves integrity only: that the object was not changed after signing, and nothing about who holds the key.";
+  }
+  if (warnings.length > 0) note += ` Advisory: ${warnings.slice(0, 3).join(" | ")}`;
+  return note;
 }
 
 function describe(r: FetchResult): string {
@@ -236,21 +284,25 @@ function describe(r: FetchResult): string {
     case "wrong-media-type": return `served as ${r.mediaType ?? "no media type"}, not application/sustainability-data+json`;
     case "http-error": return `HTTP ${r.httpStatus}`;
     case "timeout": return `no response within ${r.timeoutMs} ms`;
-    case "too-large": return `body larger than the ${MAX_BODY_BYTES}-byte limit of this check`;
+    case "too-large": return `body larger than the ${MAX_BODY_BYTES / 1024} KiB limit of this check`;
     case "too-many-objects": return `more objects than this check reads (${r.count} > ${r.max})`;
-    case "no-report": return "an empty array: conveys no report";
     case "insecure-transport": return `refused: ${r.detail}`;
-    case "refused-uri": return `refused: ${(r as { detail?: string }).detail ?? "the URI resolves to an address this check does not contact"}`;
+    case "too-many-redirects": return `more than five redirects, or a loop: ${r.detail}`;
+    case "refused-uri": return `refused: ${r.detail}`;
     default: return r.status;
   }
 }
 
+/** Brown, not grey: a notice is not an outcome, and white text on it keeps a contrast of 4.5 or more. */
+const NOTICE_COLOUR = "#7a5200";
 const COLOURS = { valid: "#2e7d32", invalid: "#c62828", unreachable: "#616161" } as const;
 
 /** A flat badge in the common two-cell style for a check's outcome. */
 export function badgeSvg(outcome: ValidationOutcome): string {
+  // A document read from an earlier revision is valid, and the badge says it is not in the current form.
+  const word = outcome.status === "valid" && outcome.format === "legacy" ? "valid (legacy)" : outcome.status;
   return badgeImage(
-    `${outcome.status} · ${outcome.checked.slice(0, 10)}`,
+    `${word} · ${outcome.checked.slice(0, 10)}`,
     COLOURS[outcome.status],
     `${outcome.origin}: ${outcome.status}, checked ${outcome.checked}. ${outcome.detail}`,
   );
@@ -258,7 +310,7 @@ export function badgeSvg(outcome: ValidationOutcome): string {
 
 /** A grey badge for when no check was made (bad request, exclusion, this service busy); says nothing about the origin. */
 export function noticeBadgeSvg(text: string, title: string): string {
-  return badgeImage(text, "#9e9e9e", title);
+  return badgeImage(text, NOTICE_COLOUR, title);
 }
 
 /** The two-cell badge; text is escaped, widths estimated from length. */

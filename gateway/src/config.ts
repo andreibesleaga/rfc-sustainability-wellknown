@@ -4,7 +4,7 @@
  *
  * Railway (like every other PaaS) injects `PORT`; nothing else is required.
  */
-import type { HandlerOptions } from "sustainability-wellknown-publisher";
+import { isDateTime, isOnDayBoundaries, parsePeriod, toUtcQueryValue, type HandlerOptions, type Period } from "sustainability-wellknown-publisher";
 import { resolve } from "node:path";
 
 /** Read an env var, falling back to a default. Empty string counts as unset. */
@@ -65,13 +65,32 @@ export const MEDIA_TYPE_VALUES: readonly MediaTypeSetting[] = [
   "json",
 ];
 
-/** An RFC 3339 instant from the environment, validated at load time. */
+/** An RFC 3339 date-time from the environment (upper-case T and Z), validated at load time and written in UTC. */
 function envInstant(name: string, fallback: string): string {
   const v = env(name, fallback);
-  if (Number.isNaN(Date.parse(v))) {
-    throw new Error(`config: ${name} must be an RFC 3339 date-time (got ${JSON.stringify(v)})`);
+  if (!isDateTime(v)) {
+    throw new Error(`config: ${name} must be an RFC 3339 date-time with the letters T and Z in upper case (got ${JSON.stringify(v)})`);
   }
-  return new Date(v).toISOString().replace(/\.\d{3}Z$/, "Z");
+  return toUtcQueryValue(v);
+}
+
+/**
+ * A pinned period from the environment: `<name>_START` and `<name>_END`, both
+ * or neither, two date-times on day boundaries with the start before the end.
+ */
+function envPeriod(name: string): Period | undefined {
+  const start = process.env[`${name}_START`];
+  const end = process.env[`${name}_END`];
+  if (!start && !end) return undefined;
+  if (!start || !end) throw new Error(`config: ${name}_START and ${name}_END must be set together`);
+  let period: Period;
+  try {
+    period = parsePeriod({ start, end });
+  } catch (err) {
+    throw new Error(`config: ${name}_START and ${name}_END: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (!isOnDayBoundaries(period)) throw new Error(`config: ${name}_START and ${name}_END must each be the first instant of a calendar day`);
+  return period;
 }
 
 function envMediaType(name: string, fallback: MediaTypeSetting): MediaTypeSetting {
@@ -148,12 +167,12 @@ export interface GatewayConfig {
     /** Public disclosure index for the gateway. */
     disclosureUri: string;
     /**
-     * `reporting-period` for the gateway's own report. Default: the most
-     * recently completed full calendar month (the draft's Basic default for a
-     * publisher that reports more frequently than annually). Pinning this via
-     * the environment makes the document byte-stable, which is what tests do.
+     * The `period` of the gateway's own report for a request that names no
+     * parameter. Default: the most recently completed full calendar month.
+     * Pinning it (`SELF_PERIOD_START` and `SELF_PERIOD_END`, together) makes
+     * the document byte-stable, which is what tests do.
      */
-    period?: string;
+    period?: Period;
     /** Modelled average power draw of the gateway container, in watts. */
     watts: number;
     /** Read the operator's monthly figures from data/_self-measured.json (default true). */
@@ -162,8 +181,8 @@ export interface GatewayConfig {
     gridIntensity: number;
     /**
      * The instant this gateway went live (RFC 3339). The model counts only
-     * hours inside `[liveSince, now)`: a period before it has no data (404),
-     * a period in progress reports the completed portion to date.
+     * hours inside `[liveSince, now)`: a range before it selects nothing (an
+     * empty array), a period in progress reports the completed portion to date.
      */
     liveSince: string;
     /** `verifiable-attestation-uri` of the self report: a third-party signed statement about the model. */
@@ -182,14 +201,12 @@ export const LIMITS = {
   /** Largest source document accepted from `data/` and from an adapter's parameterless build (Extended variants are bounded by the entry cap instead). */
   maxDocumentBytes: 256 * 1024,
   /**
-   * Cap on array entries. -07 removes the server-side cap in favour of a
-   * consumer-side bound, so this is a defensive default of this deployment,
-   * not a requirement it has to meet; 366 is the calendar bound the draft
-   * notes for daily granularity over a year. Relayed subjects are served at
-   * the Basic service as one object each (a choice of this deployment; the
-   * draft allows an array there), so array source documents are refused; the gateway's own
-   * report is Extended (period/granularity honoured), and the cap is kept as
-   * a second, explicit bound.
+   * Cap on array entries. The draft sets no server-side cap, so this is a
+   * defensive default of this deployment, not a requirement it has to meet.
+   * Relayed subjects are one object each (a choice of this deployment; the
+   * draft allows an array), so array source documents are refused; the
+   * gateway's own report is Extended and holds at most 200 objects, which the
+   * publisher never cuts.
    */
   maxArrayEntries: 366,
   /** Longest domain label path segment accepted on a request line. */
@@ -230,7 +247,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
         "SELF_DISCLOSURE_URI",
         "https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/main/gateway",
       ),
-      period: process.env.SELF_PERIOD || undefined,
+      period: envPeriod("SELF_PERIOD"),
       watts: envNum("SELF_WATTS", 3),
       measured: true,
       gridIntensity: envNum("SELF_GRID_INTENSITY", 245),

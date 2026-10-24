@@ -20,8 +20,10 @@
  */
 import { averageIntensity, co2 as Co2, hosting, marginalIntensity } from "@tgwf/co2";
 import { convertEnergy } from "../normalize";
-import { EnergyUnit, RawMetrics, SourceAdapter } from "../types";
-import { lastFullMonth } from "../util";
+import { EnergyUnit, MeasurementMethod } from "../tokens";
+import { RawMetrics, SourceAdapter } from "../types";
+import { PeriodInput } from "../period";
+import { lastFullMonthPeriod } from "../util";
 
 export interface GreencheckResponse {
   green?: boolean;
@@ -34,7 +36,8 @@ export interface GreencheckResponse {
 export interface Co2jsConfig {
   provider: string;
   methodologyUri: string;
-  reportingPeriod?: string;
+  /** A `{ start, end }` object, or "YYYY", "YYYY-MM" or "YYYY-MM-DD" for the whole calendar unit in UTC; defaults to the last full month. */
+  period?: PeriodInput;
   /** Bytes transferred over the reporting period. Required. */
   bytes: number;
   /** Use the SWD per-visit estimate instead of per-byte. */
@@ -66,7 +69,7 @@ export interface Co2jsConfig {
 
   renewableEnergy?: number;
   disclosureUri?: string;
-  measurementMethod?: string;
+  measurementMethod?: MeasurementMethod;
   capabilities?: "basic" | "extended";
 }
 
@@ -154,7 +157,7 @@ export function co2jsAdapter(config: Co2jsConfig): SourceAdapter {
         provider: config.provider,
         measurementMethod: config.measurementMethod ?? "third-party-modeled",
         methodologyUri: config.methodologyUri,
-        reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
+        period: config.period ?? lastFullMonthPeriod(),
         energy,
         carbon: { value: carbonGrams, unit: "gCO2e" },
         carbonIntensity: effectiveIntensity,

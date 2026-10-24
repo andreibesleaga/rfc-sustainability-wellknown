@@ -1,45 +1,78 @@
 /**
- * Validation gate. Every payload the publisher emits is validated against the
- * draft's JTD schema (RFC 8927) BEFORE it is served. This makes the software
- * provably conformant and acts as a circuit-breaker against malformed adapter
- * output (the "never publish corrupt data" rule).
+ * Validation gate. Every payload the publisher emits is validated BEFORE it is
+ * served. This makes the software provably conformant and acts as a
+ * circuit-breaker against malformed adapter output (the "never publish corrupt
+ * data" rule).
+ *
+ * Validation is layered. The JSON Type Definition schema (RFC 8927) checks the
+ * form: mandatory members, closed token sets, types. The rules no schema states
+ * come after it: the exact profile of a date-time (upper-case `T` and `Z`, a
+ * real date and time), `start` before `end`, non-negative figures, the range of
+ * `renewable-energy`, the at-least-one rule, the names in `extensions`. What the
+ * draft only recommends is a warning, with a code, and never makes a document
+ * invalid.
  */
 import Ajv, { ValidateFunction } from "ajv/dist/jtd";
-import { PERIOD_RE } from "./normalize";
+import { compareDateTimes, dateTimeError, hasLeapSecond, isOnDayBoundaries, Period, PeriodError } from "./period";
 import { RESPONSE_JTD_SCHEMA } from "./schema";
-import { extensionNameError, SustainabilityDocument, SustainabilityMetrics } from "./types";
-import { hasReportableContent } from "./util";
+import {
+  DEFINED_MEMBERS,
+  extensionNameError,
+  isUriReference,
+  SustainabilityDocument,
+  SustainabilityMetrics,
+} from "./types";
+import { aLabelOf, hasReportableContent, olderPeriodOf } from "./util";
 
 const ajv = new Ajv({ allErrors: true });
 const validateObject: ValidateFunction = ajv.compile(RESPONSE_JTD_SCHEMA as unknown as object);
 
+/** What a warning is about; a warning never makes a document invalid. */
+export type WarningCode =
+  /** A bound is not the first instant of a calendar day in its own offset (the draft recommends a day or longer). */
+  | "period-below-day-floor"
+  /** `updated` is before `period.end`: a forecast, or a period still running. */
+  | "updated-before-period-end"
+  /** A bound or `updated` names the leap second 23:59:60, which is read as 23:59:59. */
+  | "leap-second-read-as-59"
+  /** A member the draft does not define: a consumer ignores it, a publisher adds none. */
+  | "unknown-member"
+  /** A URI-valued member is not a URI reference. */
+  | "uri-not-a-reference"
+  /** The scopes accompany `carbon-footprint` and do not account for it. */
+  | "scopes-do-not-account-for-footprint"
+  /** A host-shaped `target` is written in U-label form; the draft writes the A-label. */
+  | "origin-u-label"
+  /** `provider` holds a contact address that does not look like a role. */
+  | "provider-personal-contact"
+  /** The period was read from the form of an earlier revision (compatibility reading only). */
+  | "period-read-from-older-form";
+
+export interface ValidationWarning {
+  code: WarningCode;
+  message: string;
+}
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
+  warnings: ValidationWarning[];
+}
+
+export interface ValidateOptions {
+  /**
+   * Read the period of an earlier revision (the `reporting-period` label of -08,
+   * the `full-date` bounds of -09) as the period it stands for, and say so in a
+   * warning. Default true. `assertValid`, the gate in front of every document
+   * this package serves, always validates without it.
+   */
+  legacyCompat?: boolean;
 }
 
 /**
- * Every numeric field defined by the draft. JTD's `float64` only checks
- * `typeof === "number"`, so NaN and ±Infinity pass it and then serialize as
- * JSON `null` (or invalid JSON). This list lets the gate reject non-finite
- * values before a payload is ever published.
- */
-const NUMERIC_FIELDS = [
-  "energy-consumption",
-  "carbon-footprint",
-  "scope-1",
-  "scope-2",
-  "scope-3",
-  "sci-score",
-  "carbon-intensity-gCO2e-per-kWh",
-  "estimated-annual-emissions-kgCO2e",
-  "renewable-energy",
-] as const;
-
-/**
- * Gross-quantity members that MUST NOT be negative (draft §Value Constraints
- * and Omitted Metrics). Scopes are deliberately absent: scope-1/2/3 MAY be
- * negative to convey removals/offsets under net accounting.
+ * Gross-quantity members that MUST NOT be negative (draft §Optional Members).
+ * Scopes are deliberately absent: scope-1/2/3 MAY be negative to convey
+ * removals/offsets under net accounting. `renewable-energy` has its own range.
  */
 const NON_NEGATIVE_FIELDS = [
   "energy-consumption",
@@ -49,217 +82,278 @@ const NON_NEGATIVE_FIELDS = [
   "estimated-annual-emissions-kgCO2e",
 ] as const;
 
-/** RFC 3339 date-time shape for the mandatory `updated` member. */
-export const UPDATED_RE = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
-
-/**
- * The URI-valued members of a declaration object other than
- * `upstream[].declaration`, which is checked with the rest of that array.
- * Draft §Optional Members: all of them "MUST be absolute URIs with the 'https'
- * scheme". `methodology-uri` is mandatory, so it is always present.
- */
+/** URI-valued members other than `upstream[].declaration`; all are URI references (draft §URI-Valued Members). */
 const URI_MEMBERS = ["methodology-uri", "verifiable-attestation-uri", "disclosure-uri"] as const;
 
-/** True for an absolute URI whose scheme is "https" (RFC 3986 absolute-URI). */
-function isAbsoluteHttpsUri(value: string): boolean {
-  try {
-    return new URL(value).protocol === "https:";
-  } catch {
-    return false;
-  }
+/** Local parts of an address in `provider` that name a role, not a person (draft §Privacy Considerations). */
+const ROLE_ADDRESSES = ["sustainability", "sustain", "esg", "ops", "compliance", "contact", "info", "admin", "support", "security"];
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/** Digits after the decimal point in the shortest form of `n`. */
+function decimals(n: number): number {
+  const [mantissa, exponent] = n.toExponential().split("e");
+  return Math.max(0, (mantissa.split(".")[1] ?? "").length - Number(exponent));
 }
 
 /**
- * Validate a single metrics object against the JTD schema.
- *
- * Enum membership for the enumerated string members — `capabilities`,
- * `energy-unit`, `carbon-unit`, `carbon-accounting`, and `target-type`
- * (draft -04) — is enforced by the JTD schema itself (they are `enum` forms
- * in {@link RESPONSE_JTD_SCHEMA}), so an out-of-enum value fails here without
- * a separate prose check. The publisher never emits such a document; the
- * draft's unrecognized-value tolerance is a client-side rule applied by
- * `fromWire` when re-ingesting foreign documents. Since -07 the schema's
- * member set is CLOSED, so an unknown top-level member fails here too.
+ * Every number in the value is finite, and every string and member name is
+ * well-formed (no unpaired surrogate): the I-JSON a publisher emits (draft
+ * §Body). JTD's `float64` accepts NaN and the infinities, which serialize as
+ * `null`.
  */
-export function validateMetrics(obj: unknown): ValidationResult {
-  const valid = validateObject(obj) as boolean;
-  if (!valid) {
-    const errors = (validateObject.errors ?? []).map(
-      (e) => `${e.instancePath || "/"} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`,
-    );
-    return { valid: false, errors };
+function ijsonErrors(value: unknown, path: string, errors: string[]): void {
+  if (typeof value === "number" && !Number.isFinite(value)) {
+    errors.push(`${path} is not a finite number (${String(value)})`);
+  } else if (typeof value === "string" && !value.isWellFormed()) {
+    errors.push(`${path} holds an unpaired surrogate (RFC 7493, Section 2.1)`);
+  } else if (Array.isArray(value)) {
+    value.forEach((item, i) => ijsonErrors(item, `${path}/${i}`, errors));
+  } else if (isRecord(value)) {
+    for (const [key, item] of Object.entries(value)) {
+      if (!key.isWellFormed()) errors.push(`${path}/${key} is a member name with an unpaired surrogate (RFC 7493, Section 2.1)`);
+      ijsonErrors(item, `${path}/${key}`, errors);
+    }
   }
+}
 
-  // Post-JTD guard: reject non-finite numbers (NaN, Infinity, -Infinity). These
-  // pass JTD's float64 (typeof === "number") but serialize to JSON `null`,
-  // which would let malformed adapter output be published as valid data.
-  const errors: string[] = [];
-  if (obj && typeof obj === "object") {
-    const rec = obj as Record<string, unknown>;
-    for (const field of NUMERIC_FIELDS) {
-      const v = rec[field];
-      if (typeof v === "number" && !Number.isFinite(v)) {
-        errors.push(`/${field} is not a finite number (${String(v)})`);
-      }
+function dateTimeChecks(rec: Record<string, unknown>, errors: string[], warnings: ValidationWarning[]): void {
+  const period = isRecord(rec.period) ? rec.period : {};
+  const bounds: [string, unknown][] = [["updated", rec.updated], ["period/start", period.start], ["period/end", period.end]];
+  for (const [path, value] of bounds) {
+    const why = dateTimeError(value);
+    if (why !== undefined) errors.push(`/${path} ${why}`);
+    else if (hasLeapSecond(value as string)) {
+      warnings.push({ code: "leap-second-read-as-59", message: `/${path} names the leap second 23:59:60, which is read as 23:59:59` });
     }
+  }
+  const { start, end } = period;
+  if (dateTimeError(start) !== undefined || dateTimeError(end) !== undefined) return;
+  if (compareDateTimes(start as string, end as string) >= 0) {
+    errors.push(`/period/start must be before /period/end (got ${start} and ${end})`);
+    return;
+  }
+  const bounded: Period = { start: start as string, end: end as string };
+  if (!isOnDayBoundaries(bounded)) {
+    // A bound at the leap second is already noted above: it is read as another instant, and no day boundary.
+    if (!hasLeapSecond(bounded.start) && !hasLeapSecond(bounded.end)) {
+      warnings.push({
+        code: "period-below-day-floor",
+        message:
+          "/period bounds are not both the first instant of a calendar day in their own offset; " +
+          "the draft recommends a calendar day or longer (Mandatory Members, Privacy Considerations)",
+      });
+    }
+  } else if (dateTimeError(rec.updated) === undefined && compareDateTimes(rec.updated as string, bounded.end) < 0) {
+    warnings.push({ code: "updated-before-period-end", message: `/updated (${rec.updated}) is before /period/end (${end})` });
+  }
+}
 
-    // Range rules (draft §Value Constraints and Omitted Metrics) are prose
-    // rules JTD cannot express; enforce them here so no invalid document can
-    // ship regardless of which adapter/normalization path produced it.
-    for (const field of NON_NEGATIVE_FIELDS) {
-      const v = rec[field];
-      if (typeof v === "number" && v < 0) {
-        errors.push(`/${field} must not be negative (got ${v}); omit unreported metrics`);
-      }
+function figureChecks(rec: Record<string, unknown>, errors: string[], warnings: ValidationWarning[]): void {
+  // Range rules (draft §Optional Members) are prose rules no schema expresses.
+  for (const field of NON_NEGATIVE_FIELDS) {
+    const v = rec[field];
+    if (typeof v === "number" && v < 0) {
+      errors.push(`/${field} must not be negative (got ${v}); omit unreported metrics`);
     }
-    const renewable = rec["renewable-energy"];
-    if (typeof renewable === "number" && (renewable < 0 || renewable > 100)) {
-      errors.push(`/renewable-energy must be between 0 and 100 inclusive (got ${renewable})`);
-    }
-
-    // Draft §Optional Members: "If sci-score is present,
-    // functional-unit MUST also be present." JTD cannot express dependencies.
-    if (rec["sci-score"] !== undefined && rec["functional-unit"] === undefined) {
-      errors.push("/sci-score requires functional-unit to be present");
-    }
-
-    // Draft §Mandatory Members: reporting-period uses the calendar
-    // forms YYYY, YYYY-MM, or YYYY-MM-DD. All Publisher paths normalize first
-    // (which checks this), but validateDocument/assertValid are exported API —
-    // guard hand-built documents here too (defense in depth).
-    const period = rec["reporting-period"];
-    if (typeof period === "string" && !PERIOD_RE.test(period)) {
-      errors.push(`/reporting-period is not a valid YYYY[-MM[-DD]] value ("${period}")`);
-    }
-
-    // Same defense-in-depth for the other shaped mandatory members: `updated`
-    // is an RFC 3339 date-time, and `target` (the reporting subject) must not
-    // be an empty string — JTD types both as bare strings.
-    const updated = rec["updated"];
-    if (typeof updated === "string" && !UPDATED_RE.test(updated)) {
-      errors.push(`/updated is not an RFC 3339 date-time ("${updated}")`);
-    }
-    if (rec["target"] === "") {
-      errors.push("/target must not be empty (it names the reporting subject)");
-    }
-
-    // Draft §Value Constraints and Omitted Metrics: at least one numeric metric
-    // member, or disclosure-uri, or verifiable-attestation-uri.
-    if (!hasReportableContent(rec)) {
-      errors.push(
-        "/ carries no numeric metric member and neither disclosure-uri nor " +
-          "verifiable-attestation-uri (draft, Value Constraints and Omitted Metrics)",
-      );
-    }
-
-    // Draft §Extensions: the member names of `extensions` are absolute URIs —
-    // an "https" URI with a host, or `urn:uuid:` and a lowercase UUID, or any
-    // other absolute URI — and its values are objects. JTD's `values` form
-    // cannot constrain the keys.
-    const extensions = rec["extensions"];
-    if (typeof extensions === "object" && extensions !== null && !Array.isArray(extensions)) {
-      for (const [key, value] of Object.entries(extensions as Record<string, unknown>)) {
-        const why = extensionNameError(key);
-        if (why !== undefined) {
-          errors.push(`/extensions/${key} ${why}`);
-        }
-        if (typeof value !== "object" || value === null || Array.isArray(value)) {
-          errors.push(`/extensions/${key} must be a JSON object`);
-        }
-      }
-    }
-
-    // Draft §Optional Members: "The URI-valued members (`methodology-uri`,
-    // `verifiable-attestation-uri`, `disclosure-uri`, and
-    // `upstream[].declaration`) MUST be absolute URIs with the 'https' scheme."
-    // `normalize()` already refuses anything else, but `validateDocument` /
-    // `assertValid` are exported API and are the ONLY gate a hand-built
-    // document passes through — the `sustainability-sign` CLI validates a file
-    // it did not build with them, and must not sign a MUST-violating object.
-    for (const member of URI_MEMBERS) {
-      const value = rec[member];
-      if (value === undefined) continue;
-      if (typeof value !== "string" || !isAbsoluteHttpsUri(value)) {
-        errors.push(`/${member} must be an absolute https URI (got ${JSON.stringify(value)})`);
-      }
-    }
-
-    // Draft §Upstream Declarations: `declaration` is an absolute "https" URI.
-    const upstream = rec["upstream"];
-    if (Array.isArray(upstream)) {
-      if (upstream.length === 0) errors.push("/upstream must carry at least one entry");
-      upstream.forEach((entry, i) => {
-        const uri = (entry as Record<string, unknown> | null)?.["declaration"];
-        if (typeof uri !== "string" || !isAbsoluteHttpsUri(uri)) {
-          errors.push(`/upstream/${i}/declaration must be an absolute https URI`);
-        }
+  }
+  const renewable = rec["renewable-energy"];
+  if (typeof renewable === "number" && (renewable < 0 || renewable > 100)) {
+    errors.push(`/renewable-energy must be between 0 and 100 inclusive (got ${renewable})`);
+  }
+  // "sci-score ... functional-unit, which MUST then be present." JTD cannot express dependencies.
+  if (rec["sci-score"] !== undefined && rec["functional-unit"] === undefined) {
+    errors.push("/sci-score requires functional-unit to be present");
+  }
+  // "A declaration object MUST carry at least one numeric metric member or at
+  // least one of disclosure-uri and verifiable-attestation-uri."
+  if (!hasReportableContent(rec)) {
+    errors.push(
+      "/ carries no numeric metric member and neither disclosure-uri nor verifiable-attestation-uri (draft, Optional Members)",
+    );
+  }
+  // Scopes that accompany carbon-footprint SHOULD account for it, to the
+  // precision of the least precise of the four figures.
+  const figures = ["scope-1", "scope-2", "scope-3", "carbon-footprint"].map((m) => rec[m]);
+  if (figures.every((v) => typeof v === "number" && Number.isFinite(v))) {
+    const [s1, s2, s3, footprint] = figures as number[];
+    const tolerance = 0.5 * 10 ** -Math.min(...figures.map((v) => decimals(v as number)));
+    if (Math.abs(s1 + s2 + s3 - footprint) > tolerance + Math.abs(footprint) * 1e-12) {
+      warnings.push({
+        code: "scopes-do-not-account-for-footprint",
+        message:
+          `/scope-1, /scope-2 and /scope-3 sum to ${s1 + s2 + s3} and carbon-footprint is ${footprint}; ` +
+          "scopes that cover only part of the footprint are explained in the methodology document (draft, Optional Members)",
       });
     }
   }
-  return { valid: errors.length === 0, errors };
 }
 
-/** Validate a full document (single object or array). */
-export function validateDocument(doc: SustainabilityDocument): ValidationResult {
-  const items = Array.isArray(doc) ? doc : [doc];
-  const errors: string[] = [];
-  items.forEach((item, i) => {
-    const r = validateMetrics(item);
-    if (!r.valid) {
-      const prefix = Array.isArray(doc) ? `[${i}]` : "";
-      errors.push(...r.errors.map((e) => `${prefix}${e}`));
-    }
-  });
-
-  // Cross-entry array rules (draft §Payload Format): entries MUST be sorted
-  // ascending by reporting-period, MUST NOT overlap, and MUST share the same
-  // period precision and the same target value. The per-object JTD schema
-  // cannot express these, so they are checked here.
-  if (Array.isArray(doc) && doc.length > 1) {
-    const periods = doc.map((m) => String(m["reporting-period"] ?? ""));
-    if (new Set(periods.map((p) => p.length)).size > 1) {
-      errors.push("array entries mix reporting-period precisions");
-    }
-    for (let i = 1; i < periods.length; i++) {
-      if (periods[i] <= periods[i - 1]) {
-        errors.push(
-          `array entries not strictly ascending by reporting-period at [${i}] ("${periods[i]}" after "${periods[i - 1]}")`,
-        );
-        break;
+function textChecks(rec: Record<string, unknown>, errors: string[], warnings: ValidationWarning[]): void {
+  if (rec["provider"] === "") errors.push("/provider must not be empty");
+  if (rec["target"] === "") errors.push("/target must not be empty (it names what the object is about)");
+  if (typeof rec["provider"] === "string") {
+    for (const [, local] of rec["provider"].matchAll(/([^\s()<>@,;]+)@[^\s()<>@,;]+/g)) {
+      if (!ROLE_ADDRESSES.includes(local.toLowerCase())) {
+        warnings.push({
+          code: "provider-personal-contact",
+          message: `/provider holds the address "${local}@…"; a role address is better than a personal one (draft, Privacy Considerations)`,
+        });
       }
     }
-    if (new Set(doc.map((m) => m.target ?? "")).size > 1) {
-      errors.push("array entries carry differing target values");
+  }
+  const target = rec["target"];
+  if (typeof target === "string") {
+    if (rec["target-type"] === "path" && !target.startsWith("/")) {
+      errors.push(`/target "${target}" has target-type path, so it begins with "/"`);
     }
-    // Draft -04 §Payload Format (final): target-type is ALL-OR-NONE across an
-    // array — "MUST be either present in every entry with the same value or
-    // absent from every entry". Mixed presence is invalid, not just mixed
-    // values.
-    const withType = doc.filter((m) => m["target-type"] !== undefined);
-    if (withType.length > 0 && withType.length < doc.length) {
-      errors.push(
-        "target-type must be present in every array entry or absent from every entry (mixed presence)",
-      );
-    } else if (new Set(withType.map((m) => m["target-type"])).size > 1) {
-      errors.push("array entries carry differing target-type values");
+    const alabel = aLabelOf(target);
+    if (alabel !== undefined) {
+      warnings.push({
+        code: "origin-u-label",
+        message: `/target "${target}" is a host in U-label form; the draft writes an internationalized host in A-label form${alabel ? `: "${alabel}"` : ""}`,
+      });
+    }
+  }
+}
+
+function linkChecks(rec: Record<string, unknown>, errors: string[], warnings: ValidationWarning[]): void {
+  const notReference = (path: string, value: unknown) =>
+    warnings.push({ code: "uri-not-a-reference", message: `${path} is not a URI reference (got ${JSON.stringify(value)})` });
+  for (const member of URI_MEMBERS) {
+    const value = rec[member];
+    if (typeof value === "string" && !isUriReference(value)) notReference(`/${member}`, value);
+  }
+  const upstream = rec["upstream"];
+  if (Array.isArray(upstream)) {
+    if (upstream.length === 0) errors.push("/upstream must carry at least one entry");
+    upstream.forEach((entry, i) => {
+      const uri = isRecord(entry) ? entry["declaration"] : undefined;
+      if (typeof uri === "string" && !isUriReference(uri)) notReference(`/upstream/${i}/declaration`, uri);
+    });
+  }
+  // Draft §Extensions: the member names of `extensions` are URIs, and its values are objects. JTD cannot constrain the names.
+  const extensions = rec["extensions"];
+  if (isRecord(extensions)) {
+    for (const [key, value] of Object.entries(extensions)) {
+      const why = extensionNameError(key);
+      if (why !== undefined) errors.push(`/extensions/${key} ${why}`);
+      if (!isRecord(value)) errors.push(`/extensions/${key} must be a JSON object`);
+    }
+  }
+}
+
+/** The members of the object, `period` and the `upstream` entries that the draft does not define: ignored by a consumer, and worth a note. */
+function unknownMembers(rec: Record<string, unknown>): { path: string; name: string }[] {
+  const found = Object.keys(rec).filter((name) => !DEFINED_MEMBERS.includes(name)).map((name) => ({ path: "", name }));
+  if (isRecord(rec.period)) {
+    for (const name of Object.keys(rec.period)) if (name !== "start" && name !== "end") found.push({ path: "/period", name });
+  }
+  if (Array.isArray(rec.upstream)) {
+    rec.upstream.forEach((entry, i) => {
+      if (!isRecord(entry)) return;
+      for (const name of Object.keys(entry)) if (name !== "declaration" && name !== "role") found.push({ path: `/upstream/${i}`, name });
+    });
+  }
+  return found;
+}
+
+// What a document of an earlier revision gets as a hint: the way forward.
+const OLDER_FORM =
+  "the form of an earlier revision: convert the document with sustainability-publisher upgrade (the period is two RFC 3339 date-times)";
+
+/**
+ * Validate a single metrics object: the JTD schema first, then the rules it
+ * cannot state. Unknown members are a warning, since a consumer ignores them;
+ * a publisher refuses to emit one ({@link assertValid}).
+ */
+export function validateMetrics(obj: unknown, options: ValidateOptions = {}): ValidationResult {
+  const errors: string[] = [];
+  const warnings: ValidationWarning[] = [];
+  let subject = obj;
+
+  if (options.legacyCompat !== false && isRecord(obj)) {
+    try {
+      const period = olderPeriodOf(obj);
+      if (period !== undefined) {
+        const { "reporting-period": older, ...rest } = obj;
+        subject = { ...rest, period };
+        warnings.push({
+          code: "period-read-from-older-form",
+          message: `the period was read from ${JSON.stringify(older ?? obj.period)} as ${period.start} to ${period.end}`,
+        });
+      }
+    } catch (e) {
+      if (!(e instanceof PeriodError)) throw e;
+      return { valid: false, errors: [e.message], warnings };
     }
   }
 
-  return { valid: errors.length === 0, errors };
+  if (!validateObject(subject)) {
+    for (const e of validateObject.errors ?? []) {
+      errors.push(`${e.instancePath || "/"} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`);
+    }
+    if (isRecord(obj) && ("reporting-period" in obj || isRecord(obj.period) && /^\d{4}-\d{2}-\d{2}$/.test(String(obj.period.start)))) {
+      errors.push(`/period is ${OLDER_FORM}`);
+    }
+    return { valid: false, errors, warnings };
+  }
+
+  const rec = subject as Record<string, unknown>;
+  ijsonErrors(rec, "", errors);
+  dateTimeChecks(rec, errors, warnings);
+  figureChecks(rec, errors, warnings);
+  textChecks(rec, errors, warnings);
+  linkChecks(rec, errors, warnings);
+  for (const { path, name } of unknownMembers(rec)) {
+    warnings.push({
+      code: "unknown-member",
+      message: `${path}/${name} is not a member the draft defines; a consumer ignores it, and a publisher puts its own data in extensions`,
+    });
+  }
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+/** Validate a full document (single object or array). */
+export function validateDocument(doc: SustainabilityDocument, options: ValidateOptions = {}): ValidationResult {
+  const items = Array.isArray(doc) ? doc : [doc];
+  const result: ValidationResult = { valid: true, errors: [], warnings: [] };
+  items.forEach((item, i) => {
+    const r = validateMetrics(item, options);
+    const prefix = Array.isArray(doc) ? `[${i}]` : "";
+    result.errors.push(...r.errors.map((e) => `${prefix}${e}`));
+    result.warnings.push(...r.warnings.map((w) => ({ ...w, message: `${prefix}${w.message}` })));
+  });
+  result.valid = result.errors.length === 0;
+  return result;
 }
 
 /** Thrown by the publisher when a payload fails the validation gate. */
 export class ValidationError extends Error {
   constructor(public readonly errors: string[]) {
-    super(`Sustainability payload failed JTD validation:\n - ${errors.join("\n - ")}`);
+    super(`Sustainability payload failed validation:\n - ${errors.join("\n - ")}`);
     this.name = "ValidationError";
   }
 }
 
-/** Assert a document is valid; throw {@link ValidationError} otherwise. */
+/**
+ * The gate in front of everything this package serves or signs. A document must
+ * be valid as it stands (no older form is read), and must carry no top-level
+ * member the draft does not define: "A publisher MUST NOT add a top-level member
+ * this document does not define; other data goes in extensions" (draft §Body).
+ * Throws {@link ValidationError} otherwise.
+ */
 export function assertValid(doc: SustainabilityDocument): SustainabilityDocument {
-  const r = validateDocument(doc);
-  if (!r.valid) throw new ValidationError(r.errors);
+  const r = validateDocument(doc, { legacyCompat: false });
+  const errors = [...r.errors];
+  (Array.isArray(doc) ? doc : [doc]).forEach((item, i) => {
+    if (!isRecord(item)) return;
+    const prefix = Array.isArray(doc) ? `[${i}]` : "";
+    for (const name of Object.keys(item).filter((n) => !DEFINED_MEMBERS.includes(n))) {
+      errors.push(`${prefix}/${name} is not a member the draft defines; a publisher adds none, and puts its own data in extensions`);
+    }
+  });
+  if (errors.length > 0) throw new ValidationError(errors);
   return doc;
 }
 

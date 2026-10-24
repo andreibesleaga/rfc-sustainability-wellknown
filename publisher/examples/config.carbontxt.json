@@ -3,7 +3,7 @@
     "type": "carbontxt-api",
     "options": {
       "provider": "ACME Hosting (compliance@acme.example)",
-      "reportingPeriod": "2026-02",
+      "period": "2026-02",
       "domain": "acme.example",
       "fixture": {
         "success": true,

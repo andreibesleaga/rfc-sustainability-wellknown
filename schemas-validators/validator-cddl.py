@@ -52,7 +52,7 @@ def main():
 
     except FileNotFoundError:
         print("Error: 'cddl' tool not found.")
-        print("Please ensure you have run: 'gem install cddl'")
+        print("Please ensure you have run: 'gem install cddl -v 0.12.14'")
         sys.exit(1)
 
 if __name__ == "__main__":

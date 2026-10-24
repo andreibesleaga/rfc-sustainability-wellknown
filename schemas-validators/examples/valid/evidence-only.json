@@ -1,0 +1,30 @@
+[
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2025-02-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "disclosure-uri": "https://example.com/sustainability/disclosures"
+  },
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-02-01T00:00:00Z",
+      "end": "2025-03-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "verifiable-attestation-uri": "https://verify.example/vc/42"
+  }
+]

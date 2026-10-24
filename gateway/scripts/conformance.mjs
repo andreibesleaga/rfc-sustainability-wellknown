@@ -16,6 +16,8 @@
  * refuses `http:` by default (`{ status: "insecure-transport" }`) — and is
  * what CI needs to reach a local `http://127.0.0.1:...` instance.
  *
+ * A 429 from the gateway's per-client limit is waited out (Retry-After), not counted as a failure.
+ *
  * Exit code 0 if every MUST-level check passes for every subject, 1 otherwise.
  * A `warn` (e.g. a subject still on the generic `application/json` media type)
  * is reported but never sets a non-zero exit code.
@@ -41,7 +43,24 @@ const options = { allowInsecure: allowHttp };
 const prefixed = (domain) => (input, init) => {
   const u = new URL(typeof input === "string" ? input : input.toString());
   if (u.pathname === WELL_KNOWN) u.pathname = `/${domain}${u.pathname}`;
-  return fetch(u, init);
+  return patient(u, init);
+};
+
+// The battery makes a dozen requests per document and the gateway allows 600 a minute per client, so a run over
+// every document would meet a 429 if it went at full speed. Requests are spaced to stay under that limit; a 429
+// that still arrives is not a verdict on the document, so it is waited out (Retry-After) and the request repeated.
+const GAP_MS = 130;
+let nextSlot = 0;
+const patient = async (input, init) => {
+  for (let attempt = 0; ; attempt++) {
+    const slot = Math.max(nextSlot, Date.now());
+    nextSlot = slot + GAP_MS;
+    if (slot > Date.now()) await new Promise((resolve) => setTimeout(resolve, slot - Date.now()));
+    const res = await fetch(input, init);
+    if (res.status !== 429 || attempt >= 2) return res;
+    const wait = Math.min(Math.max(Number(res.headers.get("retry-after")) || 1, 1), 8);
+    await new Promise((resolve) => setTimeout(resolve, wait * 1000));
+  }
 };
 
 let failures = 0;
@@ -60,7 +79,7 @@ const report = async (label, fetchImpl) => {
   }
 };
 
-await report(`ROOT (the gateway's own report)  ${base}${WELL_KNOWN}`, globalThis.fetch);
+await report(`ROOT (the gateway's own report)  ${base}${WELL_KNOWN}`, patient);
 
 const idxRes = await fetch(`${base}/index.json`);
 if (!idxRes.ok) {
@@ -69,7 +88,7 @@ if (!idxRes.ok) {
 }
 const idx = await idxRes.json();
 // Curated subjects, adapter demonstrations, and wire-format examples are all
-// full Basic subjects — the battery covers every routed document. Older
+// subjects of the registry, some of them Extended — the battery covers every routed document. Older
 // deployments only carry `subjects`.
 const routed = [
   ...idx.subjects.map((s) => ({ ...s, kind: "SUBJECT" })),

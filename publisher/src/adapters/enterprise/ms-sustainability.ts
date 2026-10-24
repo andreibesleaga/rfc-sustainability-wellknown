@@ -11,7 +11,9 @@
  * Live mode: baseUrl + accessToken. Replay mode: one or more recorded OData pages
  * as `fixturePages` (the adapter walks them as if following nextLink).
  */
-import { CarbonUnit, RawMetrics, SourceAdapter } from "../../types";
+import { PeriodInput } from "../../period";
+import { CarbonUnit, MeasurementMethod } from "../../tokens";
+import { RawMetrics, SourceAdapter } from "../../types";
 import { fetchJson } from "../../util";
 
 export interface ODataPage {
@@ -22,7 +24,8 @@ export interface ODataPage {
 export interface MsSustainabilityConfig {
   provider: string;
   methodologyUri: string;
-  reportingPeriod: string;
+  /** A `{ start, end }` object, or "YYYY", "YYYY-MM" or "YYYY-MM-DD" for the whole calendar unit in UTC. */
+  period: PeriodInput;
   baseUrl?: string;
   accessToken?: string;
   /** e.g. "m365/tenantemissions" or "enrollments/{id}/emissions". */
@@ -35,7 +38,7 @@ export interface MsSustainabilityConfig {
   energyKwh?: number;
   /** Microsoft reports carbon in metric tonnes by default. */
   carbonUnit?: CarbonUnit;
-  measurementMethod?: string;
+  measurementMethod?: MeasurementMethod;
   /** Replay mode: recorded OData pages, walked in order. */
   fixturePages?: ODataPage[];
   /** Declared service level; "basic" unless the deployment honors Extended query parameters. */
@@ -57,7 +60,7 @@ function num(v: unknown): number {
 
 export function msSustainabilityAdapter(config: MsSustainabilityConfig): SourceAdapter {
   const emissionsField = config.emissionsField ?? "totalEmissions";
-  const carbonUnit = config.carbonUnit ?? "mtCO2e";
+  const carbonUnit = config.carbonUnit ?? "tCO2e";
 
   return {
     name: "ms-sustainability",
@@ -137,7 +140,7 @@ export function msSustainabilityAdapter(config: MsSustainabilityConfig): SourceA
         provider: config.provider,
         measurementMethod: config.measurementMethod ?? "cloud-billing",
         methodologyUri: config.methodologyUri,
-        reportingPeriod: config.reportingPeriod,
+        period: config.period,
         carbon: { value: carbon, unit: carbonUnit },
         scope3: carbon, // tenant/cloud usage emissions are Scope 3 to the customer
         capabilities: config.capabilities ?? "basic",

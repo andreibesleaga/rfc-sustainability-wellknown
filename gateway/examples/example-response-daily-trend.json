@@ -5,7 +5,10 @@
     "provider": "FieldNet Sensors (ops@fieldnet.example)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://fieldnet.example/metering-methodology",
-    "reporting-period": "2026-03-29",
+    "period": {
+      "start": "2026-03-29T00:00:00Z",
+      "end": "2026-03-30T00:00:00Z"
+    },
     "target": "lora-gw-07.fieldnet.example",
     "energy-consumption": 115.2,
     "energy-unit": "Wh",
@@ -21,7 +24,10 @@
     "provider": "FieldNet Sensors (ops@fieldnet.example)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://fieldnet.example/metering-methodology",
-    "reporting-period": "2026-03-30",
+    "period": {
+      "start": "2026-03-30T00:00:00Z",
+      "end": "2026-03-31T00:00:00Z"
+    },
     "target": "lora-gw-07.fieldnet.example",
     "energy-consumption": 113.9,
     "energy-unit": "Wh",
@@ -37,7 +43,10 @@
     "provider": "FieldNet Sensors (ops@fieldnet.example)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://fieldnet.example/metering-methodology",
-    "reporting-period": "2026-03-31",
+    "period": {
+      "start": "2026-03-31T00:00:00Z",
+      "end": "2026-04-01T00:00:00Z"
+    },
     "target": "lora-gw-07.fieldnet.example",
     "energy-consumption": 116.4,
     "energy-unit": "Wh",

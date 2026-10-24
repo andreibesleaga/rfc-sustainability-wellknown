@@ -1,0 +1,164 @@
+[
+  {
+    "updated": "2026-02-18T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Types Reporting Ltd (sustainability@types.example)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "https://types.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "Types Org Ltd",
+    "target-type": "organization",
+    "energy-unit": "MWh",
+    "carbon-unit": "tCO2e",
+    "energy-consumption": 640,
+    "carbon-footprint": 210,
+    "carbon-accounting": "location-based"
+  },
+  {
+    "updated": "2026-02-18T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Types Reporting Ltd (sustainability@types.example)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://types.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "Types DC 1",
+    "target-type": "facility",
+    "energy-unit": "MWh",
+    "carbon-unit": "tCO2e",
+    "energy-consumption": 420,
+    "carbon-footprint": 140,
+    "carbon-accounting": "location-based"
+  },
+  {
+    "updated": "2026-02-18T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Types Reporting Ltd (sustainability@types.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://types.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "types.example",
+    "target-type": "origin",
+    "energy-unit": "MWh",
+    "carbon-unit": "tCO2e",
+    "energy-consumption": 38,
+    "carbon-footprint": 12,
+    "carbon-accounting": "location-based"
+  },
+  {
+    "updated": "2026-02-18T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Types Reporting Ltd (sustainability@types.example)",
+    "measurement-method": "hardware-estimated",
+    "methodology-uri": "https://types.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "/checkout",
+    "target-type": "path",
+    "energy-unit": "MWh",
+    "carbon-unit": "tCO2e",
+    "energy-consumption": 9,
+    "carbon-footprint": 3,
+    "carbon-accounting": "location-based"
+  },
+  {
+    "updated": "2026-02-18T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Types Reporting Ltd (sustainability@types.example)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "https://types.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "Types Widget",
+    "target-type": "product",
+    "energy-unit": "MWh",
+    "carbon-unit": "tCO2e",
+    "energy-consumption": 55,
+    "carbon-footprint": 19,
+    "carbon-accounting": "location-based"
+  },
+  {
+    "updated": "2026-02-18T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Types Reporting Ltd (sustainability@types.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://types.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.types.example",
+    "target-type": "service",
+    "energy-unit": "MWh",
+    "carbon-unit": "tCO2e",
+    "energy-consumption": 120,
+    "carbon-footprint": 41,
+    "carbon-accounting": "location-based"
+  },
+  {
+    "updated": "2026-02-18T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Types Reporting Ltd (sustainability@types.example)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://types.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "Types Sensor 7",
+    "target-type": "device",
+    "energy-unit": "MWh",
+    "carbon-unit": "tCO2e",
+    "energy-consumption": 0.4,
+    "carbon-footprint": 0.13,
+    "carbon-accounting": "location-based"
+  },
+  {
+    "updated": "2026-02-18T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Types Reporting Ltd (sustainability@types.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://types.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "types-tenant",
+    "target-type": "tenant",
+    "energy-unit": "MWh",
+    "carbon-unit": "tCO2e",
+    "energy-consumption": 76,
+    "carbon-footprint": 25,
+    "carbon-accounting": "location-based"
+  },
+  {
+    "updated": "2026-02-18T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Types Reporting Ltd (sustainability@types.example)",
+    "measurement-method": "hardware-estimated",
+    "methodology-uri": "https://types.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "Types Telemetry Feed",
+    "target-type": "data-source",
+    "energy-unit": "MWh",
+    "carbon-unit": "tCO2e",
+    "energy-consumption": 14,
+    "carbon-footprint": 5,
+    "carbon-accounting": "location-based"
+  }
+]

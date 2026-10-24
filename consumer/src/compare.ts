@@ -1,7 +1,7 @@
 /**
  * Structural comparison of two declaration objects.
  *
- * Two places in -07 need it and need it to mean the same thing: the `signed`
+ * Two places in -10 need it and need it to mean the same thing: the `signed`
  * member (is the object around the signature the object that was signed?) and
  * the attestation credential (does the copy the issuer signed match the object
  * served?). Both compare JSON values, so the comparison is JSON's: member

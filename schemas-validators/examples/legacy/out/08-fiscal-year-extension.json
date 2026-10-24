@@ -1,0 +1,19 @@
+{
+  "updated": "2026-10-01T00:00:00Z",
+  "capabilities": "basic",
+  "provider": "Illustrative mapping of a published greenhouse gas report by the gateway operator; not endorsed by the reporting subject.",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://go.eco/impact/ghg-report-2025/",
+  "period": {
+    "start": "2024-10-01T00:00:00Z",
+    "end": "2025-10-01T00:00:00Z"
+  },
+  "target": "Big Room Inc. (.eco registry)",
+  "carbon-footprint": 3.96,
+  "carbon-unit": "tCO2e",
+  "scope-1": 0,
+  "scope-2": 0,
+  "scope-3": 3.96,
+  "disclosure-uri": "https://go.eco/impact/",
+  "target-type": "organization"
+}

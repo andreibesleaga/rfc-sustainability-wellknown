@@ -7,8 +7,10 @@
  *
  * Docs: https://www.climatiq.io/docs/api-reference/estimate
  */
-import { EnergyUnit, RawMetrics, SourceAdapter } from "../types";
-import { fetchJson, lastFullMonth } from "../util";
+import { EnergyUnit, MeasurementMethod } from "../tokens";
+import { RawMetrics, SourceAdapter } from "../types";
+import { PeriodInput } from "../period";
+import { fetchJson, lastFullMonthPeriod } from "../util";
 
 export interface ClimatiqEstimateResponse {
   co2e: number;
@@ -20,7 +22,8 @@ export interface ClimatiqEstimateResponse {
 export interface ClimatiqConfig {
   provider: string;
   methodologyUri: string;
-  reportingPeriod?: string;
+  /** A `{ start, end }` object, or "YYYY", "YYYY-MM" or "YYYY-MM-DD" for the whole calendar unit in UTC; defaults to the last full month. */
+  period?: PeriodInput;
   apiKey?: string;
   apiUrl?: string; // default https://api.climatiq.io
   /** Climatiq activity id, e.g. "electricity-supply_grid-source_residual_mix". */
@@ -34,7 +37,7 @@ export interface ClimatiqConfig {
   region?: string;
   /** Energy to estimate against. */
   energy: { value: number; unit: EnergyUnit };
-  measurementMethod?: string;
+  measurementMethod?: MeasurementMethod;
   capabilities?: "basic" | "extended";
   /** Replay mode: a recorded estimate response. */
   fixture?: ClimatiqEstimateResponse;
@@ -103,7 +106,7 @@ export function climatiqAdapter(config: ClimatiqConfig): SourceAdapter {
         provider: config.provider,
         measurementMethod: config.measurementMethod ?? "third-party-modeled",
         methodologyUri: config.methodologyUri,
-        reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
+        period: config.period ?? lastFullMonthPeriod(),
         energy: config.energy,
         carbon: { value: grams, unit: "gCO2e" },
         capabilities: config.capabilities ?? "basic",

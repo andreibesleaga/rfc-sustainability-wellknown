@@ -1,0 +1,242 @@
+[
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.012,
+    "functional-unit": "per-request"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.9,
+    "functional-unit": "per-transaction"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.35,
+    "functional-unit": "per-page-view"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 1.8,
+    "functional-unit": "per-session"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 4800,
+    "functional-unit": "per-user"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 25,
+    "functional-unit": "per-job"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.0004,
+    "functional-unit": "per-token"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.9,
+    "functional-unit": "per-inference"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.6,
+    "functional-unit": "per-gigabyte"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.0000354,
+    "functional-unit": "per-gigabyte-hour"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 2.4,
+    "functional-unit": "per-vcpu-hour"
+  },
+  {
+    "updated": "2026-02-12T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Unit Service Ltd (sustainability@functional-units.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://functional-units.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "api.functional-units.example",
+    "target-type": "service",
+    "energy-consumption": 860,
+    "energy-unit": "MWh",
+    "carbon-footprint": 258,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 150,
+    "functional-unit": "per-device"
+  }
+]

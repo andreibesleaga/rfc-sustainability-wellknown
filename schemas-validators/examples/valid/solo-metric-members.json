@@ -1,0 +1,129 @@
+[
+  {
+    "updated": "2026-03-12T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2026-03-01T00:00:00Z",
+      "end": "2026-03-02T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "energy-consumption": 12500
+  },
+  {
+    "updated": "2026-03-12T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2026-03-02T00:00:00Z",
+      "end": "2026-03-03T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "carbon-footprint": 4140
+  },
+  {
+    "updated": "2026-03-12T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2026-03-03T00:00:00Z",
+      "end": "2026-03-04T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "scope-1": 1000
+  },
+  {
+    "updated": "2026-03-12T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2026-03-04T00:00:00Z",
+      "end": "2026-03-05T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "scope-2": 2000
+  },
+  {
+    "updated": "2026-03-12T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2026-03-05T00:00:00Z",
+      "end": "2026-03-06T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "scope-3": 1140
+  },
+  {
+    "updated": "2026-03-12T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2026-03-06T00:00:00Z",
+      "end": "2026-03-07T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "sci-score": 0.012,
+    "functional-unit": "per-request"
+  },
+  {
+    "updated": "2026-03-12T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2026-03-07T00:00:00Z",
+      "end": "2026-03-08T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "carbon-intensity-gCO2e-per-kWh": 331
+  },
+  {
+    "updated": "2026-03-12T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2026-03-08T00:00:00Z",
+      "end": "2026-03-09T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "estimated-annual-emissions-kgCO2e": 1511100
+  },
+  {
+    "updated": "2026-03-12T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2026-03-09T00:00:00Z",
+      "end": "2026-03-10T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "renewable-energy": 45
+  }
+]

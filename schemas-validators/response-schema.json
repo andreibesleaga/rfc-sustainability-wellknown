@@ -1,7 +1,7 @@
 {
   "properties": {
     "updated": {
-      "type": "string"
+      "type": "timestamp"
     },
     "capabilities": {
       "enum": [
@@ -13,13 +13,26 @@
       "type": "string"
     },
     "measurement-method": {
-      "type": "string"
+      "enum": [
+        "hardware-metered",
+        "hardware-estimated",
+        "cloud-billing",
+        "third-party-modeled"
+      ]
     },
     "methodology-uri": {
       "type": "string"
     },
-    "reporting-period": {
-      "type": "string"
+    "period": {
+      "properties": {
+        "start": {
+          "type": "timestamp"
+        },
+        "end": {
+          "type": "timestamp"
+        }
+      },
+      "additionalProperties": true
     },
     "target": {
       "type": "string"
@@ -44,7 +57,7 @@
       "enum": [
         "gCO2e",
         "kgCO2e",
-        "mtCO2e"
+        "tCO2e"
       ]
     },
     "carbon-accounting": {
@@ -66,7 +79,20 @@
       "type": "float64"
     },
     "functional-unit": {
-      "type": "string"
+      "enum": [
+        "per-request",
+        "per-transaction",
+        "per-page-view",
+        "per-session",
+        "per-user",
+        "per-job",
+        "per-token",
+        "per-inference",
+        "per-gigabyte",
+        "per-gigabyte-hour",
+        "per-vcpu-hour",
+        "per-device"
+      ]
     },
     "carbon-intensity-gCO2e-per-kWh": {
       "type": "float64"
@@ -77,23 +103,24 @@
     "renewable-energy": {
       "type": "float64"
     },
-    "verifiable-attestation-uri": {
-      "type": "string"
-    },
-    "disclosure-uri": {
-      "type": "string"
-    },
     "target-type": {
       "enum": [
         "origin",
         "path",
         "organization",
+        "facility",
         "service",
         "product",
         "device",
         "tenant",
         "data-source"
       ]
+    },
+    "verifiable-attestation-uri": {
+      "type": "string"
+    },
+    "disclosure-uri": {
+      "type": "string"
     },
     "upstream": {
       "elements": {
@@ -104,19 +131,27 @@
         },
         "optionalProperties": {
           "role": {
-            "type": "string"
+            "enum": [
+              "hosting",
+              "colocation",
+              "cloud",
+              "cdn",
+              "network",
+              "electricity"
+            ]
           }
-        }
+        },
+        "additionalProperties": true
       }
     },
     "extensions": {
       "values": {
-        "properties": {},
-        "additionalProperties": true
+        "values": {}
       }
     },
     "signed": {
       "type": "string"
     }
-  }
+  },
+  "additionalProperties": true
 }

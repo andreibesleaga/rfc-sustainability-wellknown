@@ -39,37 +39,37 @@ describe("convertEnergy", () => {
 
 describe("convertCarbon", () => {
   it("identity conversions are a no-op", () => {
-    const units: CarbonUnit[] = ["gCO2e", "kgCO2e", "mtCO2e"];
+    const units: CarbonUnit[] = ["gCO2e", "kgCO2e", "tCO2e"];
     for (const u of units) {
       expect(convertCarbon(7, u, u)).toBe(7);
     }
   });
 
-  it("converts across all unit pairs (gCO2e <-> kgCO2e <-> mtCO2e)", () => {
+  it("converts across all unit pairs (gCO2e <-> kgCO2e <-> tCO2e)", () => {
     expect(convertCarbon(1, "kgCO2e", "gCO2e")).toBe(1000);
     expect(convertCarbon(1000, "gCO2e", "kgCO2e")).toBe(1);
-    expect(convertCarbon(1, "mtCO2e", "kgCO2e")).toBe(1000);
-    expect(convertCarbon(1000, "kgCO2e", "mtCO2e")).toBe(1);
-    // 1 mtCO2e = 1,000,000 gCO2e
-    expect(convertCarbon(1, "mtCO2e", "gCO2e")).toBe(1_000_000);
-    expect(convertCarbon(1_000_000, "gCO2e", "mtCO2e")).toBe(1);
+    expect(convertCarbon(1, "tCO2e", "kgCO2e")).toBe(1000);
+    expect(convertCarbon(1000, "kgCO2e", "tCO2e")).toBe(1);
+    // 1 tCO2e = 1,000,000 gCO2e
+    expect(convertCarbon(1, "tCO2e", "gCO2e")).toBe(1_000_000);
+    expect(convertCarbon(1_000_000, "gCO2e", "tCO2e")).toBe(1);
   });
 
   it("round-trips through an intermediate unit", () => {
     const original = 987.654321;
-    const roundTripped = convertCarbon(convertCarbon(original, "gCO2e", "mtCO2e"), "mtCO2e", "gCO2e");
+    const roundTripped = convertCarbon(convertCarbon(original, "gCO2e", "tCO2e"), "tCO2e", "gCO2e");
     expect(roundTripped).toBeCloseTo(original, 6);
   });
 
   it("zero converts to zero in any unit", () => {
-    expect(convertCarbon(0, "mtCO2e", "gCO2e")).toBe(0);
+    expect(convertCarbon(0, "tCO2e", "gCO2e")).toBe(0);
   });
 });
 
 describe("parity with publisher/src/normalize.ts conversion tables", () => {
   // publisher/src/normalize.ts defines (verified by reading the source directly):
   //   ENERGY_TO_WH = { Wh: 1, kWh: 1_000, MWh: 1_000_000, GWh: 1_000_000_000 }
-  //   CARBON_TO_G  = { gCO2e: 1, kgCO2e: 1_000, mtCO2e: 1_000_000 }
+  //   CARBON_TO_G  = { gCO2e: 1, kgCO2e: 1_000, tCO2e: 1_000_000 }
   // consumer/src/units.ts declares (in its own doc comment) that it is meant
   // to match those tables exactly. Assert the observable behavior agrees.
   const energyFactorsToWh: Record<EnergyUnit, number> = {
@@ -81,7 +81,7 @@ describe("parity with publisher/src/normalize.ts conversion tables", () => {
   const carbonFactorsToG: Record<CarbonUnit, number> = {
     gCO2e: 1,
     kgCO2e: 1_000,
-    mtCO2e: 1_000_000,
+    tCO2e: 1_000_000,
   };
 
   it("consumer's convertEnergy matches the known Wh-based factors", () => {
@@ -108,7 +108,7 @@ describe("parity with publisher/src/normalize.ts conversion tables", () => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const publisherNormalize = require(publisherDist);
       const energyUnits: EnergyUnit[] = ["Wh", "kWh", "MWh", "GWh"];
-      const carbonUnits: CarbonUnit[] = ["gCO2e", "kgCO2e", "mtCO2e"];
+      const carbonUnits: CarbonUnit[] = ["gCO2e", "kgCO2e", "tCO2e"];
       const sampleValues = [0, 1, 3.14159, 1000, 0.001, 123456.789];
 
       for (const from of energyUnits) {

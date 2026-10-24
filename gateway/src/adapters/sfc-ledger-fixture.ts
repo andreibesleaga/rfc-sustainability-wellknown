@@ -42,7 +42,7 @@ export const SFC_LEDGER_TEST_PUBLIC_JWK = {
   kty: "OKP",
   crv: "Ed25519",
   x: SFC_LEDGER_TEST_PRIVATE_JWK.x,
-  alg: "EdDSA",
+  alg: "Ed25519",
   use: "sig",
 } as const;
 
@@ -340,7 +340,7 @@ export const SFC_LEDGER_FIXTURE: LedgerExcerpt = {
     }
   ],
   "publication": {
-    "reporting-period": "2026-04",
+    "period": { "start": "2026-04-01T00:00:00Z", "end": "2026-05-01T00:00:00Z" },
     "period-start": "2026-04-01",
     "period-end": "2026-04-30",
     "updated": "2026-05-02T00:10:00Z",

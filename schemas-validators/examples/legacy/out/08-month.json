@@ -1,0 +1,16 @@
+{
+  "updated": "2026-03-05T06:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Hosting Ltd (sustainability@hosting.example)",
+  "measurement-method": "hardware-metered",
+  "methodology-uri": "https://hosting.example/methods",
+  "period": {
+    "start": "2026-02-01T00:00:00Z",
+    "end": "2026-03-01T00:00:00Z"
+  },
+  "target": "hosting.example",
+  "energy-consumption": 1200,
+  "energy-unit": "kWh",
+  "carbon-footprint": 480,
+  "carbon-unit": "kgCO2e"
+}

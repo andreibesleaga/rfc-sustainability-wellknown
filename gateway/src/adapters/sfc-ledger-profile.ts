@@ -14,7 +14,7 @@
  * §A.9 the `ledger-evidence` extension; the SFC disclosure profile
  * (`sfc-compliance/PROFILE.md`, version 1.1) for the four extension names.
  *
- * What is deliberately NOT here: any rule of draft -07 itself (the publisher
+ * What is deliberately NOT here: any rule of the draft itself (the publisher
  * and consumer libraries own those), any figure, and the signature suite,
  * which the profile fixes at Ed25519 over RFC 8785 for every version
  * (`SIGNATURE_ALGORITHMS`).
@@ -114,7 +114,7 @@ export interface SfcLedgerProfile {
   };
   /** The one member of `network-topology` an operator declaration carries (disclosure profile §5.4). */
   readonly topology: { readonly memberOfNetwork: string };
-  /** `scope2Method` tokens (§A.3.3; draft -07 `carbon-accounting`). */
+  /** `scope2Method` tokens (§A.3.3; the draft's `carbon-accounting`). */
   readonly scope2Methods: readonly string[];
   /** Decimal places of the figures the bridge derives (tonnes, intensity): the publisher library's rounding. */
   readonly derivedPlaces: number;

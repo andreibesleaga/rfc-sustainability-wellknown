@@ -1,0 +1,17 @@
+[
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "\u202eExample Corp\u2066 <script>alert(1)</script> (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "<img src=x onerror=alert(1)> \u202eLtd",
+    "target-type": "organization",
+    "carbon-footprint": 4140,
+    "carbon-unit": "kgCO2e"
+  }
+]

@@ -1,0 +1,45 @@
+[
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2025-02-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "energy-consumption": 0.0,
+    "carbon-footprint": 1E3
+  },
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-02-01T00:00:00Z",
+      "end": "2025-03-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "scope-1": -12.5
+  },
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-03-01T00:00:00Z",
+      "end": "2025-04-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "scope-3": 9007199254740991
+  }
+]

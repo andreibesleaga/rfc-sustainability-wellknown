@@ -1,0 +1,41 @@
+[
+  {
+    "updated": "2026-02-03T06:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Hosting Ltd (sustainability@hosting.example)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://hosting.example/methods",
+    "reporting-period": "2026-01",
+    "target": "hosting.example",
+    "energy-consumption": 100,
+    "energy-unit": "kWh",
+    "carbon-footprint": 40,
+    "carbon-unit": "kgCO2e"
+  },
+  {
+    "updated": "2026-03-03T06:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Hosting Ltd (sustainability@hosting.example)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://hosting.example/methods",
+    "reporting-period": "2026-02",
+    "target": "hosting.example",
+    "energy-consumption": 110,
+    "energy-unit": "kWh",
+    "carbon-footprint": 44,
+    "carbon-unit": "kgCO2e"
+  },
+  {
+    "updated": "2026-04-03T06:00:00Z",
+    "capabilities": "extended",
+    "provider": "Example Hosting Ltd (sustainability@hosting.example)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://hosting.example/methods",
+    "reporting-period": "2026-03",
+    "target": "hosting.example",
+    "energy-consumption": 120,
+    "energy-unit": "kWh",
+    "carbon-footprint": 48,
+    "carbon-unit": "kgCO2e"
+  }
+]

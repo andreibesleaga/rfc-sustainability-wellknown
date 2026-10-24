@@ -1,14 +1,14 @@
 {
   "name": "sustainability-wellknown-consumer",
-  "version": "0.7.0",
-  "description": "Reference client for /.well-known/sustainability-data (draft-besleaga-sustainability-wellknown -07): fetch, validate, verify the embedded signature, walk upstream declarations, and transform. Complements sustainability-wellknown-publisher.",
+  "version": "0.8.0",
+  "description": "Reference client for /.well-known/sustainability-data (draft-besleaga-sustainability-wellknown -10): fetch, validate, verify the embedded signature, walk upstream declarations, and transform. Complements sustainability-wellknown-publisher.",
   "license": "BSD-3-Clause",
   "author": "Andrei Nicolae Besleaga",
   "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
-    "node": ">=22.12"
+    "node": ">=22.13"
   },
   "repository": {
     "type": "git",
@@ -45,11 +45,16 @@
     "m2m"
   ],
   "dependencies": {
-    "ajv": "^8.17.1",
-    "jose": "^6.2.12"
+    "ajv": "^8.20.0",
+    "ipaddr.js": "^2.5.0",
+    "jose": "^6.2.12",
+    "lossless-json": "^4.3.1",
+    "temporal-polyfill": "^1.0.6",
+    "undici": "^7.30.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "fast-check": "^4.10.2",
     "typescript": "^5.9.3",
     "vitest": "^5.0.0"
   },

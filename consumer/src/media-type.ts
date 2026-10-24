@@ -1,6 +1,6 @@
 /**
- * Media typing for a Sustainability Declaration (draft -07, §Mandatory Minimum
- * Supported Service and §IANA Considerations).
+ * Media typing for a Sustainability Declaration (draft -10, §Location and
+ * Transport and §Media Type Registration).
  *
  * The draft registers a dedicated media type and makes it required: a 200
  * response MUST carry `application/sustainability-data+json` and MUST NOT

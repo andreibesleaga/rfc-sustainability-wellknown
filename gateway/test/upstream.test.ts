@@ -1,5 +1,5 @@
 /**
- * The -07 upstream chain, end to end against this gateway.
+ * The upstream chain, end to end against this gateway.
  *
  * `tenant-demo.example` is a downstream organization whose `upstream` member
  * names the tenant-scoped declaration this gateway serves for
@@ -41,7 +41,7 @@ describe("the upstream demonstration pair", () => {
     expect(doc.target).toBe("t-7f3a9c41");
     expect(doc.provider).toContain("SYNTHETIC");
     // What the provider states it delivered to that tenant for the period.
-    expect(doc["reporting-period"]).toBe("2025");
+    expect(doc.period).toEqual({ start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" });
     expect(doc["energy-consumption"]).toBe(180000);
     expect(doc.upstream).toBeUndefined();
   });
@@ -87,12 +87,12 @@ describe("the upstream demonstration pair", () => {
       role: "cloud",
       depth: 1,
       verdict: "consistent",
-      reportingPeriod: "2025",
+      period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
     });
-    // 1.2 GWh vs 180 MWh, 310 mtCO2e vs 48 mtCO2e, normalized by the consumer.
+    // 1.2 GWh vs 180 MWh, 310 tCO2e vs 48 tCO2e, normalized by the consumer.
     expect(c.subject).toEqual({ energyKWh: 1_200_000, carbonGCO2e: 310_000_000 });
     expect(c.upstreamFigures).toEqual({ energyKWh: 180_000, carbonGCO2e: 48_000_000 });
-    expect(c.detail).toContain("never proof");
+    expect(c.detail).toContain("neither claim is verified");
     // The tenant declaration names no upstream of its own, so the walk stops.
     expect(c.upstream).toBeUndefined();
   });
@@ -107,5 +107,62 @@ describe("the upstream demonstration pair", () => {
     );
     expect(c.verdict).toBe("unreachable");
     expect(c.detail).toContain("a loop");
+  });
+});
+
+describe("the upstream walks of the served examples (W1 to W3)", () => {
+  const walk = async (domain: string) => {
+    const r = await fetchSustainability(`${srv.base}/${domain}`, { allowInsecure: true, followUpstream: true });
+    expect(r.status, domain).toBe("ok");
+    if (r.status !== "ok") throw new Error("unreachable");
+    return r.upstream!;
+  };
+  const flatten = (list: Awaited<ReturnType<typeof walk>>): Awaited<ReturnType<typeof walk>> =>
+    list.flatMap((c) => [c, ...flatten(c.upstream ?? [])]);
+
+  it("W1 a chain of five is walked to depth three: the fifth declaration is named in the refusal", async () => {
+    const all = flatten(await walk("chain-org.example"));
+    expect(all.map((c) => c.depth)).toEqual([1, 2, 3, 4]);
+    const [tenant, host, colo, grid] = all;
+    // `declaration` is the reference as published, which the walk resolves against the URI it retrieved the object from.
+    expect(tenant.declaration).toBe(`../../chain-tenant.example${WELL_KNOWN}`);
+    expect(host.declaration).toBe(`../../chain-host.example${WELL_KNOWN}`);
+    expect(colo.declaration).toBe(`../../chain-colo.example${WELL_KNOWN}`);
+    expect(grid.declaration).toBe(`../../chain-grid.example${WELL_KNOWN}`);
+    expect(grid.verdict).toBe("unreachable");
+    expect(grid.detail).toMatch(/depth/);
+    expect(grid.detail).toMatch(/3|three/);
+  });
+
+  it("W2 a loop is walked once: the second retrieval of the first declaration is refused", async () => {
+    const all = flatten(await walk("loop-a.example"));
+    const refused = all.filter((c) => c.verdict === "unreachable");
+    expect(refused).toHaveLength(1);
+    expect(refused[0].declaration).toBe(`../../loop-a.example${WELL_KNOWN}`);
+    expect(refused[0].detail).toMatch(/loop|already/);
+  });
+
+  it("W3 500 MWh against the 320 MWh the tenant states is consistent; 100 MWh is flagged as an inconsistency of two claims", async () => {
+    const [consistent] = await walk("chain-org.example");
+    expect(consistent.verdict).toBe("consistent");
+    const [flagged] = await walk("chain-inconsistent.example");
+    expect(flagged.verdict).toBe("under-reported");
+    expect(flagged.detail).toMatch(/not a non-conformance|investigate|neither claim is verified/);
+    // The fetched declaration itself is valid: the finding is about two claims, not about the object.
+    const r = await fetchSustainability(`${srv.base}/chain-inconsistent.example`, { allowInsecure: true });
+    expect(r.status).toBe("ok");
+  });
+
+  it("W4 the upstream reference resolves against the retrieval URI, and the disclosure link to the index", async () => {
+    const href = `${srv.base}/chain-org.example${WELL_KNOWN}`;
+    const doc = await (await fetch(href)).json();
+    expect(doc.upstream[0].declaration).toBe(`../../chain-tenant.example${WELL_KNOWN}`);
+    expect(new URL(doc.upstream[0].declaration, href).href).toBe(`${srv.base}/chain-tenant.example${WELL_KNOWN}`);
+    expect(new URL(doc["disclosure-uri"], href).href).toBe(`${srv.base}/index.json`);
+  });
+
+  it("a comparison names the period it was made for", async () => {
+    const [tenant] = await walk("chain-org.example");
+    expect(tenant.period).toEqual({ start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" });
   });
 });

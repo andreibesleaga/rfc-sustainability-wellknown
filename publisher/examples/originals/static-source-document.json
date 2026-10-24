@@ -4,7 +4,10 @@
   "provider": "Small Business Hosting (hello@smallbiz.example)",
   "measurement-method": "cloud-billing",
   "methodology-uri": "https://smallbiz.example/sustainability/methodology",
-  "reporting-period": "2026-05",
+  "period": {
+    "start": "2026-05-01T00:00:00Z",
+    "end": "2026-06-01T00:00:00Z"
+  },
   "target": "smallbiz.example",
   "energy-consumption": 340,
   "energy-unit": "kWh",

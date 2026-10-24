@@ -5,7 +5,7 @@
       "provider": "Example Corp (sustain@example.org)",
       "methodologyUri": "https://example.com/sustainability/methodology",
       "measurementMethod": "hardware-estimated",
-      "reportingPeriod": "2026-02",
+      "period": "2026-02",
       "energy": { "value": 1250, "unit": "kWh" },
       "gridIntensity": 276,
       "carbonAccounting": "location-based",

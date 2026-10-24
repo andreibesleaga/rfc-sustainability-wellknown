@@ -28,14 +28,16 @@ import {
   watershedAdapter,
 } from "./adapters";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { emitCarbonTxt } from "./carbontxt";
-import { CarbonTxtServeOptions } from "./handler";
+import { CarbonTxtServeOptions, RateLimitOptions } from "./handler";
+import { parseStrict } from "./json";
 import {
   assertSignedMatches,
   exportPrivateJwk,
   generateSigningKey,
   importSigningKey,
+  pemToX5c,
   signDocument,
   SigningAlg,
   SigningKey,
@@ -43,8 +45,9 @@ import {
 import { Publisher, PublisherOptions } from "./publisher";
 import { createSustainabilityServer } from "./server";
 import { SourceAdapter, SustainabilityDocument } from "./types";
+import { upgradeOptionsError, UpgradeOptions, upgradeText } from "./upgrade";
 import { readJson } from "./util";
-import { assertValid } from "./validate";
+import { assertValid, validateDocument } from "./validate";
 
 const ADAPTER_FACTORIES: Record<string, (opts: any) => SourceAdapter> = {
   static: staticAdapter,
@@ -71,15 +74,21 @@ export interface PublisherConfig {
    * container platform can inject the key without a file. With a key
    * configured, every declaration object the publisher emits carries the
    * `signed` member; `keyId` puts that identifier in the JWS header as `kid`
-   * instead of embedding the public key as `jwk`.
+   * instead of embedding the public key as `jwk`. `x5cFile` is a PEM file with
+   * a certificate chain for the key, leaf first; the header then carries `x5c`
+   * instead of `jwk`.
    */
-  signing?: { keyFile?: string; keyId?: string };
+  signing?: { keyFile?: string; keyId?: string; x5cFile?: string };
   server?: {
     port?: number;
     maxAge?: number;
+    /** The language of the response, sent as `Content-Language`. */
+    contentLanguage?: string;
     extraPaths?: string[];
     /** When set, also serve a bidirectional carbon.txt. */
     carbonTxt?: CarbonTxtServeOptions;
+    /** Requests per client address per window; over it the server answers 429. Unset, no limit. */
+    rateLimit?: RateLimitOptions;
   };
 }
 
@@ -96,8 +105,17 @@ export function buildAdapter(type: string, options: Record<string, unknown>): So
 export function buildPublisher(config: PublisherConfig, signingKey?: SigningKey): Publisher {
   const adapter = buildAdapter(config.adapter.type, config.adapter.options ?? {});
   return new Publisher(adapter, {
+    onWarning: (message) => process.stderr.write(`sustainability-publisher: warning: ${message}\n`),
     ...(config.publisher ?? {}),
-    ...(signingKey ? { signing: { key: signingKey, keyId: config.signing?.keyId } } : {}),
+    ...(signingKey
+      ? {
+          signing: {
+            key: signingKey,
+            keyId: config.signing?.keyId,
+            x5c: config.signing?.x5cFile ? pemToX5c(readFileSync(config.signing.x5cFile, "utf8")) : undefined,
+          },
+        }
+      : {}),
   });
 }
 
@@ -106,10 +124,11 @@ interface CliArgs {
   once: boolean;
   port?: number;
   emitCarbonTxt: boolean;
+  noiseDisclosed: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
-  const out: CliArgs = { once: false, emitCarbonTxt: false };
+  const out: CliArgs = { once: false, emitCarbonTxt: false, noiseDisclosed: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const value = () => {
@@ -119,6 +138,7 @@ function parseArgs(argv: string[]): CliArgs {
     if (a === "--config" || a === "-c") out.config = value();
     else if (a === "--once") out.once = true;
     else if (a === "--emit-carbon-txt") out.emitCarbonTxt = true;
+    else if (a === "--noise-disclosed") out.noiseDisclosed = true;
     else if (a === "--port" || a === "-p") {
       out.port = Number(value());
       if (!Number.isInteger(out.port) || out.port < 0 || out.port > 65535) throw new Error(`${a} needs a port number`);
@@ -128,10 +148,11 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 const USAGE =
-  "Usage: sustainability-publisher --config <config.json> [--once] [--emit-carbon-txt] [--port <n>]\n" +
-  "       sustainability-publisher keygen [--alg EdDSA|ES256] [--out <private.jwk>]\n" +
-  "       sustainability-publisher sign <in.json> <out.json> --key <private.jwk> [--kid <id>]\n" +
-  "       sustainability-sign <in.json> <out.json> --key <private.jwk> [--kid <id>]\n";
+  "Usage: sustainability-publisher --config <config.json> [--once] [--emit-carbon-txt] [--port <n>] [--noise-disclosed]\n" +
+  "       sustainability-publisher keygen [--alg Ed25519|ES256] [--out <private.jwk>]\n" +
+  "       sustainability-publisher sign <in.json> <out.json> --key <private.jwk> [--kid <id>] [--x5c <chain.pem>]\n" +
+  "       sustainability-publisher upgrade <in.json> [<out.json>] [--check] [--updated <date-time>] [--offset <+hh:mm>] [--measurement-method <token>]\n" +
+  "       sustainability-sign <in.json> <out.json> --key <private.jwk> [--kid <id>] [--x5c <chain.pem>]\n";
 
 /**
  * Resolve the signing key for the server from the environment (the JWK JSON
@@ -155,13 +176,14 @@ export async function loadSigningKey(
  * goes into the deployment's secret store, the printed key is what gets hosted.
  */
 export async function runKeygen(argv: string[], out: NodeJS.WritableStream = process.stdout): Promise<void> {
-  let alg: SigningAlg = "EdDSA";
+  let alg: SigningAlg = "Ed25519";
   let outFile: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--alg") {
       const v = argv[++i];
-      if (v !== "EdDSA" && v !== "ES256") throw new Error(`keygen: --alg must be EdDSA or ES256 (got "${v}")`);
+      if (v === "EdDSA") throw new Error('keygen: --alg EdDSA is not generated; the key is Ed25519 and signs with "Ed25519" (RFC 9864): use --alg Ed25519');
+      if (v !== "Ed25519" && v !== "ES256") throw new Error(`keygen: --alg must be Ed25519 or ES256 (got "${v}")`);
       alg = v;
     } else if (a === "--out") outFile = argv[++i];
     else throw new Error(`keygen: unknown argument "${a}"`);
@@ -182,7 +204,9 @@ export async function runKeygen(argv: string[], out: NodeJS.WritableStream = pro
  * or an array, every object signed individually), validates it, inserts the
  * `signed` member as each object's last member and writes the result to
  * `<out.json>`. `--kid` identifies an out-of-band key instead of embedding the
- * public key as `jwk`.
+ * public key as `jwk`. `--x5c` is a PEM file with the certificate chain of the
+ * key, leaf first: the header carries it as `x5c` instead of `jwk`, and the
+ * leaf must hold the signing key.
  *
  * `<in.json>` and `<out.json>` may be the same path: the output is written only
  * after the input has been read, parsed, validated and signed.
@@ -191,6 +215,7 @@ export async function runSign(argv: string[], out: NodeJS.WritableStream = proce
   const positional: string[] = [];
   let keyFile: string | undefined;
   let keyId: string | undefined;
+  let x5cFile: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const value = () => {
@@ -199,6 +224,7 @@ export async function runSign(argv: string[], out: NodeJS.WritableStream = proce
     };
     if (a === "--key") keyFile = value();
     else if (a === "--kid") keyId = value();
+    else if (a === "--x5c") x5cFile = value();
     else if (a.startsWith("-")) throw new Error(`sign: unknown argument "${a}"`);
     else positional.push(a);
   }
@@ -211,14 +237,18 @@ export async function runSign(argv: string[], out: NodeJS.WritableStream = proce
   const key = await importSigningKey(readFileSync(keyFile, "utf8"));
   let document: SustainabilityDocument;
   try {
-    document = JSON.parse(readFileSync(inFile, "utf8")) as SustainabilityDocument;
-  } catch {
-    throw new Error(`sign: ${inFile} is not valid JSON`);
+    document = parseStrict(readFileSync(inFile, "utf8")) as SustainabilityDocument;
+  } catch (e) {
+    throw new Error(`sign: ${inFile} is not valid I-JSON (${(e as Error).message})`);
   }
   // Never sign a document that could not be published: the signature would
   // attest to a non-conformant object.
   assertValid(document);
-  const signed = await signDocument(document, key, keyId !== undefined ? { keyId } : {});
+  for (const warning of validateDocument(document, { legacyCompat: false }).warnings) {
+    process.stderr.write(`sign: warning: ${warning.message}\n`);
+  }
+  const x5c = x5cFile !== undefined ? pemToX5c(readFileSync(x5cFile, "utf8")) : undefined;
+  const signed = await signDocument(document, key, { ...(keyId !== undefined ? { keyId } : {}), ...(x5c !== undefined ? { x5c } : {}) });
   // Draft §Signing: never write out an object whose `signed` payload differs
   // from the object it accompanies, and never a payload carrying `signed`
   // itself (a re-signed file's previous signature is dropped, not nested).
@@ -230,9 +260,90 @@ export async function runSign(argv: string[], out: NodeJS.WritableStream = proce
   out.write(`signed ${count} declaration object${count === 1 ? "" : "s"} (${key.alg}) -> ${outFile}\n`);
 }
 
+export interface UpgradeStreams {
+  stdout: NodeJS.WritableStream;
+  stderr: NodeJS.WritableStream;
+}
+
+/**
+ * `upgrade`: convert a declaration file written for -08 or -09 to the current
+ * form (draft, Appendices B.1 and C.1), and say what was converted. The result
+ * goes to standard output; with `<out.json>` it is written there, and the input
+ * is replaced only when the same path is given twice. The result is built in
+ * memory and written once, so a file that cannot be converted leaves no output.
+ * `--check` writes nothing. The notes go to standard error, so that standard
+ * output holds the document alone.
+ *
+ * Returns the exit status: 0 when the file is converted, or has nothing to
+ * convert (with `--check`, only the latter); 1 when it cannot be converted, or
+ * with `--check` would be changed; 2 for a usage error.
+ */
+export function runUpgrade(
+  argv: string[],
+  streams: UpgradeStreams = { stdout: process.stdout, stderr: process.stderr },
+): number {
+  const { stdout, stderr } = streams;
+  const positional: string[] = [];
+  const options: UpgradeOptions = {};
+  let check = false;
+  try {
+    for (let i = 0; i < argv.length; i++) {
+      const a = argv[i];
+      const value = () => {
+        if (i + 1 >= argv.length) throw new Error(`${a} needs a value`);
+        return argv[++i];
+      };
+      if (a === "--check") check = true;
+      else if (a === "--offset") options.offset = value();
+      else if (a === "--updated") options.updated = value();
+      else if (a === "--measurement-method") options.measurementMethod = value() as UpgradeOptions["measurementMethod"];
+      else if (a.startsWith("-")) throw new Error(`unknown argument "${a}"`);
+      else positional.push(a);
+    }
+    if (positional.length === 0) throw new Error("an input declaration file is required");
+    if (positional.length > 2) throw new Error(`unexpected argument "${positional[2]}"`);
+    const problem = upgradeOptionsError(options);
+    if (problem !== undefined) throw new Error(problem);
+  } catch (e) {
+    stderr.write(`upgrade: ${(e as Error).message}\n${USAGE}`);
+    return 2;
+  }
+
+  const [inFile, outFile] = positional;
+  let text: string;
+  try {
+    text = readFileSync(inFile, "utf8");
+  } catch (e) {
+    stderr.write(`upgrade: ${inFile} cannot be read (${(e as Error).message})\n`);
+    return 1;
+  }
+  const result = upgradeText(text, options);
+  for (const note of result.notes) stderr.write(`upgrade: ${inFile}: ${note.message}\n`);
+  for (const warning of result.warnings) stderr.write(`upgrade: ${inFile}: warning: ${warning}\n`);
+  if (result.errors.length > 0) {
+    for (const error of result.errors) stderr.write(`upgrade: ${inFile}: ${error}\n`);
+    return 1;
+  }
+  const changed = result.notes.length > 0;
+  if (!changed) stderr.write(`upgrade: ${inFile}: nothing to change\n`);
+  if (check) return changed ? 1 : 0;
+
+  const converted = result.text as string;
+  if (outFile === undefined) stdout.write(converted);
+  else if (resolve(outFile) !== resolve(inFile) || changed) {
+    mkdirSync(dirname(outFile), { recursive: true });
+    writeFileSync(outFile, converted);
+  }
+  return 0;
+}
+
 export async function runCli(argv: string[]): Promise<void> {
   if (argv[0] === "keygen") return runKeygen(argv.slice(1));
   if (argv[0] === "sign") return runSign(argv.slice(1));
+  if (argv[0] === "upgrade") {
+    process.exitCode = runUpgrade(argv.slice(1));
+    return;
+  }
 
   const args = parseArgs(argv);
   if (!args.config) {
@@ -241,6 +352,9 @@ export async function runCli(argv: string[]): Promise<void> {
   }
 
   const config = readJson<PublisherConfig>(args.config);
+  if (args.noiseDisclosed) {
+    config.publisher = { ...config.publisher, security: { ...config.publisher?.security, noiseDisclosed: true } };
+  }
 
   if (args.emitCarbonTxt) {
     const serve = config.server?.carbonTxt;
@@ -265,14 +379,16 @@ export async function runCli(argv: string[]): Promise<void> {
   const port = args.port ?? config.server?.port ?? 8080;
   const server = createSustainabilityServer(publisher, {
     maxAge: config.server?.maxAge,
+    contentLanguage: config.server?.contentLanguage,
     extraPaths: config.server?.extraPaths,
     carbonTxt: config.server?.carbonTxt,
+    rateLimit: config.server?.rateLimit,
   });
   server.listen(port, () => {
     process.stdout.write(
       `sustainability-publisher listening on http://localhost:${port}/.well-known/sustainability-data\n` +
         (signingKey
-          ? `signing enabled (${signingKey.alg}, ${config.signing?.keyId ? `kid ${config.signing.keyId}` : "key embedded as jwk"}); ` +
+          ? `signing enabled (${signingKey.alg}, ${config.signing?.keyId ? `kid ${config.signing.keyId}` : config.signing?.x5cFile ? "certificate chain as x5c" : "key embedded as jwk"}); ` +
             "every declaration object carries the signed member\n"
           : ""),
     );

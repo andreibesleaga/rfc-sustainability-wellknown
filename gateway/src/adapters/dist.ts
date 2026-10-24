@@ -19,7 +19,14 @@
  * GHG Protocol scopes, an accounting basis and energy are not part of DIST and
  * are never derived.
  */
-import type { RawMetrics, SourceAdapter } from "sustainability-wellknown-publisher";
+import {
+  isFullDate,
+  isWholeCalendarPeriod,
+  periodFromFullDates,
+  type Period,
+  type RawMetrics,
+  type SourceAdapter,
+} from "sustainability-wellknown-publisher";
 
 export interface DistCarbonEntry {
   categories?: string[];
@@ -38,11 +45,21 @@ export interface DistDocument {
 
 export interface DistSummary {
   organization: string;
-  year: string;
+  period: Period;
   kgCO2e: number;
   entries: number;
   duplicates: number;
   withoutValue: number;
+}
+
+/** The period of two inclusive full dates, or undefined when they are not two days of the calendar in order. */
+function reportingPeriod(from: unknown, to: unknown): Period | undefined {
+  if (!isFullDate(from) || !isFullDate(to)) return undefined;
+  try {
+    return periodFromFullDates({ start: from, end: to });
+  } catch {
+    return undefined;
+  }
 }
 
 /** Sum a DIST document under the rules in the module comment. Throws rather than guess. */
@@ -51,8 +68,9 @@ export function summarizeDist(doc: DistDocument): DistSummary {
   if (typeof organization !== "string" || organization.length === 0) throw new Error("dist: organization.name is missing");
   const from = doc.report?.reporting_period?.from;
   const to = doc.report?.reporting_period?.to;
-  const m = typeof from === "string" ? /^(\d{4})-01-01$/.exec(from) : null;
-  if (!m || to !== `${m[1]}-12-31`) {
+  // DIST gives inclusive full dates; the period is the range from the start of the first day to the start of the day after the last.
+  const period = reportingPeriod(from, to);
+  if (!period || !isWholeCalendarPeriod(period, "yearly")) {
     throw new Error(`dist: the reporting period (${from} to ${to}) is not one whole calendar year`);
   }
   const carbon = doc.report?.impacts?.carbon;
@@ -68,7 +86,7 @@ export function summarizeDist(doc: DistDocument): DistSummary {
     seen.add(key);
     kg += e.value;
   }
-  return { organization, year: m[1], kgCO2e: kg, entries: carbon.length, duplicates, withoutValue };
+  return { organization, period, kgCO2e: kg, entries: carbon.length, duplicates, withoutValue };
 }
 
 export interface DistAdapterConfig {
@@ -96,7 +114,7 @@ export function distAdapter(config: DistAdapterConfig): SourceAdapter {
           ". The file states no total; GHG Protocol scopes, an accounting basis and energy are not part of DIST and are not derived.",
         measurementMethod: "hardware-estimated",
         methodologyUri: config.sourceUrl,
-        reportingPeriod: s.year,
+        period: s.period,
         carbon: { value: s.kgCO2e, unit: "kgCO2e" },
         target: `${s.organization} (digital estate, DIST relay)`,
         targetType: "organization",

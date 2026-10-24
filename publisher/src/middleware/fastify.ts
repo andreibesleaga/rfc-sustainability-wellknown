@@ -6,13 +6,13 @@
  * Fastify is referenced structurally so this compiles without Fastify installed.
  */
 import {
-  badRequestResult,
   CarbonTxtServeOptions,
   CARBON_TXT_PATHS,
   carbonTxtResult,
   handleRequest,
   HandlerOptions,
   parseQuery,
+  rateLimitGate,
   WELL_KNOWN_PATH,
 } from "../handler";
 import { Publisher } from "../publisher";
@@ -75,6 +75,7 @@ export async function fastifySustainability(
   options: FastifyPluginOptions,
 ): Promise<void> {
   const { publisher, carbonTxt, ...handlerOpts } = options;
+  const rateLimited = rateLimitGate(handlerOpts);
   const cors: Record<string, string> =
     handlerOpts.cors !== false
       ? { "Access-Control-Allow-Origin": handlerOpts.cors ?? "*" }
@@ -90,11 +91,14 @@ export async function fastifySustainability(
 
   registerAllMethods(fastify, WELL_KNOWN_PATH, async (req: any, reply: any) => {
     if (isDisallowed(req.method)) return send405(reply);
+    const limited = rateLimited(req.ip ?? req.socket?.remoteAddress);
+    if (limited) {
+      reply.code(limited.status).headers(limited.headers);
+      return String(req.method).toUpperCase() === "HEAD" ? reply.send() : reply.send(limited.body);
+    }
     const ifNoneMatch = req.headers?.["if-none-match"];
-    const parsed = parseQuery(req.query ?? {});
-    const result = parsed.ok
-      ? await handleRequest(publisher, parsed.query, handlerOpts, ifNoneMatch)
-      : badRequestResult(parsed.error, handlerOpts);
+    const { query } = parseQuery(req.query ?? {});
+    const result = await handleRequest(publisher, query, handlerOpts, ifNoneMatch);
     reply.code(result.status).headers(result.headers);
     if (result.status === 304 || String(req.method).toUpperCase() === "HEAD") {
       return reply.send();

@@ -1,0 +1,24 @@
+{
+  "updated": "2026-03-01T12:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Corp (sustain@example.com)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "/sustainability/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z",
+    "time-zone-name": "Etc/UTC"
+  },
+  "target": "Example Corp",
+  "target-type": "organization",
+  "carbon-footprint": 4140,
+  "carbon-unit": "kgCO2e",
+  "upstream": [
+    {
+      "declaration": "https://cloud.example/tenants/acme.json",
+      "role": "cloud",
+      "contract": "C-1042"
+    }
+  ],
+  "x-review-note": "later revision member"
+}

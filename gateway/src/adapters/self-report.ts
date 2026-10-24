@@ -1,10 +1,10 @@
 /**
  * The gateway's report about ITSELF (`target-type: "service"`).
  *
- * This is a worked example of requirement "produce the document from a
- * publisher adapter rather than by hand": it composes the published
- * `computedAdapter` (energy x grid carbon intensity -> carbon) and adds the
- * members that adapter does not carry.
+ * This is a worked example of producing the document from a publisher adapter
+ * rather than by hand: it composes the published `computedAdapter` (energy x
+ * grid carbon intensity -> carbon) and adds the members that adapter does not
+ * carry.
  *
  * The figures are an ENGINEERING ESTIMATE, not a measurement: the container's
  * average power draw is modelled, not metered. Every assumption, and the source
@@ -12,26 +12,50 @@
  * what `methodology-uri` points at. `measurement-method` is therefore
  * `third-party-modeled` and not `hardware-metered`.
  *
- * Service level: EXTENDED. The model is closed-form (watts x hours), so any
- * period the gateway has been live for can be reported, and a year or a month
- * can be sliced into months or days (draft §Extended Query Parameters). Only the hours inside `[liveSince, now)` count: a period wholly
- * before go-live has no data (the draft's no-data rule, 404), a period in
- * progress reports the completed portion to date. The `target` parameter is
- * ignored: the gateway is one process with no path prefixes to scope to, and
- * METHODOLOGY.md publishes that (empty) prefix set. The PARAMETERLESS document
- * is the most recently completed month. When the deployment holds a key, every
- * object it serves carries its own embedded `signed` member (-07 has no
- * separate signature resource).
+ * Service level: EXTENDED. The model is closed-form (watts x hours), so the
+ * adapter can state the objects it HOLDS and leave the selection to the
+ * publisher (draft §Query Parameters: a server returns the objects it holds
+ * that satisfy the parameters, and computes no aggregate). Only the hours
+ * inside `[liveSince, now)` count, with `now` the start of the current UTC day.
+ *
+ * The held set:
+ *
+ *  - every whole day of the most recent {@link HELD_DAYS} days of the live window;
+ *  - every whole calendar month and every whole calendar year of the live window;
+ *  - the go-live month, from the day the gateway went live to the end of that
+ *    month, when it is not a whole month, and the month in progress, from its
+ *    first day to `now`, each only when it holds at least one whole day. Their
+ *    periods are exactly the hours the figures count; being partial, they are
+ *    not selected by `granularity=monthly`.
+ *
+ * It is bounded by construction: at most {@link HELD_MAX} objects at any clock,
+ * so a selection is never cut (the oldest whole months go first, those a whole
+ * year already covers before any other).
+ *
+ * The `target` parameter selects by exact match against the report's own
+ * `target`; any other value selects nothing. A request that names no parameter
+ * is answered with one object, the most recently completed month (the publisher
+ * option `representation: "single"`). When the deployment holds a key, every
+ * object it serves carries its own embedded `signed` member.
  */
-import { NotFoundError, computedAdapter, isCalendarPeriod, lastFullMonth, type RawMetrics, type ServiceQuery, type SourceAdapter } from "sustainability-wellknown-publisher";
+import {
+  computedAdapter,
+  lastFullMonthPeriod,
+  NotFoundError,
+  toUtcQueryValue,
+  type Period,
+  type RawMetrics,
+  type ServiceQuery,
+  type SourceAdapter,
+} from "sustainability-wellknown-publisher";
 
 export interface SelfReportConfig {
   target: string;
   provider: string;
   methodologyUri: string;
   disclosureUri: string;
-  /** "YYYY" or "YYYY-MM". Defaults to the most recently completed month. */
-  period?: string;
+  /** A pinned period for the request that names no parameter. Defaults to the most recently completed month. */
+  period?: Period;
   /** Modelled average power draw of the running container, watts. */
   watts: number;
   /**
@@ -51,6 +75,13 @@ export interface SelfReportConfig {
 }
 
 const HOUR_MS = 3_600_000;
+const DAY_MS = 24 * HOUR_MS;
+
+/** Whole days held, counted back from the start of the current day. */
+export const HELD_DAYS = 120;
+/** The most objects the self report ever holds, so that no selection is cut. */
+export const HELD_MAX = 200;
+
 /**
  * Four significant figures. A fixed number of decimals would distort the small
  * figures this model produces: a measured month of 0.0149 W gives 0.3576 Wh a
@@ -60,80 +91,107 @@ export function significant(x: number, digits = 4): number {
   return x === 0 ? 0 : Number(x.toPrecision(digits));
 }
 
-/** Capture groups over the publisher's own period shape. */
-const PERIOD_PARTS = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/;
+/** The instant of an RFC 3339 date-time, in ms. */
+export const epochMs = (dateTime: string): number => Date.parse(toUtcQueryValue(dateTime));
 
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
+/** An instant, in ms, as an RFC 3339 date-time with `T` and `Z` in upper case and no fraction. */
+export const dateTimeOf = (ms: number): string => new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
+
+/** The first instant of the UTC day that contains `ms`. */
+export const startOfDay = (ms: number): number => Math.floor(ms / DAY_MS) * DAY_MS;
+
+/** The `YYYY-MM` label of the UTC month that contains a date-time: the key of the operator-entered power table. */
+export const monthKey = (dateTime: string): string => dateTimeOf(epochMs(dateTime)).slice(0, 7);
+
+/** Hours in a period. */
+export function periodHours(period: Period): number {
+  return (epochMs(period.end) - epochMs(period.start)) / HOUR_MS;
 }
 
-/** UTC bounds `[start, end)` in ms of a `YYYY`, `YYYY-MM` or `YYYY-MM-DD` period. */
-export function periodBounds(period: string): { start: number; end: number } {
-  const m = isCalendarPeriod(period) ? PERIOD_PARTS.exec(period) : null;
-  if (!m) throw new Error(`self-report: period must be a calendar "YYYY", "YYYY-MM" or "YYYY-MM-DD" (got "${period}")`);
-  const year = Number(m[1]);
-  if (m[2] === undefined) return { start: Date.UTC(year, 0, 1), end: Date.UTC(year + 1, 0, 1) };
-  const month = Number(m[2]);
-  if (m[3] === undefined) return { start: Date.UTC(year, month - 1, 1), end: Date.UTC(year, month, 1) };
-  const day = Number(m[3]);
-  return { start: Date.UTC(year, month - 1, day), end: Date.UTC(year, month - 1, day + 1) };
+/** Hours of `period` inside `[liveSince, now)`: the hours the model counts. */
+export function liveHours(period: Period, liveSince: number, now: number): number {
+  return overlapHours({ start: epochMs(period.start), end: epochMs(period.end) }, liveSince, now);
 }
 
-/** Whole hours in a calendar period (UTC), ignoring the live window. */
-export function periodHours(period: string): number {
-  const { start, end } = periodBounds(period);
-  return (end - start) / HOUR_MS;
+/** A period in ms, for the arithmetic below: a bound is computed once and never parsed again. */
+interface Span {
+  start: number;
+  end: number;
 }
 
-/** Hours of `period` inside `[liveSince, now)` — the hours the model counts. */
-export function liveHours(period: string, liveSince: number, now: number): number {
-  const { start, end } = periodBounds(period);
-  return Math.max(0, Math.min(end, now) - Math.max(start, liveSince)) / HOUR_MS;
+const overlapHours = (span: Span, liveSince: number, now: number): number =>
+  Math.max(0, Math.min(span.end, now) - Math.max(span.start, liveSince)) / HOUR_MS;
+
+const periodOf = (span: Span): Period => ({ start: dateTimeOf(span.start), end: dateTimeOf(span.end) });
+
+/** The first instant of the UTC month `months` after the one that contains `ms`. */
+function monthStart(ms: number, months = 0): number {
+  const d = new Date(ms);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + months, 1);
 }
 
-/** The instant a calendar period closed, used as `updated` for a complete period. */
-export function periodClose(period: string): string {
-  return new Date(periodBounds(period).end).toISOString().replace(/\.\d{3}Z$/, "Z");
+/** The first instant of the UTC year `years` after the one that contains `ms`. */
+function yearStart(ms: number, years = 0): number {
+  return Date.UTC(new Date(ms).getUTCFullYear() + years, 0, 1);
 }
-
-/** Most recently completed full calendar month, "YYYY-MM" — the publisher's own rule. */
-export const lastCompletedMonth = (now: Date): string => lastFullMonth(now);
 
 /**
- * The slices of `period` at `granularity` (draft: an array only when the
- * granularity is finer than the period; otherwise the single period).
+ * The objects the self report holds at `now` (ms, a day start) for a gateway
+ * that went live at `liveSince` (ms); see the module comment. Ascending by
+ * the instants of `start` and then `end`. UTC has no change of clock, so a
+ * day is 24 hours and the bounds of a month and a year are `Date.UTC` of its
+ * first day.
  */
-export function slices(period: string, granularity: string | undefined): string[] {
-  const m = PERIOD_PARTS.exec(period);
-  if (!m) throw new Error(`self-report: bad period "${period}"`);
-  const year = Number(m[1]);
-  const isYear = m[2] === undefined;
-  const isMonth = m[2] !== undefined && m[3] === undefined;
-  if (granularity === "monthly" && isYear) {
-    return Array.from({ length: 12 }, (_, i) => `${year}-${pad(i + 1)}`);
+function heldSpans(liveSince: number, now: number): Span[] {
+  const first = startOfDay(liveSince);
+  if (first >= now) return [];
+
+  const days: Span[] = [];
+  for (let t = Math.max(first, now - HELD_DAYS * DAY_MS); t < now; t += DAY_MS) days.push({ start: t, end: t + DAY_MS });
+
+  // Whole months and years of the live window.
+  const months: Span[] = [];
+  const years: Span[] = [];
+  for (let t = yearStart(first); t < now; t = yearStart(t, 1)) {
+    const year = { start: t, end: yearStart(t, 1) };
+    if (year.start >= first && year.end <= now) years.push(year);
   }
-  if (granularity === "daily" && (isYear || isMonth)) {
-    const { start, end } = periodBounds(period);
-    const out: string[] = [];
-    for (let t = start; t < end; t += 24 * HOUR_MS) {
-      const d = new Date(t);
-      out.push(`${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`);
-    }
-    return out;
+  for (let t = monthStart(first); t < now; t = monthStart(t, 1)) {
+    const month = { start: t, end: monthStart(t, 1) };
+    if (month.start >= first && month.end <= now) months.push(month);
   }
-  return [period];
+
+  // The go-live month and the month in progress, when not whole.
+  const edges: Span[] = [];
+  const goLiveEnd = monthStart(first, 1);
+  if (first > monthStart(first) && goLiveEnd <= now) edges.push({ start: first, end: goLiveEnd });
+  const inProgress = Math.max(monthStart(now), first);
+  // A month in progress that is only one day old is that day, which is held already.
+  if (now > monthStart(now) && now - inProgress > DAY_MS) edges.push({ start: inProgress, end: now });
+
+  // Over the bound, drop the oldest months a held year covers, then the oldest other months, then the oldest years.
+  const covered = (m: Span) => years.some((y) => y.start <= m.start && m.end <= y.end);
+  const droppable = [...months.filter(covered), ...months.filter((m) => !covered(m)), ...years];
+  const excess = Math.max(0, days.length + edges.length + months.length + years.length - HELD_MAX);
+  const dropped = new Set(droppable.slice(0, excess));
+
+  return [...days, ...months.filter((p) => !dropped.has(p)), ...years.filter((p) => !dropped.has(p)), ...edges].sort(
+    (a, b) => a.start - b.start || a.end - b.end,
+  );
 }
+
+/** {@link heldSpans} as periods. */
+export const heldPeriods = (liveSince: number, now: number): Period[] => heldSpans(liveSince, now).map(periodOf);
 
 export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
   const clock = config.clock ?? (() => new Date());
-  const liveSince = Date.parse(config.liveSince);
+  const liveSince = epochMs(config.liveSince);
   if (Number.isNaN(liveSince)) throw new Error(`self-report: liveSince is not a date-time ("${config.liveSince}")`);
 
   const byMonth = config.wattsByMonth ?? {};
   const measuredMonths = Object.keys(byMonth).sort();
   // One provider text for every period and granularity, so that the objects of
-  // a trend agree and a year names the same publisher and method as its months
-  // (draft step 5 requires the contributing entries' `provider` to agree).
+  // a trend agree and a year names the same publisher and method as its months.
   const providerText =
     measuredMonths.length === 0
       ? config.provider
@@ -141,30 +199,30 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
         `the hosting platform's own metrics; every other month uses the ${config.watts} W assumption ` +
         `(see methodology-uri)`;
   const wattsFor = (month: string): number => byMonth[month] ?? config.watts;
-  /** The calendar months a slice touches: twelve for a year, its own month otherwise. */
-  const monthsOf = (slice: string): string[] =>
-    slice.length === 4 ? Array.from({ length: 12 }, (_, i) => `${slice}-${pad(i + 1)}`) : [slice.slice(0, 7)];
-  /** Watt-hours of a slice: each month's hours inside the live window at that month's power. */
-  const wattHours = (slice: string, now: number): number =>
-    slice.length === 10
-      ? liveHours(slice, liveSince, now) * wattsFor(slice.slice(0, 7))
-      : monthsOf(slice).reduce((sum, m) => sum + liveHours(m, liveSince, now) * wattsFor(m), 0);
 
-  /** One report for one slice, via the published computed adapter. */
-  const report = async (slice: string, now: number): Promise<RawMetrics | undefined> => {
-    const hours = liveHours(slice, liveSince, now);
-    if (hours <= 0) return undefined;
-    const provider = providerText;
-    const complete = periodBounds(slice).end <= now;
+  /** Watt-hours of a span: each month's hours inside the live window and the span, at that month's power. */
+  const wattHours = (span: Span, now: number): number => {
+    let sum = 0;
+    for (let t = monthStart(span.start); t < span.end; t = monthStart(t, 1)) {
+      const inside = { start: Math.max(t, span.start), end: Math.min(monthStart(t, 1), span.end) };
+      sum += overlapHours(inside, liveSince, now) * wattsFor(dateTimeOf(t).slice(0, 7));
+    }
+    return sum;
+  };
+
+  /** One report for one period, via the published computed adapter. */
+  const report = async (span: Span, now: number): Promise<RawMetrics | undefined> => {
+    if (overlapHours(span, liveSince, now) <= 0) return undefined;
+    const period = periodOf(span);
     const inner = computedAdapter({
-      provider,
+      provider: providerText,
       methodologyUri: config.methodologyUri,
       measurementMethod: "third-party-modeled",
-      reportingPeriod: slice,
+      period,
       // Watt-hours, not kWh: the publisher library rounds every member to four
       // decimal places, and a measured day at a fraction of a watt is ~0.0004 kWh,
       // so in kWh a day would be published 12% high. In Wh it is 0.3576.
-      energy: { value: significant(wattHours(slice, now)), unit: "Wh" },
+      energy: { value: significant(wattHours(span, now)), unit: "Wh" },
       gridIntensity: config.gridIntensity,
       carbonAccounting: "location-based",
       capabilities: "extended",
@@ -172,11 +230,9 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
     const raw = (await inner.fetch({})) as RawMetrics;
     return {
       ...raw,
-      // A complete period is stamped with its close; a period in progress with
-      // the hour its figures were evaluated at (`now` is already on the hour).
-      updated: complete
-        ? periodClose(slice)
-        : new Date(now).toISOString().replace(/\.\d{3}Z$/, "Z"),
+      // A complete period is stamped with its close, a period in progress with
+      // the start of the day its figures were evaluated at (`now`).
+      updated: span.end <= now ? period.end : dateTimeOf(now),
       target: config.target,
       targetType: "service",
       disclosureUri: config.disclosureUri,
@@ -188,20 +244,48 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
     name: "gateway-self-report",
     capabilities: "extended",
     async fetch(query: ServiceQuery): Promise<RawMetrics | RawMetrics[]> {
-      // Evaluated at the top of the current hour: the figures of a period in
-      // progress then change once an hour, together with `updated`, so the
+      // Evaluated at the start of the current UTC day: the figure of a period in
+      // progress changes once a day, together with `updated`, so the
       // representation, its ETag and its Last-Modified move in step.
-      const now = Math.floor(clock().getTime() / HOUR_MS) * HOUR_MS;
-      // `query.target` is deliberately ignored (see the module comment).
-      const period = query.period ?? config.period ?? lastCompletedMonth(new Date(now));
-      const parts = slices(period, query.granularity);
+      const now = startOfDay(clock().getTime());
+      const asked = query.target !== undefined || query.start !== undefined || query.end !== undefined || query.granularity !== undefined;
+
+      if (!asked) {
+        // No parameter: the one current object.
+        const span = config.period ? { start: epochMs(config.period.start), end: epochMs(config.period.end) } : currentSpan(liveSince, now);
+        const one = span && (await report(span, now));
+        if (!one) throw new NotFoundError();
+        return one;
+      }
+
+      // The objects held that the query could select; the publisher applies the whole rule again.
+      if (query.target !== undefined && query.target !== config.target) return [];
+      const from = query.start === undefined ? -Infinity : epochMs(query.start);
+      const to = query.end === undefined ? Infinity : epochMs(query.end);
       const reports: RawMetrics[] = [];
-      for (const slice of parts) {
-        const r = await report(slice, now);
+      for (const span of heldSpans(liveSince, now)) {
+        if (!(span.start < to && span.end > from)) continue;
+        const r = await report(span, now);
         if (r) reports.push(r);
       }
-      if (reports.length === 0) throw new NotFoundError();
-      return parts.length === 1 ? reports[0] : reports;
+      return reports;
     },
   };
+}
+
+/**
+ * The period of the request that names no parameter: the most recently
+ * completed month once the gateway has been live for one; the go-live month so
+ * far when that month began before go-live; else the newest object held.
+ */
+function currentSpan(liveSince: number, now: number): Span | undefined {
+  const first = startOfDay(liveSince);
+  const month = lastFullMonthPeriod(new Date(now));
+  const span = { start: epochMs(month.start), end: epochMs(month.end) };
+  if (span.start >= first) return span;
+  // The month began before go-live: its object states the hours from the day the gateway went live.
+  if (span.end > first) return { start: first, end: span.end };
+  // Live for less than a month: the newest object held.
+  const held = heldSpans(liveSince, now);
+  return held.length > 0 ? held[held.length - 1] : undefined;
 }

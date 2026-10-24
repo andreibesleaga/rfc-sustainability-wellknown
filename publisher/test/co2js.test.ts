@@ -20,7 +20,7 @@ describe("co2js adapter", () => {
       co2jsAdapter({
         provider: "Example",
         methodologyUri: "https://example.com/m",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         bytes: 5_000_000_000,
         green: false,
         gridZone: "USA",
@@ -45,7 +45,7 @@ describe("co2js adapter", () => {
         co2jsAdapter({
           provider: "P",
           methodologyUri: "https://x/m",
-          reportingPeriod: "2026-02",
+          period: "2026-02",
           bytes: 5_000_000_000,
           green: false,
           gridZone: zone,
@@ -63,7 +63,7 @@ describe("co2js adapter", () => {
       co2jsAdapter({
         provider: "P",
         methodologyUri: "https://x/m",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         bytes: 5_000_000_000,
         green: true,
         gridZone: "USA",
@@ -80,7 +80,7 @@ describe("co2js adapter", () => {
       co2jsAdapter({
         provider: "P",
         methodologyUri: "https://x/m",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         bytes: 1_000_000_000,
         green: false,
         gridIntensity: 100,
@@ -95,7 +95,7 @@ describe("co2js adapter", () => {
       co2jsAdapter({
         provider: "P",
         methodologyUri: "https://x/m",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         bytes: 1_000_000_000,
         green: false,
       }),
@@ -108,7 +108,7 @@ describe("co2js adapter", () => {
     const base = {
       provider: "P",
       methodologyUri: "https://x/m",
-      reportingPeriod: "2026-02",
+      period: "2026-02",
       bytes: 5_000_000_000,
       gridIntensity: 300,
     } as const;
@@ -139,7 +139,7 @@ describe("co2js adapter", () => {
       co2jsAdapter({
         provider: "P",
         methodologyUri: "https://x/m",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         bytes: 2_000_000,
         perVisit: true,
         green: false,

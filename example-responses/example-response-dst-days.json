@@ -1,0 +1,38 @@
+[
+  {
+    "updated": "2025-10-28T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Paris Colo SAS (sustainability@dst.example)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://dst.example/sustainability/methodology",
+    "period": {
+      "start": "2025-03-30T00:00:00+01:00",
+      "end": "2025-03-31T00:00:00+02:00"
+    },
+    "target": "Paris DC 1",
+    "target-type": "facility",
+    "energy-unit": "kWh",
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "location-based",
+    "energy-consumption": 253,
+    "carbon-footprint": 13.2
+  },
+  {
+    "updated": "2025-10-28T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Paris Colo SAS (sustainability@dst.example)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://dst.example/sustainability/methodology",
+    "period": {
+      "start": "2025-10-26T00:00:00+02:00",
+      "end": "2025-10-27T00:00:00+01:00"
+    },
+    "target": "Paris DC 1",
+    "target-type": "facility",
+    "energy-unit": "kWh",
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "location-based",
+    "energy-consumption": 275,
+    "carbon-footprint": 14.9
+  }
+]

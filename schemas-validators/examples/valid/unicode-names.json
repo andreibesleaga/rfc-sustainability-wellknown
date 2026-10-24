@@ -1,0 +1,62 @@
+[
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "ООО Пример (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "carbon-footprint": 4140,
+    "carbon-unit": "kgCO2e"
+  },
+  {
+    "updated": "2025-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "株式会社サンプル (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2024-01-01T00:00:00Z",
+      "end": "2025-01-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "carbon-footprint": 4140,
+    "carbon-unit": "kgCO2e"
+  },
+  {
+    "updated": "2024-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2023-01-01T00:00:00Z",
+      "end": "2024-01-01T00:00:00Z"
+    },
+    "target": "Zoë Ångström GmbH",
+    "target-type": "organization",
+    "carbon-footprint": 4140,
+    "carbon-unit": "kgCO2e"
+  },
+  {
+    "updated": "2023-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2022-01-01T00:00:00Z",
+      "end": "2023-01-01T00:00:00Z"
+    },
+    "target": "\u0065xample.com",
+    "target-type": "origin",
+    "carbon-footprint": 4140,
+    "carbon-unit": "kgCO2e"
+  }
+]

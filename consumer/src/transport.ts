@@ -1,67 +1,95 @@
 /**
  * The one way this package retrieves anything over the network.
  *
- * Draft -07 §Mandatory Minimum Supported Service: the declaration "MUST be
- * published and retrieved over HTTPS", and "a consumer that follows a redirect
- * MUST require HTTPS on every hop". The rule is about hops, so redirects are
- * followed here by hand: each `Location` is checked BEFORE it is requested,
- * and a hop that fails the rule is never fetched (nothing is sent to an origin
- * the rules exclude). `sameOrigin` pins a fetch to one origin for callers that
- * need it.
- *
- * §Consumer Considerations adds the other half of that check: a consumer
- * "SHOULD bound the time, size, and redirects of every fetch, including those
- * of upstream declarations, and SHOULD refuse URIs that resolve to private or
- * link-local addresses, since dereferencing URIs from an untrusted document
- * exposes it to server-side request forgery". Every URI this package
- * dereferences comes out of a document some other origin wrote — the
+ * Draft -10 §Location and Transport: a declaration "MUST be published and
+ * retrieved over HTTPS". §Security Considerations adds that a consumer SHOULD
+ * "bound the time, size, and redirects of every fetch, dereference only
+ * 'https' references, and refuse a loopback, private, or link-local address at
+ * every connection it makes, redirects included". Every URI this package
+ * dereferences comes out of a document some other origin wrote (the
  * declaration's own `methodology-uri`, `disclosure-uri`,
  * `verifiable-attestation-uri` and `upstream[].declaration`, and every
- * `Location` on the way — so {@link addressRefusal} resolves each hop's host
- * and refuses it before the request when it lands inside the network the
- * consumer is running on. `lookup` makes the resolver injectable, so a test
- * pins it and no suite ever touches live DNS.
+ * `Location` on the way), so the rules are applied to every hop:
+ *
+ *  - Redirects are followed here by hand (`redirect: "manual"`, at most five).
+ *    Each `Location` is checked BEFORE it is requested, so nothing is sent to
+ *    an origin the rules exclude. `sameOrigin` pins a fetch to one origin.
+ *  - The address is checked where the connection is made. The request goes
+ *    through an undici `Agent` whose `connect.lookup` is the resolver and the
+ *    check in one: the addresses it approves are the addresses the socket may
+ *    use, so a name that resolves differently a moment later (DNS rebinding)
+ *    cannot change the answer after the check. Only an address whose
+ *    ipaddr.js range is `unicast` passes, after `::ffff:a.b.c.d` is unwrapped
+ *    and the IPv4 address inside a NAT64 `64:ff9b::/96` address is tested in
+ *    its place. A literal IP host never reaches the lookup, so it is checked
+ *    before the connection instead.
+ *  - Certificate and host name are verified on every https connection. There
+ *    is no option that turns that off; `ca` only adds a certificate authority
+ *    to the ones that are trusted.
+ *
+ * `lookup` makes the resolver injectable, so a test pins it and no suite ever
+ * touches live DNS. A caller that passes its own `fetchImpl` (a stand-in in a
+ * test) opens no connection through this module, so the connect-time check
+ * does not apply to it; the scheme, user-information and literal-address
+ * rules still do.
  *
  * Bodies are read with a running byte cap and the exact octets are kept.
  */
-import { BlockList, isIP } from "node:net";
+import { isIP, type LookupFunction } from "node:net";
 import { lookup as systemLookup } from "node:dns/promises";
+import { rootCertificates } from "node:tls";
+import ipaddr from "ipaddr.js";
+import { Agent, fetch as undiciFetch } from "undici";
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 const MAX_REDIRECTS = 5;
 
 /**
- * The address ranges a fetch is refused for. Each is a place a URI in a
- * third-party document has no business pointing at, and each is one of the
- * classes §Consumer Considerations names — "private or link-local" — read
- * together with the loopback and unspecified addresses that are the same hazard
- * by another name.
+ * Whether `address` may be connected to: its ipaddr.js range is `unicast`.
+ * That excludes loopback, private, link-local, unique-local, unspecified,
+ * carrier-grade NAT, reserved, multicast and broadcast addresses, and also
+ * 6to4 and Teredo, which carry an IPv4 address that is not the host's.
  *
- * IPv4-mapped IPv6 addresses (`::ffff:10.0.0.1`, and the `::ffff:a00:1` form a
- * URL normalizes it to) are covered by `BlockList` itself, which compares them
- * against the IPv4 rules; both spellings have a test.
+ * `::ffff:a.b.c.d` is read as the IPv4 address it wraps. A NAT64 address
+ * (`64:ff9b::/96`) is read as the IPv4 address in its last 32 bits, because on
+ * an IPv6-only network a resolver answers real sites that way; refusing the
+ * range would block them, while testing the embedded address blocks
+ * `64:ff9b::7f00:1`. Anything that is not an IP address is not allowed.
  */
-const BLOCKED_ADDRESSES = new BlockList();
-BLOCKED_ADDRESSES.addSubnet("0.0.0.0", 8, "ipv4"); // "this host on this network" (RFC 1122)
-BLOCKED_ADDRESSES.addSubnet("10.0.0.0", 8, "ipv4"); // private (RFC 1918)
-BLOCKED_ADDRESSES.addSubnet("127.0.0.0", 8, "ipv4"); // loopback
-BLOCKED_ADDRESSES.addSubnet("169.254.0.0", 16, "ipv4"); // link-local (RFC 3927)
-BLOCKED_ADDRESSES.addSubnet("172.16.0.0", 12, "ipv4"); // private (RFC 1918)
-BLOCKED_ADDRESSES.addSubnet("192.168.0.0", 16, "ipv4"); // private (RFC 1918)
-BLOCKED_ADDRESSES.addAddress("::", "ipv6"); // unspecified
-BLOCKED_ADDRESSES.addAddress("::1", "ipv6"); // loopback
-BLOCKED_ADDRESSES.addSubnet("fc00::", 7, "ipv6"); // unique-local (RFC 4193)
-BLOCKED_ADDRESSES.addSubnet("fe80::", 10, "ipv6"); // link-local (RFC 4291)
+function isUnicast(address: string): boolean {
+  if (!ipaddr.isValid(address)) return false;
+  let parsed = ipaddr.process(address);
+  if (parsed instanceof ipaddr.IPv6 && parsed.range() === "rfc6052") {
+    const [high, low] = parsed.parts.slice(6);
+    parsed = new ipaddr.IPv4([high >> 8, high & 0xff, low >> 8, low & 0xff]);
+  }
+  return parsed.range() === "unicast";
+}
+
+/** Whether `address` is a loopback address (`::ffff:127.0.0.1` read as the IPv4 address it wraps). */
+function isLoopback(address: string): boolean {
+  return ipaddr.isValid(address) && ipaddr.process(address).range() === "loopback";
+}
+
+/** `allowInsecure` lifts the address check for loopback; an explicit `allowPrivateAddresses: false` keeps even that. */
+function loopbackAllowed(opts: SecureGetOptions): boolean {
+  return opts.allowInsecure === true && opts.allowPrivateAddresses !== false;
+}
+
+/** Whether a connection to `address` is allowed: public unicast, or loopback when `allowLoopback` is set. */
+function addressPermitted(address: string, allowLoopback: boolean): boolean {
+  return isUnicast(address) || (allowLoopback && isLoopback(address));
+}
 
 /**
- * True when an IP address literal is one this package refuses to fetch from.
+ * True when an IP address literal is one this package refuses to connect to.
  * Exported so a caller can apply the same rule to a URI of its own before
- * handing it over.
+ * handing it over. A string that is not an IP address is not blocked here: a
+ * name is judged by the addresses it resolves to.
  */
 export function isBlockedAddress(address: string): boolean {
-  const family = isIP(address);
-  if (family === 0) return false;
-  return BLOCKED_ADDRESSES.check(address, family === 4 ? "ipv4" : "ipv6");
+  const host = address.replace(/^\[(.*)\]$/, "$1");
+  return isIP(host) !== 0 && !isUnicast(host);
 }
 
 /**
@@ -79,6 +107,7 @@ export const systemAddressLookup: AddressLookup = async (hostname) =>
   (await systemLookup(hostname, { all: true, verbatim: true })).map((entry) => entry.address);
 
 export interface SecureGetOptions {
+  /** A stand-in for the transport (tests). Without it the request goes through undici with the connect-time check. */
   fetchImpl?: typeof fetch;
   timeoutMs: number;
   allowInsecure?: boolean;
@@ -87,20 +116,24 @@ export interface SecureGetOptions {
   sameOrigin?: string;
   /**
    * Resolve host names with this instead of the system resolver
-   * ({@link systemAddressLookup}). A literal IP host is never looked up at all.
+   * ({@link systemAddressLookup}). It is the resolver of the connection, asked
+   * once per connection; a literal IP host is never looked up at all.
    */
   lookup?: AddressLookup;
   /**
-   * Opt out of the address check (default: the value of `allowInsecure`).
-   *
-   * The two travel together because they describe one situation: a consumer
-   * pointed at a local development server or a CI fixture on `127.0.0.1` needs
-   * both the plain-HTTP exemption and the loopback one, and a consumer pointed
-   * at the open internet wants neither. Set this one on its own to reach a
-   * private address over HTTPS — an origin on the deployment's own network,
-   * say — while keeping the transport requirement.
+   * Opt out of the address check altogether (default false). `allowInsecure`
+   * permits the http scheme and loopback addresses only, for a local test
+   * server; private, link-local and the other refused ranges stay refused
+   * unless this is set (an explicit false keeps loopback refused too), which is the way to reach an origin on the
+   * deployment's own network deliberately.
    */
   allowPrivateAddresses?: boolean;
+  /**
+   * Certificate authorities to trust in addition to the system's, as PEM text.
+   * For an origin on a private PKI. Certificate and host name verification
+   * stay on whatever is given here.
+   */
+  ca?: string | readonly string[];
 }
 
 /** A refusal decided by the transport rules, before or after the request. */
@@ -111,7 +144,9 @@ export interface TransportRefusal {
     | "too-many-redirects"
     | "timeout"
     | "network-error"
-    /** The host is, or resolves to, a loopback/private/link-local/unique-local/unspecified address. */
+    /** The certificate chain or the host name did not verify; no byte of the body was read. */
+    | "tls-error"
+    /** The host is, or resolves to, a loopback, private, link-local or otherwise non-unicast address. */
     | "blocked-address"
     /** The URI carries userinfo, which this package will not put on the wire. */
     | "userinfo-in-uri";
@@ -127,6 +162,43 @@ export function isAbortOrTimeout(err: unknown): boolean {
   return err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
 }
 
+/** Raised by the connect-time lookup when a name resolves to an address that may not be used. */
+class BlockedAddressError extends Error {
+  constructor(
+    readonly host: string,
+    readonly blocked: readonly string[],
+  ) {
+    super(
+      `${host} resolves to ${blocked.join(", ")}, which is not a public unicast address (loopback, private, link-local, ` +
+        `unique-local, unspecified, carrier-grade NAT, reserved, multicast, or a NAT64, 6to4 or Teredo address of one)`,
+    );
+    this.name = "BlockedAddressError";
+  }
+}
+
+/**
+ * The `connect.lookup` of the Agent: resolve with `resolve`, refuse unless
+ * every address is allowed, and hand back the addresses it checked. The socket
+ * connects to one of exactly these, so there is no second resolution to race.
+ * Node asks for `{ all: true }` when it tries several addresses in turn and for
+ * one address otherwise; both are answered.
+ */
+export function connectLookup(resolve: AddressLookup, enforce: boolean, allowLoopback = false): LookupFunction {
+  return (hostname, options, callback) => {
+    resolve(hostname).then(
+      (addresses) => {
+        const blocked = enforce ? addresses.filter((address) => !addressPermitted(address, allowLoopback)) : [];
+        if (blocked.length > 0) return callback(new BlockedAddressError(hostname, blocked), "", 0);
+        if (addresses.length === 0) return callback(new Error(`no address for ${hostname}`), "", 0);
+        const answers = addresses.map((address) => ({ address, family: isIP(address) }));
+        if (options.all) return callback(null, answers);
+        callback(null, answers[0].address, answers[0].family);
+      },
+      (err: unknown) => callback(err instanceof Error ? err : new Error(String(err)), "", 0),
+    );
+  };
+}
+
 /** The rule every hop must pass; `undefined` when it does. */
 function hopRefusal(url: URL, opts: SecureGetOptions, redirected: boolean): TransportRefusal | undefined {
   if (!opts.allowInsecure && url.protocol !== "https:") {
@@ -135,7 +207,7 @@ function hopRefusal(url: URL, opts: SecureGetOptions, redirected: boolean): Tran
       url: url.toString(),
       detail:
         `refusing to retrieve ${url.toString()} over "${url.protocol.replace(/:$/, "")}"` +
-        `${redirected ? " (reached through a redirect)" : ""}: the draft requires HTTPS on every hop ` +
+        `${redirected ? " (reached through a redirect)" : ""}: this consumer dereferences only https URIs ` +
         `(pass allowInsecure: true to override, for local development only)`,
     };
   }
@@ -148,10 +220,8 @@ function hopRefusal(url: URL, opts: SecureGetOptions, redirected: boolean): Tran
   }
   // Userinfo. Unconditional, and not covered by any of the opt-outs: a
   // declaration is public, unauthenticated data, so a URI in one has no reason
-  // to carry credentials, and putting them on the wire — or into a redirect
-  // chain, a log line, or a `Referer` — is a hazard with no upside. `https://`
-  // and the address check are about WHERE a request goes; this is about what
-  // travels with it.
+  // to carry credentials, and putting them on the wire (or into a redirect
+  // chain, a log line, or a `Referer`) is a hazard with no upside.
   if (url.username !== "" || url.password !== "") {
     return {
       reason: "userinfo-in-uri",
@@ -162,80 +232,86 @@ function hopRefusal(url: URL, opts: SecureGetOptions, redirected: boolean): Tran
         `document on the wire`,
     };
   }
+  // A literal IP host skips the lookup of the connection, so it is judged here.
+  const host = url.hostname.replace(/^\[(.*)\]$/, "$1");
+  if (!opts.allowPrivateAddresses && isIP(host) !== 0 && !addressPermitted(host, loopbackAllowed(opts))) {
+    return {
+      reason: "blocked-address",
+      url: url.toString(),
+      detail:
+        `refusing to retrieve ${url.toString()}: the host is ${host}, which is not a public unicast address ` +
+        `(loopback, private, link-local, unique-local, unspecified, carrier-grade NAT, reserved, multicast, or a ` +
+        `NAT64, 6to4 or Teredo address of one). A consumer refuses such an address at every connection, since ` +
+        `dereferencing a URI out of an untrusted document otherwise turns it into a probe for the network it runs ` +
+        `on (pass allowPrivateAddresses: true to override)`,
+    };
+  }
   return undefined;
 }
 
-/**
- * The address half of the hop check, separate because it may need the network.
- *
- * Draft -07 §Consumer Considerations: a consumer "SHOULD refuse URIs that
- * resolve to private or link-local addresses, since dereferencing URIs from an
- * untrusted document exposes it to server-side request forgery". Applied to
- * every hop BEFORE it is requested, so nothing is ever sent to an address the
- * rule excludes — including a `Location` that points inward from an origin that
- * answered the first hop honestly.
- *
- * A literal IP host is checked as it stands, with no lookup. A name is resolved
- * through `lookup`, and ONE blocked address among the answers is enough to
- * refuse: a name that resolves to both a public and a private address is the
- * shape a rebinding attack takes, and there is no reading under which following
- * it is what the caller wanted.
- *
- * A lookup that fails is NOT a refusal here: it becomes the ordinary
- * `network-error` a caller already gets when a host does not resolve, which is
- * what `fetch` itself would have produced a moment later.
- *
- * What it cannot close is the gap between this resolution and the one `fetch`
- * performs — a name whose answer changes in between (DNS rebinding) is resolved
- * twice and only the first answer is checked. Closing that needs the request
- * pinned to the address that was checked, which the platform `fetch` gives no
- * way to do; a deployment that must be proof against it puts an egress proxy in
- * front of this package.
- */
-async function addressRefusal(url: URL, opts: SecureGetOptions): Promise<TransportRefusal | undefined> {
-  if (opts.allowPrivateAddresses ?? opts.allowInsecure) return undefined;
-  // A URL keeps an IPv6 literal in brackets; the address itself is inside them.
-  const host = url.hostname.replace(/^\[(.*)\]$/, "$1");
-  let addresses: readonly string[];
-  if (isIP(host) !== 0) {
-    addresses = [host];
-  } else {
-    try {
-      addresses = await (opts.lookup ?? systemAddressLookup)(host);
-    } catch (err) {
-      return {
-        reason: "network-error",
-        url: url.toString(),
-        detail: `could not resolve ${host}: ${err instanceof Error ? err.message : String(err)}`,
-      };
-    }
+/** The error codes of a failed certificate or host name verification (Node's tls and OpenSSL's). */
+const TLS_FAILURE = /^(ERR_TLS_|CERT_|DEPTH_ZERO_SELF_SIGNED_CERT|SELF_SIGNED_CERT_IN_CHAIN|UNABLE_TO_(GET|VERIFY)_|HOSTNAME_MISMATCH|ERR_SSL_)/;
+
+/** The innermost `cause` chain of a fetch failure, outermost first. */
+function causes(err: unknown): unknown[] {
+  const chain: unknown[] = [];
+  for (let e: unknown = err; e !== undefined && e !== null && chain.length < 5; e = (e as { cause?: unknown }).cause) chain.push(e);
+  return chain;
+}
+
+/** Turn a thrown fetch failure into the refusal it stands for. */
+function failure(err: unknown, url: URL): TransportRefusal {
+  if (isAbortOrTimeout(err)) return { reason: "timeout", url: url.toString() };
+  const chain = causes(err);
+  const blocked = chain.find((e): e is BlockedAddressError => e instanceof BlockedAddressError);
+  if (blocked) {
+    return {
+      reason: "blocked-address",
+      url: url.toString(),
+      detail:
+        `refusing to connect to ${url.toString()}: ${blocked.message}. A consumer refuses such an address at every ` +
+        `connection, since dereferencing a URI out of an untrusted document otherwise turns it into a probe for the ` +
+        `network it runs on (pass allowPrivateAddresses: true to override)`,
+    };
   }
-  const blocked = addresses.filter((address) => isBlockedAddress(address));
-  if (blocked.length === 0) return undefined;
-  return {
-    reason: "blocked-address",
-    url: url.toString(),
-    detail:
-      `refusing to retrieve ${url.toString()}: ${isIP(host) !== 0 ? "the host is" : `${host} resolves to`} ` +
-      `${blocked.join(", ")}, ${blocked.length > 1 ? "which are" : "which is"} a loopback, private, link-local, ` +
-      `unique-local or unspecified address. The draft has a consumer refuse URIs that resolve to such addresses, ` +
-      `since dereferencing a URI out of an untrusted document otherwise turns this consumer into a probe for the ` +
-      `network it runs on (pass allowPrivateAddresses: true to override)`,
-  };
+  const tls = chain.find((e) => typeof (e as { code?: unknown }).code === "string" && TLS_FAILURE.test((e as { code: string }).code));
+  if (tls) {
+    const { code, message } = tls as { code: string; message?: string };
+    return { reason: "tls-error", url: url.toString(), detail: `the certificate of ${url.host} did not verify (${code}${message ? `: ${message}` : ""})` };
+  }
+  return { reason: "network-error", url: url.toString(), detail: err instanceof Error ? err.message : String(err) };
 }
 
 /**
  * GET `url`, following at most five redirects, checking each hop against the
- * transport rules before requesting it. The returned response is unread.
+ * transport rules before requesting it. The returned response is unread, and
+ * the one deadline `timeoutMs` covers the hops and the reading of the body.
  */
 export async function secureGet(url: URL, opts: SecureGetOptions): Promise<SecureGetResult> {
-  const doFetch = opts.fetchImpl ?? globalThis.fetch;
-  if (!doFetch) throw new Error("no fetch implementation available; pass options.fetchImpl");
+  const enforce = !opts.allowPrivateAddresses;
+  const agent = opts.fetchImpl
+    ? undefined
+    : new Agent({
+        keepAliveTimeout: 1,
+        keepAliveMaxTimeout: 1,
+        connect: {
+          lookup: connectLookup(opts.lookup ?? systemAddressLookup, enforce, loopbackAllowed(opts)),
+          ...(opts.ca === undefined ? {} : { ca: [...rootCertificates, ...(typeof opts.ca === "string" ? [opts.ca] : opts.ca)] }),
+        },
+      });
+  const doFetch = (opts.fetchImpl ?? undiciFetch) as typeof fetch;
+  const signal = AbortSignal.timeout(opts.timeoutMs);
+  // `close` lets a response in flight finish, so the body can still be read.
+  const release = () => void agent?.close().catch(() => undefined);
+
   let current = url;
   let redirected = false;
   for (let hop = 0; ; hop++) {
-    const refused = hopRefusal(current, opts, redirected) ?? (await addressRefusal(current, opts));
-    if (refused) return { ok: false, refusal: refused };
+    const refused = hopRefusal(current, opts, redirected);
+    if (refused) {
+      release();
+      return { ok: false, refusal: refused };
+    }
 
     let res: Response;
     try {
@@ -243,25 +319,25 @@ export async function secureGet(url: URL, opts: SecureGetOptions): Promise<Secur
         method: "GET",
         headers: opts.headers,
         redirect: "manual",
-        signal: AbortSignal.timeout(opts.timeoutMs),
-      });
+        signal,
+        ...(agent ? { dispatcher: agent } : {}),
+      } as RequestInit);
     } catch (err) {
-      if (isAbortOrTimeout(err)) return { ok: false, refusal: { reason: "timeout", url: current.toString() } };
-      return {
-        ok: false,
-        refusal: { reason: "network-error", url: current.toString(), detail: err instanceof Error ? err.message : String(err) },
-      };
+      release();
+      return { ok: false, refusal: failure(err, current) };
     }
 
     const location = res.headers.get("location");
     if (REDIRECT_STATUSES.has(res.status) && location !== null) {
       await res.body?.cancel().catch(() => undefined);
       if (hop >= MAX_REDIRECTS) {
+        release();
         return { ok: false, refusal: { reason: "too-many-redirects", url: current.toString(), detail: `more than ${MAX_REDIRECTS} redirects` } };
       }
       try {
         current = new URL(location, current);
       } catch {
+        release();
         return { ok: false, refusal: { reason: "network-error", url: current.toString(), detail: `unparseable Location "${location}"` } };
       }
       redirected = true;
@@ -279,15 +355,17 @@ export async function secureGet(url: URL, opts: SecureGetOptions): Promise<Secur
         finalUrl = undefined;
       }
       if (finalUrl) {
-        const refusedFinal = hopRefusal(finalUrl, opts, true) ?? (await addressRefusal(finalUrl, opts));
+        const refusedFinal = hopRefusal(finalUrl, opts, true);
         if (refusedFinal) {
           await res.body?.cancel().catch(() => undefined);
+          release();
           return { ok: false, refusal: refusedFinal };
         }
         current = finalUrl;
         redirected = redirected || res.redirected === true;
       }
     }
+    release();
     return { ok: true, res, url: current, redirected };
   }
 }
@@ -308,6 +386,7 @@ export class BodyTooLargeError extends Error {
  * Read a response body with a running byte cap, aborting as soon as the cap is
  * exceeded so an oversized (or chunked, or Content-Length-lying) body is never
  * fully buffered. An advertised oversized Content-Length is refused unread.
+ * The cap counts the bytes after any content coding.
  */
 export async function readBodyCapped(res: Response, maxBytes: number): Promise<{ bytes: Uint8Array; text: string }> {
   const declared = Number(res.headers.get("content-length") ?? "");

@@ -60,25 +60,25 @@ figure. Publishing `hardware-metered` here would be false.
 ### Derivation
 
 ```
-energy-consumption (Wh)   = watts x hours(reporting-period), four significant figures
+energy-consumption (Wh)   = watts x hours(period), four significant figures
 carbon-footprint  (gCO2e) = energy-consumption (Wh) / 1000 x carbon-intensity-gCO2e-per-kWh
 ```
 
-`hours(reporting-period)` is the number of hours of the named calendar period,
-in UTC, that fall inside the gateway's **live window** `[live-since, now)`. For
+`hours(period)` is the number of hours of the object's `period` (its `start` up
+to its `end`), in UTC, that fall inside the gateway's **live window** `[live-since, now)`. For
 a complete period after go-live that is the whole period (a 30-day month is
 720 h, a 31-day month 744 h, a common year 8760 h, a leap year 8784 h); for the
 go-live month it is the hours from go-live to the month's end (July 2026: 48 h,
 live since 2026-07-30); for a period in progress it is the hours to date; for a
-period wholly before go-live it is zero, and the document does not exist (the
-draft's no-data rule, `404`). The document is fully determined by the period,
+period wholly before go-live it is zero, and no object is held for it (a request
+for such a range is answered with an empty array). The document is fully determined by the period,
 the live window, and the two constants below.
 
 | Input | Default | Environment variable | Basis |
 |---|---|---|---|
 | Average power draw | 3 W | `SELF_WATTS` | Assumption. A single always-on Node.js process serving small cached JSON documents, on a shared vCPU slice. Set this to your platform's figure if you have one. |
 | Grid carbon intensity | 245 gCO2e/kWh | `SELF_GRID_INTENSITY` | Netherlands, 2024: the European Environment Agency's greenhouse-gas emission intensity of electricity generation (CC BY 4.0) — see below. The gateway runs in Railway's Netherlands region. |
-| Reporting period | most recently completed calendar month | `SELF_PERIOD` | The draft's Basic default for a publisher reporting more frequently than annually; any other period since go-live is available through the Extended parameters below. |
+| Period of the parameterless answer | most recently completed calendar month | `SELF_PERIOD_START` and `SELF_PERIOD_END` | A request that names no parameter is answered with this one object; the objects the gateway holds for other periods since go-live are available through the Extended parameters below. |
 | Live since | 2026-07-30T00:00:00Z | `SELF_LIVE_SINCE` | The earliest surviving deployment record of the reference gateway. No hours before it are counted. |
 
 ### Measured months: entering the platform's own figures
@@ -131,33 +131,36 @@ member. A malformed file stops the gateway at boot.
 
 ### Extended parameters and the live window
 
-The self report declares `capabilities: "extended"` and honours two of the
-draft's three Extended parameters:
+The self report declares `capabilities: "extended"` and honours all four of the
+draft's query parameters, `start`, `end`, `granularity` and `target`. A request
+that names none of them is answered with one object, the most recently completed
+calendar month. A request that names any of them is answered with the array of
+the objects the gateway **holds** that satisfy every parameter given, in ascending
+order of `period.start`; when it holds none, the answer is `200` and `[]`. The
+gateway computes no aggregate and cuts no selection.
 
-- `period` — `YYYY`, `YYYY-MM` or `YYYY-MM-DD`; the model is evaluated on the
-  hours of that period inside the live window;
-- `granularity` — `monthly` or `daily`; when finer than the period, one object
-  per slice with data, in ascending order (a year of daily slices is at most
-  366 objects, the calendar bound the draft notes and the bound the model cannot
-  exceed; -07 puts the binding limit on the consumer, and this deployment keeps
-  the same 366 as an explicit cap on the array source files it loads). A
-  granularity that is not finer than the period, or any other value, is ignored.
+**The held set** is closed-form, because the model is: whole days for the most
+recent 120 days since go-live, every whole calendar month and every whole calendar
+year since go-live, and the two partial months at the edges (the go-live month,
+from go-live to the month's end, and the month in progress, from its first day to
+now), each only when it holds at least one whole day. The two partial months are
+not whole, so `granularity=monthly` does not select them. The set has at most 200
+objects at any clock. Only hours inside the live window `[live-since, now)`
+count, with `now` the start of the current UTC day.
 
-**The set of path prefixes this publisher honours for the `target` parameter is
-EMPTY.** A server honouring the parameter MUST publish that set here, and here it
-is: the gateway is one process with no path prefixes to scope a report to. Step 4
-of the draft's query procedure therefore matches no value, and any `target=`
-request is answered `404` — identically for every value, and byte for byte the
-same `404` a period with no figures gets, so the response discloses nothing about
-which paths exist.
+- `start` and `end` — UTC date-times such as `2026-09-01T00:00:00Z`; an object
+  satisfies them when its period overlaps the range they bound;
+- `granularity` — `yearly`, `monthly` or `daily`; the object's period must be a
+  whole calendar year, month or day;
+- `target` — selects by equality with the report's own `target`; any other value
+  selects nothing.
 
-Since -07 the procedure is strict about malformed input as well: a defined
-parameter given more than once, and a `period` that is not a real calendar year,
-month or day, are both `400 Bad Request` rather than ignored. An unrecognized
-`granularity` value stays ignored, as step 3 requires.
+A value that does not match the draft's grammar, and a parameter given more than
+once, are ignored: the request is answered as if the parameter were absent, and is
+never refused.
 
-Every slice is the same closed-form model evaluated on a shorter window, so
-aggregation and evaluation coincide and there is nothing to sum.
+Every object is the same closed-form model evaluated on its own window, so
+there is nothing to sum.
 
 ### The grid intensity factor, and its limits
 
@@ -229,7 +232,7 @@ badges them `synthetic`.
 
 - **`retailer.example`** — a synthetic organization-wide annual inventory
   exercising the widest optional member set. It carried a top-level
-  reverse-domain extension member until -07 closed the top-level member set;
+  reverse-domain extension member until the draft closed the top-level member set;
   that member was removed rather than re-homed, and `extensions` is demonstrated
   instead on `tenant-demo.example` (see
   [6. Extension names used here](#6-extension-names-used-here)). Internally consistent:
@@ -338,7 +341,7 @@ so that what they do — and do not — establish is on record.
 
 ### The embedded signature
 
-Since -07 the signature is a member of the declaration, not a resource of its
+The signature is a member of the declaration, not a resource of its
 own: each declaration object the self report emits carries `signed`, a JWS
 Compact Serialization (RFC 7515 §7.1, EdDSA/Ed25519, `cty:
 sustainability-data+json`) whose payload is that same object without `signed`.
@@ -355,7 +358,7 @@ signed, and that successive declarations came from the same key. What it does
 not establish: who holds the key, and whether the figures are right — a
 correctly signed estimate is still an estimate. The precedent for carrying a
 signature inside the object it secures is the `signed_metadata` parameter of
-RFC 8414. -07 makes that precedence conditional on the key: a payload overrides
+RFC 8414. The draft makes that precedence conditional on the key: a payload overrides
 the members around it only where the verifier obtained the key out of band,
 pinned it from an earlier retrieval, or validated it through an `x5c` chain to an
 anchor it already trusts. For this deployment's header-carried `jwk`, taken on
@@ -375,7 +378,7 @@ the model (`entered-watts-by-month`), so a verifier recomputing any month from
 the credential's constants gets the served figure. The credential is re-issued
 whenever an entered month or a constant changes; the current one was issued on
 2026-10-02 with the September 2026 entry and the 245 gCO2e/kWh grid intensity. The issuer's public key is
-hosted at the URL the credential's `kid` names. Under -07 a credential can also
+hosted at the URL the credential's `kid` names. A credential can also
 bind to one declaration by carrying a copy of that object (without `signed`) at
 `credentialSubject.declaration`; the issuing tool does that on
 `--declaration <file>` and omits the copy otherwise, because a copy binds the
@@ -394,9 +397,9 @@ in its own words, on its index page and in the credential's description.
 The relayed declarations are not signed and carry no attestation: the gateway
 can vouch for its own bytes, never for another organization's figures. (The
 synthetic `sfc-ledger-demo.example` is the stated exception: it is signed with
-the public RFC 8032 test key, which is nobody's statement.) -07
-defines one resource and no signature path, so a request for the withdrawn
-`.jws` path is an ordinary `404`, at the root and under a subject alike.
+the public RFC 8032 test key, which is nobody's statement.) The draft
+defines one resource and no signature path, so a request for a `.jws` path is an
+ordinary `404`, at the root and under a subject alike.
 
 ### Upstream providers
 
@@ -431,18 +434,13 @@ the per-subject detail is in
 
 ### `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041`
 
-Defined by this gateway's operator; carried by the `go.eco` and `hmrc.gov.uk`
-documents (and by the withheld `microsoft.com` and `ovhcloud.com` documents,
-which are not served). Its value object carries one member:
-
-- **`reporting-period-basis`** (string) — the exact boundary of a fiscal
-  reporting period, written `fiscal-year-ended-<YYYY-MM-DD>`. It exists because
-  `reporting-period` admits only whole calendar periods, so a fiscal-year
-  inventory has to carry the calendar year in which the fiscal year *ended*; this
-  member states the real boundary in band, machine-readably, next to the same
-  statement in the `provider` text. A consumer that reads it knows it is
-  comparing offset periods. The `urn:uuid:` form is used because the definition
-  belongs to the operator rather than to any one domain.
+Defined by this gateway's operator for a fiscal-year inventory, at a time when
+the format could not state the boundary of a period other than a calendar year.
+Its value object carried one member, `reporting-period-basis` (string), written
+`fiscal-year-ended-<YYYY-MM-DD>` (a name of the earlier drafts, not of -10). It is no longer carried by any document served
+here: `period` states its two bounds exactly, so a fiscal year is written as it
+is, and the `provider` text of each such document says so in words. The name is
+kept on record because earlier copies of those documents carried it.
 
 ### `https://acme.example/esg/extensions/water-and-waste` and `urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845`
 

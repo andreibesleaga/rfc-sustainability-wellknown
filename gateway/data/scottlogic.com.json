@@ -4,12 +4,15 @@
   "provider": "Illustrative mapping prepared by the gateway operator, Andrei Besleaga, from the reporting subject's own published Environmental Impact Report 2025 (GHG emissions calculated with the Plan A Carbon Manager platform); NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: Market-based basis, as published (the report's total row is labelled market-based; no location-based total is printed). energy-consumption is the report's single stated figure, 214,219 kWh. No renewable share is published for 2025 (the report says only that it was ahead of its 2025 target to procure 100% renewable or low-carbon electricity), so renewable-energy is omitted.",
   "measurement-method": "third-party-modeled",
   "methodology-uri": "https://scottlogic.cdn.prismic.io/scottlogic/kZE3OZhZL4ljNWHy_EnvironmentalImpactReport2025.pdf",
-  "reporting-period": "2025",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
   "target": "Scott Logic Limited",
   "energy-consumption": 214219,
   "energy-unit": "kWh",
   "carbon-footprint": 470,
-  "carbon-unit": "mtCO2e",
+  "carbon-unit": "tCO2e",
   "carbon-accounting": "market-based",
   "scope-1": 0,
   "scope-2": 39,

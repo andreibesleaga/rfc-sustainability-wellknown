@@ -1,17 +1,49 @@
-/** Format transformations for a validated Sustainability Declaration. */
-import { CarbonUnit, EnergyUnit, SustainabilityDocument, SustainabilityMetrics } from "./types";
+/** Format transformations and totals for a validated Sustainability Declaration. */
+import { comparePeriodStart, compareDateTimes, Period, periodsOverlap } from "./period";
 import { isNotReported, NUMERIC_KEYS } from "./sentinel";
+import { CarbonAccounting, CarbonUnit, EnergyUnit, isCarbonUnit, isEnergyUnit, TargetType } from "./tokens";
+import { SignatureResult, SustainabilityDocument, SustainabilityMetrics } from "./types";
 import { convertCarbon, convertEnergy } from "./units";
+import { targetsEqual } from "./target";
 
 function asArray(doc: SustainabilityDocument): SustainabilityMetrics[] {
   return Array.isArray(doc) ? doc : [doc];
 }
 
+/**
+ * Where an export came from. A row without its source is a figure without the
+ * retrieval URI that relative references in it resolve against, and without
+ * the origin that claims it.
+ */
+export interface ExportSource {
+  /** The URL of the final response (`FetchResult.url`). */
+  url: string;
+  /** The outcome of the signature check for each object, in document order, when it was made. */
+  signatures?: SignatureResult[];
+}
+
+/** The origin that served the final response: every figure is that origin's claim. */
+const claimedBy = (url: string): string => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "";
+  }
+};
+
+/** `unsigned`, `verified` or `unverified`; empty when no check was made. */
+const signatureStatus = (source: ExportSource, index: number): string => source.signatures?.[index]?.status ?? "";
+
 const CSV_COLUMNS = [
+  "source-url",
+  "claimed-by",
+  "signature",
   "provider",
-  "reporting-period",
   "target",
-  "target-type", // optional (-04): empty cell when absent, like the other optional members
+  "target-type",
+  "carbon-accounting",
+  "period-start",
+  "period-end",
   "energy-consumption",
   "energy-unit",
   "carbon-footprint",
@@ -19,7 +51,7 @@ const CSV_COLUMNS = [
 ] as const;
 
 /** One CSV row per object (header row first), quoting values with commas. */
-export function toCsvRows(doc: SustainabilityDocument): string[] {
+export function toCsvRows(doc: SustainabilityDocument, source: ExportSource): string[] {
   const q = (v: unknown) => {
     const s = v === undefined ? "" : String(v);
     // RFC 4180: quote any value containing a comma, a double quote, or a
@@ -27,26 +59,57 @@ export function toCsvRows(doc: SustainabilityDocument): string[] {
     return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const rows = [CSV_COLUMNS.join(",")];
-  for (const m of asArray(doc)) {
-    rows.push(CSV_COLUMNS.map((c) => q(m[c])).join(","));
-  }
+  asArray(doc).forEach((m, i) => {
+    const cells: Record<(typeof CSV_COLUMNS)[number], unknown> = {
+      "source-url": source.url,
+      "claimed-by": claimedBy(source.url),
+      signature: signatureStatus(source, i),
+      provider: m.provider,
+      target: m.target,
+      "target-type": m["target-type"],
+      "carbon-accounting": m["carbon-accounting"],
+      "period-start": m.period.start,
+      "period-end": m.period.end,
+      "energy-consumption": m["energy-consumption"],
+      "energy-unit": m["energy-unit"],
+      "carbon-footprint": m["carbon-footprint"],
+      "carbon-unit": m["carbon-unit"],
+    };
+    rows.push(CSV_COLUMNS.map((c) => q(cells[c])).join(","));
+  });
   return rows;
 }
 
-/** Newline-delimited JSON, one object per line. */
-export function toNdjson(doc: SustainabilityDocument): string {
+/**
+ * Newline-delimited JSON, one line per object. Each line wraps the object
+ * unchanged in the claim it is: who made it and where it was retrieved from.
+ */
+export function toNdjson(doc: SustainabilityDocument, source: ExportSource): string {
   return asArray(doc)
-    .map((m) => JSON.stringify(m))
+    .map((m, i) =>
+      JSON.stringify({
+        "source-url": source.url,
+        "claimed-by": claimedBy(source.url),
+        ...(source.signatures?.[i] ? { signature: signatureStatus(source, i) } : {}),
+        declaration: m,
+      }),
+    )
     .join("\n");
 }
 
 export interface FlatRecord {
+  /** The URL of the final response and the origin that claims the figure. */
+  "source-url": string;
+  "claimed-by": string;
   provider: string;
-  "reporting-period": string;
-  /** The mandatory reporting subject — always present on a valid 2.0 document. */
+  /** The mandatory subject of the object. */
   target: string;
-  /** The optional -04 classification hint for `target`; omitted when absent. */
+  /** The optional classification hint for `target`; omitted when absent. */
   "target-type"?: string;
+  /** Omitted when the object states no accounting method. */
+  "carbon-accounting"?: string;
+  /** The two bounds of the object, as it states them. */
+  period: Period;
   metric: string;
   value: number;
   unit: string;
@@ -58,12 +121,12 @@ const NON_NEGATIVE: readonly string[] = NUMERIC_KEYS;
 /**
  * One row per numeric metric (incl. scopes), for time-series ingestion.
  *
- * Negative values are skipped only for the NON-NEGATIVE members (sentinel.ts's
- * legacy-compatibility rule: they read as "not reported"); a negative scope
- * value is real data (net accounting) and flows through. Absent unit members
- * fall back to the draft's defaults (kWh / gCO2e).
+ * A value that cannot be a figure of a non-negative member (negative, not
+ * finite) is skipped; a negative scope value is real data (net accounting) and
+ * flows through. Absent unit members fall back to the draft's defaults
+ * (kWh / gCO2e).
  */
-export function flatten(doc: SustainabilityDocument): FlatRecord[] {
+export function flatten(doc: SustainabilityDocument, source: ExportSource): FlatRecord[] {
   const rows: FlatRecord[] = [];
   // [metric, unit-member ?? "", default/literal unit label]
   const numeric: Array<[string, string, string]> = [
@@ -81,13 +144,9 @@ export function flatten(doc: SustainabilityDocument): FlatRecord[] {
     for (const [metric, unitField, defaultUnit] of numeric) {
       const value = m[metric];
       if (typeof value !== "number") continue; // absent
-      // Out-of-range in a bounded member = "not reported" (legacy compat /
-      // draft §Value Constraints): negatives in the non-negative members, and
-      // a renewable-energy percentage above 100.
       if (NON_NEGATIVE.includes(metric) && isNotReported(value, metric)) continue;
-      // sci-score is expressed in gCO2e per the declared functional-unit
-      // (draft §Optional Members) — label it truthfully rather than
-      // emitting an empty unit into time-series backends.
+      // sci-score is expressed in gCO2e per the declared functional-unit:
+      // label it truthfully rather than emitting an empty unit.
       const unit =
         metric === "sci-score"
           ? `gCO2e/${m["functional-unit"] ?? "functional-unit"}`
@@ -95,11 +154,13 @@ export function flatten(doc: SustainabilityDocument): FlatRecord[] {
             ? String(m[unitField as keyof SustainabilityMetrics])
             : defaultUnit;
       rows.push({
+        "source-url": source.url,
+        "claimed-by": claimedBy(source.url),
         provider: m.provider,
-        "reporting-period": m["reporting-period"],
         target: m.target,
-        // Pass the classification hint through as a plain string when present.
         ...(typeof m["target-type"] === "string" ? { "target-type": m["target-type"] } : {}),
+        ...(typeof m["carbon-accounting"] === "string" ? { "carbon-accounting": m["carbon-accounting"] } : {}),
+        period: m.period,
         metric,
         value,
         unit,
@@ -109,123 +170,156 @@ export function flatten(doc: SustainabilityDocument): FlatRecord[] {
   return rows;
 }
 
-export interface AggregateOptions {
-  by: "sum" | "average";
+export interface TotalOptions {
+  /** The unit of the energy total; default the unit of the first object reporting energy. */
   energyUnit?: EnergyUnit;
+  /** The unit of the carbon total and the scopes; default the unit of the first object reporting any of them. */
   carbonUnit?: CarbonUnit;
 }
 
 /**
- * The `reporting-period` of a summary: `"<first>..<last>"`.
- *
- * It is deliberately NOT a draft `period-value`. The draft's §Mandatory Members
- * allows `YYYY`, `YYYY-MM` and `YYYY-MM-DD` and nothing else, and a range is
- * none of them — `validateDocument()` rejects an object carrying one, which is
- * the guarantee that a summary cannot be mistaken for, or republished as, a
- * declaration.
+ * What {@link total} returns: a CLIENT-SIDE SUMMARY, **not a declaration**. It
+ * carries none of the mandatory members (`updated`, `provider`, `methodology-uri`
+ * and the rest), so `validateDocument()` refuses it, and nothing signed it.
+ * Read it, print it, put it in a spreadsheet; do not publish it. A publisher
+ * wanting a figure for a longer period serves one object for that period.
  */
-export type PeriodRange = `${string}..${string}`;
+export interface TotalSummary {
+  target: string;
+  /** Only when every object carries the same value. */
+  "target-type"?: TargetType;
+  /** From the earliest `start` to the latest `end` of the objects added. */
+  period: Period;
+  /** `contiguous` when each period ends where the next starts, `gaps` when any does not: the total covers the periods added, not the span. */
+  coverage: "contiguous" | "gaps";
+  "carbon-accounting"?: CarbonAccounting;
+  "energy-consumption"?: number;
+  "energy-unit"?: EnergyUnit;
+  "carbon-footprint"?: number;
+  "carbon-unit"?: CarbonUnit;
+  "scope-1"?: number;
+  "scope-2"?: number;
+  "scope-3"?: number;
+  /** How many objects were added. */
+  objects: number;
+  /** Members that some of the objects do not report, so the figure covers fewer periods than `objects`. */
+  incomplete?: string[];
+  /** Members left out because an object states a unit this consumer does not know. */
+  notSummable?: string[];
+}
 
-/**
- * What {@link aggregate} returns: a CLIENT-SIDE SUMMARY of a trend, **not a
- * declaration**.
- *
- * This is a reading convenience — "what did these twelve months come to?" — and
- * it is not a conformant object under any circumstances:
- *
- *  - its `reporting-period` is a {@link PeriodRange} (`"2026-01..2026-12"`),
- *    which is not one of the three forms the draft defines, so
- *    `validateDocument()` refuses it;
- *  - it carries no `signed` member and cannot: a signature covers the object it
- *    was made for, and nothing signed this one;
- *  - the draft defines exactly one way to combine periods, the server-side
- *    aggregate of §Extended Query Parameters step 5, with rules this function
- *    does not apply (one precision, no overlap, coverage of P, the MUST-agree
- *    members). A publisher wanting a figure for a longer period asks its own
- *    origin for that period and serves what step 5 produces.
- *
- * So: read it, print it, put it in a spreadsheet. Do not publish it, do not sign
- * it, and do not feed it back into anything that expects a declaration.
- */
-export type AggregateSummary = Omit<SustainabilityMetrics, "reporting-period" | "signed"> & {
-  "reporting-period": PeriodRange;
-  /** Never present: a summary is not signed, and is not a declaration to sign. */
-  signed?: never;
-};
+export type TotalRefusal = "no-objects" | "mixed-targets" | "overlapping-periods" | "mixed-accounting";
 
-/**
- * Combine a trend array into one {@link AggregateSummary} — a reading
- * convenience, **not a declaration**: see that type for why it can never be
- * published, signed or round-tripped as one.
- *
- * Refuses to silently mix units — everything is normalized to the requested (or
- * the first reporting entry's) unit before combining. Entries not reporting a
- * metric (member absent, or out of range under the tolerance rules) simply
- * don't contribute; an absent unit member means the draft's default
- * (kWh / gCO2e). When no entry reports a metric at all, the summary omits it.
- */
-export function aggregate(entries: SustainabilityMetrics[], opts: AggregateOptions): AggregateSummary {
-  if (entries.length === 0) throw new Error("aggregate: empty input");
-
-  const reported = (key: "energy-consumption" | "carbon-footprint") =>
-    entries.filter((e) => typeof e[key] === "number" && (e[key] as number) >= 0);
-
-  const energyEntries = reported("energy-consumption");
-  const carbonEntries = reported("carbon-footprint");
-
-  // Output units: requested, else the first reporting entry's declared unit,
-  // else the draft default (which also applies per-entry when the unit member
-  // is absent alongside a present value).
-  const energyUnit: EnergyUnit = opts.energyUnit ?? energyEntries[0]?.["energy-unit"] ?? "kWh";
-  const carbonUnit: CarbonUnit = opts.carbonUnit ?? carbonEntries[0]?.["carbon-unit"] ?? "gCO2e";
-
-  const energies = energyEntries.map((e) =>
-    convertEnergy(e["energy-consumption"] as number, e["energy-unit"] ?? "kWh", energyUnit),
-  );
-  const carbons = carbonEntries.map((e) =>
-    convertCarbon(e["carbon-footprint"] as number, e["carbon-unit"] ?? "gCO2e", carbonUnit),
-  );
-  const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
-  const combine = (xs: number[]) => (opts.by === "sum" ? sum(xs) : sum(xs) / xs.length);
-
-  const first = entries[0];
-  const last = entries[entries.length - 1];
-  // Whitelist-copy ONLY the invariant metadata (uniform across a valid trend
-  // array). Per-entry metrics cannot be meaningfully aggregated and must not
-  // leak from the first entry into the summary: scopes are expressed in that
-  // entry's carbon-unit (relabeling them under the summary's output unit would
-  // silently misstate them by the conversion factor); sci-score / renewable /
-  // intensity / annual-estimate are per-period figures; and unknown VENDOR
-  // members have unknown aggregability, so they are excluded too (a spread
-  // would carry them over verbatim).
-  const out: AggregateSummary = {
-    updated: last.updated, // the summary is as fresh as its newest entry
-    capabilities: first.capabilities,
-    provider: first.provider,
-    "measurement-method": first["measurement-method"],
-    "methodology-uri": first["methodology-uri"],
-    // A RANGE, not a `period-value`: this is what stops a summary being read,
-    // or republished, as a declaration (see AggregateSummary).
-    "reporting-period": `${first["reporting-period"]}..${last["reporting-period"]}`,
-    target: first.target,
-  };
-  if (first["carbon-accounting"] !== undefined) {
-    out["carbon-accounting"] = first["carbon-accounting"];
+/** Thrown when objects may not be added; `reason` is the precondition of draft Section 5.3 that fails. */
+export class TotalPreconditionError extends Error {
+  constructor(
+    public readonly reason: TotalRefusal,
+    detail: string,
+  ) {
+    super(detail);
+    this.name = "TotalPreconditionError";
   }
-  // target-type (-04) classifies the invariant `target`, so it carries over —
-  // but only when UNIFORM across every entry (a valid trend array shares one
-  // value when present; entries lacking it make the classification non-uniform,
-  // so the summary then omits it rather than guess).
-  if (first["target-type"] !== undefined && entries.every((e) => e["target-type"] === first["target-type"])) {
+}
+
+const SUMMED = ["energy-consumption", "carbon-footprint", "scope-1", "scope-2", "scope-3"] as const;
+type Summed = (typeof SUMMED)[number];
+
+const span = (p: Period) => `${p.start}/${p.end}`;
+
+const latestEnd = (sorted: SustainabilityMetrics[]): string =>
+  sorted.reduce((end, e) => (compareDateTimes(e.period.end, end) > 0 ? e.period.end : end), sorted[0].period.end);
+
+/** Float noise from unit conversion is not data: 12 significant digits keep every figure the formats allow. */
+const tidy = (x: number): number => Number(x.toPrecision(12));
+
+/**
+ * Add the figures of several objects (draft Section 5.3): across objects for
+ * one `target` whose periods do not overlap and that declare the same
+ * `carbon-accounting` value or none, after conversion to one unit. Two periods
+ * that meet do not overlap. Anything else is refused with the reason, because a
+ * year and its months are two views of the same figures, not additional ones.
+ *
+ * Only `energy-consumption`, `carbon-footprint` and the three scopes are added;
+ * a scope keeps its sign. A member an object does not report adds nothing and
+ * is listed in `incomplete`; one whose unit is unknown is not added at all.
+ */
+export function total(entries: SustainabilityMetrics[], opts: TotalOptions = {}): TotalSummary {
+  if (entries.length === 0) throw new TotalPreconditionError("no-objects", "nothing to add: no declaration objects");
+
+  const sorted = [...entries].sort((a, b) => comparePeriodStart(a.period, b.period));
+  const first = sorted[0];
+
+  const other = sorted.find((e) => !targetsEqual(e.target, first.target, first["target-type"]));
+  if (other) {
+    throw new TotalPreconditionError(
+      "mixed-targets",
+      `objects for different targets are not added: "${first.target}" and "${other.target}"`,
+    );
+  }
+  const accounting = first["carbon-accounting"];
+  const differing = sorted.find((e) => e["carbon-accounting"] !== accounting);
+  if (differing) {
+    throw new TotalPreconditionError(
+      "mixed-accounting",
+      `objects with different carbon-accounting are not added: ${accounting ?? "none"} and ${differing["carbon-accounting"] ?? "none"}`,
+    );
+  }
+  // Sorted by start, an overlap anywhere shows between neighbours.
+  for (let i = 1; i < sorted.length; i++) {
+    if (periodsOverlap(sorted[i - 1].period, sorted[i].period)) {
+      throw new TotalPreconditionError(
+        "overlapping-periods",
+        `periods overlap: ${span(sorted[i - 1].period)} and ${span(sorted[i].period)}`,
+      );
+    }
+  }
+
+  const energyUnit: EnergyUnit =
+    opts.energyUnit ?? sorted.find((e) => typeof e["energy-consumption"] === "number")?.["energy-unit"] ?? "kWh";
+  const carbonUnit: CarbonUnit =
+    opts.carbonUnit ??
+    sorted.find((e) => SUMMED.slice(1).some((k) => typeof e[k] === "number"))?.["carbon-unit"] ??
+    "gCO2e";
+
+  const out: TotalSummary = {
+    target: first.target,
+    period: { start: first.period.start, end: latestEnd(sorted) },
+    coverage: sorted.every((e, i) => i === 0 || compareDateTimes(sorted[i - 1].period.end, e.period.start) === 0) ? "contiguous" : "gaps",
+    objects: sorted.length,
+  };
+  if (accounting !== undefined) out["carbon-accounting"] = accounting;
+  if (first["target-type"] !== undefined && sorted.every((e) => e["target-type"] === first["target-type"])) {
     out["target-type"] = first["target-type"];
   }
-  if (energies.length > 0) {
-    out["energy-consumption"] = Math.round(combine(energies) * 100) / 100;
-    out["energy-unit"] = energyUnit;
+
+  const incomplete: string[] = [];
+  const notSummable: string[] = [];
+  for (const key of SUMMED) {
+    const energy = key === "energy-consumption";
+    // A negative or non-finite energy or footprint is not a figure; a negative scope is.
+    const scope = key.startsWith("scope-");
+    const reporting = sorted.filter((e) => typeof e[key] === "number" && (scope || !isNotReported(e[key], key)));
+    if (reporting.length === 0) continue;
+    const parts = reporting.map((e): number => {
+      const unit = energy ? (e["energy-unit"] ?? "kWh") : (e["carbon-unit"] ?? "gCO2e");
+      if (energy ? !isEnergyUnit(unit) : !isCarbonUnit(unit)) return NaN;
+      return energy
+        ? convertEnergy(e[key] as number, unit as EnergyUnit, energyUnit)
+        : convertCarbon(e[key] as number, unit as CarbonUnit, carbonUnit);
+    });
+    if (parts.some(Number.isNaN)) {
+      notSummable.push(key);
+      continue;
+    }
+    if (reporting.length < sorted.length) incomplete.push(key);
+    (out as unknown as Record<Summed, number>)[key] = tidy(parts.reduce((a, b) => a + b, 0));
   }
-  if (carbons.length > 0) {
-    out["carbon-footprint"] = Math.round(combine(carbons) * 100) / 100;
-    out["carbon-unit"] = carbonUnit;
-  }
+  if (out["energy-consumption"] !== undefined) out["energy-unit"] = energyUnit;
+  if (SUMMED.slice(1).some((k) => out[k] !== undefined)) out["carbon-unit"] = carbonUnit;
+  if (incomplete.length > 0) out.incomplete = incomplete;
+  if (notSummable.length > 0) out.notSummable = notSummable;
   return out;
 }
+
+/** @deprecated Use {@link total}; it adds under the rules of draft Section 5.3 and takes no `by`. Removed in 0.9.0. */
+export const aggregate = total;

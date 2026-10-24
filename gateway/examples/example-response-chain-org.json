@@ -1,0 +1,25 @@
+{
+  "updated": "2026-02-25T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Chain Org Ltd (sustainability@chain.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://chain.example/sustainability/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
+  "target": "Chain Org Ltd",
+  "target-type": "organization",
+  "energy-unit": "MWh",
+  "carbon-unit": "tCO2e",
+  "energy-consumption": 500,
+  "carbon-footprint": 180,
+  "carbon-accounting": "market-based",
+  "disclosure-uri": "/index.json",
+  "upstream": [
+    {
+      "declaration": "../../chain-tenant.example/.well-known/sustainability-data",
+      "role": "cloud"
+    }
+  ]
+}

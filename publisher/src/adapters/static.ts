@@ -43,7 +43,7 @@ export function staticFileAdapter(config: StaticFileAdapterConfig): SourceAdapte
       const parsed = readJson(config.file);
       if (format === "wire") {
         const items = Array.isArray(parsed) ? parsed : [parsed];
-        const raws = (items as SustainabilityMetrics[]).map(fromWire);
+        const raws = (items as SustainabilityMetrics[]).map((item) => fromWire(item));
         return raws.length === 1 ? raws[0] : raws;
       }
       return parsed as RawMetrics | RawMetrics[];

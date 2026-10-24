@@ -1,15 +1,18 @@
 {
-  "updated": "2026-09-16T07:20:17Z",
+  "updated": "2026-06-01T00:00:00Z",
   "capabilities": "basic",
   "provider": "Global Retail Corp (esg@globalretail.example)",
   "measurement-method": "third-party-modeled",
   "methodology-uri": "https://globalretail.example/esg/methodology",
-  "reporting-period": "2025",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
   "target": "globalretail.example",
   "energy-consumption": 8125,
   "energy-unit": "MWh",
   "carbon-footprint": 46671.6,
-  "carbon-unit": "mtCO2e",
+  "carbon-unit": "tCO2e",
   "carbon-accounting": "market-based",
   "scope-1": 1240.5,
   "scope-2": 3580.2,

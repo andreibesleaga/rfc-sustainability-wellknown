@@ -4,13 +4,16 @@
   "provider": "Nordwind Logistics GmbH (sustainability@nordwind.example)",
   "measurement-method": "third-party-modeled",
   "methodology-uri": "https://nordwind.example/sustainability/methodology",
-  "reporting-period": "2025",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
   "target": "Nordwind Logistics GmbH",
   "target-type": "organization",
   "energy-consumption": 1.8,
   "energy-unit": "GWh",
   "carbon-footprint": 430,
-  "carbon-unit": "mtCO2e",
+  "carbon-unit": "tCO2e",
   "carbon-accounting": "market-based",
   "scope-1": 40,
   "scope-2": 210,

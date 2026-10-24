@@ -11,11 +11,14 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import {
   RESPONSE_JTD_SCHEMA,
+  isOnDayBoundaries,
+  isWholeCalendarPeriod,
+  parsePeriod,
   validateDocument,
   type SustainabilityMetrics,
 } from "sustainability-wellknown-publisher";
 import { describe, expect, it } from "vitest";
-import { DOMAIN_RE, isSyntheticDomain, resolveBaseUrlToken } from "../src/registry";
+import { DOMAIN_RE, isSyntheticDomain, loadSubjectFile, resolveBaseUrlToken } from "../src/registry";
 import { DATA_DIR } from "./helpers";
 
 const files = readdirSync(DATA_DIR)
@@ -35,20 +38,23 @@ const load = (f: string) =>
     SERVED_BASE,
   );
 
-/** The seven mandatory members (draft -07, Mandatory Members). */
+/** The seven mandatory members (draft -10, Mandatory Members). */
 const MANDATORY = [
   "updated",
   "capabilities",
   "provider",
   "measurement-method",
   "methodology-uri",
-  "reporting-period",
+  "period",
   "target",
 ] as const;
 
+/** The subjects whose figures cover a fiscal year, so their period states its exact bounds instead of a calendar year. */
+const FISCAL_YEAR = new Set(["go.eco", "hmrc.gov.uk"]);
+
 const URI_MEMBERS = ["methodology-uri", "verifiable-attestation-uri", "disclosure-uri"] as const;
 
-/** The closed top-level member set of a -07 declaration object. */
+/** The closed top-level member set of a -10 declaration object. */
 const KNOWN_MEMBERS = new Set([
   ...MANDATORY,
   "energy-consumption",
@@ -109,20 +115,34 @@ describe.each(files)("%s", (file) => {
   });
 
   it("passes the JTD schema and the draft's prose rules", () => {
-    const r = validateDocument(doc);
+    const r = validateDocument(doc, { legacyCompat: false });
     expect(r.errors).toEqual([]);
     expect(r.valid).toBe(true);
   });
 
-  it("carries every mandatory member, and no `version` (removed in -07)", () => {
+  it("carries every mandatory member, and neither `version` nor `reporting-period`", () => {
     for (const m of MANDATORY) expect(doc[m], m).toBeTruthy();
     expect(doc.version).toBeUndefined();
+    expect((doc as Record<string, unknown>)["reporting-period"]).toBeUndefined();
     expect(doc.capabilities).toBe("basic");
   });
 
-  it("uses a full calendar year as its reporting period", () => {
+  it("states a period of twelve months on day boundaries: a calendar year, or the exact bounds of a fiscal year", () => {
     // The primary case this gateway serves is annual organizational reporting.
-    expect(doc["reporting-period"]).toMatch(/^\d{4}$/);
+    const period = parsePeriod(doc.period);
+    expect(isOnDayBoundaries(period)).toBe(true);
+    if (FISCAL_YEAR.has(domain)) {
+      expect(isWholeCalendarPeriod(period, "yearly")).toBe(false);
+      expect(period.start.slice(5)).toBe(period.end.slice(5));
+      expect(Number(period.end.slice(0, 4)) - Number(period.start.slice(0, 4))).toBe(1);
+    } else {
+      expect(isWholeCalendarPeriod(period, "yearly")).toBe(true);
+    }
+  });
+
+  it("is served exactly as the file holds it", async () => {
+    const s = await loadSubjectFile(join(DATA_DIR, file), SERVED_BASE);
+    expect(JSON.parse((await s.publisher.getSerialized({})).body)).toEqual(doc);
   });
 
   it("classifies its reporting subject", () => {
@@ -155,8 +175,8 @@ describe.each(files)("%s", (file) => {
     }
   });
 
-  it("keeps to the closed top-level member set (-07)", () => {
-    // -07 closes the object: a publisher MUST NOT add a top-level member of
+  it("keeps to the closed top-level member set (-10)", () => {
+    // The object is closed: a publisher MUST NOT add a top-level member of
     // its own. Anything this specification does not define lives in
     // `extensions`, which the next test checks.
     for (const k of Object.keys(doc)) {
@@ -239,6 +259,22 @@ describe.each(files)("%s", (file) => {
       expect(["organization", "origin", "service"]).toContain(doc["target-type"]);
     });
   }
+});
+
+describe("the withheld documents, which are kept for the record and never served", () => {
+  const dir = join(DATA_DIR, "withheld");
+  const kept = readdirSync(dir).filter((f) => f.endsWith(".json")).sort();
+
+  it("are 7, and each passes the strict checks of the -10 draft", () => {
+    expect(kept).toHaveLength(7);
+    for (const f of kept) {
+      const doc = JSON.parse(readFileSync(join(dir, f), "utf8")) as SustainabilityMetrics;
+      const r = validateDocument(doc, { legacyCompat: false });
+      expect(r.errors, f).toEqual([]);
+      expect(doc.period, f).toBeDefined();
+      expect((doc as Record<string, unknown>)["reporting-period"], f).toBeUndefined();
+    }
+  });
 });
 
 it("has a provenance entry in data/README.md for every data file", () => {

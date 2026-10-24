@@ -1,5 +1,5 @@
 import type { AddressInfo } from "node:net";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { computedAdapter, staticAdapter } from "../src/adapters";
 import { parseQuery } from "../src/handler";
 import { LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "../src/media-type";
@@ -29,12 +29,12 @@ describe("standalone server", () => {
       computedAdapter({
         provider: "Example Corp",
         methodologyUri: "https://example.com/m",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         energy: { value: 1250, unit: "kWh" },
         gridIntensity: 276,
         capabilities: "extended",
       }),
-      { cacheTtlMs: 60000, normalize: { target: "example.com" } },
+      { cacheTtlMs: 60000, representation: "single", normalize: { target: "example.com" } },
     );
     srv = await makeServer(publisher);
   });
@@ -98,7 +98,7 @@ describe("media type (-07 conformance) and the application/json legacy option", 
       computedAdapter({
         provider: "Example Corp",
         methodologyUri: "https://example.com/m",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         energy: { value: 1250, unit: "kWh" },
         gridIntensity: 276,
         capabilities: "basic",
@@ -160,188 +160,183 @@ describe("media type (-07 conformance) and the application/json legacy option", 
   });
 });
 
-// Draft §Extended Query Parameters (-07): the numbered processing procedure,
-// applied centrally in parseQuery so every entry point behaves identically.
-describe("handler query processing (draft numbered procedure)", () => {
+// Draft §Query Parameters: a value that does not match is ignored and never read as
+// another value, applied centrally in parseQuery so every entry point behaves alike.
+describe("handler query processing", () => {
+  // `updated` is read from the clock when the source gives none; responses compared here must not straddle a second.
+  beforeEach(() => vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-04-01T12:00:00Z") }));
+  afterEach(() => vi.useRealTimers());
+
   const rawTrend = (period: string): RawMetrics => ({
     provider: "Trend Corp",
     measurementMethod: "cloud-billing",
     methodologyUri: "https://trend.example/m",
-    reportingPeriod: period,
+    period: period,
     energy: { value: 10, unit: "kWh" },
     carbon: { value: 100, unit: "gCO2e" },
     target: "trend.example",
   });
+  const months = ["2026-01", "2026-02", "2026-03"];
+  const starts = (body: SustainabilityMetrics[]) => body.map((object) => object.period.start.slice(0, 7));
 
-  async function trendServer(opts: ServerOptions = {}, publisherOptions = {}) {
-    const publisher = new Publisher(
-      staticAdapter({
-        data: ["2026-01", "2026-02", "2026-03"].map(rawTrend),
-        capabilities: "extended",
-      }),
-      // A FIXED CLOCK, so nothing here depends on the day the suite runs: at
-      // this instant the completed portion of 2026 is exactly the three months
-      // the trend holds, which is what draft step 5 requires the contributing
-      // entries of the year's aggregate to cover.
-      { cacheTtlMs: 0, now: () => new Date("2026-04-01T00:00:00Z"), ...publisherOptions },
-    );
+  async function trendServer(opts: ServerOptions = {}, capabilities: "basic" | "extended" = "extended") {
+    const publisher = new Publisher(staticAdapter({ data: months.map(rawTrend), capabilities }), { cacheTtlMs: 0 });
     return makeServer(publisher, opts);
   }
 
-  const ok = (q: Record<string, unknown>) => {
-    const parsed = parseQuery(q);
-    if (!parsed.ok) throw new Error(`expected a query, got 400: ${parsed.error}`);
-    return parsed.query;
-  };
+  it("parseQuery: accepts the values of the ABNF and names what it leaves out", () => {
+    const { query, ignored } = parseQuery({
+      target: "/api/v1",
+      start: "2026-02-01T00:00:00Z",
+      end: "2026-03-01T00:00:00.5Z",
+      granularity: "monthly",
+      unknown: "x",
+    });
+    expect(query).toEqual({
+      target: "/api/v1",
+      start: "2026-02-01T00:00:00Z",
+      end: "2026-03-01T00:00:00.5Z",
+      granularity: "monthly",
+    });
+    expect(ignored).toEqual([]);
+  });
 
-  it("parseQuery: ignores an unrecognized granularity, rejects a malformed period (step 2)", () => {
-    expect(ok({ granularity: "weekly" }).granularity).toBeUndefined();
-    expect(ok({ granularity: "monthly" }).granularity).toBe("monthly");
-    expect(ok({ granularity: "daily" }).granularity).toBe("daily");
-    expect(ok({ period: "2026" }).period).toBe("2026");
-    expect(ok({ period: "2026-02" }).period).toBe("2026-02");
-    expect(ok({ period: "2026-02-01" }).period).toBe("2026-02-01");
-    expect(ok({ target: "/api/v1" }).target).toBe("/api/v1");
-    expect(ok({ unknown: "x" })).toEqual({ target: undefined, period: undefined, granularity: undefined });
-
-    for (const period of ["not-a-date", "2026-13", "2026-02-30", "2026-2", ""]) {
-      const parsed = parseQuery({ period });
-      expect(parsed.ok, period).toBe(false);
-      if (!parsed.ok) expect(parsed.error).toMatch(/calendar/);
+  it("parseQuery: a value outside the ABNF is ignored, never read as another value, and never an error", () => {
+    const outside: Record<string, unknown>[] = [
+      { start: "2026-02-01" }, // the date-only form of the previous revision
+      { start: "2026-02-01T00:00:00+01:00" }, // an offset other than Z
+      { start: "2026-02-01 00:00:00Z" }, // "+" decoded to a space, or a space
+      { start: "2026-02-01t00:00:00z" },
+      { start: "2026-02-30T00:00:00Z" }, // right form, no such day
+      { end: "2026-12-31T23:59:60Z" }, // second 60 would be read as another value
+      { start: "x2026-02-01T00:00:00Z" },
+      { end: "2026-02-01T00:00:00Zx" },
+      { granularity: "weekly" },
+      { granularity: "Monthly" },
+      { target: "" },
+    ];
+    for (const raw of outside) {
+      const { query, ignored } = parseQuery(raw);
+      expect(query, JSON.stringify(raw)).toEqual({});
+      expect(ignored.map((i) => i.name), JSON.stringify(raw)).toEqual(Object.keys(raw));
     }
   });
 
-  it("parseQuery: a repeated parameter name is 400 (step 1)", () => {
+  it("parseQuery: names are case-sensitive, a repeated defined name is ignored, a repeated unknown one is not looked at", () => {
+    expect(parseQuery({ Start: "2026-02-01T00:00:00Z", GRANULARITY: "monthly", TARGET: "/a" })).toEqual({ query: {}, ignored: [] });
+    for (const raw of [{ granularity: ["monthly", "daily"] }, { target: ["/a", "/b"] }, { start: ["2026-02-01T00:00:00Z"] }]) {
+      const { query, ignored } = parseQuery(raw);
+      expect(query, JSON.stringify(raw)).toEqual({});
+      expect(ignored).toHaveLength(1);
+    }
+    expect(parseQuery({ unknown: ["1", "2"] })).toEqual({ query: {}, ignored: [] });
+    // An offset outside time-numoffset is no UTC value either way: ignored, never an error.
+    const { query, ignored } = parseQuery({ start: "2026-02-01T00:00:00+14:60", end: "2026-03-01T00:00:00Z" });
+    expect(query).toEqual({ end: "2026-03-01T00:00:00Z" });
+    expect(ignored.map((i) => i.name)).toEqual(["start"]);
+  });
+
+  it("a malformed or repeated parameter is answered 200 with the response to the bare request, ETag included", async () => {
+    const srv2 = await trendServer();
+    const bare = await fetch(srv2.url);
     for (const q of [
-      { period: ["2026", "2025"] },
-      { granularity: ["monthly", "daily"] },
-      { target: ["/a", "/b"] },
+      "?start=2026-02-01",
+      "?end=2026-02-01T00:00:00%2B01:00",
+      "?granularity=weekly",
+      "?granularity=monthly&granularity=daily",
+      "?Start=2026-02-01T00:00:00Z",
+      "?x=1&x=2",
     ]) {
-      const parsed = parseQuery(q);
-      expect(parsed.ok, JSON.stringify(q)).toBe(false);
-      if (!parsed.ok) expect(parsed.error).toMatch(/more than once/);
-    }
-    // A single value in an array (as some frameworks hand it over) is not a duplicate.
-    expect(ok({ period: ["2026"] }).period).toBe("2026");
-    // Step 1 ignores names this specification does not define, so repeating one
-    // is not an error: only a repeated defined name makes the request ambiguous.
-    expect(parseQuery({ unknown: ["1", "2"] }).ok).toBe(true);
-  });
-
-  it("400 Bad Request over HTTP for a duplicate name and for a malformed period", async () => {
-    const srv2 = await trendServer();
-    for (const q of ["?period=2026&period=2025", "?granularity=monthly&granularity=daily"]) {
-      const r = await fetch(`${srv2.url}${q}`);
-      expect(r.status, q).toBe(400);
-      expect(r.headers.get("content-type")).toBe("application/json");
-      expect(r.headers.get("cache-control")).toBe("no-store");
-      expect(r.headers.get("access-control-allow-origin")).toBe("*");
-      expect((await r.json()).error).toMatch(/bad request/);
-    }
-    // A repeated undefined name is ignored, not rejected.
-    const ignored = await fetch(`${srv2.url}?x=1&x=2`);
-    expect(ignored.status).toBe(200);
-    for (const q of ["?period=not-a-date", "?period=2026-02-31", "?period=2026-13"]) {
-      const r = await fetch(`${srv2.url}${q}`);
-      expect(r.status, q).toBe(400);
-      expect((await r.json()).error).toMatch(/calendar/);
-    }
-    await srv2.close();
-  });
-
-  it("an unrecognized granularity (weekly) is ignored: single object, same as the Basic response", async () => {
-    const srv2 = await trendServer();
-    const r = await fetch(`${srv2.url}?granularity=weekly`);
-    expect(r.status).toBe(200);
-    const body = await r.json();
-    // Ignored granularity -> no array may be returned (draft MUST NOT).
-    expect(Array.isArray(body)).toBe(false);
-    expect(body["reporting-period"]).toBe("2026-03"); // most recent = Basic default
-    await srv2.close();
-  });
-
-  it("granularity without period applies to the default period: monthly is not finer than a month, so one object", async () => {
-    const srv2 = await trendServer();
-    const r = await fetch(`${srv2.url}?granularity=monthly`);
-    expect(r.status).toBe(200);
-    const body = await r.json();
-    expect(Array.isArray(body)).toBe(false);
-    expect(body["reporting-period"]).toBe("2026-03");
-    await srv2.close();
-  });
-
-  it("a year sliced monthly is the sorted array of its months; a year alone is their aggregate", async () => {
-    const srv2 = await trendServer();
-    const arr = await (await fetch(`${srv2.url}?period=2026&granularity=monthly`)).json();
-    expect(arr.map((e: SustainabilityMetrics) => e["reporting-period"])).toEqual(["2026-01", "2026-02", "2026-03"]);
-    const year = await (await fetch(`${srv2.url}?period=2026`)).json();
-    expect(Array.isArray(year)).toBe(false);
-    expect(year).toMatchObject({ "reporting-period": "2026", "energy-consumption": 30, "energy-unit": "kWh", "carbon-footprint": 300 });
-    // Per-period members are omitted from an aggregate (step 5).
-    expect(year["renewable-energy"]).toBeUndefined();
-    const month = await (await fetch(`${srv2.url}?period=2026-02`)).json();
-    expect(month["reporting-period"]).toBe("2026-02");
-    await srv2.close();
-  });
-
-  it("a granularity in effect that matches no held entry is 404, as is a period with no data", async () => {
-    const srv2 = await trendServer();
-    // Daily IS finer than the year, so G is in effect (step 3) and the response
-    // is the array of held daily entries — of which there are none (step 5).
-    expect((await fetch(`${srv2.url}?period=2026&granularity=daily`)).status).toBe(404);
-    // Monthly is not finer than a month, so G is ignored and the month's object
-    // is returned instead of an array.
-    const month = await fetch(`${srv2.url}?period=2026-02&granularity=monthly`);
-    expect(month.status).toBe(200);
-    expect((await month.json())["reporting-period"]).toBe("2026-02");
-    // No entries in 2025: the no-data rule.
-    expect((await fetch(`${srv2.url}?period=2025`)).status).toBe(404);
-    await srv2.close();
-  });
-
-  it("target: 404 for a value outside the published prefix set, the matched prefix otherwise (step 4)", async () => {
-    const srv2 = await trendServer({}, { targetPrefixes: ["/api", "/app/storage"] });
-    const scoped = await fetch(`${srv2.url}?target=/api/v1`);
-    expect(scoped.status).toBe(200);
-    // Every returned object carries the MATCHED prefix in its target member.
-    expect((await scoped.json()).target).toBe("/api");
-    expect((await (await fetch(`${srv2.url}?target=/app/storage`)).json()).target).toBe("/app/storage");
-
-    // The no-data answer for a MATCHED prefix, to compare the unmatched ones
-    // against: draft §Privacy Considerations, a server honoring `target`
-    // "answers every value outside that set with the same `404 Not Found` it
-    // returns when it holds no data", and SHOULD make the two indistinguishable
-    // in body and in timing as well — otherwise the difference says which
-    // prefixes are published.
-    const noData = await fetch(`${srv2.url}?target=/api&period=1999`);
-    expect(noData.status).toBe(404);
-    const noDataBody = await noData.text();
-
-    for (const value of ["/apifoo", "/other", "/API", "api"]) {
-      const r = await fetch(`${srv2.url}?target=${encodeURIComponent(value)}`);
-      expect(r.status, value).toBe(404);
-      // Identical responses for every unmatched value, and identical to the
-      // no-data one (Privacy Considerations).
-      expect(await r.text(), value).toBe(noDataBody);
-    }
-    await srv2.close();
-  });
-
-  it("a publisher that publishes no prefix set ignores target entirely", async () => {
-    const srv2 = await trendServer();
-    const r = await fetch(`${srv2.url}?target=/anything`);
-    expect(r.status).toBe(200);
-    expect((await r.json()).target).toBe("trend.example");
-    await srv2.close();
-  });
-
-  it("a Basic-declaring trend ignores every parameter and answers the most recent entry", async () => {
-    const publisher = new Publisher(staticAdapter({ data: ["2026-01", "2026-02", "2026-03"].map(rawTrend) }), { cacheTtlMs: 0 });
-    const srv2 = await makeServer(publisher);
-    for (const q of ["?granularity=monthly", "?period=2026&granularity=monthly", "?period=2025", "?target=/api"]) {
       const r = await fetch(`${srv2.url}${q}`);
       expect(r.status, q).toBe(200);
-      expect((await r.json())["reporting-period"], q).toBe("2026-03");
+      expect(r.headers.get("etag"), q).toBe(bare.headers.get("etag"));
+      expect(r.headers.get("cache-control"), q).toBe(bare.headers.get("cache-control"));
+      expect(await r.text(), q).toBe(await bare.clone().text());
+    }
+    await srv2.close();
+  });
+
+  it("an Extended publisher answers a request without parameters with the held objects as an array, ascending", async () => {
+    const srv2 = await trendServer();
+    const r = await fetch(srv2.url);
+    expect(r.headers.get("content-type")).toBe(MEDIA_TYPE);
+    expect(starts(await r.json())).toEqual(months);
+    await srv2.close();
+  });
+
+  it("start and end select the objects whose period overlaps the range, the end excluded", async () => {
+    const srv2 = await trendServer();
+    const select = async (q: string) => starts(await (await fetch(`${srv2.url}?${q}`)).json());
+    expect(await select("start=2026-02-01T00:00:00Z&end=2026-03-01T00:00:00Z")).toEqual(["2026-02"]);
+    expect(await select("start=2026-02-15T00:00:00Z")).toEqual(["2026-02", "2026-03"]);
+    expect(await select("end=2026-02-01T00:00:00.000Z")).toEqual(["2026-01"]);
+    await srv2.close();
+  });
+
+  it("an empty selection is 200 with the empty array and the registered media type, not 404", async () => {
+    const srv2 = await trendServer();
+    for (const q of ["start=2027-01-01T00:00:00Z", "target=/other", "granularity=yearly", "granularity=daily"]) {
+      const r = await fetch(`${srv2.url}?${q}`);
+      expect(r.status, q).toBe(200);
+      expect(r.headers.get("content-type"), q).toBe(MEDIA_TYPE);
+      expect(r.headers.get("content-length"), q).toBe("2");
+      expect(r.headers.get("etag"), q).toBeTruthy();
+      expect(await r.json(), q).toEqual([]);
+    }
+    await srv2.close();
+  });
+
+  it("granularity selects the whole months; target is an exact match, a host without regard to case", async () => {
+    const srv2 = await trendServer();
+    const select = async (q: string) => starts(await (await fetch(`${srv2.url}?${q}`)).json());
+    expect(await select("granularity=monthly")).toEqual(months);
+    expect(await select("target=trend.example")).toEqual(months);
+    expect(await select("target=TREND.example")).toEqual(months);
+    expect(await select("target=trend")).toEqual([]);
+    await srv2.close();
+  });
+
+  it("a Basic publisher ignores every parameter and serves what it holds, as it holds it", async () => {
+    const srv2 = await trendServer({}, "basic");
+    const bare = await (await fetch(srv2.url)).text();
+    expect(starts(JSON.parse(bare))).toEqual(months);
+    for (const q of ["?granularity=yearly", "?start=2027-01-01T00:00:00Z", "?target=/api"]) {
+      const r = await fetch(`${srv2.url}${q}`);
+      expect(r.status, q).toBe(200);
+      expect(await r.text(), q).toBe(bare);
+    }
+    await srv2.close();
+  });
+
+  it("sends Content-Language when configured and none otherwise, on GET and HEAD alike", async () => {
+    const withLanguage = await trendServer({ contentLanguage: "en" });
+    expect((await fetch(withLanguage.url)).headers.get("content-language")).toBe("en");
+    expect((await fetch(withLanguage.url, { method: "HEAD" })).headers.get("content-language")).toBe("en");
+    await withLanguage.close();
+    for (const opts of [{}, { contentLanguage: "" }]) {
+      const without = await trendServer(opts);
+      expect((await fetch(without.url)).headers.get("content-language")).toBeNull();
+      await without.close();
+    }
+  });
+
+  it("HEAD has the status and header fields of GET and no body; a matching tag is 304; other methods are 405 with Allow", async () => {
+    const srv2 = await trendServer();
+    const get = await fetch(srv2.url);
+    const head = await fetch(srv2.url, { method: "HEAD" });
+    expect(head.status).toBe(200);
+    for (const name of ["content-type", "content-length", "etag", "cache-control"]) {
+      expect(head.headers.get(name), name).toBe(get.headers.get(name));
+    }
+    expect(await head.text()).toBe("");
+    const etag = get.headers.get("etag")!;
+    expect((await fetch(srv2.url, { headers: { "If-None-Match": etag } })).status).toBe(304);
+    expect((await fetch(srv2.url, { method: "HEAD", headers: { "If-None-Match": `W/${etag}` } })).status).toBe(304);
+    expect((await fetch(srv2.url, { headers: { "If-None-Match": '"stale"' } })).status).toBe(200);
+    for (const method of ["POST", "PUT", "DELETE", "PATCH"]) {
+      const r = await fetch(srv2.url, { method });
+      expect(r.status, method).toBe(405);
+      expect(r.headers.get("allow"), method).toBe("GET, HEAD");
     }
     await srv2.close();
   });
@@ -364,9 +359,9 @@ describe("security safeguards", () => {
       updated: "2026-01-01T00:00:00Z",
       capabilities: "extended",
       provider: "p",
-      "measurement-method": "m",
+      "measurement-method": "third-party-modeled",
       "methodology-uri": "u",
-      "reporting-period": "2026-01-01",
+      period: { start: "2026-01-01T00:00:00Z", end: "2026-01-02T00:00:00Z" },
       target: "example.com",
       "energy-consumption": 1,
       "energy-unit": "kWh",
@@ -376,15 +371,15 @@ describe("security safeguards", () => {
     expect(secureReports(many).length).toBe(366);
   });
 
-  it("drops sub-daily entries (traffic-analysis floor)", () => {
+  it("drops sub-day entries with a warning by default (traffic-analysis floor)", () => {
     const reports: SustainabilityMetrics[] = [
       {
         updated: "2026-01-01T00:00:00Z",
         capabilities: "extended",
         provider: "p",
-        "measurement-method": "m",
+        "measurement-method": "third-party-modeled",
         "methodology-uri": "u",
-        "reporting-period": "2026-01-01T12:00:00Z",
+        period: { start: "2026-01-01T12:00:00Z", end: "2026-01-02T12:00:00Z" },
         target: "example.com",
         "energy-consumption": 1,
         "energy-unit": "kWh",
@@ -392,7 +387,9 @@ describe("security safeguards", () => {
         "carbon-unit": "gCO2e",
       },
     ];
-    expect(secureReports(reports).length).toBe(0);
+    const warnings: string[] = [];
+    expect(secureReports(reports, { onWarning: (m) => warnings.push(m) }).length).toBe(0);
+    expect(warnings).toHaveLength(1);
   });
 
   it("applies multiplicative noise to negative scope values (sign preserved)", () => {
@@ -404,16 +401,16 @@ describe("security safeguards", () => {
         updated: "2026-01-01T00:00:00Z",
         capabilities: "extended",
         provider: "p",
-        "measurement-method": "m",
+        "measurement-method": "third-party-modeled",
         "methodology-uri": "u",
-        "reporting-period": "2026-01",
+        period: { start: "2026-01-01T00:00:00Z", end: "2026-02-01T00:00:00Z" },
         target: "example.com",
         "carbon-footprint": 100,
         "carbon-unit": "gCO2e",
         "scope-3": -50, // removals: negative and reported
       },
     ];
-    const [out] = secureReports(reports, { applyNoise: true, enforceDailyFloor: false });
+    const [out] = secureReports(reports, { applyNoise: true, noiseDisclosed: true, dayFloor: "off" });
     // negative value noised within the ~1% band, sign preserved
     expect(out["scope-3"]).toBeGreaterThanOrEqual(-50.5);
     expect(out["scope-3"]).toBeLessThanOrEqual(-49.5);
@@ -439,16 +436,16 @@ describe("security safeguards", () => {
         updated: "2026-01-01T00:00:00Z",
         capabilities: "extended",
         provider: "p",
-        "measurement-method": "m",
+        "measurement-method": "third-party-modeled",
         "methodology-uri": "u",
-        "reporting-period": "2026-01",
+        period: { start: "2026-01-01T00:00:00Z", end: "2026-02-01T00:00:00Z" },
         target: "example.com",
         "energy-consumption": 100,
         "energy-unit": "kWh",
         "renewable-energy": 100, // boundary: any upward noise would violate the range
       },
     ];
-    const [out] = secureReports(reports, { applyNoise: true, enforceDailyFloor: false });
+    const [out] = secureReports(reports, { applyNoise: true, noiseDisclosed: true, dayFloor: "off" });
     expect(out["renewable-energy"]).toBe(100); // bit-identical, not merely in range
     expect(out["energy-consumption"]).not.toBe(100); // noise did apply to the additive family
     expect(out["energy-consumption"]).toBeGreaterThanOrEqual(99);

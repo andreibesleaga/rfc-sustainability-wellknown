@@ -28,12 +28,14 @@ const { Publisher } = require("../dist/publisher");
 
 const ORIG = path.join(__dirname, "originals");
 const OUT = path.join(__dirname, "transformed");
+// The clock for `updated`, fixed so that a regeneration reproduces the files byte for byte.
+const CLOCK = () => "2026-06-01T00:00:00Z";
 const readJson = (name) => JSON.parse(fs.readFileSync(path.join(ORIG, name), "utf8"));
 
 async function generate(name, adapter, target) {
   // `target` (the mandatory reporting subject, -03) is supplied via the
   // normalize options — the origin host for these origin-wide examples.
-  const pub = new Publisher(adapter, { cacheTtlMs: 0, normalize: { target } });
+  const pub = new Publisher(adapter, { cacheTtlMs: 0, normalize: { target, clock: CLOCK } });
   const doc = await pub.getDocument();
   fs.writeFileSync(path.join(OUT, `${name}.json`), JSON.stringify(doc, null, 2) + "\n");
   console.log(`wrote transformed/${name}.json`);
@@ -49,7 +51,7 @@ async function main() {
     climatiqAdapter({
       provider: "DataCenter Analytics Inc. (sustain@dcanalytics.example)",
       methodologyUri: "https://dcanalytics.example/methodology/climatiq",
-      reportingPeriod: "2026-05",
+      period: "2026-05",
       activityId: "electricity-supply_grid-source_residual_mix",
       region: "US",
       energy: { value: 2500, unit: "kWh" },
@@ -67,7 +69,7 @@ async function main() {
     co2jsAdapter({
       provider: "Example Corp (sustain@example.org)",
       methodologyUri: "https://example.com/sustainability/methodology",
-      reportingPeriod: "2026-02",
+      period: "2026-02",
       bytes: co2jsInputs.bytes,
       gridZone: co2jsInputs.gridZone,
       greencheckFixture,
@@ -84,7 +86,7 @@ async function main() {
     "carbontxt-api",
     carbonTxtApiAdapter({
       provider: "ACME Hosting (compliance@acme.example)",
-      reportingPeriod: "2026-02",
+      period: "2026-02",
       domain: "acme.example",
       fixture: carbontxtFixture,
       compute: { bytes: 2000000000, green: true, gridZone: "DEU" },
@@ -100,9 +102,9 @@ async function main() {
     keplerPrometheusAdapter({
       provider: "Platform SRE (sre@example.com)",
       methodologyUri: "https://example.com/methodology/kepler",
-      reportingPeriod: "2026-05",
+      period: "2026-05",
       gridIntensity: 230,
-      functionalUnit: "per-cluster-month",
+      functionalUnit: "per-job",
       fixture: keplerFixture,
       capabilities: "basic",
     }),
@@ -137,7 +139,7 @@ async function main() {
     msSustainabilityAdapter({
       provider: "Contoso Cloud Ops (cloudops@contoso.example)",
       methodologyUri: "https://contoso.example/methodology/azure-emissions",
-      reportingPeriod: "2026-04",
+      period: "2026-04",
       emissionsField: "totalEmissions",
       energyKwh: 11070,
       fixturePages: [msPage1, msPage2],
@@ -152,10 +154,7 @@ async function main() {
     watershedAdapter({
       provider: "Northwind Logistics (climate@northwind.example)",
       methodologyUri: "https://northwind.example/climate/methodology",
-      // Watershed's "2026-Q1" quarter label doesn't fit the draft's
-      // YYYY[-MM[-DD]] grammar; the adapter requires an explicit override
-      // rather than guessing — map the quarter to its representative month.
-      reportingPeriod: "2026-01",
+      // No period given: the adapter maps the footprint's own "2026-Q1" label to the quarter.
       fixture: wsFixture,
     }),
     "northwind.example",
@@ -169,7 +168,7 @@ async function main() {
       provider: "Example Corp (sustain@example.org)",
       methodologyUri: "https://example.com/sustainability/methodology",
       measurementMethod: "hardware-estimated",
-      reportingPeriod: "2026-02",
+      period: "2026-02",
       energy: computedInputs.energy,
       gridIntensity: computedInputs.gridIntensity,
       carbonAccounting: computedInputs.carbonAccounting,
@@ -188,7 +187,7 @@ async function main() {
     provider: "Small Business Hosting (hello@smallbiz.example)",
     "measurement-method": "cloud-billing",
     "methodology-uri": "https://smallbiz.example/sustainability/methodology",
-    "reporting-period": "2026-05",
+    "period": { "start": "2026-05-01T00:00:00Z", "end": "2026-06-01T00:00:00Z" },
     target: "smallbiz.example",
     "energy-consumption": 340,
     "energy-unit": "kWh",

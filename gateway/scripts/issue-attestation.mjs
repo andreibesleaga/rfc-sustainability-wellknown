@@ -120,7 +120,7 @@ export function buildCredential(opts = {}) {
         "entered-watts-by-month": o.wattsByMonth ?? {},
         "grid-intensity-gCO2e-per-kWh": o.gridIntensity,
         "carbon-accounting": "location-based",
-        "reporting-period": "the most recently completed calendar month (parameterless); any period since live-since on request",
+        "period": "the most recently completed calendar month for a request that names no parameter; on request, every whole day of the last 120 days and every whole month and year since live-since, and the two partial months at the edges",
         "hours": "hours of the period inside [live-since, now)",
         "watts(month)": "entered-watts-by-month[month] when present, else constant-draw-watts",
         "energy-Wh": "sum over the period's months of watts(month) × that month's hours, to four significant figures",
@@ -212,7 +212,7 @@ async function main() {
       `  valid       ${credential.validFrom} .. ${credential.validUntil}`,
       `  subject     ${credential.credentialSubject.id}`,
       credential.credentialSubject.declaration
-        ? `  binds to    a copy of the declaration for ${credential.credentialSubject.declaration["reporting-period"]} (without \`signed\`)`
+        ? `  binds to    a copy of the declaration for ${credential.credentialSubject.declaration.period.start} to ${credential.credentialSubject.declaration.period.end} (without \`signed\`)`
         : "  binds to    the MODEL only (no declaration copy; pass --declaration to bind one)",
       `  attester kid ${publicJwk.kid}`,
       opts.out ? `  written     ${opts.out}` : "",

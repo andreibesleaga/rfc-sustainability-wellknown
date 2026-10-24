@@ -8,8 +8,9 @@
  * Live mode: apiUrl + apiKey. Replay mode: a recorded footprint object as `fixture`.
  * Docs: https://watershed.com/ (API & developer guides)
  */
-import { CarbonUnit, RawMetrics, SourceAdapter } from "../../types";
-import { PERIOD_RE } from "../../normalize";
+import { PeriodInput, periodFromReportingPeriod, quarterPeriod } from "../../period";
+import { CarbonUnit, MeasurementMethod } from "../../tokens";
+import { RawMetrics, SourceAdapter } from "../../types";
 import { fetchJson } from "../../util";
 
 export interface WatershedFootprint {
@@ -27,7 +28,8 @@ export interface WatershedFootprint {
 export interface WatershedConfig {
   provider: string;
   methodologyUri: string;
-  reportingPeriod?: string;
+  /** A `{ start, end }` object, or a calendar label; defaults to the footprint's own period (a year, month, day or quarter). */
+  period?: PeriodInput;
   apiUrl?: string;
   apiKey?: string;
   /** Path to the footprint resource on the API. */
@@ -40,26 +42,28 @@ export interface WatershedConfig {
    * different unit despite the field naming.
    */
   carbonUnit?: CarbonUnit;
-  measurementMethod?: string;
+  measurementMethod?: MeasurementMethod;
   fixture?: WatershedFootprint;
   /** Declared service level; "basic" unless the deployment honors Extended query parameters. */
   capabilities?: "basic" | "extended";
 }
 
 /**
- * Watershed periods can be arbitrary labels (e.g. "2026-Q1") that do not fit
- * the draft's YYYY[-MM[-DD]] shapes; require an explicit config override
- * rather than publishing a malformed period.
+ * The period of a footprint: the configured one, else the upstream label, which is a calendar year, month or
+ * day ("2026", "2026-02", "2026-02-14") or a quarter ("2026-Q1"). Any other label (a fiscal year, say) is not
+ * guessed at: the operator gives `config.period` explicitly.
  */
-function resolvePeriod(configured?: string, upstream?: string): string {
-  const candidate = configured ?? upstream ?? "";
-  if (!PERIOD_RE.test(candidate)) {
+function resolvePeriod(configured?: PeriodInput, upstream?: string): PeriodInput {
+  if (configured !== undefined) return configured;
+  const quarter = /^(\d{4})-Q([1-4])$/.exec(upstream ?? "");
+  try {
+    return quarter ? quarterPeriod(Number(quarter[1]), Number(quarter[2]) as 1 | 2 | 3 | 4) : periodFromReportingPeriod(upstream ?? "");
+  } catch {
     throw new Error(
-      `watershedAdapter: upstream reportingPeriod "${upstream ?? ""}" is not YYYY, YYYY-MM, ` +
-        `or YYYY-MM-DD — set config.reportingPeriod explicitly`,
+      `watershedAdapter: upstream reportingPeriod "${upstream ?? ""}" is not YYYY, YYYY-MM, YYYY-MM-DD ` +
+        `or YYYY-Qn — set config.period explicitly`,
     );
   }
-  return candidate;
 }
 
 export function watershedAdapter(config: WatershedConfig): SourceAdapter {
@@ -108,7 +112,7 @@ export function watershedAdapter(config: WatershedConfig): SourceAdapter {
         provider: config.provider,
         measurementMethod: config.measurementMethod ?? "third-party-modeled",
         methodologyUri: config.methodologyUri,
-        reportingPeriod: resolvePeriod(config.reportingPeriod, fp.reportingPeriod),
+        period: resolvePeriod(config.period, fp.reportingPeriod),
         energy: { value: fp.energyKwh, unit: "kWh" },
         carbon: { value: total, unit: carbonUnit },
         capabilities: config.capabilities ?? "basic",

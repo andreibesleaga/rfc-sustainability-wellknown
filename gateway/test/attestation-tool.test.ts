@@ -18,7 +18,7 @@ const SERVED = {
   provider: "Andrei Besleaga, operator of this reference gateway",
   "measurement-method": "third-party-modeled",
   "methodology-uri": DEFAULTS.methodologyUri,
-  "reporting-period": "2026-08",
+  period: { start: "2026-08-01T00:00:00Z", end: "2026-09-01T00:00:00Z" },
   target: DEFAULTS.target,
   "energy-consumption": 2.232,
   "energy-unit": "kWh",
@@ -51,7 +51,7 @@ describe("issue-attestation", () => {
     const { jwt, publicJwk } = await issueCredential(JSON.stringify(await exportPrivateJwk(attester)), { now: NOW });
     const [h] = jwt.split(".");
     const header = JSON.parse(Buffer.from(h, "base64url").toString());
-    expect(header).toMatchObject({ alg: "EdDSA", typ: "vc+jwt", cty: "vc", kid: `${DEFAULTS.attesterKeyUrl}#${attester.kid}` });
+    expect(header).toMatchObject({ alg: "Ed25519", typ: "vc+jwt", cty: "vc", kid: `${DEFAULTS.attesterKeyUrl}#${attester.kid}` });
     expect(publicJwk).toEqual(attester.publicJwk);
 
     const at = new Date("2028-01-01T00:00:00Z");

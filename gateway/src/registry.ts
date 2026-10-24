@@ -10,9 +10,13 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 import {
+  NotFoundError,
   Publisher,
   fromWire,
+  isDateTime,
   staticAdapter,
+  toUtcQueryValue,
+  type PublisherOptions,
   type RawMetrics,
   type SigningOptions,
   type SourceAdapter,
@@ -50,6 +54,12 @@ export interface Subject {
   publisher: Publisher;
   /** `Last-Modified`, derived from the document's own `updated` member. */
   lastModified: string;
+  /**
+   * True when the adapter holds no object yet (the gateway's own report on the day it went live: no whole
+   * day has elapsed). `document` is then a placeholder that is never served; a request that names no
+   * parameter is answered "no data" and a query with the empty array.
+   */
+  empty?: boolean;
 }
 
 /**
@@ -107,11 +117,15 @@ export function canonical(value: unknown): string {
  * date describes, and it stays stable across redeploys and replicas.
  */
 export function lastModifiedFrom(doc: SustainabilityMetrics): string {
-  const d = new Date(doc.updated);
-  if (Number.isNaN(d.getTime())) {
-    throw new Error(`registry: \`updated\` is not a parseable date-time ("${doc.updated}")`);
+  if (!isDateTime(doc.updated)) {
+    throw new Error(`registry: \`updated\` is not an RFC 3339 date-time with the letters T and Z in upper case ("${doc.updated}")`);
   }
-  return d.toUTCString();
+  return httpDate(doc.updated);
+}
+
+/** An RFC 3339 date-time as the HTTP-date of `Last-Modified` (RFC 9110, Section 5.6.7). */
+export function httpDate(dateTime: string): string {
+  return new Date(Date.parse(toUtcQueryValue(dateTime))).toUTCString();
 }
 
 /**
@@ -121,15 +135,32 @@ export function lastModifiedFrom(doc: SustainabilityMetrics): string {
  * subjects share one code path, and so tests can build a subject in memory.
  */
 export function publisherForDocument(doc: SustainabilityMetrics): Publisher {
-  const raw: RawMetrics = fromWire(doc);
+  const raw: RawMetrics = fromWire(doc, { legacyCompat: false });
   return new Publisher(staticAdapter({ data: raw, capabilities: doc.capabilities }), {
     normalize: { target: doc.target },
+    // One object that is served as one object: a request that names no
+    // parameter gets it, whatever the capabilities it declares.
+    representation: "single",
     // Documents are static and loaded at startup, so the cache never needs to
-    // expire during a process lifetime; a single entry is ever created because
-    // the gateway serves the Basic service and never varies on the query.
+    // expire during a process lifetime. A Basic document ignores the query, so
+    // one entry is ever created; an Extended one keeps a few selections.
     cacheTtlMs: 365 * 24 * 60 * 60 * 1000,
-    maxCacheEntries: 4,
+    maxCacheEntries: 8,
   });
+}
+
+/**
+ * The refusal of a data file that is not in the form this gateway serves: a file
+ * written for an earlier revision of the draft, or one the publisher pipeline
+ * would change. The fix is the publisher's own conversion, named in the message.
+ */
+function notServedForm(file: string, reason: string): Error {
+  return new Error(
+    `registry: ${basename(file)} is not in the form this gateway serves (${reason}).\n` +
+      `  If it was written for an earlier revision of the draft, convert it with:\n` +
+      `    npx sustainability-publisher upgrade ${file} ${file}\n` +
+      `  and read the notes it prints before keeping the result; otherwise correct what the reason above names.`,
+  );
 }
 
 /**
@@ -172,11 +203,21 @@ export async function loadSubjectFile(file: string, baseUrl: string = PUBLIC_BAS
   }
 
   const document = resolveBaseUrlToken(parsed as SustainabilityMetrics, baseUrl);
-  const publisher = publisherForDocument(document);
+  let publisher: Publisher;
+  try {
+    publisher = publisherForDocument(document);
+  } catch (err) {
+    throw notServedForm(file, err instanceof Error ? err.message : String(err));
+  }
 
   // The JTD gate + prose-rule checks run inside getSerialized(); a
   // non-conformant curated file therefore fails startup, not a request.
-  const { body } = await publisher.getSerialized({});
+  let body: string;
+  try {
+    ({ body } = await publisher.getSerialized({}));
+  } catch (err) {
+    throw notServedForm(file, err instanceof Error ? err.message : String(err));
+  }
   if (Buffer.byteLength(body) > LIMITS.maxDocumentBytes) {
     throw new Error(`registry: serialized ${basename(file)} exceeds the response-size bound`);
   }
@@ -186,10 +227,7 @@ export async function loadSubjectFile(file: string, baseUrl: string = PUBLIC_BAS
   // operator error to fix in the data file, never something to serve silently.
   const served = JSON.parse(body) as SustainabilityMetrics;
   if (canonical(served) !== canonical(document)) {
-    throw new Error(
-      `registry: ${basename(file)} does not round-trip through the publisher pipeline.\n` +
-        `  in  : ${canonical(document)}\n  out : ${canonical(served)}`,
-    );
+    throw notServedForm(file, `the publisher pipeline would serve it differently\n  in  : ${canonical(document)}\n  out : ${canonical(served)}`);
   }
 
   return {
@@ -220,6 +258,10 @@ export async function subjectFromAdapter(opts: {
   cacheTtlMs?: number;
   /** Bound on cached query variants. Default 4. */
   maxCacheEntries?: number;
+  /** What a request that names no parameter is answered with; see `PublisherOptions.representation`. */
+  representation?: PublisherOptions["representation"];
+  /** Safeguards of the publisher, notably `maxObjects`, the most objects one response holds. */
+  security?: PublisherOptions["security"];
   /**
    * Draft -07 §Signing: when set, the publisher embeds a `signed` member in
    * every declaration object it builds — including each object of an Extended
@@ -229,6 +271,11 @@ export async function subjectFromAdapter(opts: {
    * key, never with the gateway's key.
    */
   signing?: SigningOptions;
+  /**
+   * When the adapter holds no object at start-up (the publisher says "no data"), build the subject
+   * anyway, flagged `empty`, with this instant as its placeholder `updated`. Omitted: that is an error.
+   */
+  emptyAt?: string;
 }): Promise<Subject> {
   const domain = opts.domain.toLowerCase();
   if (!DOMAIN_RE.test(domain) || domain.length > LIMITS.maxDomainLength) {
@@ -238,9 +285,26 @@ export async function subjectFromAdapter(opts: {
     normalize: { target: opts.target, targetType: opts.targetType },
     cacheTtlMs: opts.cacheTtlMs ?? 365 * 24 * 60 * 60 * 1000,
     maxCacheEntries: opts.maxCacheEntries ?? 4,
+    ...(opts.representation ? { representation: opts.representation } : {}),
+    ...(opts.security ? { security: opts.security } : {}),
     ...(opts.signing ? { signing: opts.signing } : {}),
   });
-  const { body } = await publisher.getSerialized({});
+  let body: string;
+  try {
+    ({ body } = await publisher.getSerialized({}));
+  } catch (err) {
+    if (!(err instanceof NotFoundError) || opts.emptyAt === undefined) throw err;
+    const placeholder = { target: opts.target, updated: opts.emptyAt } as SustainabilityMetrics;
+    return {
+      domain,
+      source: opts.label ?? `adapter:${opts.adapter.name}`,
+      synthetic: isSyntheticDomain(domain),
+      document: placeholder,
+      publisher,
+      lastModified: lastModifiedFrom(placeholder),
+      empty: true,
+    };
+  }
   if (Buffer.byteLength(body) > LIMITS.maxDocumentBytes) {
     throw new Error(`registry: adapter "${opts.adapter.name}" produced an oversized document`);
   }

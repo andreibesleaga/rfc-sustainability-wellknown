@@ -18,7 +18,7 @@ is [GUIDE.md](GUIDE.md).
 cd gateway
 npm install
 npm run build
-npm test          # 473 tests; everything must be green before you deploy
+npm test          # 730 tests; everything must be green before you deploy
 node dist/index.js &
 until curl -sf http://127.0.0.1:8080/healthz >/dev/null; do sleep 1; done   # boot fetches live upstreams first
 curl -sSI http://127.0.0.1:8080/wikimedia.org/.well-known/sustainability-data
@@ -111,7 +111,7 @@ default; set them under **Variables** (dashboard) or with
 | `DATA_DIR` | `<app>/data` | Where subject documents are read from. |
 | `EXAMPLES_DIR` | `<app>/examples` | Where the canonical wire-format example documents are read from. |
 | `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`, the draft's RECOMMENDED value. |
-| `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` declaration response media type. `sustainability-data+json` (default) serves the dedicated `application/sustainability-data+json` type -07 requires, with `X-Content-Type-Options: nosniff`; `json` serves the generic `application/json` type instead (a consumer MAY process it, but publishing it is not conformant; also with `nosniff`). One subject can be pinned to the generic type regardless of this default via `data/_media-type.json` — see `GUIDE.md`. |
+| `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` declaration response media type. `sustainability-data+json` (default) serves the dedicated `application/sustainability-data+json` type the draft requires, with `X-Content-Type-Options: nosniff`; `json` serves the generic `application/json` type instead (a consumer MAY process it, but publishing it is not conformant; also with `nosniff`). One subject can be pinned to the generic type regardless of this default via `data/_media-type.json` — see `GUIDE.md`. |
 | `BASE_URL` | *(empty)* | Public base URL, for absolute links in the index. Setting it also turns the co2js demonstration's Greencheck lookup live (keyless). |
 | `GWF_API_KEY` | *(unset)* | Optional free Green Web Foundation key → carbontxt demonstration runs live. |
 | `CLIMATIQ_API_KEY` | *(unset)* | Optional; set only under your own Climatiq license (their terms restrict redistribution) — replay is the default. The demo passes Climatiq's required `data_version` selector (`^34`, set in `demo-specs.ts`). |
@@ -119,14 +119,14 @@ default; set them under **Variables** (dashboard) or with
 | `SELF_PROVIDER` | `Andrei Besleaga, operator of this reference gateway` | `provider` of the gateway's own report. Use a role address. |
 | `SELF_METHODOLOGY_URI` | this repo's `gateway/METHODOLOGY.md` on GitHub | **Must resolve publicly.** Point it at wherever you actually publish `METHODOLOGY.md`. |
 | `SELF_DISCLOSURE_URI` | this repo's `gateway/` on GitHub | Disclosure index for the gateway. |
-| `SELF_PERIOD` | last completed calendar month | Pin the gateway's own reporting period (`YYYY` or `YYYY-MM`). |
+| `SELF_PERIOD_START`, `SELF_PERIOD_END` | last completed calendar month | Pin the period of the gateway's own answer to a request that names no parameter; UTC date-times such as `2026-09-01T00:00:00Z`, set together. |
 | `SELF_WATTS` | `3` | Modelled average container power draw. |
 | `SELF_GRID_INTENSITY` | `245` | gCO2e/kWh: the Netherlands, 2024 (EEA). Set your service's region. Cited in `METHODOLOGY.md`. |
 | `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When this gateway went live; the self model counts no hours before it. |
-| `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | Private JWK (JSON) signing the gateway's own report: every declaration object it emits then carries a `signed` member (-07 defines no separate signature resource). See [Signing and attestation](#signing-and-attestation). |
+| `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | Private JWK (JSON) signing the gateway's own report: every declaration object it emits then carries a `signed` member (the draft defines no separate signature resource). See [Signing and attestation](#signing-and-attestation). |
 | `SELF_SIGNING_KEY_URL` | *(unset)* | Public URL of the signing key's public half (index display). |
 | `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report. |
-| `RATE_LIMIT_PER_MINUTE` | `600` | Per-client limit; `0` disables it (the public validator keeps its own, stricter limit). `TRUST_PROXY` stays `1` on Railway. |
+| `RATE_LIMIT_PER_MINUTE` | `600` | Per-client limit, `429` with `Retry-After` when spent; `/healthz` is exempt; `0` disables it (the public validator keeps its own, stricter budget, which answers `503` with `Retry-After`). `TRUST_PROXY` stays `1` on Railway. |
 | `VALIDATOR_EXCLUDE` | *(empty)* | Comma-separated host names whose operators asked not to be fetched by the public validator (LEGAL.md §8); trimmed, lower-cased, trailing dot stripped before matching. |
 | `TRUST_PROXY` | `1` | Trusted proxies in front of the process (the client is the last `X-Forwarded-For` entry); `0` when exposed directly. |
 
@@ -168,12 +168,12 @@ Expect a stale window after enabling or rotating signing, and after each
 monthly rollover of the self report. Railway's edge caches each response for
 its full `max-age`, separately per `Accept-Encoding` variant, and offers no
 purge: a client may still receive the previous declaration for up to its
-`max-age`. Since -07 the signature is a member of that declaration rather than
+`max-age`. The signature is a member of that declaration rather than
 a second resource, so a cached copy is at worst *old* and never *mismatched* —
 the old body and the old signature travel together and still verify. The self
 report is served with `max-age=3600`, the resolution of the model behind it, so
 the window is at most an hour (the first, pre-signing deployment was cached for
-a day). A request with a query string (`?period=…`) or an unusual
+a day). A request with a query string (`?start=…`) or an unusual
 `Accept-Encoding` reaches the process and shows the current state.
 
 > **Railway CLI note (seen 2026-09-14 while setting these variables).** The CLI
@@ -260,7 +260,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 
 # 8. Unsupported query parameters must be IGNORED, not an error
 curl -sS -o /dev/null -w '%{http_code}\n' \
-     "$BASE/wikimedia.org/.well-known/sustainability-data?period=2019&granularity=hourly"
+     "$BASE/wikimedia.org/.well-known/sustainability-data?start=2019-01-01T00:00:00Z&granularity=hourly"
                                                                  # -> 200
 
 # 9. The gateway's own report
@@ -272,22 +272,26 @@ npx -y -p sustainability-wellknown-consumer sustainability-fetch "$BASE" --stric
 # 11. The same battery, every subject (uses this repo's script)
 npm run conformance -- "$BASE"
 
-# 12. The self report's Extended service: a month, a year of months, a pre-go-live month (404)
-curl -sS "$BASE/.well-known/sustainability-data?period=2026-08" | jq '.["reporting-period"]'
-curl -sS "$BASE/.well-known/sustainability-data?period=2026&granularity=monthly" | jq 'map(.["reporting-period"])'
-curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data?period=2026-06"   # -> 404
+# 12. The self report's Extended service: the months, a month, a range before go-live (an empty array)
+curl -sS "$BASE/.well-known/sustainability-data?granularity=monthly" | jq 'map(.period)'
+curl -sS "$BASE/.well-known/sustainability-data?start=2026-08-01T00:00:00Z&end=2026-09-01T00:00:00Z&granularity=monthly" | jq 'map(.period)'
+curl -sS -w '\n%{http_code}\n' "$BASE/.well-known/sustainability-data?start=2026-01-01T00:00:00Z&end=2026-06-01T00:00:00Z"   # -> [] and 200
 
-# 13. The embedded signature and the attestation. -07 defines ONE resource: the
+# 13. The embedded signature and the attestation. The draft defines ONE resource: the
 #     signature is the declaration's own `signed` member, so there is no second
 #     URL to fetch, and the old .jws path is a plain 404.
 curl -sS "$BASE/.well-known/sustainability-data" | jq -r '.signed | split(".")[0] | @base64d'
 curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data.jws"          # -> 404
 npx -y -p sustainability-wellknown-consumer sustainability-fetch "$BASE" --verify --verify-attestation >/dev/null
 
-# 13b. The -07 query procedure and the upstream chain
-curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data?period=2026&period=2025"  # -> 400
-curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data?target=/anything"          # -> 404
+# 13b. The query procedure and the upstream chain
+curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data?granularity=monthly&granularity=daily"  # -> 200, ignored
+curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/.well-known/sustainability-data?target=/anything"          # -> 200 and []
 npx -y -p sustainability-wellknown-consumer sustainability-fetch "$BASE/tenant-demo.example" --upstream >/dev/null
+
+# 13c. The public validator and its badge
+curl -sS "$BASE/validate?origin=https://andreibesleaga.com" | jq '{status, format, signature, period}'
+curl -sS "$BASE/badge/andreibesleaga.com.svg" | head -c 300
 
 # 14. Rate limiting: a burst from one client ends in 429 + Retry-After
 for i in $(seq 1 650); do curl -sS -o /dev/null -w '%{http_code}\n' -I "$BASE/healthz-not/"; done | sort | uniq -c

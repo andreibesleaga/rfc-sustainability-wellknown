@@ -7,6 +7,9 @@ import { DEFAULT_TIMEOUT_MS, fetchSustainability } from "./fetch";
 import { resolveWellKnownUrl } from "./fetch";
 import { ACCEPT_HEADER, classifyMediaType, LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "./media-type";
 import { AddressLookup } from "./transport";
+import { isWholeCalendarPeriod, yearPeriod } from "./period";
+import { Capabilities } from "./tokens";
+import { FetchResult, SustainabilityMetrics } from "./types";
 
 /**
  * BCP 14 strength of the requirement a check tests. This matters for reporting:
@@ -46,12 +49,20 @@ export interface ConformanceCheck {
   /** The three-valued verdict; `pass` is derived from it. */
   outcome: ConformanceOutcome;
   level: ConformanceLevel;
+  /** The section of the draft the check tests, e.g. "Section 2.2, Query Parameters". */
+  section?: string;
   detail?: string;
 }
 
 export interface ConformanceReport {
   origin: string;
   checks: ConformanceCheck[];
+  /**
+   * The capabilities the origin's Basic response publishes, `undefined` when
+   * the response carries no declaration object. A static file reports `basic`;
+   * a server that honors at least one query parameter must report `extended`.
+   */
+  capabilities?: Capabilities;
   /** True when no MUST-level check FAILED; SHOULD-level gaps and warns are advisory. */
   allPassed: boolean;
   /** True when every check of either level passed outright (no fails, no warns). */
@@ -68,11 +79,13 @@ type CheckResult = boolean | string | { outcome: ConformanceOutcome; detail?: st
 async function check(
   name: string,
   level: ConformanceLevel,
+  section: string,
   fn: () => Promise<CheckResult>,
 ): Promise<ConformanceCheck> {
   const made = (outcome: ConformanceOutcome, detail?: string): ConformanceCheck => ({
     name,
     level,
+    section,
     outcome,
     pass: outcome === "pass",
     ...(detail !== undefined ? { detail } : {}),
@@ -103,7 +116,7 @@ export interface ConformanceOptions {
   allowInsecure?: boolean;
   /** Resolver for the address check, forwarded to fetchSustainability. */
   lookup?: AddressLookup;
-  /** Opt out of the address check (default: the value of `allowInsecure`). */
+  /** Opt out of the address check (default false; `allowInsecure` lifts it for loopback only). */
   allowPrivateAddresses?: boolean;
   /**
    * The clock the battery reads, `() => new Date()` by default.
@@ -119,6 +132,19 @@ export interface ConformanceOptions {
   now?: () => Date;
 }
 
+/** A target no origin names: an origin that honors `target` answers it with `[]`, one that ignores it answers as usual. */
+const PROBE_TARGET = "conformance-probe.invalid";
+/** A month long past, for which no origin holds a declaration. */
+const PROBE_RANGE = { start: "1900-01-01T00:00:00Z", end: "1900-02-01T00:00:00Z" };
+/** Values outside the query ABNF: each is ignored by the parameter alone and never read as another value. */
+const IGNORED_VALUES = [
+  "start=2025-01-01",
+  "start=2025-01-01t00:00:00z",
+  "end=2025-02-30T00:00:00Z",
+  "end=2025-01-01T00:00:00%2B01:00",
+  "granularity=Monthly",
+];
+
 export async function runConformanceChecks(
   origin: string,
   fetchImpl: typeof fetch = globalThis.fetch,
@@ -126,40 +152,42 @@ export async function runConformanceChecks(
 ): Promise<ConformanceReport> {
   const checks: ConformanceCheck[] = [];
   const { timeoutMs, maxBytes, allowInsecure, allowPrivateAddresses, lookup } = options;
-  const year = (options.now ?? (() => new Date()))().getUTCFullYear().toString();
+  const year = yearPeriod(Number((options.now ?? (() => new Date()))().toISOString().slice(0, 4)));
   // legacyCompat is disabled here on purpose: a conformance checker must see
-  // the document as served. With the pre-pass on, a document missing the
-  // mandatory `target` member would get the origin host injected and pass the
-  // schema gate — masking exactly the non-conformance this battery exists to
-  // detect. (The Basic check below thus inherently requires `target`.)
+  // the document as served. With the compatibility reading on, a document of an
+  // earlier revision would be converted and pass the schema gate, masking
+  // exactly the non-conformance this battery exists to detect.
   const fetchOpts = { fetchImpl, timeoutMs, maxBytes, legacyCompat: false, allowInsecure, allowPrivateAddresses, lookup };
-  /** Signal for the raw (non-fetchSustainability) probes below, so they can't hang either. */
-  // Raw probes get the same default timeout as fetchSustainability — a
-  // hanging origin must not stall the battery on undici's ~5-minute defaults.
+  // Raw probes get the same default timeout as fetchSustainability: a hanging
+  // origin must not stall the battery on undici's ~5-minute defaults.
   const rawSignal = () => AbortSignal.timeout(timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  const wellKnown = resolveWellKnownUrl(origin).toString();
+
+  const basic = await fetchSustainability(origin, fetchOpts).catch((err: unknown) => err as Error);
+  const basicObjects: SustainabilityMetrics[] =
+    !(basic instanceof Error) && basic.status === "ok" ? (Array.isArray(basic.document) ? basic.document : [basic.document]) : [];
+  /** The result of the Basic request, or the reason there is none to use. */
+  const basicOk = () => {
+    if (basic instanceof Error) throw basic;
+    return basic;
+  };
 
   checks.push(
-    await check("Basic request returns a schema-valid declaration (one object or an array)", "MUST", async () => {
-      // -07 lets the Basic response be one object or an array (a trend); the
-      // array rules (ascending periods, no overlap, one target) are enforced by
-      // fetchSustainability. The old "single object" rule was a -06 rule.
-      const r = await fetchSustainability(origin, fetchOpts);
+    await check("Basic request returns a schema-valid declaration (one object or an array)", "MUST", "Section 3.1, Body", async () => {
+      const r = basicOk();
       if (r.status !== "ok") return `expected ok, got ${r.status}`;
       return true;
     }),
   );
 
   checks.push(
-    // Draft -07 §Mandatory Minimum Supported Service: a 200 response MUST
-    // carry `application/sustainability-data+json` and MUST NOT carry any
-    // other media type. A publisher still serving the generic
-    // `application/json` is reported as WARN rather than FAIL: the draft has
-    // consumers keep processing those (declarations published before the
-    // registration exist under it) and the type is still awaiting IANA
-    // registration. Anything else is a fail — including a missing
-    // Content-Type, since a response of another type is not a declaration.
-    await check(`Basic 200 response uses the ${MEDIA_TYPE} media type`, "MUST", async () => {
-      const res = await fetchImpl(resolveWellKnownUrl(origin).toString(), {
+    // A 200 response MUST carry `application/sustainability-data+json`. A
+    // publisher still serving the generic `application/json` is reported as
+    // WARN rather than FAIL: a consumer keeps processing those, and the type is
+    // still awaiting IANA registration. Anything else is a fail, including a
+    // missing Content-Type, since a response of another type is not a declaration.
+    await check(`Basic 200 response uses the ${MEDIA_TYPE} media type`, "MUST", "Section 2.1, Location and Transport", async () => {
+      const res = await fetchImpl(wellKnown, {
         method: "GET",
         headers: { Accept: ACCEPT_HEADER },
         signal: rawSignal(),
@@ -182,20 +210,22 @@ export async function runConformanceChecks(
     }),
   );
 
+  // The signature outcomes, kept for the identifier check below.
+  let signatures: FetchResult | undefined;
   checks.push(
-    // Draft -07 §Signing: the `signed` member is OPTIONAL and a consumer
-    // checks it only when it is present. Absent (`unsigned`) is therefore a
-    // pass — it means only that the publisher does not sign. When it IS
-    // published it must verify under an asymmetric algorithm with the
-    // required `cty`; a member that does not verify is a MUST failure, and a
-    // payload that differs from the served members is reported, not failed
-    // (which set of members a consumer USES depends on how far the key is
-    // trusted — see SignatureResult.precedence).
+    // The `signed` member is OPTIONAL and checked only when present. Absent is
+    // a pass: the publisher does not sign. When present it must verify under an
+    // asymmetric algorithm with the required `cty`; a member that does not
+    // verify is a MUST failure, and a payload that differs from the served
+    // members is reported, not failed (which set of members a consumer uses
+    // depends on how far the key is trusted).
     await check(
       "Embedded signature (OPTIONAL `signed` member): absent, or present and verifiable",
       "MUST",
+      "Section 3.6, The signed Member",
       async () => {
         const r = await fetchSustainability(origin, { ...fetchOpts, verifySignature: true });
+        signatures = r;
         if (r.status !== "ok") return `expected ok, got ${r.status}`;
         const outcomes = r.signatures ?? [];
         if (outcomes.length === 0) return { outcome: "pass", detail: "no declaration object to check" };
@@ -208,8 +238,8 @@ export async function runConformanceChecks(
         const first = verified[0];
         if (first.status !== "verified") return "unexpected signature outcome";
         const who =
-          `${first.alg}${first.kid ? ` kid=${first.kid}` : ""} (key from ` +
-          `${first.keySource === "trusted" ? "pinned key; the payload's members take precedence" : "signature header; the members served by the origin remain in use"})`;
+          `${first.alg}${first.kid ? ` kid=${first.kid}` : ""} (key trust: ${first.keyTrust}; ` +
+          `${first.precedence === "payload" ? "the payload's members take precedence" : "the members served by the origin remain in use"})`;
         if (verified.some((s) => s.status === "verified" && s.modifiedAfterSigning)) {
           return { outcome: "warn", detail: `verified ${who}, but the served members differ from the signed payload` };
         }
@@ -219,15 +249,25 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    await check("Response carries an ETag", "SHOULD", async () => {
-      const r = await fetchSustainability(origin, fetchOpts);
+    // EdDSA verifies, as the same algorithm as Ed25519, but RFC 9864 deprecates
+    // the identifier: a publisher is told so without being failed.
+    await check("Signature algorithm identifier is Ed25519 or ES256 (EdDSA is the deprecated identifier)", "SHOULD", "Section 3.6, The signed Member", async () => {
+      const outcomes = signatures?.status === "ok" ? (signatures.signatures ?? []) : [];
+      const deprecated = outcomes.some((s) => s.status === "verified" && s.deprecatedAlg);
+      return deprecated ? { outcome: "warn", detail: "the signature names EdDSA; Ed25519 is the identifier of the same algorithm" } : true;
+    }),
+  );
+
+  checks.push(
+    await check("Response carries an ETag", "SHOULD", "Section 2.1, Location and Transport", async () => {
+      const r = basicOk();
       return r.status === "ok" && !!r.etag;
     }),
   );
 
   checks.push(
-    await check("Conditional GET with a fresh ETag returns 304", "SHOULD", async () => {
-      const first = await fetchSustainability(origin, fetchOpts);
+    await check("Conditional GET with a fresh ETag returns 304", "SHOULD", "Section 2.1, Location and Transport", async () => {
+      const first = basicOk();
       if (first.status !== "ok" || !first.etag) return "no ETag to test conditional request with";
       const second = await fetchSustainability(origin, { ...fetchOpts, ifNoneMatch: first.etag });
       return second.status === "not-modified" || `expected not-modified, got ${second.status}`;
@@ -235,8 +275,8 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    await check("A method other than GET/HEAD gets 405 with Allow", "SHOULD", async () => {
-      const res = await fetchImpl(resolveWellKnownUrl(origin).toString(), { method: "POST", signal: rawSignal() });
+    await check("A method other than GET/HEAD gets 405 with Allow", "SHOULD", "Section 2.1, Location and Transport", async () => {
+      const res = await fetchImpl(wellKnown, { method: "POST", signal: rawSignal() });
       await res.arrayBuffer().catch(() => undefined);
       if (res.status !== 405) return `expected 405, got ${res.status}`;
       const allow = res.headers.get("allow") ?? "";
@@ -245,26 +285,93 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    await check("Extended granularity request returns a valid response (sorted array when honored)", "MUST", async () => {
-      const r = await fetchSustainability(origin, { ...fetchOpts, period: year, granularity: "monthly" });
-      if (r.status === "not-found") return true; // server may have no data for this year; not a conformance failure
-      if (r.status !== "ok") return `expected ok or not-found, got ${r.status}`;
-      // The draft lets a server ignore an unusable granularity (it then returns
-      // its Basic response) and forbids an array only when no granularity is in
-      // effect (a MUST NOT), so a non-array here does not fail the check — but say so.
-      if (!Array.isArray(r.document)) {
-        return true; // single object: granularity not honored (allowed; Basic fallback)
+    // A start, end or granularity value that does not match the ABNF is ignored
+    // by that parameter alone: the answer is the one for a request without it.
+    // A 400 (or a 404) refuses a request the draft says to answer.
+    await check("A query value outside the profile is ignored, not refused", "MUST", "Section 2.2, Query Parameters", async () => {
+      for (const value of IGNORED_VALUES) {
+        const res = await fetchImpl(`${wellKnown}?${value}`, { method: "GET", headers: { Accept: ACCEPT_HEADER }, signal: rawSignal() });
+        await res.arrayBuffer().catch(() => undefined);
+        if (res.status !== 200) {
+          return `?${value} was answered ${res.status}; a value that does not match the query ABNF is ignored and the request answered as if it were absent, never refused`;
+        }
       }
-      return true; // shape/order already enforced by validateDocument() inside fetchSustainability
+      return true;
+    }),
+  );
+
+  // What the origin honors, found by asking for what no origin holds: an origin
+  // that honors a parameter answers `[]`, one that ignores it answers as usual.
+  const honoring = memo(async () => ({
+    target: await fetchSustainability(origin, { ...fetchOpts, target: PROBE_TARGET }),
+    range: await fetchSustainability(origin, { ...fetchOpts, ...PROBE_RANGE }),
+    granularity: await fetchSustainability(origin, { ...fetchOpts, granularity: "daily" }),
+  }));
+
+  checks.push(
+    await check("A range that selects nothing is answered 200 (an empty array when honored), never 404", "MUST", "Section 2.2, Query Parameters", async () => {
+      const { range } = await honoring();
+      if (range.status !== "ok") return `a range no object falls in was answered ${range.status === "not-found" ? "404" : range.status}; an empty selection is the empty array, not an error`;
+      if (Array.isArray(range.document) && range.document.length === 0) return { outcome: "pass", detail: "empty array" };
+      return { outcome: "pass", detail: "not honored (allowed: a static file satisfies every request)" };
+    }),
+  );
+
+  checks.push(
+    // A server that honors at least one parameter publishes `capabilities`
+    // extended, so a client knows to ask. A static file honors none and says basic.
+    await check("A server that honors a query parameter publishes capabilities extended", "MUST", "Section 3.2, Mandatory Members", async () => {
+      const asked = await honoring();
+      // An answer honors a parameter when it is an array every object of which satisfies it; the empty array does.
+      const by = (r: (typeof asked)["target"], ...keys: Array<"target" | "start" | "end" | "granularity">) =>
+        r.status === "ok" && Array.isArray(r.document) && keys.every((k) => r.honored?.[k] === true);
+      const honors: string[] = [];
+      if (by(asked.target, "target")) honors.push("target");
+      if (by(asked.range, "start", "end")) honors.push("start and end");
+      if (by(asked.granularity, "granularity")) honors.push("granularity");
+      if (honors.length === 0) return { outcome: "pass", detail: "honors no query parameter (a static file satisfies every request)" };
+      const declared = basicObjects[0]?.capabilities;
+      if (declared === "basic") return `the origin honors ${honors.join(", ")} but publishes capabilities basic`;
+      return { outcome: "pass", detail: `honors ${honors.join(", ")}` };
+    }),
+  );
+
+  checks.push(
+    await check("Extended range request (start, end, granularity=monthly) returns a valid response (ascending by period.start when an array)", "MUST", "Section 2.2, Query Parameters", async () => {
+      const r = await fetchSustainability(origin, { ...fetchOpts, ...year, granularity: "monthly" });
+      if (r.status !== "ok") return `expected ok, got ${r.status}`;
+      if (!Array.isArray(r.document)) return { outcome: "pass", detail: "parameters not honored (allowed: a static file satisfies every request)" };
+      if (r.warnings?.some((w) => w.startsWith("not-ascending"))) {
+        return { outcome: "warn", detail: `${r.document.length} objects; not in ascending order of period.start` };
+      }
+      return { outcome: "pass", detail: `${r.document.length} objects` };
+    }),
+  );
+
+  checks.push(
+    // Informational: the periods an origin publishes by default are whole
+    // calendar years or months. Another period is allowed and is only noted.
+    await check("Periods are whole calendar years or months (informational)", "SHOULD", "Section 3.2, Mandatory Members", async () => {
+      const other = basicObjects.find((o) => !isWholeCalendarPeriod(o.period, "yearly") && !isWholeCalendarPeriod(o.period, "monthly"));
+      return other
+        ? { outcome: "warn", detail: `period ${other.period.start}/${other.period.end} is neither a whole calendar year nor a whole month (allowed; noted only)` }
+        : true;
     }),
   );
 
   return {
     origin,
     checks,
+    ...(basicObjects[0] ? { capabilities: basicObjects[0].capabilities } : {}),
     // Computed from `outcome`, not from `pass`: a MUST-level WARN (the
     // generic media type) must not read as non-conformance.
     allPassed: checks.every((c) => c.outcome !== "fail" || c.level !== "MUST"),
     allPassedIncludingRecommended: checks.every((c) => c.outcome === "pass"),
   };
+}
+
+/** Run an async computation once and share its result. */
+function memo<T>(fn: () => Promise<T>): () => Promise<T> {
+  let pending: Promise<T> | undefined;
+  return () => (pending ??= fn());
 }

@@ -7,7 +7,7 @@
  * allocations of retired credits (SFC ledger profile 1.2: §A.1 hashing
  * and signatures, §A.3 the events, §A.4 the offset-coverage rule).
  *
- * What it writes: one draft -07 declaration. Energy and the two scopes are the
+ * What it writes: one declaration of the draft. Energy and the two scopes are the
  * sums of the period's effective attestations; `carbon-footprint` is their
  * gross sum and is never reduced by credits (disclosure profile rule 1); the
  * credits allocated to the period go, in tonnes, into `carbon-neutrality`; the
@@ -44,7 +44,24 @@
  * and Ed25519 verification.
  */
 import { createHash, createPublicKey, verify as cryptoVerify } from "node:crypto";
-import type { CarbonAccounting, RawMetrics, ServiceQuery, SourceAdapter, TargetType } from "sustainability-wellknown-publisher";
+import {
+  canonicalKey,
+  compareDateTimes,
+  dayPeriod,
+  isDateTime,
+  isFullDate as isFullDateForm,
+  isWholeCalendarPeriod,
+  leastDirect,
+  periodError,
+  periodFromFullDates,
+  periodFromReportingPeriod,
+  type CarbonAccounting,
+  type Period,   type RawMetrics,
+  type ServiceQuery,
+  type SourceAdapter,
+  type TargetType,
+} from "sustainability-wellknown-publisher";
+import { epochMs } from "./self-report";
 import {
   convertCarbon,
   convertEnergy,
@@ -133,7 +150,9 @@ export interface LedgerEntry {
 }
 
 export interface Publication {
-  "reporting-period": string;
+  /** The period the declaration states: two RFC 3339 date-times, `start` included, `end` excluded. */
+  period: Period;
+  /** The profile's own inclusive full dates for the same days, in the calendar of the period's offset. */
   "period-start": string;
   "period-end": string;
   updated: string;
@@ -288,7 +307,7 @@ function within(a: Dec, b: Dec, tolerance: Dec): boolean {
   return decCmp({ n: diff.n < 0n ? -diff.n : diff.n, scale: diff.scale }, tolerance) <= 0;
 }
 
-/** Powers of ten from draft -07's energy units to kWh, and from its carbon units to kgCO2e. */
+/** Powers of ten from the draft's energy units to kWh, and from its carbon units to kgCO2e. */
 const KWH_EXPONENT: Record<string, number> = { Wh: -3, kWh: 0, MWh: 3, GWh: 6 };
 const KG_EXPONENT: Record<string, number> = { gCO2e: -3, kgCO2e: 0, mtCO2e: 3 };
 
@@ -340,70 +359,72 @@ function decToNumber(d: Dec): number {
 // Dates: full dates, months, RFC 3339 instants (no wall clock anywhere)
 // ---------------------------------------------------------------------------
 
-const FULL_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const MONTH_RE = /^(\d{4})-(\d{2})$/;
-const YEAR_RE = /^\d{4}$/;
-const INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 const HEX64_RE = /^[0-9a-f]{64}$/;
 
+/** A full date that names a day of the calendar (the form, then the day itself). */
 function isFullDate(s: unknown): s is string {
-  if (typeof s !== "string") return false;
-  const m = FULL_DATE_RE.exec(s);
-  if (!m) return false;
-  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  return mo >= 1 && mo <= 12 && d >= 1 && d <= daysInMonth(y, mo);
+  if (!isFullDateForm(s)) return false;
+  try {
+    dayPeriod(s);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-function daysInMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate();
-}
-
-/** "YYYY-MM" of a full date. */
+/** "YYYY-MM" of a full date or of a date-time written in its own offset. */
 function monthOf(date: string): string {
   return date.slice(0, 7);
 }
 
-function firstDay(month: string): string {
-  return month + "-01";
+/** Whether `s` is "YYYY-MM" naming a month of the calendar. */
+function isMonthLabel(s: unknown): s is string {
+  if (typeof s !== "string" || s.length !== 7) return false;
+  try {
+    return isWholeCalendarPeriod(periodFromReportingPeriod(s), "monthly");
+  } catch {
+    return false;
+  }
 }
 
-function lastDay(month: string): string {
-  const m = MONTH_RE.exec(month) as RegExpExecArray;
-  return `${month}-${String(daysInMonth(Number(m[1]), Number(m[2]))).padStart(2, "0")}`;
+/** The offset a period's `start` is written in: "Z" or "+hh:mm", the zone its calendar days are read in. */
+function zoneOf(period: Period): string {
+  return period.start.endsWith("Z") ? "Z" : period.start.slice(-6);
+}
+
+/** The period of two inclusive full dates, or undefined when they are not in order. */
+function datesPeriod(start: string, end: string, zone = "Z"): Period | undefined {
+  try {
+    return periodFromFullDates({ start, end }, zone);
+  } catch {
+    return undefined;
+  }
 }
 
 /** The calendar months of [start, end], both full dates, as "YYYY-MM". */
 function monthsOf(start: string, end: string): string[] {
   const out: string[] = [];
-  let [y, m] = [Number(start.slice(0, 4)), Number(start.slice(5, 7))];
-  const last = monthOf(end);
-  for (;;) {
-    const key = `${y}-${String(m).padStart(2, "0")}`;
-    out.push(key);
-    if (key === last || out.length > 12_000) break;
-    m += 1;
-    if (m === 13) {
-      m = 1;
-      y += 1;
-    }
+  const stop = dayPeriod(end).end;
+  for (let month = periodFromReportingPeriod(monthOf(start)); compareDateTimes(month.start, stop) < 0 && out.length <= 12_000; month = periodFromReportingPeriod(monthOf(month.end))) {
+    out.push(monthOf(month.start));
   }
   return out;
 }
 
+/** The instant of an RFC 3339 date-time in ms, or undefined when `s` is not one. */
 function instantMs(s: unknown): number | undefined {
-  if (typeof s !== "string" || !INSTANT_RE.test(s) || !isFullDate(s.slice(0, 10))) return undefined;
-  const ms = Date.parse(s);
-  return Number.isNaN(ms) ? undefined : ms;
+  return isDateTime(s) ? epochMs(s) : undefined;
 }
 
 /** 00:00:00Z on the day after a full date, in ms. */
 function dayAfterMs(date: string): number {
-  return Date.parse(date + "T00:00:00Z") + 86_400_000;
+  return epochMs(dayPeriod(date).end);
 }
 
 /** Whether an activity interval touches the month. */
 function activeIn(active: RegistryEntry["active"], month: string): boolean {
-  return active.some((a) => a.from <= lastDay(month) && (a.to === null || a.to >= firstDay(month)));
+  const m = periodFromReportingPeriod(month);
+  return active.some((a) => compareDateTimes(dayPeriod(a.from).start, m.end) < 0 && (a.to === null || compareDateTimes(dayPeriod(a.to).end, m.start) > 0));
 }
 
 function isHttpsUri(s: unknown): s is string {
@@ -495,11 +516,11 @@ function readExcerptV1(raw: Record<string, unknown>, profile: SfcLedgerProfile):
     need((SIGNATURE_ALGORITHMS as readonly unknown[]).includes(sig.alg) && typeof sig.value === "string", `${ap}.sig`, "an Ed25519 signature is required", 0);
     for (const [j, part] of arr(ao, "parts", ap).entries()) {
       const po = obj(part, `${ap}.parts[${j}]`);
-      need(typeof po.period === "string" && MONTH_RE.test(po.period) && isFullDate(firstDay(po.period)), `${ap}.parts[${j}].period`, "a month YYYY-MM is required", 0);
+      need(isMonthLabel(po.period), `${ap}.parts[${j}].period`, "a month YYYY-MM is required", 0);
       need(typeof po.kg === "number" && Number.isFinite(po.kg) && po.kg >= 0, `${ap}.parts[${j}].kg`, "a non-negative number is required", 0);
     }
     need(typeof ao["tonnes-retired"] === "number" && Number.isInteger(ao["tonnes-retired"]) && (ao["tonnes-retired"] as number) >= 1, `${ap}.tonnes-retired`, "a whole number of tonnes, at least 1, is required", 0);
-    need(typeof ao["retired-in"] === "string" && MONTH_RE.test(ao["retired-in"]), `${ap}.retired-in`, "a month YYYY-MM is required", 0);
+    need(isMonthLabel(ao["retired-in"]), `${ap}.retired-in`, "a month YYYY-MM is required", 0);
     need(isHttpsUri(ao["registry-uri"]), `${ap}.registry-uri`, "an absolute https URI is required", 0);
     str(ao, "type", ap);
     str(ao, "operator", ap);
@@ -532,7 +553,7 @@ function readExcerptV1(raw: Record<string, unknown>, profile: SfcLedgerProfile):
   }
 
   const pub = obj(raw.publication, `${p}.publication`);
-  need(typeof pub["reporting-period"] === "string" && (MONTH_RE.test(pub["reporting-period"]) || YEAR_RE.test(pub["reporting-period"])), `${p}.publication.reporting-period`, "YYYY-MM or YYYY is required", 0);
+  need(periodError(pub.period) === undefined, `${p}.publication.period`, "a period of two RFC 3339 date-times is required", 0);
   need(isFullDate(pub["period-start"]) && isFullDate(pub["period-end"]), `${p}.publication`, "period-start and period-end must be full dates", 0);
   need(instantMs(pub.updated) !== undefined, `${p}.publication.updated`, "an RFC 3339 instant is required", 0);
   need(pub["target-type"] === "origin" || pub["target-type"] === "service", `${p}.publication.target-type`, `"origin" or "service" is required`, 0);
@@ -549,7 +570,7 @@ function readExcerptV1(raw: Record<string, unknown>, profile: SfcLedgerProfile):
     retirements,
     ledger,
     publication: {
-      "reporting-period": pub["reporting-period"] as string,
+      period: { start: (pub.period as Period).start, end: (pub.period as Period).end },
       "period-start": pub["period-start"] as string,
       "period-end": pub["period-end"] as string,
       updated: pub.updated as string,
@@ -651,7 +672,8 @@ function checkPayload(payload: Record<string, unknown>, kind: EventKind, who: st
   const period = payload[P.period];
   if (!isObject(period) || !isFullDate(period.from) || !isFullDate(period.to)) fail(`${P.period} must be { from, to } full dates`);
   const { from, to } = period as { from: string; to: string };
-  if (from !== firstDay(monthOf(from)) || to !== lastDay(monthOf(from))) fail(`${P.period} must be one whole calendar month, got ${from} to ${to}`);
+  const days = datesPeriod(from, to);
+  if (!days || !isWholeCalendarPeriod(days, "monthly")) fail(`${P.period} must be one whole calendar month, got ${from} to ${to}`);
   const num = (k: string, nonNegative: boolean): void => {
     const v = payload[k];
     if (typeof v !== "number") fail(`${k} must be a number`);
@@ -827,18 +849,19 @@ export interface BridgeResult {
   raw: RawMetrics;
 }
 
-/** P2: the publication describes one whole month (operator) or one whole year (network). */
+/** P2: the publication describes one whole month (operator) or one whole year (network), and its full dates are those days. */
 function checkPeriod(pub: Publication, mode: BridgeMode): { start: string; end: string } {
-  const rp = pub["reporting-period"];
+  const { period } = pub;
+  const named = `${period.start} to ${period.end}`;
   if (mode === "operator") {
-    if (!MONTH_RE.test(rp) || !isFullDate(firstDay(rp))) refuse("E-PERIOD", `operator mode needs a reporting-period YYYY-MM, got ${rp}`);
-    if (pub["period-start"] !== firstDay(rp) || pub["period-end"] !== lastDay(rp)) refuse("E-PERIOD", `period-start/period-end must be the first and last day of ${rp}`);
-    if (pub["target-type"] !== "origin") refuse("E-PERIOD", `operator mode needs target-type "origin", got ${pub["target-type"]}`);
-  } else {
-    if (!YEAR_RE.test(rp)) refuse("E-PERIOD", `network mode needs a reporting-period YYYY, got ${rp}`);
-    if (pub["period-start"] !== `${rp}-01-01` || pub["period-end"] !== `${rp}-12-31`) refuse("E-PERIOD", `period-start/period-end must be the first and last day of ${rp}`);
-    if (pub["target-type"] !== "service") refuse("E-PERIOD", `network mode needs target-type "service", got ${pub["target-type"]}`);
+    if (!isWholeCalendarPeriod(period, "monthly")) refuse("E-PERIOD", `operator mode needs a whole calendar month, got ${named}`);
+  } else if (!isWholeCalendarPeriod(period, "yearly")) {
+    refuse("E-PERIOD", `network mode needs a whole calendar year, got ${named}`);
   }
+  const days = datesPeriod(pub["period-start"], pub["period-end"], zoneOf(period));
+  if (!days || canonicalKey(days) !== canonicalKey(period)) refuse("E-PERIOD", `period-start/period-end must be the first and last day of ${named}`);
+  if (mode === "operator" && pub["target-type"] !== "origin") refuse("E-PERIOD", `operator mode needs target-type "origin", got ${pub["target-type"]}`);
+  if (mode === "network" && pub["target-type"] !== "service") refuse("E-PERIOD", `network mode needs target-type "service", got ${pub["target-type"]}`);
   return { start: pub["period-start"], end: pub["period-end"] };
 }
 
@@ -848,7 +871,7 @@ function countedOperators(v: VerifiedLedger, mode: BridgeMode, months: string[])
     const target = v.excerpt.publication.target;
     const entry = v.excerpt.registry.find((r) => r.origin === target);
     if (!entry) refuse("E-OPERATOR", `no Registry entry has origin ${target}`);
-    if (!months.some((m) => activeIn(entry.active, m))) refuse("E-INACTIVE", `${entry.operator} is not active in ${v.excerpt.publication["reporting-period"]}`);
+    if (!months.some((m) => activeIn(entry.active, m))) refuse("E-INACTIVE", `${entry.operator} is not active in ${v.excerpt.publication.period.start} to ${v.excerpt.publication.period.end}`);
     return [entry];
   }
   return v.excerpt.registry.filter((r) => months.some((m) => activeIn(r.active, m))).sort((a, b) => (a.operator < b.operator ? -1 : 1));
@@ -1008,8 +1031,9 @@ export function bridge(v: VerifiedLedger, opts: BridgeOptions): BridgeResult {
 
   // `measurement-method`: the operators' token when they agree; a description otherwise.
   const methods = [...new Set(entries.flatMap((e) => [...e.measurementMethods]))].sort();
-  const measurementMethod =
-    methods.length === 1 ? methods[0] : methods.length > 1 ? `mixed (per operator; see methodology-uri): ${methods.join(", ")}` : "not stated (no energy attestation in the period; see methodology-uri)";
+  // The draft's set is closed: operators that disagree are reported at the least direct of their methods,
+  // and a period with no energy attestation at the residual token; methodology-uri says which.
+  const measurementMethod = leastDirect(methods);
 
   if (!haveEnergy && !haveCarbon) refuse("E-EMPTY", "no energy and no carbon figure can be published for the period (every month is silent)");
   if (opts.mode === "network" && !opts.disclosureUri) refuse("E-DISCLOSURE", "a network declaration must carry disclosure-uri (C-SFC-5); configure disclosureUri");
@@ -1065,7 +1089,7 @@ export function bridge(v: VerifiedLedger, opts: BridgeOptions): BridgeResult {
     provider: opts.provider,
     measurementMethod,
     methodologyUri: opts.methodologyUri,
-    reportingPeriod: pub["reporting-period"],
+    period: pub.period,
     capabilities: "basic",
     updated: pub.updated,
     target: pub.target,
@@ -1159,6 +1183,12 @@ function evidenceOf(doc: Doc): { profile: SfcLedgerProfile; value: Doc } | undef
   return carried;
 }
 
+/** The period a declaration states, or undefined when it states none. */
+function periodOf(doc: Doc): Period | undefined {
+  const period = doc.period as Period | undefined;
+  return periodError(period) === undefined ? { start: period!.start, end: period!.end } : undefined;
+}
+
 /** S5a: the shape of the extension value. Returns the first defect, or undefined. */
 function evidenceShapeDefect(doc: Doc, profile: SfcLedgerProfile, le: Doc): string | undefined {
   const E = profile.evidence;
@@ -1171,8 +1201,10 @@ function evidenceShapeDefect(doc: Doc, profile: SfcLedgerProfile, le: Doc): stri
   const start = le[E.periodStart];
   const end = le[E.periodEnd];
   if (!isFullDate(start) || !isFullDate(end) || start > end) return `${E.periodStart} and ${E.periodEnd} must be full dates in order`;
-  const rp = doc["reporting-period"];
-  if (typeof rp !== "string" || !start.startsWith(rp) || !end.startsWith(rp)) return `${E.periodStart} and ${E.periodEnd} must lie inside reporting-period ${JSON.stringify(rp)}`;
+  const period = periodOf(doc);
+  const inside = period !== undefined && (isWholeCalendarPeriod(period, "yearly") || isWholeCalendarPeriod(period, "monthly"));
+  const days = inside ? datesPeriod(start, end, zoneOf(period)) : undefined;
+  if (!period || !days || compareDateTimes(days.start, period.start) < 0 || compareDateTimes(days.end, period.end) > 0) return `${E.periodStart} and ${E.periodEnd} must lie inside the whole year or month that period names (${JSON.stringify(doc.period)})`;
   const ops = le[E.operators];
   if (!Array.isArray(ops) || ops.length === 0) return `${E.operators} must be a non-empty array`;
   if (doc["target-type"] === "origin" && ops.length !== 1) return `an operator declaration carries exactly one ${E.operators} entry, got ${ops.length}`;
@@ -1246,10 +1278,10 @@ export async function shallowCheck(doc: unknown, opts: ShallowOptions): Promise<
     }
     const v = validateDocument(doc);
     if (!v.valid) {
-      row("S2 draft-conformance", "FAIL", `not a draft -07 declaration: ${(v.errors ?? []).join("; ") || "not a JSON object"}`);
+      row("S2 draft-conformance", "FAIL", `not a declaration of the draft: ${(v.errors ?? []).join("; ") || "not a JSON object"}`);
       return { depth: "shallow", ok: false, rows };
     }
-    row("S2 draft-conformance", "PASS", "valid against draft -07 (consumer library)");
+    row("S2 draft-conformance", "PASS", "valid against the draft (consumer library)");
     const d = doc as Doc;
 
     const sig = await verifyEmbeddedSignature(doc, { trustedKeys: opts.trustedKeys as PublicJwk[] });
@@ -1260,10 +1292,11 @@ export async function shallowCheck(doc: unknown, opts: ShallowOptions): Promise<
     } else if ((sig.differences ?? []).length > 0) {
       row("S3 signature", "FAIL", `signature verified with the pinned key, but the served members ${sig.differences!.join(", ")} differ from the signed payload, so the served figures are not the signed ones`);
     } else {
-      row("S3 signature", "PASS", `signed verified with the pinned key (${sig.result.alg}); precedence ${sig.result.precedence}; no member differs from the signed payload`);
+      row("S3 signature", "PASS", `signed verified with the pinned key (${sig.result.alg}, key trust ${sig.result.keyTrust}, thumbprint ${sig.result.thumbprint}); precedence ${sig.result.precedence}; no member differs from the signed payload`);
     }
 
-    const annualNetwork = typeof d["reporting-period"] === "string" && YEAR_RE.test(d["reporting-period"]) && d["target-type"] === "service";
+    const stated = periodOf(d);
+    const annualNetwork = stated !== undefined && isWholeCalendarPeriod(stated, "yearly") && d["target-type"] === "service";
     if (!annualNetwork) {
       row("S4a C-SFC-2-disclosure", "REFUSED", "C1 applies only to a network's whole year; this is an operator or sub-annual declaration");
       row("S4b C-SFC-5", "REFUSED", "applies at network level only");
@@ -1465,7 +1498,8 @@ export function deepCheck(doc: unknown, excerpt: unknown, opts: { scope2MethodDe
     if (x["event-encoding"] !== le[E.eventEncoding]) mismatches.push(E.eventEncoding);
     if (x.publication["period-start"] !== le[E.periodStart]) mismatches.push(E.periodStart);
     if (x.publication["period-end"] !== le[E.periodEnd]) mismatches.push(E.periodEnd);
-    if (x.publication["reporting-period"] !== doc["reporting-period"]) mismatches.push("reporting-period");
+    const statedPeriod = periodOf(doc);
+    if (!statedPeriod || canonicalKey(x.publication.period) !== canonicalKey(statedPeriod)) mismatches.push("period");
     if (x.publication.target !== doc.target) mismatches.push("target");
     if (x.publication.updated !== doc.updated) mismatches.push("updated");
     const topology = (doc.extensions as Doc)[profile.extensions.networkTopology];

@@ -24,8 +24,10 @@ node examples/generate-examples.js
 Every file in `transformed/` passes **both** independent validators
 (`schemas-validators/validator-json.py` — Python JTD, and `validator-cddl.py` — Ruby
 CDDL); see the repo's `validate-all.sh` / CI for the automated check. `updated` timestamps
-in the transformed files reflect the actual moment they were generated (they are not
-meant to be re-frozen; regenerate them, don't hand-edit them).
+are fixed by the generator's clock (1 June 2026), so a regeneration reproduces the files
+exactly; regenerate them, don't hand-edit them. Every `period` is a half-open range of two RFC 3339
+date-times, start included and end excluded (draft Section 3.2); an adapter configured with a calendar
+label such as `"2026-05"` writes the whole month in UTC.
 
 ## The pairs
 
@@ -91,6 +93,8 @@ trivial field rename:
 - **Salesforce** and **Watershed**: `scope-1 + scope-2 + scope-3` sums exactly to
   `carbon-footprint` in both outputs — the adapters pass the vendor's own scope breakdown
   through unchanged, and the vendor totals already reconcile.
+  Watershed's `2026-Q1` quarter label becomes the period `2026-01-01T00:00:00Z` to
+  `2026-04-01T00:00:00Z`.
 - **Microsoft Sustainability**: two OData pages are walked via the cursor
   (`@odata.nextLink`/`$skiptoken`) and their per-record `totalEmissions` are summed into
   one period total (`1.82 + 0.41 + 0.95 = 3.18`); the tenant's cloud-usage emissions are

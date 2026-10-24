@@ -10,13 +10,15 @@ import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import express from "express";
 import * as jose from "jose";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { computedAdapter, staticAdapter } from "../src/adapters";
 import { runKeygen, runSign, loadSigningKey } from "../src/cli";
 import {
+  embeddedJwk,
   exportPrivateJwk,
   generateSigningKey,
   importSigningKey,
+  pemToX5c,
   signDeclaration,
   signDocument,
   SIGNED_CTY,
@@ -25,6 +27,7 @@ import {
 } from "../src/jws";
 import { expressSustainability } from "../src/middleware/express";
 import { fastifySustainability } from "../src/middleware/fastify";
+import { periodFromReportingPeriod } from "../src/period";
 import { Publisher } from "../src/publisher";
 import { createSustainabilityServer } from "../src/server";
 import type { RawMetrics, SustainabilityMetrics } from "../src/types";
@@ -35,7 +38,7 @@ function demoPublisher(signing?: { key: SigningKey; keyId?: string }, period = "
     computedAdapter({
       provider: "Example Corp",
       methodologyUri: "https://example.com/m",
-      reportingPeriod: period,
+      period: period,
       energy: { value: 1250, unit: "kWh" },
       gridIntensity: 276,
     }),
@@ -47,7 +50,7 @@ const rawTrend = (period: string): RawMetrics => ({
   provider: "Trend Corp",
   measurementMethod: "cloud-billing",
   methodologyUri: "https://trend.example/m",
-  reportingPeriod: period,
+  period: period,
   energy: { value: 10, unit: "kWh" },
   carbon: { value: 100, unit: "gCO2e" },
   target: "trend.example",
@@ -78,10 +81,10 @@ function listen(server: any) {
 }
 
 describe("key material", () => {
-  it("generates Ed25519 (EdDSA) by default and P-256 (ES256) on request", async () => {
+  it("generates Ed25519 by default and P-256 (ES256) on request", async () => {
     const ed = await generateSigningKey();
-    expect(ed.alg).toBe("EdDSA");
-    expect(ed.publicJwk).toMatchObject({ kty: "OKP", crv: "Ed25519", use: "sig", alg: "EdDSA" });
+    expect(ed.alg).toBe("Ed25519");
+    expect(ed.publicJwk).toMatchObject({ kty: "OKP", crv: "Ed25519", use: "sig", alg: "Ed25519" });
     expect(ed.publicJwk).not.toHaveProperty("d");
     const es = await generateSigningKey("ES256");
     expect(es.alg).toBe("ES256");
@@ -97,7 +100,7 @@ describe("key material", () => {
   });
 
   it("round-trips through a private JWK export/import, preserving kid", async () => {
-    for (const alg of ["EdDSA", "ES256"] as const) {
+    for (const alg of ["Ed25519", "ES256"] as const) {
       const key = await generateSigningKey(alg);
       const json = JSON.stringify(await exportPrivateJwk(key));
       const back = await importSigningKey(json);
@@ -149,21 +152,23 @@ describe("the signed member (draft §Signing)", () => {
     provider: "Example Corp (sustain@example.org)",
     "measurement-method": "cloud-billing",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025",
+    period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
     target: "example.com",
     "energy-consumption": 15000,
     "energy-unit": "kWh",
   });
 
   it("is a compact JWS over the object minus `signed`, typed by cty, for both algorithms", async () => {
-    for (const alg of ["EdDSA", "ES256"] as const) {
+    for (const alg of ["Ed25519", "ES256"] as const) {
       const key = await generateSigningKey(alg);
       const object = declaration();
       const signed = await signDeclaration(object, key);
 
       expect(signed.signed!.split(".")).toHaveLength(3);
       const { header, payload } = await verifySigned(signed);
-      expect(header).toEqual({ alg, cty: SIGNED_CTY, jwk: key.publicJwk });
+      expect(header).toEqual({ alg, cty: SIGNED_CTY, jwk: embeddedJwk(key) });
+      // The embedded key has the RFC 7517 members of the key and nothing else: no kid, alg or use.
+      expect(Object.keys(header.jwk!)).toEqual(alg === "Ed25519" ? ["kty", "crv", "x"] : ["kty", "crv", "x", "y"]);
       // The payload is exactly this object without the signature.
       expect(payload).toEqual(object);
       expect(payload).not.toHaveProperty("signed");
@@ -197,7 +202,7 @@ describe("the signed member (draft §Signing)", () => {
     const key = await generateSigningKey();
     const signed = await signDeclaration(declaration(), key, { keyId: "https://example.com/keys/2026#1" });
     const header = jose.decodeProtectedHeader(signed.signed!);
-    expect(header).toEqual({ alg: "EdDSA", cty: SIGNED_CTY, kid: "https://example.com/keys/2026#1" });
+    expect(header).toEqual({ alg: "Ed25519", cty: SIGNED_CTY, kid: "https://example.com/keys/2026#1" });
     expect(header).not.toHaveProperty("jwk");
     // Verification then needs the key the publisher distributes separately.
     const { payload } = await verifySigned(signed, key.publicJwk);
@@ -208,7 +213,7 @@ describe("the signed member (draft §Signing)", () => {
     const key = await generateSigningKey();
     const once = await signDeclaration(declaration(), key);
     const twice = await signDeclaration(once, key);
-    expect(twice.signed).toBe(once.signed); // EdDSA is deterministic
+    expect(twice.signed).toBe(once.signed); // Ed25519 is deterministic
     const { payload } = await verifySigned(twice);
     expect(payload).not.toHaveProperty("signed");
   });
@@ -232,11 +237,11 @@ describe("the signed member (draft §Signing)", () => {
     const jwt = await signAttached(credential, key, { typ: "vc+jwt", cty: "vc", kid: "https://issuer.example/k#1" });
     const [h, p] = jwt.split(".");
     expect(JSON.parse(Buffer.from(h, "base64url").toString())).toEqual({
-      alg: "EdDSA",
+      alg: "Ed25519",
       kid: "https://issuer.example/k#1",
       typ: "vc+jwt",
       cty: "vc",
-      jwk: key.publicJwk,
+      jwk: embeddedJwk(key),
     });
     expect(JSON.parse(Buffer.from(p, "base64url").toString())).toEqual(credential);
   });
@@ -281,30 +286,30 @@ describe("a signing publisher", () => {
       staticAdapter({ data: ["2026-01", "2026-02", "2026-03"].map(rawTrend), capabilities: "extended" }),
       { cacheTtlMs: 0, signing: { key } },
     );
-    const doc = (await publisher.getDocument({
-      period: "2026",
-      granularity: "monthly",
-    })) as SustainabilityMetrics[];
+    const doc = (await publisher.getDocument({ granularity: "monthly" })) as SustainabilityMetrics[];
     expect(doc).toHaveLength(3);
     for (const entry of doc) {
-      const { payload } = await verifySigned(entry);
-      expect(payload["reporting-period"]).toBe(entry["reporting-period"]);
+      const { header, payload } = await verifySigned(entry);
+      expect(header.alg).toBe("Ed25519");
+      expect(payload.period).toEqual(entry.period);
     }
     expect(validateDocument(doc).valid).toBe(true);
   });
 
-  it("signs an aggregate, over the aggregate's own members", async () => {
+  it("signs the objects a selection returns, each over its own members, and computes no aggregate", async () => {
     const publisher = new Publisher(
-      staticAdapter({ data: ["2026-01", "2026-02"].map(rawTrend), capabilities: "extended" }),
-      // A fixed clock: January and February are the whole completed portion of
-      // 2026 at this instant, so they cover it and the year has an aggregate to
-      // sign (draft step 5, coverage; step 6, the completed portion to date).
-      { cacheTtlMs: 0, signing: { key }, now: () => new Date("2026-03-01T00:00:00Z") },
+      staticAdapter({ data: ["2026-01", "2026-02", "2026-03"].map(rawTrend), capabilities: "extended" }),
+      { cacheTtlMs: 0, signing: { key } },
     );
-    const year = (await publisher.getDocument({ period: "2026" })) as SustainabilityMetrics;
-    const { payload } = await verifySigned(year);
-    expect(payload["reporting-period"]).toBe("2026");
-    expect(payload["energy-consumption"]).toBe(20);
+    const selected = (await publisher.getDocument({
+      start: "2026-01-01T00:00:00Z",
+      end: "2026-03-01T00:00:00Z",
+    })) as SustainabilityMetrics[];
+    expect(selected).toHaveLength(2);
+    for (const entry of selected) {
+      const { payload } = await verifySigned(entry);
+      expect(payload["energy-consumption"]).toBe(10); // the month's own figure, not a sum
+    }
   });
 });
 
@@ -399,7 +404,7 @@ describe("CLI keygen / sign / key loading", () => {
     provider: "Static Host (sustain@static.example)",
     "measurement-method": "cloud-billing",
     "methodology-uri": "https://static.example/methodology",
-    "reporting-period": "2025",
+    period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
     target: "static.example",
     "energy-consumption": 15000,
     "energy-unit": "kWh",
@@ -418,7 +423,7 @@ describe("CLI keygen / sign / key loading", () => {
     expect(priv.kid).toBe(printed.kid);
     // Never overwrite an existing key file.
     await expect(runKeygen(["--out", file], capture().stream)).rejects.toThrow(/EEXIST/);
-    await expect(runKeygen(["--alg", "RS256"], capture().stream)).rejects.toThrow(/EdDSA or ES256/);
+    await expect(runKeygen(["--alg", "RS256"], capture().stream)).rejects.toThrow(/Ed25519 or ES256/);
     await expect(runKeygen(["--bogus"], capture().stream)).rejects.toThrow(/unknown argument/);
   });
 
@@ -443,7 +448,7 @@ describe("CLI keygen / sign / key loading", () => {
     await runKeygen(["--out", keyFile], capture().stream);
     const inFile = join(dir, "trend.json");
     const outFile = join(dir, "trend.signed.json");
-    const trend = ["2024", "2025"].map((p) => ({ ...DECLARATION, "reporting-period": p }));
+    const trend = ["2024", "2025"].map((p) => ({ ...DECLARATION, period: periodFromReportingPeriod(p) }));
     writeFileSync(inFile, JSON.stringify(trend, null, 2) + "\n");
 
     await runSign([inFile, outFile, "--key", keyFile, "--kid", "https://static.example/keys#1"], capture().stream);
@@ -476,41 +481,53 @@ describe("CLI keygen / sign / key loading", () => {
     writeFileSync(bad, JSON.stringify({ ...DECLARATION, target: "" }));
     await expect(runSign([bad, outFile, "--key", keyFile], capture().stream)).rejects.toThrow(/target/);
     writeFileSync(bad, "{not json");
-    await expect(runSign([bad, outFile, "--key", keyFile], capture().stream)).rejects.toThrow(/not valid JSON/);
+    await expect(runSign([bad, outFile, "--key", keyFile], capture().stream)).rejects.toThrow(/not valid I-JSON/);
+    // A duplicate member name is refused as well: the signature would cover an ambiguous object.
+    writeFileSync(bad, '{"target":"a","target":"b"}');
+    await expect(runSign([bad, outFile, "--key", keyFile], capture().stream)).rejects.toThrow(/not valid I-JSON/);
   });
 
-  // Draft §Optional Members: the URI-valued members "MUST be absolute URIs with
-  // the 'https' scheme". `normalize()` enforces that on everything this package
-  // BUILDS, but `sustainability-sign` validates a file it did not build — with
-  // `assertValid` and nothing else — so the gate has to carry the rule too, or
-  // the tool puts a signature on a MUST-violating object.
-  it("refuses to sign a declaration whose URI members are not absolute https URIs", async () => {
+  // Draft §URI-Valued Members: these members are URI references, so a relative one
+  // is signed as it stands; one that is not a reference at all is signed with a warning.
+  it("signs a declaration whose URI members are URI references, and warns about one that is not", async () => {
     const keyFile = join(dir, "sign4.jwk");
     await runKeygen(["--out", keyFile], capture().stream);
-    const bad = join(dir, "bad-uri.json");
-    const outFile = join(dir, "never-written-uri.json");
+    const input = join(dir, "uris.json");
+    const outFile = join(dir, "uris.signed.json");
+    const written: string[] = [];
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      written.push(String(chunk));
+      return true;
+    });
+    try {
+      writeFileSync(input, JSON.stringify({ ...DECLARATION, "methodology-uri": "/methodology", "disclosure-uri": "../disclosures" }));
+      await runSign([input, outFile, "--key", keyFile], capture().stream);
+      expect(existsSync(outFile)).toBe(true);
+      expect(written).toEqual([]);
 
-    for (const override of [
-      { "methodology-uri": "http://static.example/methodology" },
-      { "methodology-uri": "/methodology" },
-      { "disclosure-uri": "ftp://static.example/d" },
-      { "verifiable-attestation-uri": "not-a-uri" },
-      { upstream: [{ declaration: "https://" }] },
-    ]) {
-      writeFileSync(bad, JSON.stringify({ ...DECLARATION, ...override }));
-      await expect(
-        runSign([bad, outFile, "--key", keyFile], capture().stream),
-        JSON.stringify(override),
-      ).rejects.toThrow(/absolute https URI/);
-      expect(existsSync(outFile), JSON.stringify(override)).toBe(false);
+      writeFileSync(input, JSON.stringify({ ...DECLARATION, "disclosure-uri": "not a uri" }));
+      await runSign([input, outFile, "--key", keyFile], capture().stream);
+      expect(written.join("")).toMatch(/warning: .*disclosure-uri is not a URI reference/);
+    } finally {
+      stderr.mockRestore();
     }
-    // The same document with https URIs throughout signs normally.
-    writeFileSync(
-      bad,
-      JSON.stringify({ ...DECLARATION, "disclosure-uri": "https://static.example/disclosures" }),
+  });
+
+  it("keygen refuses the polymorphic EdDSA name and names Ed25519; a key file written for it still signs as Ed25519", async () => {
+    await expect(runKeygen(["--alg", "EdDSA"], capture().stream)).rejects.toThrow(/Ed25519/);
+    await expect(generateSigningKey("EdDSA" as never)).rejects.toThrow(/Ed25519/);
+    const key = await generateSigningKey();
+    const file = { ...(await exportPrivateJwk(key)), alg: "EdDSA" };
+    const imported = await importSigningKey(file);
+    expect(imported.alg).toBe("Ed25519");
+    expect(imported.kid).toBe(key.kid);
+    const signed = await signDeclaration(
+      { updated: "2026-03-01T12:00:00Z", capabilities: "basic", provider: "p", "measurement-method": "cloud-billing", "methodology-uri": "https://x.example/m", period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" }, target: "x.example" },
+      imported,
     );
-    await runSign([bad, outFile, "--key", keyFile], capture().stream);
-    expect(existsSync(outFile)).toBe(true);
+    expect(jose.decodeProtectedHeader(signed.signed!)).toMatchObject({ alg: "Ed25519", cty: SIGNED_CTY });
+    // A verifier restricted to the fully-specified name accepts it.
+    await expect(jose.compactVerify(signed.signed!, await jose.importJWK(key.publicJwk, "Ed25519"), { algorithms: ["Ed25519"] })).resolves.toBeTruthy();
   });
 
   it("loadSigningKey prefers the environment variable over the config file, and is undefined without either", async () => {
@@ -524,5 +541,93 @@ describe("CLI keygen / sign / key loading", () => {
     expect((await loadSigningKey(config, { SUSTAINABILITY_SIGNING_KEY: envJwk }))!.kid).toBe(envKey.kid);
     expect(await loadSigningKey({ adapter: { type: "computed", options: {} } }, {})).toBeUndefined();
     await expect(loadSigningKey(config, { SUSTAINABILITY_SIGNING_KEY: "{}" })).rejects.toThrow(/unsupported key type/);
+  });
+});
+
+// The certificate in test/fixtures/rfc8032-test-key-1.cert.pem is self-signed for the public test key 1 of
+// RFC 8032 Section 7.1 (the private seed is published and protects nothing). It was made once with OpenSSL 3:
+//   (printf '302e020100300506032b657004220420'; echo -n 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60) | xxd -r -p > key.der
+//   openssl pkey -inform DER -in key.der -out key.pem
+//   openssl req -new -x509 -key key.pem -subj "/CN=RFC 8032 test key 1" -days 36500 -out rfc8032-test-key-1.cert.pem
+// No test reads the clock, so the validity dates play no part.
+describe("a certificate chain in the header", () => {
+  const CERTIFICATE = readFileSync(join(__dirname, "fixtures", "rfc8032-test-key-1.cert.pem"), "utf8");
+  const RFC8032_KEY = {
+    kty: "OKP",
+    crv: "Ed25519",
+    x: "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+    d: "nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A",
+  };
+  const DECLARATION: SustainabilityMetrics = {
+    updated: "2026-03-01T12:00:00Z",
+    capabilities: "basic",
+    provider: "Static Host (sustain@static.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://static.example/methodology",
+    period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
+    target: "static.example",
+    "energy-consumption": 15000,
+    "energy-unit": "kWh",
+  };
+  const object = () => ({ ...DECLARATION });
+
+  it("pemToX5c reads the base64 DER of each certificate, in order", () => {
+    const [leaf, ...rest] = pemToX5c(CERTIFICATE + CERTIFICATE);
+    expect(rest).toHaveLength(1);
+    expect(leaf).toMatch(/^[A-Za-z0-9+/]+=*$/);
+    expect(Buffer.from(leaf, "base64")[0]).toBe(0x30); // a DER SEQUENCE
+    expect(() => pemToX5c("no certificate here")).toThrow(/no CERTIFICATE block/);
+  });
+
+  it("carries x5c instead of jwk when the leaf holds the signing key", async () => {
+    const key = await importSigningKey(RFC8032_KEY);
+    const x5c = pemToX5c(CERTIFICATE);
+    const signed = await signDeclaration(object(), key, { x5c });
+    const header = jose.decodeProtectedHeader(signed.signed!);
+    expect(header).toEqual({ alg: "Ed25519", cty: SIGNED_CTY, x5c });
+    // The verification key is the one in the certificate.
+    const { payload } = await verifySigned(signed, key.publicJwk);
+    expect(payload).toEqual(object());
+  });
+
+  it("adds kid next to x5c when keyId is also given", async () => {
+    const key = await importSigningKey(RFC8032_KEY);
+    const signed = await signDeclaration(object(), key, { x5c: pemToX5c(CERTIFICATE), keyId: "test-key-1" });
+    const header = jose.decodeProtectedHeader(signed.signed!);
+    expect(header).toMatchObject({ kid: "test-key-1" });
+    expect(header).toHaveProperty("x5c");
+    expect(header).not.toHaveProperty("jwk");
+  });
+
+  it("refuses a chain whose leaf is another key, and a chain that is not certificates", async () => {
+    const other = await generateSigningKey();
+    await expect(signDeclaration(object(), other, { x5c: pemToX5c(CERTIFICATE) })).rejects.toThrow(/not the signing key/);
+    const key = await importSigningKey(RFC8032_KEY);
+    await expect(signDeclaration(object(), key, { x5c: [] })).rejects.toThrow(/non-empty array/);
+    await expect(signDeclaration(object(), key, { x5c: ["not base64!"] })).rejects.toThrow(/non-empty array/);
+    await expect(signDeclaration(object(), key, { x5c: ["AAAA"] })).rejects.toThrow(/could not be read/);
+  });
+
+  it("keeps the default and the kid-only header as they were", async () => {
+    const key = await importSigningKey(RFC8032_KEY);
+    expect(jose.decodeProtectedHeader((await signDeclaration(object(), key)).signed!)).toEqual({ alg: "Ed25519", cty: SIGNED_CTY, jwk: embeddedJwk(key) });
+    expect(jose.decodeProtectedHeader((await signDeclaration(object(), key, { keyId: "k" })).signed!)).toEqual({ alg: "Ed25519", cty: SIGNED_CTY, kid: "k" });
+  });
+
+  it("sign --x5c takes the chain from a PEM file", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "sust-x5c-"));
+    try {
+      const keyFile = join(dir, "key.jwk");
+      const inFile = join(dir, "in.json");
+      const outFile = join(dir, "out.json");
+      writeFileSync(keyFile, JSON.stringify(RFC8032_KEY));
+      writeFileSync(inFile, JSON.stringify(DECLARATION, null, 2) + "\n");
+      await runSign([inFile, outFile, "--key", keyFile, "--x5c", join(__dirname, "fixtures", "rfc8032-test-key-1.cert.pem")], { write: () => true } as unknown as NodeJS.WritableStream);
+      const header = jose.decodeProtectedHeader((JSON.parse(readFileSync(outFile, "utf8")) as SustainabilityMetrics).signed!);
+      expect(header.x5c).toEqual(pemToX5c(CERTIFICATE));
+      expect(header).not.toHaveProperty("jwk");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -1,56 +1,70 @@
-; Root: a single declaration object, or an array for trends
+; Root: one declaration object, or an array of them
 sustainability-response =
-  sustainability-metrics / [+ sustainability-metrics]
+  sustainability-metrics / [* sustainability-metrics]
 
 sustainability-metrics = {
   ; Mandatory members
-  updated: tstr,                  ; RFC 3339 date-time
+  updated: date-time,
   capabilities: "basic" / "extended",
   provider: tstr,
-  measurement-method: tstr,
-  methodology-uri: tstr,          ; absolute https URI
-  reporting-period: tstr,         ; YYYY, YYYY-MM, or YYYY-MM-DD
-  target: tstr,                   ; the subject
+  measurement-method: "hardware-metered" / "hardware-estimated"
+                    / "cloud-billing" / "third-party-modeled",
+  methodology-uri: tstr,          ; URI reference
+  period: period,
+  target: tstr,                   ; what the object is about
 
   ; Energy; when energy-unit is absent, kWh applies
   ? energy-consumption: number,   ; non-negative
   ? energy-unit: "Wh" / "kWh" / "MWh" / "GWh",
 
   ; Carbon; when carbon-unit is absent, gCO2e applies
-  ? carbon-footprint: number,     ; gross, non-negative
-  ? carbon-unit: "gCO2e" / "kgCO2e" / "mtCO2e",
+  ? carbon-footprint: number,     ; non-negative
+  ? carbon-unit: "gCO2e" / "kgCO2e" / "tCO2e",
   ? carbon-accounting: "location-based" / "market-based",
-  ? scope-1: number,              ; may be negative (removals)
-  ? scope-2: number,              ; may be negative (removals)
-  ? scope-3: number,              ; may be negative (removals)
-  ? sci-score: number,            ; non-negative
-  ? functional-unit: tstr,
-  ? carbon-intensity-gCO2e-per-kWh: number,   ; non-negative
-  ? estimated-annual-emissions-kgCO2e: number, ; non-negative
-  ? renewable-energy: number,     ; percentage, 0-100
+  ? scope-1: number,              ; in carbon-unit; may be negative
+  ? scope-2: number,
+  ? scope-3: number,
 
-  ; Evidence links (absolute https URIs)
-  ? verifiable-attestation-uri: tstr,
-  ? disclosure-uri: tstr,
+  ; Other metrics
+  ? sci-score: number,            ; requires functional-unit
+  ? functional-unit: "per-request" / "per-transaction"
+                   / "per-page-view" / "per-session" / "per-user"
+                   / "per-job" / "per-token" / "per-inference"
+                   / "per-gigabyte" / "per-gigabyte-hour"
+                   / "per-vcpu-hour" / "per-device",
+  ? carbon-intensity-gCO2e-per-kWh: number,
+  ? estimated-annual-emissions-kgCO2e: number,
+  ? renewable-energy: number,     ; 0 to 100
 
-  ; Classification of the subject named by target
-  ? target-type: "origin" / "path" / "organization" / "service"
-               / "product" / "device" / "tenant" / "data-source",
-
-  ; Declarations this object's figures derive from
+  ; Classification, evidence, provenance
+  ? target-type: "origin" / "path" / "organization" / "facility"
+               / "service" / "product" / "device" / "tenant"
+               / "data-source",
+  ? verifiable-attestation-uri: tstr,  ; URI reference
+  ? disclosure-uri: tstr,              ; URI reference
   ? upstream: [+ upstream-entry],
-
-  ; Members defined outside this document, keyed by
-  ; an absolute URI (see Extensions)
   ? extensions: { * ext-name => { * tstr => any } },
+  ? signed: tstr,                 ; JWS Compact Serialization
 
-  ; JWS Compact Serialization over this object minus "signed"
-  ? signed: tstr,
+  ; Members a later revision may define; a consumer ignores them
+  * tstr => any
 }
+
+; Period: start included, end excluded; start is before end
+period = {
+  start: date-time,               ; RFC 3339 date-time
+  end: date-time,
+  * tstr => any
+}
+date-time = tstr .regexp (dt-head .cat dt-tail)
+dt-head = "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
+dt-tail = "(\\.[0-9]+)?(Z|(\\+|-)[0-9]{2}:[0-9]{2})"
 
 upstream-entry = {
-  declaration: tstr,              ; absolute https URI
-  ? role: tstr,                   ; e.g. hosting, cloud, cdn
+  declaration: tstr,              ; URI reference
+  ? role: "hosting" / "colocation" / "cloud" / "cdn" / "network"
+        / "electricity",
+  * tstr => any
 }
 
-ext-name = tstr .regexp "[a-z][a-z0-9+.-]*:[!$-;=?-Z\\[\\]_a-z~]+"
+ext-name = tstr                   ; a URI, compared as a string

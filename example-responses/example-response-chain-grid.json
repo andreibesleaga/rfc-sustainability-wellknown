@@ -1,0 +1,18 @@
+{
+  "updated": "2026-02-25T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Chain Grid Utility (sustainability@chain.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://chain.example/sustainability/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
+  "target": "Chain Grid Utility",
+  "target-type": "organization",
+  "energy-unit": "MWh",
+  "carbon-unit": "tCO2e",
+  "energy-consumption": 2000,
+  "carbon-footprint": 700,
+  "carbon-accounting": "location-based"
+}

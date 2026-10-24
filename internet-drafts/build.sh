@@ -14,7 +14,8 @@
 #   * no rendered line exceeds 72 characters, and the text is pure ASCII
 #   * no leaked Markdown code fences
 #   * the schema references resolve and the stale RFC 8949 reference is absent
-#   * the CDDL and JTD blocks in the draft still match schemas-validators/
+#   * the CDDL block in the draft still matches schemas-validators/ (and the JTD
+#     block too, for a draft that carries one; -09 and later have none)
 #   * idnits (via the IETF author-tools API) reports zero errors
 #   * idnits3 in normal mode (what author-tools.ietf.org/idnits3 runs; stricter
 #     than the submission mode used on upload) reports zero nits, comments
@@ -40,7 +41,7 @@ REV=""
 for arg in "$@"; do
   case "$arg" in
     --no-idnits) RUN_IDNITS=0 ;;
-    -h|--help)   sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)   sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -[0-9][0-9]) REV="${arg#-}" ;;
     [0-9][0-9])  REV="$arg" ;;
     *) echo "unknown argument: $arg (try --help)" >&2; exit 2 ;;
@@ -113,7 +114,7 @@ else echo "    OK   pure ASCII"; fi
 if grep -q '```' "$DRAFT.txt"; then note_fail "leaked Markdown code fences"
 else echo "    OK   no leaked code fences"; fi
 
-for ref in RFC8610 RFC7493 RFC8927; do
+for ref in RFC8610 RFC7493 RFC9165 RFC3339; do
   grep -q "\[$ref\]" "$DRAFT.txt" || note_fail "reference [$ref] does not resolve"
 done
 grep -q "\[RFC8949\]" "$DRAFT.txt" && note_fail "stale RFC 8949 (CBOR) reference present" \
@@ -121,8 +122,9 @@ grep -q "\[RFC8949\]" "$DRAFT.txt" && note_fail "stale RFC 8949 (CBOR) reference
 
 # --- schema identity with schemas-validators/ -------------------------------
 # The draft's CDDL block must be byte-identical to response-schema.cddl, and its
-# JTD block must be the same JSON value as response-schema.json. CI enforces the
-# same invariant; a mismatch here means the draft and the validators have drifted.
+# JTD block, when the draft has one, must be the same JSON value as
+# response-schema.json (-09 and later carry no JTD block). CI enforces the same
+# invariant; a mismatch here means the draft and the validators have drifted.
 SCHEMA_DIR="$REPO_ROOT/schemas-validators"
 if [ -d "$SCHEMA_DIR" ]; then
   awk '/^~~~ cddl/{f=1;next} /^~~~/{if(f)exit} f' "$DRAFT.md" > /tmp/.draft-cddl.$$
@@ -131,7 +133,8 @@ if [ -d "$SCHEMA_DIR" ]; then
   else note_fail "CDDL block differs from schemas-validators/response-schema.cddl"; fi
   rm -f /tmp/.draft-cddl.$$
 
-  python3 - "$DRAFT.md" "$SCHEMA_DIR/response-schema.json" <<'PY' || fail=1
+  if grep -q '"optionalProperties"' "$DRAFT.md"; then
+    python3 - "$DRAFT.md" "$SCHEMA_DIR/response-schema.json" <<'PY' || fail=1
 import json, re, sys
 md = open(sys.argv[1]).read()
 blocks = re.findall(r'~~~ json\n(.*?)\n~~~', md, re.S)
@@ -143,6 +146,9 @@ if json.loads(jtd[0]) == json.load(open(sys.argv[2])):
 else:
     print("    FAIL: JTD block differs from schemas-validators/response-schema.json"); sys.exit(1)
 PY
+  else
+    echo "    OK   no JTD block in the draft (JTD left the draft in -09)"
+  fi
 else
   echo "    SKIP schema identity (schemas-validators/ not found)"
 fi

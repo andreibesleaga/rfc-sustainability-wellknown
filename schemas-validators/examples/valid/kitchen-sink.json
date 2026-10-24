@@ -1,0 +1,40 @@
+{
+  "updated": "2026-03-01T12:00:00Z",
+  "capabilities": "extended",
+  "provider": "Example Corp (sustain@example.com)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "/sustainability/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
+  "target": "Example Corp",
+  "target-type": "organization",
+  "energy-consumption": 12.5,
+  "energy-unit": "GWh",
+  "carbon-footprint": 4140,
+  "carbon-unit": "tCO2e",
+  "carbon-accounting": "market-based",
+  "scope-1": 1000,
+  "scope-2": 2000,
+  "scope-3": 1140,
+  "sci-score": 0.012,
+  "functional-unit": "per-request",
+  "carbon-intensity-gCO2e-per-kWh": 331,
+  "estimated-annual-emissions-kgCO2e": 4140000,
+  "renewable-energy": 45,
+  "verifiable-attestation-uri": "https://verify.example/vc/42",
+  "disclosure-uri": "https://example.com/sustainability/disclosures",
+  "upstream": [
+    {
+      "declaration": "https://cloud.example/tenants/acme.json",
+      "role": "cloud"
+    }
+  ],
+  "extensions": {
+    "https://example.com/ext/water": {
+      "water-consumption-m3": 1250
+    }
+  },
+  "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3Vz...(elided)"
+}

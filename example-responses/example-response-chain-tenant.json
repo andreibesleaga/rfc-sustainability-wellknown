@@ -1,0 +1,24 @@
+{
+  "updated": "2026-02-25T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Chain Cloud (sustainability@chain.example)",
+  "measurement-method": "cloud-billing",
+  "methodology-uri": "https://chain.example/sustainability/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
+  "target": "chain-org",
+  "target-type": "tenant",
+  "energy-unit": "MWh",
+  "carbon-unit": "tCO2e",
+  "energy-consumption": 320,
+  "carbon-footprint": 110,
+  "carbon-accounting": "market-based",
+  "upstream": [
+    {
+      "declaration": "../../chain-host.example/.well-known/sustainability-data",
+      "role": "hosting"
+    }
+  ]
+}

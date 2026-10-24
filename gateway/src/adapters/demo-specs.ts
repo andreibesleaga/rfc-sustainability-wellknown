@@ -44,7 +44,7 @@ import {
   watershedAdapter,
   type SourceAdapter,
 } from "sustainability-wellknown-publisher";
-import type { RawMetrics } from "sustainability-wellknown-publisher";
+import { lastFullMonthPeriod, yearPeriod, type Period, type RawMetrics } from "sustainability-wellknown-publisher";
 import { PUBLIC_BASE_URL, type GatewayConfig } from "../config";
 import type { LiveDeps, LiveSpec } from "../live";
 import { SFC_LEDGER_DEMO_DOMAIN, deepCheck, sfcLedgerBridgeAdapter, shallowCheck } from "./sfc-ledger-bridge";
@@ -57,7 +57,7 @@ import {
   YANG_FIXTURE_START,
   yangPowerEnergyReplayAdapter,
 } from "./yang-power-energy";
-import { lastCompletedMonth, periodClose, periodHours } from "./self-report";
+import { dateTimeOf, monthKey, periodHours, startOfDay } from "./self-report";
 
 /**
  * Stamp a deterministic `updated` on whatever the adapter produces (the close
@@ -133,7 +133,7 @@ function gridDemoAdapter(
   sourceNote: string,
   wattsByMonth: Record<string, number> = {},
 ): SourceAdapter {
-  const period = lastCompletedMonth(deps.now());
+  const period = lastFullMonthPeriod(deps.now());
   const kwh = gatewayMonthKwh(config, wattsByMonth, period);
   return withUpdated(
     computedAdapter({
@@ -147,12 +147,12 @@ function gridDemoAdapter(
       "claim a real location-accurate footprint.",
     methodologyUri: config.self.methodologyUri,
     measurementMethod: "third-party-modeled",
-    reportingPeriod: period,
+    period,
       energy: { value: kwh, unit: "kWh" },
       gridIntensity: intensity,
       carbonAccounting: "location-based",
     }),
-    periodClose(period),
+    period.end,
   );
 }
 
@@ -165,7 +165,7 @@ function co2jsDemoAdapter(
   crawlBytes: number,
   greencheck: { domain?: string; green?: boolean },
 ): SourceAdapter {
-  const period = lastCompletedMonth(deps.now());
+  const period = lastFullMonthPeriod(deps.now());
   return withUpdated(
     energyInWh(co2jsAdapter({
     provider:
@@ -182,7 +182,7 @@ function co2jsDemoAdapter(
         : "Green-hosting status: not claimed (no live Greencheck lookup in this mode; " +
           "recorded default false)."),
       methodologyUri: "https://developers.thegreenwebfoundation.org/co2js/overview/",
-      reportingPeriod: period,
+      period,
       bytes: crawlBytes,
       model: "swd",
       ...(greencheck.domain
@@ -190,7 +190,7 @@ function co2jsDemoAdapter(
         : { green: greencheck.green ?? false }),
       measurementMethod: "third-party-modeled",
     })),
-    periodClose(period),
+    period.end,
   );
 }
 
@@ -241,7 +241,7 @@ function carbontxtDemoAdapter(deps: LiveDeps, apiKey?: string): SourceAdapter {
       "not metrics — and describe nothing real. Not published, reviewed, or endorsed by " +
       "The Green Web Foundation.",
       domain: "thegreenwebfoundation.org",
-      reportingPeriod: "2025",
+      period: yearPeriod(2025),
       ...(apiKey !== undefined ? { apiKey } : { fixture: CARBONTXT_FIXTURE }),
       // carbon.txt has no numbers; the demo supplies clearly-labelled synthetic
       // metrics so the document exercises the full field mapping.
@@ -249,7 +249,7 @@ function carbontxtDemoAdapter(deps: LiveDeps, apiKey?: string): SourceAdapter {
       gridIntensity: 442,
       measurementMethod: "third-party-modeled",
     }),
-    periodClose("2025"),
+    yearPeriod(2025).end,
   );
 }
 
@@ -271,7 +271,7 @@ export const CLIMATIQ_FIXTURE = {
 };
 
 function climatiqDemoAdapter(config: GatewayConfig, deps: LiveDeps, apiKey?: string): SourceAdapter {
-  const period = lastCompletedMonth(deps.now());
+  const period = lastFullMonthPeriod(deps.now());
   const kwh = (config.self.watts * periodHours(period)) / 1000;
   const live = apiKey !== undefined;
   return withUpdated(
@@ -288,7 +288,7 @@ function climatiqDemoAdapter(config: GatewayConfig, deps: LiveDeps, apiKey?: str
         "tier does not include general API access and its terms restrict redistribution; " +
         "operators with a licensed key can set CLIMATIQ_API_KEY to run this live.",
       methodologyUri: "https://www.climatiq.io/docs/api-reference/estimate",
-      reportingPeriod: period,
+      period,
       activityId: "electricity-supply_grid-source_residual_mix",
       // Climatiq requires a data-version selector for live estimates (the
       // current major, 2026-09); replay fixtures ignore it.
@@ -297,7 +297,7 @@ function climatiqDemoAdapter(config: GatewayConfig, deps: LiveDeps, apiKey?: str
       measurementMethod: "third-party-modeled",
       ...(apiKey !== undefined ? { apiKey } : { fixture: CLIMATIQ_FIXTURE }),
     }),
-    periodClose(period),
+    period.end,
   );
 }
 
@@ -344,7 +344,7 @@ function salesforceDemoAdapter(): SourceAdapter {
       fixture: SALESFORCE_FIXTURE,
       measurementMethod: "third-party-modeled",
     }),
-    periodClose("2025"),
+    yearPeriod(2025).end,
   );
 }
 
@@ -375,12 +375,12 @@ function msDemoAdapter(): SourceAdapter {
       "successor is the Azure Carbon Optimization REST API). Figures are SYNTHETIC and " +
       "describe no real tenant. Not affiliated with Microsoft.",
       methodologyUri: "https://learn.microsoft.com/en-us/industry/sustainability/",
-      reportingPeriod: "2025",
+      period: yearPeriod(2025),
       energyKwh: 5230,
       fixturePages: MS_FIXTURE_PAGES,
       measurementMethod: "third-party-modeled",
     }),
-    periodClose("2025"),
+    yearPeriod(2025).end,
   );
 }
 
@@ -410,11 +410,11 @@ function watershedDemoAdapter(): SourceAdapter {
       "Figures are SYNTHETIC and describe no real organization. Not affiliated with " +
       "Watershed.",
       methodologyUri: "https://api-docs.watershed.com/",
-      reportingPeriod: "2025",
+      period: yearPeriod(2025),
       fixture: WATERSHED_FIXTURE,
       measurementMethod: "third-party-modeled",
     }),
-    periodClose("2025"),
+    yearPeriod(2025).end,
   );
 }
 
@@ -431,8 +431,8 @@ export interface DemoSpecOptions {
 }
 
 /** This gateway's energy for a calendar month, by the same rule as its self report. */
-function gatewayMonthKwh(config: GatewayConfig, wattsByMonth: Record<string, number>, period: string): number {
-  const watts = wattsByMonth[period] ?? config.self.watts;
+function gatewayMonthKwh(config: GatewayConfig, wattsByMonth: Record<string, number>, period: Period): number {
+  const watts = wattsByMonth[monthKey(period.start)] ?? config.self.watts;
   return Number(((watts * periodHours(period)) / 1000).toPrecision(4));
 }
 
@@ -669,7 +669,7 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       targetType: "organization",
       live: async (deps) => {
         const doc = await fetchGwfDist(deps.fetchImpl as typeof fetch);
-        return distLiveAdapter(doc, deps.now().toISOString().slice(0, 10) + "T00:00:00Z");
+        return distLiveAdapter(doc, dateTimeOf(startOfDay(deps.now().getTime())));
       },
       fixture: () => distReplayAdapter(),
       labelLive: "adapter:dist (LIVE Green Web Foundation dist.json, daily)",

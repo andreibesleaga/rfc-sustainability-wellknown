@@ -217,7 +217,7 @@ changed, and which library releases implemented them, is in [internet-drafts/REA
 
 ## example-responses/
 
-22 JSON response files covering every service level and every member defined in the draft, including the OPTIONAL `signed` (one file was signed once, with a throw-away key, so that the served signature is real and verifies). All pass both CDDL and JTD validation.
+42 JSON response files covering every service level and every member defined in the draft, including the OPTIONAL `signed` (three files are signed, two with the public RFC 8032 Ed25519 test key and one with an ES256 test key, so that the served signatures are real and verify). All pass both CDDL and JTD validation.
 
 | File | Description |
 |---|---|

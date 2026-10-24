@@ -55,21 +55,21 @@ export async function crossValidate(
   for (const s of subjects) check(s.domain, s.document);
 
   for (const ex of examples) {
-    // The Basic (collapsed) document was covered above via its subject; also
-    // validate the full array response for the Extended cases. The period is
-    // required: granularity alone applies to the default period, the newest
-    // entry, which is not coarser than the entries, so it would be ignored and
-    // the collapsed object validated a second time instead of the array.
-    if (ex.granularity) {
-      const { body } = await ex.subject.publisher.getSerialized({
-        period: ex.period,
-        granularity: ex.granularity,
-      });
+    // The response to a request that names no parameter, as it is served: an
+    // object, or the whole array of a file served as one.
+    const bare = JSON.parse((await ex.subject.publisher.getSerialized({})).body) as unknown;
+    check(`${ex.domain} (no parameter)`, bare);
+    // An Extended array is also served as the objects held that a range selects.
+    // The range is required: the unit alone selects the same objects, and the
+    // collapsed object would be validated a second time instead of the array.
+    if (ex.extended && ex.range) {
+      const query = { start: ex.range.start, end: ex.range.end, ...(ex.granularity ? { granularity: ex.granularity } : {}) };
+      const { body } = await ex.subject.publisher.getSerialized(query);
       const parsed = JSON.parse(body) as unknown;
       if (!Array.isArray(parsed) || parsed.length !== ex.entries) {
-        throw new Error(`consumer cross-validation: ${ex.domain} did not return its ${ex.entries}-entry trend array`);
+        throw new Error(`consumer cross-validation: ${ex.domain} did not return its ${ex.entries}-object array for its range`);
       }
-      check(`${ex.domain} (?period=${ex.period}&granularity=${ex.granularity})`, parsed);
+      check(`${ex.domain} (?start=${ex.range.start}&end=${ex.range.end}${ex.granularity ? `&granularity=${ex.granularity}` : ""})`, parsed);
     }
   }
 

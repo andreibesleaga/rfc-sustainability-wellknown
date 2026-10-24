@@ -7,7 +7,7 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-09` is under review by the Independent Submissions Editor; it answers the ART-area early review of `-07, -08`. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md). Current repo software implements Internet-Draft version `-08`.
+**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-10` is under review by the Independent Submissions Editor; it answers the ART-area early review of `-07, -08`. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md). Current repo software implements Internet-Draft version `-08`.
 
 Presented at the IRTF Sustainability Research Group (IETF 126, July 2026); Independent Submission under review.
 

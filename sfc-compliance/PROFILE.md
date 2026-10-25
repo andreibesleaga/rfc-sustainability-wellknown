@@ -56,8 +56,8 @@ An operator level declaration carries `target-type: "origin"`, and its `target` 
 operator's origin host, as the table shows.
 
 A network level declaration MUST carry `target-type: "service"`. The draft's `target-type`
-enumeration has no `network` value, and a value outside the enumeration is disregarded by a
-conforming consumer, which would leave the level undeclared.
+enumeration has no `network` value, and under -10 a value outside the enumeration makes the
+declaration invalid.
 
 A network is operated by many independent parties, and one body publishes for all of them.
 The draft already covers this. A subject other than the origin is a claim made by the
@@ -112,8 +112,9 @@ rounds before it is compared with the cap.
 figure, and `hardware-estimated` where the publisher ran the bottom up hardware model
 itself. `hardware-metered` is for figures read from meters, which is the ordinary operator
 level case. The identity of the index or model belongs in the methodology document. A
-publisher SHOULD NOT invent a token, because any value outside the draft's four is read as
-a human readable description and stops being machine comparable.
+publisher MUST use one of the draft's four tokens: under -10 any other value makes the
+declaration invalid. A consumer's compatibility reading of an older document maps such a
+value to `third-party-modeled` and reports it.
 
 The draft has no member for an energy figure extrapolated from a shorter period. A
 publisher whose year is incomplete publishes the completed portion and waits, or publishes
@@ -215,8 +216,8 @@ This is the part the draft satisfies by being implemented. Nothing else is neede
 | transport | HTTPS, with the service identity checked on every hop |
 | a declared format | the media type `application/sustainability-data+json` |
 | a machine checkable format | the JTD schema and the CDDL schema in `schemas-validators/` |
-| use from a browser | `Access-Control-Allow-Origin: *` on the response |
-| polite retrieval | cache directives, `ETag` or `Last-Modified`, `HEAD`, and `405` with `Allow: GET, HEAD` |
+| use from a browser | `Access-Control-Allow-Origin: *`, which the deployment kits set (HTTP practice; not in the draft) |
+| polite retrieval | HTTP caching and conditional requests (RFC 9110, 9111), which the draft leaves to the publisher |
 | a trend for a reader who wants one | the extended query parameters `start`, `end` and `granularity`, with `capabilities: "extended"` |
 | the filed reports themselves | `disclosure-uri`, pointing at a machine readable **index** of them |
 
@@ -245,11 +246,11 @@ three are unchanged from 1.0; the fourth, `ledger-evidence`, is new in 1.1:
 | `https://andreibesleaga.com/sfc/extensions/network-topology` | both, with different members at each level | 5.4 |
 | `https://andreibesleaga.com/sfc/extensions/ledger-evidence` | network, and an operator that publishes its own trail | 5.5 |
 
-An extension name is an identifier, not a locator. It is compared as a string, octet for
-octet, and it is never normalized and never fetched, not even though it is an https URI. It
+An extension name is an identifier, not a locator. It is compared as a string after JSON
+escapes are decoded, and it is never normalized and never fetched, not even though it is an https URI. It
 is an https URI so that it cannot collide with anyone else's name and so that a human
 reading a declaration can find the definition. A definer without a domain uses the draft's
-other form, `urn:uuid:` followed by a lowercase hyphenated UUID.
+other form, `urn:uuid:` followed by a UUID.
 
 A name, once minted, is never redefined. A later version of this profile that changes the
 meaning of a member mints a new path, for example `.../sfc/extensions/v2/hardware-lifecycle`,

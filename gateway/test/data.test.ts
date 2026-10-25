@@ -79,11 +79,8 @@ const KNOWN_MEMBERS = new Set([
 ]);
 
 /**
- * The absolute-URI form (RFC 3986, ASCII, no fragment) the draft requires of an
- * `extensions` key: a lowercase scheme, then an `https` URI under the definer's
- * control, or `urn:uuid:` plus a lowercase hyphenated UUID (RFC 9562). Keys are
- * compared as strings and are never dereferenced. This is the CDDL `ext-name`
- * rule of `schemas-validators/response-schema.cddl`, character for character.
+ * This registry's own house style for extension names (lowercase https or a
+ * lowercase UUID URN); the draft's `ext-name` is any URI string.
  */
 const EXT_KEY_RE = /^[a-z][a-z0-9+.-]*:[!$-;=?-Z\[\]_a-z~]+$/;
 const URN_UUID_RE = /^urn:uuid:[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;

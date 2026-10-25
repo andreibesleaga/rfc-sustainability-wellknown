@@ -90,6 +90,22 @@ foreach ([['renewable_percent', '140'], ['energy_kwh', '-1']] as [$field, $bad])
     Sustainability_Data_Wellknown::sanitize(array_merge($valid, [$field => $bad]));
     check(count($GLOBALS['settings_errors']) === 1 && $GLOBALS['settings_errors'][0]['code'] === "sdwk_$field", "$field=$bad is reported");
 }
+// a period shorter than a day or off midnight is a warning (the draft recommends); a path target needs its "/"
+foreach ([['2026-09-01T06:00:00Z', '2026-10-01T00:00:00Z'], ['2026-09-01T00:00:00Z', '2026-09-01T12:00:00Z']] as [$a, $b]) {
+    $GLOBALS['settings_errors'] = [];
+    Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['period_start' => $a, 'period_end' => $b]));
+    $codes = array_column($GLOBALS['settings_errors'], 'type', 'code');
+    check(($codes['sdwk_period_floor'] ?? '') === 'warning' && count($codes) === 1, "period $a/$b is a warning, not an error");
+}
+$GLOBALS['settings_errors'] = [];
+Sustainability_Data_Wellknown::sanitize($valid);
+check($GLOBALS['settings_errors'] === [], 'a whole-month period raises nothing');
+$GLOBALS['settings_errors'] = [];
+Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['target_type' => 'path', 'target' => 'api/v1']));
+check(count($GLOBALS['settings_errors']) === 1 && $GLOBALS['settings_errors'][0]['code'] === 'sdwk_target', 'a path target without a leading slash is an error');
+$GLOBALS['settings_errors'] = [];
+Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['target_type' => 'path', 'target' => '/api/v1']));
+check($GLOBALS['settings_errors'] === [], 'a path target with its slash is accepted');
 // the period: two RFC 3339 date-times, upper-case T and Z, a real moment, start before end as instants
 $badPeriods = [
     'a date without a time' => ['2026-09-01', '2026-10-01'],

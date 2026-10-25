@@ -4,7 +4,7 @@ A few questions, one conformant `/.well-known/sustainability-data` file (draft -
 for your host (Cloudflare Pages, Netlify, Vercel, nginx, Apache, Caddy, or just the file). Sign the file with an
 Ed25519 key if you have one.
 
-Not yet published to npm (owner step: `npm publish --access public` from this folder, after
+Not yet published to npm (it is published with `npm publish --access public` from this folder, after
 `sustainability-wellknown-publisher` 0.8.0 is published, because this tool depends on it); until then run it from a
 clone after `npm install` in this folder with the publisher built from `publisher/` (see Development).
 
@@ -67,7 +67,8 @@ algorithms, HS256 included, are refused. Without a key the file is unsigned.
 
 `--methodology-stub` also writes `methodology.md`, with the five headings the draft asks for (what is measured and
 what is estimated, allocation to a part of the target, what counts as one unit, extension names, perturbation) and
-the unit, the extension names and the `--noise` bound already filled in. Fill in the rest and publish it at your
+the unit, the extension names and the `--noise` bound already filled in. `--noise N` records that you perturbed the
+figures yourself within N percent; the tool does not change them. Fill in the rest and publish it at your
 `methodology-uri`.
 
 Then deploy and check: `npx -y -p sustainability-wellknown-consumer sustainability-fetch https://example.com --strict`.

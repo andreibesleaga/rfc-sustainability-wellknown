@@ -1,21 +1,19 @@
 /**
- * Media typing for a Sustainability Declaration (draft -10, §Location and
- * Transport and §Media Type Registration).
+ * Media typing for a Sustainability Declaration (draft -10, Location and
+ * Transport and Media Type Registration).
  *
- * The draft registers a dedicated media type and makes it required: a 200
- * response MUST carry `application/sustainability-data+json` and MUST NOT
- * carry any other. A consumer MUST process the registered type and MAY process
- * `application/json`, "under which declarations published before the
- * registration of the dedicated type exist" — and "a response carrying any
- * other media type is not a declaration", which `fetch.ts` enforces by
- * refusing such a response unread.
+ * The draft publishes the declaration with the media type
+ * `application/sustainability-data+json` and lets a consumer process a `200`
+ * response of type `application/json` as a declaration; a response carrying
+ * any other media type is not a declaration, which `fetch.ts` enforces by
+ * refusing it unread.
  *
  * This module is the single place the wire names live. A future rename — a
  * different subtype at IANA registration time — changes this one file, and
  * nothing else in the package.
  */
 
-/** The media type the draft registers; a conformant 200 response carries exactly this. */
+/** The media type the draft registers and publishes the declaration with. */
 export const MEDIA_TYPE = "application/sustainability-data+json";
 
 /**

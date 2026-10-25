@@ -48,7 +48,7 @@ export function expressSustainability(
   opts: ExpressSustainabilityOptions = {},
 ) {
   const carbonPaths = new Set(opts.carbonTxt ? CARBON_TXT_PATHS : []);
-  const rateLimited = rateLimitGate(opts);
+  const rateLimited = rateLimitGate(opts, publisher);
   return async function sustainabilityMiddleware(
     req: ReqLike,
     res: ResLike,

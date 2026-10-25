@@ -30,8 +30,9 @@ tolerated), `invalid` (reachable, not a usable declaration) or `unreachable`, wi
 `converted` and what was not used in `disregarded`), the signature state, the period (an object with `start`
 and `end`) and the target. `GET /badge/<host>.svg` is the same outcome as a badge for a README. The target
 is fetched at most once an hour, `https` and public DNS names only, 64 KiB and 5 s caps; a name that resolves
-to a private, loopback or link-local address at check time is refused (the consumer's transport rules; a DNS
-answer that changes between that check and the connection is not closed, as the consumer documents), only an
+to a private, loopback or link-local address is refused (the consumer checks the address in the lookup of the
+connection it actually opens, on every hop, so a DNS answer that changes after the check cannot pass; true when no
+`fetchImpl` is injected, as in production), only an
 `https` request on port 443 to that name is ever attempted; a stricter per-client budget applies to requests
 that cause a retrieval (a badge served from the hourly cache does not, so shared egress such as GitHub's camo
 proxy is tolerated), and a global budget of new retrievals per minute; when either budget is spent the answer is
@@ -114,7 +115,7 @@ The notice is not legal advice and is not a substitute for it.
   wire-format examples whose documents declare `capabilities: "extended"` honour
   `start`, `end` and `granularity`. Nor does it sign or attest anything on a third
   party's behalf: no declaration it relays is signed *by the gateway*, on
-  purpose — the one pre-signed example carries the signature its own file
+  purpose — the three pre-signed examples carry the signatures their own files
   arrived with.
   The gateway's own declaration carries no `upstream` member either — the
   hosting platform publishes no declaration, so naming one would be false.

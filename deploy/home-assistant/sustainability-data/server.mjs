@@ -63,6 +63,8 @@ export function monthsFromSnapshots(snaps, cfg) {
       measurementMethod: "hardware-metered",
       methodologyUri: cfg.methodologyUri,
       period: monthPeriod(Number(start.slice(0, 4)), Number(start.slice(5, 7))),
+      // The closing reading is when the month's figure became known; without it every build would stamp the wall clock.
+      updated: new Date(snaps[end].at).toISOString().replace(/\.\d{3}Z$/, "Z"),
       capabilities: "extended",
       target: cfg.target,
       energy: { value: Math.round(kwh * 1000) / 1000, unit: "kWh" },

@@ -201,7 +201,7 @@ describe("what `signed` carries, and never serving a stale one", () => {
     expect(() => assertSignedMatches(doc)).not.toThrow();
     const partly = [doc[0], { ...doc[1] }, doc[2]] as SustainabilityMetrics[];
     delete (partly[1] as Partial<SustainabilityMetrics>).signed;
-    expect(() => assertSignedMatches(partly)).toThrow(/signs all of them/);
+    expect(() => assertSignedMatches(partly)).toThrow(/signs every object of an array or none/);
   });
 
   it("rejects a signature whose payload differs from the object it accompanies, down to the spelling of an offset", async () => {
@@ -309,16 +309,28 @@ describe("the day floor (draft §Mandatory Members and §Privacy Considerations)
 describe("the cap on the objects of a response", () => {
   const days = Array.from({ length: 10 }, (_, i) => m(1, { period: { start: `2026-03-${String(i + 1).padStart(2, "0")}T00:00:00Z`, end: `2026-03-${String(i + 2).padStart(2, "0")}T00:00:00Z` } }));
 
-  it("keeps the most recent and says it cut", () => {
+  it("never cuts a selection: 10 selected with a cap of 3 are all returned", () => {
     const warnings: string[] = [];
     const kept = secureReports(days, { maxObjects: 3, onWarning: (w) => warnings.push(w) });
-    expect(kept.map((o) => o.period.start.slice(8, 10))).toEqual(["08", "09", "10"]);
-    expect(warnings).toEqual(["10 objects selected; the 3 most recent are published and 7 older omitted (maxObjects)"]);
+    expect(kept).toHaveLength(10);
+    expect(warnings).toEqual([]);
   });
 
-  it("cuts a selection, not the objects held: a range over old days is served in full", async () => {
+  it("returns a selection of 11 from a held set of 11 under a cap of 20", async () => {
+    const held = Array.from({ length: 11 }, (_, i) => raw(1, { period: { start: `2026-03-${String(i + 1).padStart(2, "0")}T00:00:00Z`, end: `2026-03-${String(i + 2).padStart(2, "0")}T00:00:00Z` } }));
+    const publisher = new Publisher(trendAdapter(held), { cacheTtlMs: 0, security: { maxObjects: 20 } });
+    expect(await publisher.getDocument({ start: "2026-03-01T00:00:00Z", end: "2026-03-12T00:00:00Z" })).toHaveLength(11);
+  });
+
+  it("refuses to build when the adapter holds more than maxObjects, and names the option", async () => {
+    const held = Array.from({ length: 11 }, (_, i) => raw(1, { period: { start: `2026-03-${String(i + 1).padStart(2, "0")}T00:00:00Z`, end: `2026-03-${String(i + 2).padStart(2, "0")}T00:00:00Z` } }));
+    const publisher = new Publisher(trendAdapter(held), { cacheTtlMs: 0, security: { maxObjects: 10 } });
+    await expect(publisher.build()).rejects.toThrow(/maxObjects/);
+  });
+
+  it("bounds the objects held, not the answer: a range over old days is served in full", async () => {
     const all = Array.from({ length: 10 }, (_, i) => raw(1, { period: { start: `2026-03-${String(i + 1).padStart(2, "0")}T00:00:00Z`, end: `2026-03-${String(i + 2).padStart(2, "0")}T00:00:00Z` } }));
-    const publisher = new Publisher(trendAdapter(all), { cacheTtlMs: 0, security: { maxObjects: 3 } });
+    const publisher = new Publisher(trendAdapter(all), { cacheTtlMs: 0, security: { maxObjects: 10 } });
     const early = (await publisher.getDocument({ start: "2026-03-01T00:00:00Z", end: "2026-03-03T00:00:00Z" })) as SustainabilityMetrics[];
     expect(early.map((o) => o.period.start.slice(8, 10))).toEqual(["01", "02"]);
   });

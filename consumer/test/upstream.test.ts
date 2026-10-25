@@ -5,8 +5,8 @@
  * Every origin here is a local `node:http` fixture, so the walk is exercised
  * end to end with no live network and no clock. What is asserted is the
  * draft's bounded behaviour — depth at most three, an already-visited URI
- * refused, a bounded total number of retrievals, the Extended `?period=`
- * request when the upstream says it supports one — and the four verdicts,
+ * refused, a bounded total number of retrievals, the Extended `?start=…&end=`
+ * request for the same period when the upstream says it supports one — and the four verdicts,
  * which are EVIDENCE about consistency between two self-asserted claims and
  * never proof of either.
  *
@@ -810,5 +810,56 @@ describe("followUpstream: references, periods as instants, and the bounds of the
     const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, followUpstream: true });
     expect(r.status === "ok" && r.document).toEqual([]);
     expect(r.status === "ok" && r.upstream).toBeUndefined();
+  });
+});
+
+describe("followUpstream: redirects inside the walk", () => {
+  /** An origin that answers by path from `routes`: a string is a 302 target, anything else a 200 declaration. */
+  async function route(routes: Record<string, unknown>, asked: string[]): Promise<string> {
+    const server = createServer((req, res) => {
+      const path = req.url ?? "/";
+      asked.push(path);
+      const answer = routes[path];
+      if (answer === undefined) {
+        res.writeHead(404);
+        return res.end();
+      }
+      if (typeof answer === "string") {
+        res.writeHead(302, { Location: answer });
+        return res.end();
+      }
+      res.writeHead(200, { "Content-Type": MEDIA_TYPE });
+      res.end(JSON.stringify(answer));
+    });
+    servers.push(server);
+    await new Promise<void>((done) => server.listen(0, "127.0.0.1", () => done()));
+    return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  }
+
+  it("refuses an upstream that redirects to the declaration already retrieved, and requests it only once", async () => {
+    const asked: string[] = [];
+    const origin = await route({ [WELL_KNOWN_PATH]: { ...BASE, upstream: [{ declaration: "/old" }] }, "/old": WELL_KNOWN_PATH }, asked);
+    const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, followUpstream: true });
+    expect(r.status).toBe("ok");
+    if (r.status !== "ok") return;
+    expect(r.upstream?.[0].verdict).toBe("unreachable");
+    expect(r.upstream?.[0].detail).toContain("already-retrieved");
+    expect(asked).toEqual([WELL_KNOWN_PATH, "/old"]);
+  });
+
+  it("resolves a relative reference against the URI that answered, not the one requested", async () => {
+    const asked: string[] = [];
+    const origin = await route(
+      {
+        [WELL_KNOWN_PATH]: { ...BASE, upstream: [{ declaration: "/a" }] },
+        "/a": "/dir/b.json",
+        "/dir/b.json": { ...BASE, ...TENANT, "energy-consumption": 40, upstream: [{ declaration: "c.json" }] },
+        "/dir/c.json": { ...BASE, ...TENANT, "energy-consumption": 10 },
+      },
+      asked,
+    );
+    const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, followUpstream: true });
+    expect(r.status).toBe("ok");
+    expect(asked).toEqual([WELL_KNOWN_PATH, "/a", "/dir/b.json", "/dir/c.json"]);
   });
 });

@@ -43,11 +43,12 @@ describe("the example corpus, read as -10", () => {
     });
   }
 
-  it("the publisher gate refuses what the strict verdict rejects, and passes the rest that defines its members", () => {
+  it("the publisher gate refuses what the strict verdict rejects and what a publisher must not write, and passes the rest that defines its members", () => {
     for (const entry of manifest) {
       const doc = load(entry);
       const gate = () => assertValid(doc);
-      if (entry.strict === "reject" || entry.warn.includes("unknown-member")) expect(gate, entry.id).toThrow();
+      // The consumer reads an unknown member and a URI member that is no reference with a warning; the publisher refuses both.
+      if (entry.strict === "reject" || entry.warn.includes("unknown-member") || entry.warn.includes("uri-not-a-reference")) expect(gate, entry.id).toThrow();
       else expect(gate, entry.id).not.toThrow();
     }
   });

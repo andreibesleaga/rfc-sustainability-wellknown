@@ -111,15 +111,15 @@ export interface GatewayConfig {
   dataDir: string;
   /** Directory holding the canonical wire-format example documents. */
   examplesDir: string;
-  /** Cache-Control max-age, seconds. Draft Operational Considerations: a server SHOULD send cache directives, with max-age=86400 as its example. */
+  /** Cache-Control max-age, seconds (this deployment's default). */
   maxAge: number;
   /** Public base URL, used only for absolute links in the HTML/JSON index. */
   baseUrl: string;
   /**
    * Whole-service default media type for a 200 declaration response.
    * `"sustainability-data+json"` (default) serves the dedicated
-   * `application/sustainability-data+json` type, required by draft -07
-   * §Mandatory Minimum Supported Service. `"json"` serves the generic
+   * `application/sustainability-data+json` type, the type the draft registers
+   * (Location and Transport). `"json"` serves the generic
    * `application/json` type under which declarations published before the
    * registration exist, which a consumer MAY still process — NOT conformant
    * publishing. Set via `SUSTAINABILITY_MEDIA_TYPE`. A subject listed in
@@ -131,8 +131,8 @@ export interface GatewayConfig {
    */
   mediaType: MediaTypeSetting;
   /**
-   * Request rate limiting (draft Security Considerations §Denial of Service: servers SHOULD
-   * rate-limit requests to the well-known URI). Applied per client, before
+   * Request rate limiting (draft Security Considerations: a server that computes answers on demand
+   * SHOULD rate-limit; this deployment limits every path). Applied per client, before
    * routing, to every path except `/healthz`. `perMinute: 0` disables it.
    * The client is identified by the last `X-Forwarded-For` entry when
    * `trustProxy` is 1 (the reference deployment sits behind Railway's proxy),
@@ -147,7 +147,7 @@ export interface GatewayConfig {
   validatorExclude: string[];
   /**
    * Private JWK (JSON text) of the key that signs the gateway's OWN report
-   * (draft -07 §Signing). When set, every declaration object the self report
+   * (draft §The signed Member). When set, every declaration object the self report
    * emits — the parameterless one and each object of an Extended trend —
    * carries a `signed` member, a JWS over that object. Unset, the gateway does
    * not sign and the member is simply absent, which the draft says means only
@@ -185,6 +185,13 @@ export interface GatewayConfig {
      * empty array), a period in progress reports the completed portion to date.
      */
     liveSince: string;
+    /**
+     * The instant the self model's figures were last restated (RFC 3339): a
+     * complete period that ended before it states this instant as `updated`,
+     * because its figures were recomputed then. Default: the move to the
+     * 245 gCO2e/kWh factor (METHODOLOGY.md). Set via `SELF_MODEL_CHANGED_AT`.
+     */
+    modelChangedAt: string;
     /** `verifiable-attestation-uri` of the self report: a third-party signed statement about the model. */
     verifiableAttestationUri?: string;
     /** Where the PUBLIC signing key is hosted, so a verifier can pin it and match it by `kid` (display and index only; the key itself travels in the JWS header as `jwk`). */
@@ -252,6 +259,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
       measured: true,
       gridIntensity: envNum("SELF_GRID_INTENSITY", 245),
       liveSince: envInstant("SELF_LIVE_SINCE", "2026-07-30T00:00:00Z"),
+      modelChangedAt: envInstant("SELF_MODEL_CHANGED_AT", "2026-10-02T00:00:00Z"),
       verifiableAttestationUri: process.env.SELF_ATTESTATION_URI || undefined,
       signingKeyUrl: process.env.SELF_SIGNING_KEY_URL ? envUrl("SELF_SIGNING_KEY_URL", "") : undefined,
     },

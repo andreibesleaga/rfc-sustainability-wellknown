@@ -728,6 +728,21 @@ describe("the shallow check", () => {
     expect(statusOf(r.rows, "S5c coherence-scope-2")).toBe("FAIL");
     expect(statusOf(r.rows, "S5c coherence-scope-3")).toBe("FAIL");
   });
+
+  it("reads tCO2e scopes in tonnes (S5c), and fails, not throws, on an unknown unit", async () => {
+    const tonnes = await resigned(doc, (x) => { x["carbon-unit"] = "tCO2e"; x["carbon-footprint"] = 0.21675; x["scope-2"] = 0.15675; x["scope-3"] = 0.06; });
+    const r = await shallowCheck(tonnes, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK] });
+    expect(statusOf(r.rows, "S5c coherence-scope-2")).toBe("PASS");
+    expect(statusOf(r.rows, "S5c coherence-scope-3")).toBe("PASS");
+    expect(statusOf(r.rows, "S0 internal")).toBeUndefined();
+    expect(statusOf(deepCheck(tonnes, SFC_LEDGER_FIXTURE).rows, "D6b declaration")).toBe("PASS");
+    const unknown = await resigned(doc, (x) => { x["carbon-unit"] = "mtCO2e"; });
+    const u = await shallowCheck(unknown, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK] });
+    // The draft check refuses the unit first; the bridge's own S5c row is a second guard and never throws.
+    expect(u.ok).toBe(false);
+    expect(statusOf(u.rows, "S2 draft-conformance")).toBe("FAIL");
+    expect(statusOf(u.rows, "S0 internal")).toBeUndefined();
+  });
 });
 
 describe("the deep check", () => {

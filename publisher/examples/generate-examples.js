@@ -37,7 +37,10 @@ async function generate(name, adapter, target) {
   // normalize options — the origin host for these origin-wide examples.
   const pub = new Publisher(adapter, { cacheTtlMs: 0, normalize: { target, clock: CLOCK } });
   const doc = await pub.getDocument();
-  fs.writeFileSync(path.join(OUT, `${name}.json`), JSON.stringify(doc, null, 2) + "\n");
+  // Twelve significant digits drop binary floating-point noise (167.60940000000002 → 167.6094)
+  // and nothing an adapter computed, so a regeneration reproduces the committed files.
+  const clean = (_key, value) => (typeof value === "number" ? Number(value.toPrecision(12)) : value);
+  fs.writeFileSync(path.join(OUT, `${name}.json`), JSON.stringify(doc, clean, 2) + "\n");
   console.log(`wrote transformed/${name}.json`);
 }
 
@@ -104,7 +107,6 @@ async function main() {
       methodologyUri: "https://example.com/methodology/kepler",
       period: "2026-05",
       gridIntensity: 230,
-      functionalUnit: "per-job",
       fixture: keplerFixture,
       capabilities: "basic",
     }),

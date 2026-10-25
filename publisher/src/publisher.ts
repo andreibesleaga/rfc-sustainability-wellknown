@@ -8,7 +8,7 @@ import { createHash } from "node:crypto";
 import { SigningKey, assertSignedMatches, signDocument } from "./jws";
 import { normalize } from "./normalize";
 import { toUtcQueryValue } from "./period";
-import { SecurityOptions, secureReports } from "./security";
+import { SecurityOptions, assertHeldWithinCap, secureReports } from "./security";
 import { honoredQuery, honorsAny, selectDeclarations } from "./selection";
 import {
   NormalizeOptions,
@@ -90,6 +90,19 @@ export class Publisher {
     private readonly options: PublisherOptions = {},
   ) {}
 
+  /**
+   * Tell the operator that an Extended publisher computes answers on demand with
+   * no rate limit (the draft: such a server SHOULD rate-limit). Called once, when
+   * a server or middleware is set up; a Basic publisher serves what it holds.
+   */
+  warnIfUnlimited(rateLimited: boolean): void {
+    if (this.adapter.capabilities !== "extended" || rateLimited) return;
+    this.options.onWarning?.(
+      "an Extended publisher computes answers on demand; the draft says such a server SHOULD rate-limit " +
+        "(set server.rateLimit, or rate-limit at a proxy)",
+    );
+  }
+
   /** The in-memory cache TTL in effect (ms); 0 means every request rebuilds. */
   get cacheTtlMs(): number {
     return this.options.cacheTtlMs ?? 86_400_000;
@@ -163,7 +176,10 @@ export class Publisher {
     // The capabilities member says what this publisher does, whatever the adapter wrote.
     const metrics = rawList.map((r) => normalize({ ...r, capabilities: this.adapter.capabilities }, this.options.normalize));
 
-    // Select, then apply the safeguards: a limit cuts a selection, never the objects held.
+    // The cap bounds the objects held; a selection is never cut.
+    assertHeldWithinCap(metrics, this.options.security?.maxObjects);
+
+    // Select, then apply the safeguards.
     const chosen = honorsAny(honored) ? selectDeclarations(metrics, honored) : metrics;
     const secured = secureReports(chosen, { onWarning: this.options.onWarning, ...this.options.security });
 
@@ -183,13 +199,13 @@ export class Publisher {
       if (warning.code !== "period-below-day-floor") this.options.onWarning?.(warning.message);
     }
 
-    // Draft §Signing: the OPTIONAL `signed` member, added after validation so
+    // Draft, The signed Member: the OPTIONAL `signed` member, added after validation so
     // the payload is exactly the object the gate passed, minus `signed`. This
     // is the LAST step of the build — nothing transforms the document
     // afterwards, so the payload can never drift from the object it
-    // accompanies ("A publisher MUST NOT serve an object whose `signed`
-    // payload differs from the object it accompanies"). `assertSignedMatches`
-    // holds that rule to the wire regardless.
+    // accompanies (the draft: a publisher that regenerates an object
+    // regenerates its signature in the same step). `assertSignedMatches`
+    // holds that to the wire regardless.
     const signing = this.options.signing;
     if (!signing) return document;
     const signedDocument = await signDocument(document, signing.key, { keyId: signing.keyId, x5c: signing.x5c });

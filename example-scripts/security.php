@@ -4,7 +4,7 @@
  * The three safeguards of the draft's Security and Privacy Considerations, as a
  * zero-dependency kit (the same behavior as the publisher's `secureReports`):
  *
- *  1. DoS protection      - cap an array at 366 objects, keeping the most recent.
+ *  1. DoS protection      - refuse a held set above 366 objects; an answer is never truncated.
  *  2. Traffic analysis    - keep to periods of a calendar day or longer: by default an
  *                           object whose bounds are not the first instant of a calendar
  *                           day in their own offset is dropped with a warning.
@@ -211,9 +211,9 @@ function selectObjects(array $held, array $query): array {
 
 /**
  * The objects to serve for a request. A server whose objects are all 'basic'
- * supports no parameter: it ignores them all and answers with its current
- * declaration, the objects of the latest period. Otherwise it honors the
- * parameters that match the draft; with none, the answer is every object held.
+ * supports no parameter: it ignores them all and answers with what it holds, as
+ * it holds it (a static file). Otherwise it honors the parameters that match the
+ * draft; with none, the answer is every object held.
  */
 function answerQuery(array $held, string $rawQuery): array {
     foreach ($held as $object) {
@@ -221,9 +221,7 @@ function answerQuery(array $held, string $rawQuery): array {
             return selectObjects($held, honoredQuery($rawQuery));
         }
     }
-    usort($held, 'compareObjects');
-    $latest = $held ? end($held)['period'] : null;
-    return array_values(array_filter($held, fn (array $object) => $object['period'] == $latest));
+    return array_values($held);
 }
 
 function withNoise(array $object): array {
@@ -239,7 +237,7 @@ function withNoise(array $object): array {
 
 /**
  * Apply the safeguards to a list of objects; returns a new array in ascending
- * order of period, of at most 'maxObjects' objects. Options: maxObjects (366),
+ * order of period, of at most 'maxObjects' objects (a larger held set is refused). Options: maxObjects (366),
  * dayFloor ('drop', 'warn' or 'off'; default 'drop'), applyNoise (false),
  * noiseDisclosed (false), onWarning (a callable taking a message).
  */
@@ -267,15 +265,12 @@ function secureSustainabilityReport(array $reports, array $options = []): array 
 
     usort($secured, 'compareObjects');
     if (count($secured) > $maxObjects) {
-        $warn(count($secured) . " objects selected; the $maxObjects most recent are published");
-        $secured = array_slice($secured, -$maxObjects);
+        throw new InvalidArgumentException(count($secured) . " objects held, more than maxObjects ($maxObjects); raise maxObjects or hold fewer objects (an answer is never truncated)");
     }
     return $applyNoise ? array_map('withNoise', $secured) : $secured;
 }
 
-// Set mandatory header (draft -10 "Mandatory Minimum Supported Service"):
-// successful (200) responses MUST use the dedicated
-// application/sustainability-data+json media type and MUST NOT use another.
+// The registered media type (draft -10, Location and Transport).
 header('Content-Type: application/sustainability-data+json');
 // Not required by the specification; ordinary web hardening.
 header('X-Content-Type-Options: nosniff');

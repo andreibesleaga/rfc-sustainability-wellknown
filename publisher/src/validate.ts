@@ -361,6 +361,8 @@ export class ValidationError extends Error {
 export function assertValid(doc: SustainabilityDocument): SustainabilityDocument {
   const r = validateDocument(doc, { legacyCompat: false });
   const errors = [...r.errors];
+  // The consumer-side reading stays lenient about a URI member that is not a URI reference; a publisher does not sign or serve one.
+  for (const w of r.warnings) if (w.code === "uri-not-a-reference") errors.push(w.message);
   (Array.isArray(doc) ? doc : [doc]).forEach((item, i) => {
     if (!isRecord(item)) return;
     const prefix = Array.isArray(doc) ? `[${i}]` : "";

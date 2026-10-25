@@ -1,8 +1,6 @@
 /**
  * HTTP conformance battery. Every assertion here maps to a normative statement
- * in draft-besleaga-sustainability-wellknown-07 (Mandatory Minimum Supported
- * Service, Operational Considerations, Security Considerations), or to the
- * gateway's own route contract, which the comment beside it says.
+ * maps to a sentence of draft -10 or to the gateway's own route contract, which the comment beside it says.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -27,16 +25,16 @@ describe("GET /{domain}/.well-known/sustainability-data", () => {
   it("returns 200 with the dedicated media type and the full required header set", async () => {
     const r = await fetch(url(DOC));
     expect(r.status).toBe(200);
-    // MUST use the dedicated media type (draft -07 §Mandatory Minimum Supported Service).
+    // The dedicated media type the draft registers (Location and Transport).
     expect(r.headers.get("content-type")).toBe(MEDIA_TYPE);
-    // nosniff is this gateway's contract: -07 withdrew the recommendation, and
-    // the gateway keeps sending it because it costs nothing and does no harm.
+    // nosniff is this gateway's contract: the draft does not mention it, and
+    // the gateway sends it because it costs nothing and does no harm.
     expect(r.headers.get("x-content-type-options")).toBe("nosniff");
-    // SHOULD include appropriate caching directives.
+    // Caching directives: this deployment's default.
     expect(r.headers.get("cache-control")).toBe("public, max-age=86400");
-    // SHOULD include Access-Control-Allow-Origin: * (browser clients).
+    // CORS for browser clients: this deployment's choice.
     expect(r.headers.get("access-control-allow-origin")).toBe("*");
-    // ETag + Last-Modified are RECOMMENDED (Operational Considerations).
+    // ETag + Last-Modified: HTTP practice, this deployment's choice.
     const etag = r.headers.get("etag");
     expect(etag).toBeTruthy();
     expect(etag!.startsWith("W/")).toBe(false); // strong validator
@@ -249,9 +247,13 @@ describe("index routes", () => {
     expect(html).toContain("<header class=\"top\">");
     expect(html).toContain("<main id=\"main\">");
     expect(html).toContain('<a class="skip" href="#main">');
+    expect(html).toContain('<link rel="icon" href="data:,">'); // no /favicon.ico request
     const tables = html.match(/<table>/g) ?? [];
     expect(html.match(/<caption class="visually-hidden">/g) ?? []).toHaveLength(tables.length);
-    expect(html.match(/role="region" tabindex="0" aria-label="[^"]+, scrollable"/g) ?? []).toHaveLength(tables.length);
+    const scrollers = (html.match(/<table>/g) ?? []).length + (html.match(/<pre class="cmd"/g) ?? []).length;
+    expect(html.match(/role="region" tabindex="0" aria-label="[^"]+, scrollable"/g) ?? []).toHaveLength(scrollers);
+    expect(html).toContain('<pre id="check-out" class="cmd" tabindex="0"');
+    expect(html).toContain("p code { overflow-wrap:anywhere; }"); // inline code wraps at 320 px
     expect(html).not.toMatch(/<th>(?!<)/); // every header cell carries scope="col"
     expect(html).toContain(`Adapter demonstrations (${srv.gw.live.managed.size})`);
     expect(html).toContain("Wire-format examples (42)");

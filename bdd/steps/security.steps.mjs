@@ -1545,12 +1545,17 @@ Then("no period is shorter than one calendar day", function () {
   }
 });
 
-Given("an extended publisher with a maximum of {int} objects and {int} matching periods", async function (maximum, count) {
+Given("an extended publisher with a maximum of {int} objects holding {int} periods", async function (maximum, count) {
   const rows = Array.from({ length: count }, (_, i) => {
     const { start, end } = periodFromText(`2024-${String(i + 1).padStart(2, "0")}`);
     return { label: `m${i + 1}`, start, end, target: "example.com" };
   });
   await this.holdPeriods(rows, { security: { maxObjects: maximum } });
+});
+
+// The cap bounds what is held; a publisher over it refuses to build and never cuts an answer.
+Then("building the publisher is refused and the message names {string}", async function (name) {
+  await assert.rejects(() => this.publisher.build({}), (error) => error.message.includes(name));
 });
 
 Then("the gateway holds at most {int} objects", function (maximum) {

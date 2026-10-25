@@ -532,7 +532,7 @@ Feature: Closed token sets
     Then the Railway one-click, the WordPress plugin and the create-sustainability-data tool list exactly the four measurement methods
     And the report-to-declaration tool lists a subset of them
 
-  # ---- added by the 24 Oct review: adapters and tools use the closed sets as defined; upstream shape ----
+  # ---- adapters and tools use the closed sets as defined; upstream shape ----
 
   @REQ-MTH-02 @golden @rk-mand-3
   Scenario Outline: Each adapter input kind gets the token whose definition its source meets
@@ -707,7 +707,7 @@ Feature: Closed token sets
       | ["https://a.example/x.json"]          |
 
   @REQ-UPS-01 @edge @rk-opt-13
-  Scenario: An upstream entry with an unknown member is valid, and the member is not interpreted
+  Scenario: An upstream entry with an unknown member is valid, and the entry is kept
     Given a valid declaration object
     And the member "upstream" is the JSON '[{"declaration": "https://a.example/x.json", "weight": 0.5}]'
     When the consumer reads it in strict mode

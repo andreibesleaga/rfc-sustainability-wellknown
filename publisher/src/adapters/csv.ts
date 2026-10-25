@@ -111,7 +111,7 @@ const ALIASES: Record<string, string> = {
   periodstart: "periodStart", start: "periodStart", periodend: "periodEnd", end: "periodEnd",
   energy: "energy", energyconsumption: "energy", energykwh: "energy", electricity: "energy",
   energyunit: "energyUnit", unit: "energyUnit",
-  carbon: "carbon", carbonfootprint: "carbon", emissions: "carbon", totalemissions: "carbon", co2e: "carbon", tco2e: "carbon",
+  carbon: "carbon", carbonfootprint: "carbon", emissions: "carbon", totalemissions: "carbon", co2e: "carbon",
   carbonunit: "carbonUnit", emissionsunit: "carbonUnit",
   scope1: "scope1", scope2: "scope2", scope3: "scope3",
   carbonaccounting: "carbonAccounting", accounting: "carbonAccounting", basis: "carbonAccounting",
@@ -121,6 +121,9 @@ const ALIASES: Record<string, string> = {
   target: "target", targettype: "targetType", disclosureuri: "disclosureUri", disclosure: "disclosureUri",
   updated: "updated",
 };
+
+/** A header that names the unit of the carbon figure: the column is the footprint, in that unit. */
+const UNIT_HEADERS: Record<string, CarbonUnit> = { tco2e: "tCO2e", kgco2e: "kgCO2e", gco2e: "gCO2e" };
 
 type Cell = { kind: "empty" } | { kind: "number"; value: number } | { kind: "invalid"; text: string };
 
@@ -143,7 +146,9 @@ function readNumber(cell: string | undefined, decimalComma: boolean): Cell {
 export function rowsToMetrics(text: string, cfg: CsvAdapterConfig): RawMetrics[] {
   const rows = parseCsv(text.replace(/^\uFEFF/, ""), cfg.separator ?? ",");
   if (rows.length < 2) return [];
-  const header = rows[0].map((h) => ALIASES[norm(h)] ?? norm(h));
+  const header = rows[0].map((h) => (norm(h) in UNIT_HEADERS ? "carbon" : ALIASES[norm(h)] ?? norm(h)));
+  const carbonColumn = header.indexOf("carbon");
+  const headerUnit: CarbonUnit | undefined = carbonColumn >= 0 ? UNIT_HEADERS[norm(rows[0][carbonColumn])] : undefined;
   const col = (row: string[], name: string): string | undefined => {
     const i = header.indexOf(name);
     return i >= 0 ? row[i]?.trim() : undefined;
@@ -176,7 +181,9 @@ export function rowsToMetrics(text: string, cfg: CsvAdapterConfig): RawMetrics[]
     if (renewable !== undefined && (renewable < 0 || renewable > 100)) return skip(`renewable_percent ${renewable} is outside 0 to 100`);
 
     const eu = col(row, "energyUnit") || "kWh";
-    const cu = col(row, "carbonUnit") || "kgCO2e";
+    const unitCell = col(row, "carbonUnit");
+    if (headerUnit && unitCell && unitCell !== headerUnit) return skip(`column ${headerUnit} and carbon_unit ${unitCell} disagree`);
+    const cu = unitCell || headerUnit || "kgCO2e";
     if (!isEnergyUnit(eu)) return skip(`energy unit ${JSON.stringify(eu)} is not ${ENERGY_UNITS.join(", ")}`);
     if (!isCarbonUnit(cu)) return skip(`carbon unit ${JSON.stringify(cu)} is not ${CARBON_UNITS.join(", ")}`);
 
@@ -193,7 +200,8 @@ export function rowsToMetrics(text: string, cfg: CsvAdapterConfig): RawMetrics[]
     const measurementMethod = col(row, "measurementMethod") || cfg.measurementMethod;
     if (!measurementMethod) return skip("no measurement method: give the measurement_method column or the adapter's measurementMethod");
     if (!isMeasurementMethod(measurementMethod)) return skip(`measurement-method ${JSON.stringify(measurementMethod)} is not one of ${MEASUREMENT_METHODS.join(", ")}`);
-    if (energy === undefined && carbon === undefined && !disclosureUri) return skip("no figure and no disclosure link: not a declaration");
+    const figures = [energy, carbon, numbers.scope1, numbers.scope2, numbers.scope3, renewable];
+    if (figures.every((v) => v === undefined) && !disclosureUri) return skip("no figure and no disclosure link: not a declaration");
 
     const m: RawMetrics = {
       provider: col(row, "provider") || cfg.provider,

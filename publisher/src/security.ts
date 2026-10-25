@@ -2,9 +2,10 @@
  * The three safeguards from the draft's Security and Privacy sections,
  * ported from `example-scripts/security.js` into the gateway:
  *
- *  1. DoS protection      — cap arrays at 366 objects, keeping the most recent, and
- *                           say so when the cap cuts (draft §Security Considerations:
- *                           a server bounds the work of a request).
+ *  1. DoS protection      — bound the number of objects HELD (366 by default) and
+ *                           refuse to build above it; an answer is never truncated
+ *                           (a deployment safeguard; -10 bounds the consumer, not
+ *                           the server).
  *  2. Traffic analysis    — keep to periods of a calendar day or longer (draft
  *                           §Mandatory Members and §Privacy Considerations: a SHOULD,
  *                           and real-time telemetry is NOT RECOMMENDED). By default an
@@ -16,9 +17,9 @@
  *                           perturbs a published value unless the operator sets
  *                           `applyNoise: true`).
  *
- * DISCLOSURE (draft §Privacy Considerations, a MUST): a publisher that enables
- * `applyNoise` MUST state in its methodology document that noise is applied and
- * MUST bound its magnitude. This library applies at most +/-1% multiplicative
+ * DISCLOSURE (draft, Privacy Considerations): the methodology document states
+ * that noise is applied and bounds its magnitude; a publisher that enables
+ * `applyNoise` must write that statement. This library applies at most +/-1% multiplicative
  * noise, so a bound of 1% is accurate; nothing in this module writes that
  * statement for the operator, and nothing here can verify that it was written.
  * The library therefore never enables noise on the operator's behalf, and
@@ -29,8 +30,13 @@ import { canonicalKey, isOnDayBoundaries } from "./period";
 import { sortDeclarations } from "./selection";
 import { SustainabilityMetrics } from "./types";
 
+const DEFAULT_MAX_OBJECTS = 366;
+
 export interface SecurityOptions {
-  /** Max array length. Default 366 (a year of daily objects). */
+  /**
+   * Max objects held by the adapter. Default 366 (a year of daily objects). Above it
+   * the build is refused: an answer is never cut.
+   */
   maxObjects?: number;
   /**
    * What to do with an object whose bounds are not the first instant of a
@@ -55,8 +61,7 @@ export interface SecurityOptions {
    */
   noiseDisclosed?: boolean;
   /**
-   * Receives each warning: an object dropped or kept below the day floor, and a
-   * selection cut by `maxObjects`. A message names the periods held, which the
+   * Receives each warning: an object dropped or kept below the day floor. A message names the periods held, which the
    * response never does (draft §Privacy Considerations), so it goes to the
    * operator's channel only; with no hook nothing is written.
    */
@@ -93,11 +98,23 @@ function fuzzFactorFor(key: string): number {
 }
 
 /**
+ * Refuse a held set larger than `maxObjects`. The cap bounds what is held, not
+ * what is answered: a selection is never cut.
+ */
+export function assertHeldWithinCap(held: readonly unknown[], maxObjects: number = DEFAULT_MAX_OBJECTS): void {
+  if (held.length > maxObjects) {
+    throw new Error(
+      `security: the adapter holds ${held.length} objects, more than maxObjects (${maxObjects}); ` +
+        "raise maxObjects or hold fewer objects (an answer is never truncated)",
+    );
+  }
+}
+
+/**
  * Apply the safeguards to a list of objects; returns a new array, in ascending
- * order of period, of at most `maxObjects` objects.
+ * order of period. The number of objects is bounded by {@link assertHeldWithinCap}.
  */
 export function secureReports(reports: SustainabilityMetrics[], opts: SecurityOptions = {}): SustainabilityMetrics[] {
-  const maxObjects = opts.maxObjects ?? 366;
   const dayFloor = opts.dayFloor ?? "drop";
   const warn = opts.onWarning ?? (() => {});
   if (opts.applyNoise && !opts.noiseDisclosed) {
@@ -107,7 +124,6 @@ export function secureReports(reports: SustainabilityMetrics[], opts: SecurityOp
     );
   }
 
-  // Filter before capping so floor-dropped entries do not consume cap slots.
   let out = reports;
   if (dayFloor !== "off") {
     out = out.filter((r) => {
@@ -120,12 +136,8 @@ export function secureReports(reports: SustainabilityMetrics[], opts: SecurityOp
     });
   }
 
-  // Ascending by the instants of the period; when the cap is exceeded, keep the MOST RECENT.
+  // Ascending by the instants of the period.
   out = sortDeclarations(out);
-  if (out.length > maxObjects) {
-    warn(`${out.length} objects selected; the ${maxObjects} most recent are published and ${out.length - maxObjects} older omitted (maxObjects)`);
-    out = out.slice(out.length - maxObjects);
-  }
 
   if (opts.applyNoise) {
     out = out.map((r) => {

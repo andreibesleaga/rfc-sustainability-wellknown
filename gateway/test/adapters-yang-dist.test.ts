@@ -18,7 +18,7 @@ import {
   yangPowerEnergyReplayAdapter,
   type YangEnergySnapshot,
 } from "../src/adapters/yang-power-energy";
-import { loadSelfMeasured } from "../src/self-measured";
+import { loadSelfEnteredAt, loadSelfMeasured } from "../src/self-measured";
 import { subjectFromAdapter } from "../src/registry";
 
 const base = {
@@ -177,6 +177,33 @@ describe("operator-entered monthly power for the self report", () => {
     expect(days[0]["energy-consumption"]).toBe(0.3576);
     const sum = days.reduce((s, d) => s + d["energy-consumption"]!, 0);
     expect(Math.abs(sum - month["energy-consumption"]!) / month["energy-consumption"]!).toBeLessThan(0.001);
+  });
+
+  it("states a restatement or entry as `updated`, never later than the evaluation day", async () => {
+    const run = async (extra: object, query: ServiceQuery) =>
+      (await new Publisher(selfReportAdapter({ ...cfg, ...extra, clock: () => new Date("2026-10-17T12:00:00Z") }), { normalize: { target: "gw" } }).getDocument(query)) as SustainabilityMetrics[];
+    const changed = { modelChangedAt: "2026-10-02T00:00:00Z" };
+    const base = await run(changed, { granularity: "monthly" });
+    expect(at(base, MONTH, NEXT).updated).toBe("2026-10-02T00:00:00Z");
+    expect(at(base, "2026-08-01T00:00:00Z", MONTH).updated).toBe("2026-10-02T00:00:00Z");
+    const days = await run({ ...changed, enteredAtByMonth: { "2026-09": "2026-10-05T00:00:00Z" } }, { start: "2026-09-10T00:00:00Z", end: "2026-09-11T00:00:00Z" });
+    const months = await run({ ...changed, enteredAtByMonth: { "2026-09": "2026-10-05T00:00:00Z" } }, { granularity: "monthly" });
+    expect(at(months, MONTH, NEXT).updated).toBe("2026-10-05T00:00:00Z");
+    expect(at(months, "2026-08-01T00:00:00Z", MONTH).updated).toBe("2026-10-02T00:00:00Z");
+    expect(days[0].updated).toBe("2026-10-05T00:00:00Z");
+    // An instant after the evaluation day is clamped to it; a period in progress states the day.
+    const future = await run({ modelChangedAt: "2027-01-01T00:00:00Z" }, { granularity: "monthly" });
+    expect(at(future, MONTH, NEXT).updated).toBe("2026-10-17T00:00:00Z");
+  });
+
+  it("reads `entered` from the file and refuses one that is not a date-time", () => {
+    const dir = mkdtempSync(join(tmpdir(), "self-measured-"));
+    const write = (o: unknown) => writeFileSync(join(dir, "_self-measured.json"), JSON.stringify(o));
+    write({ months: { "2026-09": { watts: 1.2, source: "Railway metrics", entered: "2026-10-05T00:00:00Z" }, "2026-08": { watts: 1, source: "Railway metrics" } } });
+    expect(loadSelfEnteredAt(dir)).toEqual({ "2026-09": "2026-10-05T00:00:00Z" });
+    expect(loadSelfMeasured(dir)).toEqual({ "2026-09": 1.2, "2026-08": 1 });
+    write({ months: { "2026-09": { watts: 1.2, source: "Railway metrics", entered: "2026-10-05" } } });
+    expect(() => loadSelfEnteredAt(dir)).toThrow(/entered/);
   });
 
   it("refuses a malformed file at boot", () => {

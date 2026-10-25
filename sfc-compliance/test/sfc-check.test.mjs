@@ -6,9 +6,13 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { generateKeyPairSync, sign } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { checkDocument, parseArgs, selectAnnualNetworkObject, objectsOf, DEFAULT_CLOCK } from "../sfc-check.mjs";
+import { checkDocument, checkOrigin, parseArgs, selectAnnualNetworkObject, objectsOf } from "../sfc-check.mjs";
+
+/** The fixed clock of the tests, so that a run means the same thing today and in ten years. */
+const CLOCK = new Date("2026-01-01T00:00:00Z");
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -56,7 +60,7 @@ describe("fixture: pass", () => {
 describe("fixture: ledger-evidence", () => {
   // pass.json plus a ledger-evidence entry. The operator entry copies the invented
   // operator 7 values of the paper's worked example, with the window moved into
-  // the fixture's reporting year so that it lies inside reporting-period. The entry
+  // the fixture's year so that it lies inside `period`. The entry
   // only exercises the DECLARED row: its values do not reconcile with the fixture's
   // annual figures (ledger profile 1.2 section 9.3, step 5), as its provider says.
   it("reports the extension as DECLARED, never PASS, and leaves the exit code alone", async () => {
@@ -183,10 +187,67 @@ describe("fixture: legacy-08", () => {
   });
 });
 
+describe("an attestation, judged at the clock of the run", () => {
+  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+  const jwk = publicKey.export({ format: "jwk" });
+  const b64 = (value) => Buffer.from(typeof value === "string" ? value : JSON.stringify(value)).toString("base64url");
+  const lookup = async () => ["203.0.113.7"];
+
+  /** A vc+jwt signed by the issuer key, which names its own key in the header. */
+  const credentialFor = (declaration, validFrom) => {
+    const header = b64({ alg: "Ed25519", typ: "vc+jwt", cty: "vc", jwk });
+    const payload = b64({
+      "@context": ["https://www.w3.org/ns/credentials/v2"],
+      type: ["VerifiableCredential"],
+      issuer: "https://assurance.example",
+      validFrom,
+      credentialSubject: { target: declaration.target, period: declaration.period },
+    });
+    return `${header}.${payload}.${sign(null, Buffer.from(`${header}.${payload}`), privateKey).toString("base64url")}`;
+  };
+  const serving = (jwt) => async () => new Response(jwt, { status: 200, headers: { "content-type": "application/vc+jwt" } });
+  const run = (extra) => {
+    const doc = fixture("pass.json");
+    return checkDocument(doc, { verifyAttestation: true, lookup, fetchImpl: serving(credentialFor(doc, "2026-10-01T00:00:00Z")), ...extra });
+  };
+
+  it("does not call an object attested when the key is the credential's own", async () => {
+    const result = await run({ clock: new Date("2026-10-25T00:00:00Z") });
+    expect(statusOf(result, "C3-attestation")).toEqual(["INFO"]);
+    expect(detailOf(result, "C3-attestation")).toContain("not attested");
+    expect(detailOf(result, "C3-attestation")).toContain("coverage covers");
+  });
+
+  it("calls it attested when the issuer key is trusted out of band and the credential covers the object", async () => {
+    const result = await run({ clock: new Date("2026-10-25T00:00:00Z"), trustedIssuerKeys: [jwk] });
+    expect(statusOf(result, "C3-attestation")).toEqual(["DECLARED"]);
+    expect(detailOf(result, "C3-attestation")).toContain("attested by https://assurance.example");
+  });
+
+  it("reads a credential valid from October as valid on a clock after it, and not before", async () => {
+    const after = await run({ clock: new Date("2026-10-25T00:00:00Z") });
+    expect(detailOf(after, "C3-attestation")).not.toContain("not-yet-valid");
+    const before = await run({ clock: CLOCK });
+    expect(statusOf(before, "C3-attestation")).toEqual(["WARN"]);
+    expect(detailOf(before, "C3-attestation")).toContain("not-yet-valid");
+  });
+});
+
+describe("origin mode reads the document as served", () => {
+  it("fails an origin that serves the -08 form instead of converting it", async () => {
+    const body = JSON.stringify(fixture("legacy-08.json"));
+    const fetchImpl = async () => new Response(body, { status: 200, headers: { "content-type": "application/sustainability-data+json" } });
+    const result = await checkOrigin("https://legacy.example", { fetchImpl, lookup: async () => ["203.0.113.7"], clock: CLOCK });
+    expect(result.exitCode).toBe(1);
+    expect(statusOf(result, "draft-conformance")).toEqual(["FAIL"]);
+    expect(result.rows.some((r) => r.status === "PASS" && r.id === "draft-conformance")).toBe(false);
+  });
+});
+
 describe("determinism", () => {
   it("two runs of the same document are identical", async () => {
-    const a = await checkDocument(fixture("pass.json"));
-    const b = await checkDocument(fixture("pass.json"), { clock: new Date(DEFAULT_CLOCK) });
+    const a = await checkDocument(fixture("pass.json"), { clock: CLOCK });
+    const b = await checkDocument(fixture("pass.json"), { clock: new Date(CLOCK) });
     expect(JSON.stringify(a)).toEqual(JSON.stringify(b));
   });
 });
@@ -214,6 +275,10 @@ describe("selection", () => {
     expect(parsed.options.verifyAttestation).toBe(true);
     expect(parsed.options.clock.toISOString()).toBe("2030-05-05T00:00:00.000Z");
     expect(() => parseArgs(["--nope"])).toThrow();
+  });
+
+  it("has no clock unless --now is given, so a real run reads the current time", () => {
+    expect(parseArgs(["doc.json"]).options.clock).toBeUndefined();
   });
 });
 

@@ -216,7 +216,7 @@ Feature: Personas and usage scenarios
     And the body validates as a declaration
     And the origin passes every MUST of the conformance battery
 
-  # ---- added by the 24 Oct review: Appendix A, and the persona paths that had no error or edge scenario ----
+  # ---- Appendix A, and the persona paths that had no error or edge scenario ----
 
   @REQ-APX-01 @golden @UC-7.1
   Scenario: The gateway's own object is the last completed month of a service and answers ?start= and ?end= with its months

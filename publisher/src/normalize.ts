@@ -304,7 +304,7 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
     target,
   };
 
-  // Publishers SHOULD state units explicitly (draft §Optional Members),
+  // This package writes units explicitly,
   // so the unit members are always emitted alongside their value — but only
   // then: an energy-unit without energy-consumption "has no effect and SHOULD
   // be omitted".

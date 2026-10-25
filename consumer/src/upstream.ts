@@ -184,11 +184,15 @@ function describeAccounting(basis: string | undefined): string {
 const objectsOf = (doc: unknown): SustainabilityMetrics[] => (Array.isArray(doc) ? doc : [doc]) as SustainabilityMetrics[];
 
 type Retrieved =
-  | { ok: true; objects: SustainabilityMetrics[]; converted: string[]; disregarded: string[] }
+  | { ok: true; url: URL; objects: SustainabilityMetrics[]; converted: string[]; disregarded: string[] }
   | { ok: false; reason: string };
 
-/** GET one declaration by absolute URI, under the same bounds as the main fetch. */
-async function retrieve(url: URL, options: UpstreamWalkOptions): Promise<Retrieved> {
+/**
+ * GET one declaration by absolute URI, under the same bounds as the main fetch.
+ * A redirect onto a URI already in `visited` is refused, and the URI that
+ * answered (`url`, the last of a redirected retrieval) joins `visited`.
+ */
+async function retrieve(url: URL, options: UpstreamWalkOptions, visited: Set<string>): Promise<Retrieved> {
   const got = await secureGet(url, {
     fetchImpl: options.fetchImpl,
     timeoutMs: options.timeoutMs,
@@ -197,15 +201,17 @@ async function retrieve(url: URL, options: UpstreamWalkOptions): Promise<Retriev
     lookup: options.lookup,
     ca: options.ca,
     headers: { Accept: ACCEPT_HEADER },
+    refuseHop: (target) => (visited.has(withoutFragment(target)) ? "already retrieved in this walk" : undefined),
   });
   // A safety refusal says WHY in its detail (which address the name resolved
   // to), and that belongs in the verdict, since "unreachable" alone would read
   // as the upstream being down rather than deliberately not followed.
   if (!got.ok) {
     const { reason, detail } = got.refusal;
-    return { ok: false, reason: reason === "blocked-address" || reason === "userinfo-in-uri" ? `${reason} (${detail ?? ""})` : reason };
+    return { ok: false, reason: reason === "blocked-address" || reason === "userinfo-in-uri" || reason === "already-retrieved" ? `${reason} (${detail ?? ""})` : reason };
   }
   const { res } = got;
+  visited.add(withoutFragment(got.url));
   if (res.status !== 200) {
     await discardBody(res);
     return { ok: false, reason: `http-${res.status}` };
@@ -236,7 +242,7 @@ async function retrieve(url: URL, options: UpstreamWalkOptions): Promise<Retriev
 
   const check = validateDocument(parsed);
   if (!check.valid) return { ok: false, reason: `invalid (${check.errors[0] ?? "validation failed"})` };
-  return { ok: true, objects: objectsOf(parsed), converted: report.converted, disregarded: report.disregarded };
+  return { ok: true, url: got.url, objects: objectsOf(parsed), converted: report.converted, disregarded: report.disregarded };
 }
 
 /**
@@ -332,7 +338,7 @@ export async function compareUpstream(
     visited.add(key);
     budget.remaining--;
 
-    const got = await retrieve(url, options);
+    const got = await retrieve(url, options, visited);
     if (!got.ok) {
       out.push({ ...base, detail: `not retrieved: ${got.reason}` });
       continue;
@@ -354,6 +360,8 @@ export async function compareUpstream(
       return matching.find((o) => o["target-type"] === "tenant") ?? matching[0];
     };
     let match = samePeriod(got.objects);
+    // The URI that answered with `match`: relative references in it resolve against this one.
+    let matchedAt = got.url;
     let ignoredPeriodParameter = false;
     if (!match && got.objects.some((o) => o.capabilities === "extended")) {
       const scoped = new URL(url);
@@ -363,11 +371,12 @@ export async function compareUpstream(
       if (!visited.has(scopedKey) && budget.remaining > 0) {
         visited.add(scopedKey);
         budget.remaining--;
-        const extended = await retrieve(scoped, options);
+        const extended = await retrieve(scoped, options, visited);
         if (extended.ok) {
           converted.push(...extended.converted);
           disregarded.push(...extended.disregarded);
           match = samePeriod(extended.objects);
+          matchedAt = extended.url;
           ignoredPeriodParameter = match === undefined;
         }
       }
@@ -445,7 +454,7 @@ export async function compareUpstream(
     }
 
     if (depth < maxDepth) {
-      const nested = await compareUpstream(match, { ...options, base: new URL(url) }, visited, depth + 1, budget);
+      const nested = await compareUpstream(match, { ...options, base: matchedAt }, visited, depth + 1, budget);
       if (nested.length > 0) comparison.upstream = nested;
     } else if (Array.isArray(match.upstream) && match.upstream.length > 0) {
       comparison.upstream = match.upstream.map((e) => ({

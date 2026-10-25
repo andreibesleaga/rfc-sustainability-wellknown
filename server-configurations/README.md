@@ -20,12 +20,12 @@ per-request selection), see "Optional: dynamic Extended service" below.
 
 | Feature | nginx.conf | apache.conf | Draft requirement |
 |---|---|---|---|
-| `Content-Type: application/sustainability-data+json` on 200 responses (commented `application/json` fallback kept for pre-registration documents) | ✓ | ✓ | MUST |
-| `Cache-Control: max-age=86400` | ✓ | ✓ | RECOMMENDED |
-| `ETag` / `Last-Modified` | auto (on by default) | auto (static files) | RECOMMENDED |
-| `Access-Control-Allow-Origin: *` | ✓ | ✓ | SHOULD (on successful responses; WebFinger practice) |
-| GET/HEAD only; others get `405` + `Allow: GET, HEAD` | ✓ (named location) | ✓ (ErrorDocument) | HTTP (RFC 9110); the draft cites it |
-| Rate limiting | commented out | commented out | RECOMMENDED |
+| `Content-Type: application/sustainability-data+json` on 200 responses (commented `application/json` fallback kept for pre-registration documents) | ✓ | ✓ | the registered type (Location and Transport) |
+| `Cache-Control: max-age=86400` | ✓ | ✓ | HTTP practice |
+| `ETag` / `Last-Modified` | auto (on by default) | auto (static files) | HTTP practice |
+| `Access-Control-Allow-Origin: *` | ✓ | ✓ | HTTP practice (WebFinger practice) |
+| GET/HEAD only; others get `405` + `Allow: GET, HEAD` | ✓ (named location) | ✓ (ErrorDocument) | HTTP practice (RFC 9110) |
+| Rate limiting | commented out | commented out | SHOULD, for a server that computes answers on demand |
 
 **A note on the 405 handling in both files, and why it isn't a one-line `return`/`deny`:**
 The obvious approaches — nginx setting `Allow` inside the method-check `if` block,
@@ -142,6 +142,6 @@ every upstream header (including the 405/Allow path) passed through correctly.
 ## Security notes (per draft §Security)
 
 - **Rate limiting** is RECOMMENDED on requests that include query parameters when a dynamic service computes the answer, as a selection can be CPU/DB-intensive.
-- **Array size cap**: the specification does not require a server-side cap on the number of objects returned — a consumer is required to bound what it accepts instead. An application-layer cap of 366 objects is nonetheless a reasonable deployment safeguard against an unbounded selection (see `example-scripts/security.*`, or `publisher/` if running the dynamic gateway).
+- **Array size cap**: the specification does not require a server-side cap — a consumer is required to bound what it accepts instead. An application-layer cap of 366 objects held is nonetheless a reasonable deployment safeguard (an answer is never cut short) (see `example-scripts/security.*`, or `publisher/` if running the dynamic gateway).
 - **HTTPS** is a **MUST** — configure TLS in your server block separately; these snippets cover the endpoint behaviour only.
 - The endpoint publishes no PII; a period SHOULD be a calendar day or longer, each bound the first instant of a calendar day in its own offset (enforced by default in `example-scripts/security.*`).

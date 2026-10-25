@@ -76,8 +76,8 @@ four directories mean:
 
 | Directory | Meaning |
 |---|---|
-| `valid/` | Conforming declarations: every validator and the code gate accept them |
-| `tolerated/` | Declarations a consumer reads although a publisher must not emit them (unknown member, unrecognised token value, ...); the schemas accept or refuse them as the manifest records |
+| `valid/` | Declarations a strict -10 consumer accepts (one, `unknown-members.json`, carries a member a publisher must not add, which a consumer ignores) |
+| `tolerated/` | Declarations a consumer reads with a warning: day floor, offsets, leap second, U-label host, scopes that differ from the footprint, URI forms, order; the schemas accept or refuse them as the manifest records |
 | `invalid/` | Declarations the schemas refuse |
 | `prose/` | Rules no schema states (start before end, non-negative numbers, at least one metric or link, a real calendar date, ...); the manifest records which schema happens to catch them anyway |
 
@@ -100,14 +100,9 @@ First compares the CDDL block of the draft with `response-schema.cddl`, then run
 both validators on every manifest entry and prints a summary; the exit status is
 non-zero on any mismatch.
 
-`../example-responses/` still holds the files served for the earlier form until
-they are converted. They are therefore not part of the default run; to check
-them against the -10 schemas (both validators must pass) use the temporary
-switch, which goes away once they are converted:
-
-```bash
-./validate-all.sh --example-responses     # or: EXAMPLE_RESPONSES=10 ./validate-all.sh
-```
+The files of `../example-responses/` are manifest entries too (`E01` and on), so
+the default run checks them with both validators, and fails if one is not listed.
+(`--example-responses` is still accepted and changes nothing.)
 
 `PYTHON=/path/to/python3 ./validate-all.sh` selects the interpreter that has the `jtd` package.
 
@@ -174,19 +169,18 @@ The schemas deliberately do **not**, and technically **cannot**, express:
   is absent. Consumers apply them when reading.
 - **Minimum reporting**: at least one numeric metric member, or `disclosure-uri`,
   or `verifiable-attestation-uri`.
-- **Array rules**: all entries of an array response share one `target` and, when
-  present, one `target-type`; ordering by `period.start`; and an empty `upstream`
-  array (the CDDL refuses it with `[+ ...]`, the JTD accepts it).
+- **Array rules**: ordering by `period.start` for a server that honors a query
+  parameter, and an empty `upstream` array (the CDDL refuses it with `[+ ...]`,
+  the JTD accepts it).
 - **`target` for a `path` target** starting with "/", and the target-type specific
   meaning of `target`.
 - **`extensions` names**: a URI compared as a string; neither schema checks the
   form of the name.
 - **`signed`** is typed as a string; whether it is a well-formed JWS over the rest
   of the object, and the URI members being URI references, are checked by the consumer.
-- **Tolerance for unrecognised values.** The schemas close the token sets, but the
-  draft directs a consumer that meets an unrecognised value in an enumerated member
-  not to reject the document: it disregards the member (`target-type`: it reads
-  `target` as if the member were absent). That is applied in the application layer.
+- **Older forms.** The token sets are closed: a value outside a set makes the
+  object invalid. The consumer's optional compatibility reading of -08 and -09
+  documents converts or disregards old values and reports what it did.
 
 The `prose/` directory of the corpus holds one file per rule above; its manifest
 entries record which engine, if any, refuses each.

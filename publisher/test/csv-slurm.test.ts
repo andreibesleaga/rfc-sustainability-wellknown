@@ -100,6 +100,21 @@ describe("csv: every unusable row is reported, never guessed, never fatal", () =
     expect(skipsOf("period,energy\n2025,\"1,234.5\"\n").rows[0].energy?.value).toBe(1234.5);
   });
 
+  it("takes the unit of the carbon figure from a unit-bearing header, and refuses a column that contradicts it", () => {
+    const period = "2025-01-01T00:00:00Z,2026-01-01T00:00:00Z";
+    expect(skipsOf(`period_start,period_end,tCO2e\n${period},12.5\n`).rows[0].carbon).toEqual({ value: 12.5, unit: "tCO2e" });
+    expect(skipsOf(`period_start,period_end,kgCO2e\n${period},12.5\n`).rows[0].carbon).toEqual({ value: 12.5, unit: "kgCO2e" });
+    const clash = skipsOf(`period_start,period_end,tCO2e,carbon_unit\n${period},12.5,kgCO2e\n`);
+    expect(clash.rows).toHaveLength(0);
+    expect(clash.skipped).toEqual(["2: column tCO2e and carbon_unit kgCO2e disagree"]);
+  });
+
+  it("serves a row that carries only a scope or the renewable share", () => {
+    expect(skipsOf("period,scope_2\n2025,400\n").rows[0].scope2).toBe(400);
+    expect(skipsOf("period,renewable_percent\n2025,60\n").rows[0].renewableEnergy).toBe(60);
+    expect(skipsOf("period\n2025\n").skipped).toEqual(["2: no figure and no disclosure link: not a declaration"]);
+  });
+
   it("names the draft's member and the four tokens when a row carries an older measurement method", () => {
     const { rows, skipped } = skipsOf("period,energy,measurement_method\n2025-01,1,metered\n2025-02,1,hardware-metered\n");
     expect(rows).toHaveLength(1);

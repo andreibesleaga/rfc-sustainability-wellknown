@@ -77,7 +77,8 @@ if (!(watts > 0)) die("the result is 0 W; check the inputs");
 const doc = existsSync(FILE) ? JSON.parse(readFileSync(FILE, "utf8")) : { months: {} };
 doc.months ??= {};
 const before = doc.months[month];
-doc.months[month] = { watts, source };
+// `entered` is the instant of this run: the objects covering the month state it as `updated`.
+doc.months[month] = { watts, source, entered: new Date().toISOString().replace(/\.\d{3}Z$/, "Z") };
 doc.months = Object.fromEntries(Object.entries(doc.months).sort(([a], [b]) => a.localeCompare(b)));
 writeFileSync(FILE, JSON.stringify(doc, null, 2) + "\n");
 console.log(`${month}: ${watts} W average -> ${((watts * hours) / 1000).toFixed(4)} kWh over ${hours} h${before ? ` (was ${before.watts} W)` : ""}`);

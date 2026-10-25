@@ -1,6 +1,6 @@
 /**
- * Per-client rate limiting (draft -07 Security Considerations, Denial of Service: servers SHOULD
- * rate-limit requests to the well-known URI). The limiter is
+ * Per-client rate limiting (draft -10, Security Considerations: a server that computes
+ * responses on demand SHOULD rate-limit). The limiter is
  * `rate-limiter-flexible`; these tests cover the gateway's policy around it.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";

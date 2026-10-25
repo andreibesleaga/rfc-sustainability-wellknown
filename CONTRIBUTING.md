@@ -36,7 +36,7 @@ To validate the example corpus (every file listed in `schemas-validators/example
 in `example-responses/`) against both formal schemas, and to check that the generated files equal a fresh run:
 
 ```bash
-cd schemas-validators && bash validate-all.sh --example-responses
+cd schemas-validators && bash validate-all.sh
 node gen/pairwise.mjs --check && node gen/signed.mjs --check && node gen/served.mjs --check
 ```
 

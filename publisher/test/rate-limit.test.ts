@@ -1,6 +1,6 @@
 import type { AddressInfo } from "node:net";
 import { describe, expect, it } from "vitest";
-import { RateLimiter } from "../src/handler";
+import { RateLimiter, rateLimitGate } from "../src/handler";
 import { expressSustainability } from "../src/middleware/express";
 import { fastifySustainability } from "../src/middleware/fastify";
 import { Publisher } from "../src/publisher";
@@ -40,6 +40,25 @@ async function serve(publisher: Publisher, opts: ServerOptions) {
     close: () => new Promise<void>((done) => server.close(() => done())),
   };
 }
+
+describe("the startup warning for an Extended publisher that is not rate-limited", () => {
+  const warningsFor = (adapter: SourceAdapter, rateLimit?: { requests: number }) => {
+    const warnings: string[] = [];
+    rateLimitGate({ rateLimit }, new Publisher(adapter, { onWarning: (w) => warnings.push(w) }));
+    return warnings;
+  };
+
+  it("is given once for an Extended publisher with no rateLimit", () => {
+    const warnings = warningsFor(countingAdapter());
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/Extended publisher computes answers on demand/);
+  });
+
+  it("is not given for an Extended publisher with a rateLimit, nor for a Basic one", () => {
+    expect(warningsFor(countingAdapter(), { requests: 5 })).toEqual([]);
+    expect(warningsFor({ capabilities: "basic", fetch: async () => raw("2026-01") })).toEqual([]);
+  });
+});
 
 describe("RateLimiter", () => {
   it("allows the configured number of requests per client in a window, then names the wait", () => {

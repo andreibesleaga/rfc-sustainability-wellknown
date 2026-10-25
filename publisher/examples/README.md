@@ -1,8 +1,8 @@
 # Adapter examples: originals → transformed
 
-For every source with a real upstream shape (nine of this gateway's ten adapters — the
-plain inline `static` adapter takes literal config values with no upstream response to
-show), this directory carries a matched pair:
+For every source with a real upstream shape (nine of the publisher's twelve adapters — the
+inline `static` adapter has no upstream response to show, and CSV and Slurm are exercised by their
+own test fixtures), this directory carries a matched pair:
 
 | Directory | Contents |
 |---|---|
@@ -21,9 +21,9 @@ npm run build
 node examples/generate-examples.js
 ```
 
-Every file in `transformed/` passes **both** independent validators
-(`schemas-validators/validator-json.py` — Python JTD, and `validator-cddl.py` — Ruby
-CDDL); see the repo's `validate-all.sh` / CI for the automated check. `updated` timestamps
+Every file in `transformed/` is validated by the publisher's own gate in
+`test/examples.test.ts` (JTD plus the prose rules); the Python JTD and Ruby CDDL validators of
+`schemas-validators/` run over the manifest corpus, which does not include these files. `updated` timestamps
 are fixed by the generator's clock (1 June 2026), so a regeneration reproduces the files
 exactly; regenerate them, don't hand-edit them. Every `period` is a half-open range of two RFC 3339
 date-times, start included and end excluded (draft Section 3.2); an adapter configured with a calendar

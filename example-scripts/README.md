@@ -8,8 +8,8 @@ This directory contains the technical specifications and operational safeguards 
 * **Path**: Metadata MUST be published at `/.well-known/sustainability-data`.
 * **Protocol**: The resource MUST be served over **HTTPS**, on every hop including redirects.
 * **HTTP Method**: `GET` and `HEAD` are the only methods the draft uses; other methods get `405 Method Not Allowed` with `Allow: GET, HEAD` as HTTP itself (RFC 9110) provides (the draft cites it rather than restating it).
-* **Media Type**: Successful (`200 OK`) responses MUST use the dedicated `application/sustainability-data+json` media type; clients MUST accept it and SHOULD also accept `application/json`, under which documents published before the registration are found in the field. Error bodies (`404`/`405`/`500`) are not declarations and keep `application/json`.
-* **CORS**: Successful responses SHOULD include `Access-Control-Allow-Origin: *` (the document is public and intended for browser-based clients; follows WebFinger practice).
+* **Media Type**: Successful responses carry `application/sustainability-data+json`; a consumer MAY also process `application/json`. Error bodies (`404`/`405`/`500`) are not declarations and keep `application/json`.
+* **CORS**: Successful responses include `Access-Control-Allow-Origin: *` (deployment practice, not a requirement of the draft; the document is public and intended for browser-based clients).
 * **Status Codes**:
     * `200 OK`: Successful retrieval of metadata.
     * A query never earns a `400` or a `404`: a value the draft does not define is ignored, and a selection that matches nothing is `200` with `[]`.
@@ -45,17 +45,17 @@ The draft recommends periods of a calendar day or longer (the day floor) and per
 
 ### DoS Protection (Security)
 * **Rate Limiting**: Implement rate-limiting on requests containing time-range query parameters.
-* **Array Capping (deployment safeguard, not a specification MUST)**: When supporting query parameters, consider limiting the number of objects returned (a cap of **366 objects** is illustrated here); when truncating, keep the most recent periods. A conforming server has no cap requirement to meet — the specification instead requires every consumer to bound what it accepts and treat an excess as an error, so this cap is a defense-in-depth choice, not something a client may rely on. Arrays are sorted ascending by the instant of `period.start`.
+* **Bounding the objects held (deployment safeguard, not a specification MUST)**: limit the number of objects the server holds (a cap of **366 objects** is illustrated here; the scripts refuse a held set above it), and never truncate an answer: a server returns what it holds that satisfies the request. A conforming server has no cap requirement to meet — the specification instead requires every consumer to bound what it accepts and treat an excess as an error, so this cap is a defense-in-depth choice, not something a client may rely on. Arrays are sorted ascending by the instant of `period.start`.
 
 ## 4. Operational Considerations
-* **Caching**: Implement heavy caching using `Cache-Control: max-age=86400` (24 hours).
+* **Caching**: Implement heavy caching using `Cache-Control: max-age=86400` (24 hours); HTTP practice (RFC 9110, RFC 9111), which the draft leaves to the publisher.
 * **Optimization**: Use `ETag` and `Last-Modified` headers to allow clients to perform conditional requests, reducing bandwidth overhead.
 * **Forward Compatibility**: Implementations MUST ignore unknown JSON fields to preserve compatibility with future versions.
 
 ---
 
 ## 5. Validation Schema (JTD)
-All responses must validate against the **JSON Type Definition (JTD)** provided in the draft.
+All responses must validate against the **JSON Type Definition (JTD)** in `schemas-validators/` (the draft itself carries only the CDDL).
 
 | Field | Type | Mandatory? |
 | :--- | :--- | :--- |
@@ -81,10 +81,10 @@ All responses must validate against the **JSON Type Definition (JTD)** provided 
 | `verifiable-attestation-uri` | string | No |
 | `disclosure-uri` | string | No |
 | `upstream` | array of `{ declaration: string, role?: "hosting"/"colocation"/"cloud"/"cdn"/"network"/"electricity" }` | No |
-| `extensions` | object keyed by absolute URI (RFC 3986; ASCII, scheme in lowercase, no fragment) — an `https` URI the definer controls, or `urn:uuid:` plus a lowercase hyphenated UUID (RFC 9562); values are objects | No |
+| `extensions` | object keyed by extension name, a URI under the definer's control when the name was minted (for example an `https` URI) or a UUID URN (`urn:uuid:…`); values are objects | No |
 | `signed` | string (JWS Compact Serialization over the object minus `signed`; `Ed25519` or `ES256`, header `cty` `sustainability-data+json`) | No |
 
-The top-level member set is closed to the members above: vendor and private data lives under `extensions`, keyed by an absolute URI the definer chooses once (an `https` URI under its own control, or `urn:uuid:` plus a lowercase hyphenated UUID for a definer without a domain). The key is an identifier compared as a string, never dereferenced, and there is no registry (see `example-responses/` for a worked example). A declaration object MUST carry at least one numeric metric member or at least one of `disclosure-uri`/`verifiable-attestation-uri`.
+The top-level member set is closed to the members above: vendor and private data lives under `extensions`, keyed by a name the definer chooses once (a URI under its own control, for example an `https` URI, or a UUID URN, `urn:uuid:…`, for a definer without a domain). The key is an identifier compared as a string after JSON escapes are decoded, never dereferenced, and there is no registry (see `example-responses/` for a worked example). A declaration object MUST carry at least one numeric metric member or at least one of `disclosure-uri`/`verifiable-attestation-uri`.
 
 ## 6. Files in this directory
 

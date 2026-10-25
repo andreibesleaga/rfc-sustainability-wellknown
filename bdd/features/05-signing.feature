@@ -437,7 +437,7 @@ Feature: Signing and verification
     Then the upstream signature status is "verified"
     And the upstream signature note mentions "deprecated"
 
-  # ---- added by the 24 Oct review: JWS shape, key pin, what a signature covers ----
+  # ---- JWS shape, key pin, what a signature covers ----
 
   @REQ-SIG-01 @golden @UC-6.1 @rk-sig-1
   Scenario: A signed object verifies, and its payload is the object without signed

@@ -246,10 +246,9 @@ export function decodeSignedPayload(jws: string): string {
 }
 
 /**
- * Draft §The signed Member: "The payload MUST NOT itself contain a `signed`
- * member", and §Signing: "A publisher MUST NOT serve an object whose `signed`
- * payload differs from the object it accompanies". Both are checked here, on
- * the object as it will be served — so a stale or foreign signature cannot
+ * The payload is the object without `signed` (draft, The signed Member); this
+ * package refuses to serve an object whose `signed` payload differs from it.
+ * Both are checked here, on the object as it will be served — so a stale or foreign signature cannot
  * reach the wire through any path (a cache, a conditional request, or a
  * transformation applied after signing).
  */
@@ -282,8 +281,9 @@ export function assertSignedMatchesObject(object: SustainabilityMetrics, label =
 }
 
 /**
- * The same two rules over a whole document, plus the array rule of §The signed
- * Member: "a publisher that signs the objects of an array signs all of them".
+ * The same two rules over a whole document, plus this package's own array rule:
+ * it signs every object of an array or none (the draft lets each signed object
+ * carry its own `signed`).
  * Returns the document so it can be used inline.
  */
 export function assertSignedMatches(document: SustainabilityDocument): SustainabilityDocument {
@@ -292,7 +292,7 @@ export function assertSignedMatches(document: SustainabilityDocument): Sustainab
   if (signedCount > 0 && signedCount !== items.length) {
     throw new Error(
       `signed: ${signedCount} of ${items.length} objects in the array carry a signature; ` +
-        "a publisher that signs the objects of an array signs all of them (draft §The signed Member)",
+        "this package signs every object of an array or none (its own rule; the draft lets each signed object carry its own `signed`)",
     );
   }
   items.forEach((o, i) => assertSignedMatchesObject(o, Array.isArray(document) ? `[${i}]` : ""));

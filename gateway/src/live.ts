@@ -58,8 +58,8 @@ export interface LiveSpec {
    */
   input?: DemoInput;
   /**
-   * Private JWK that signs this demonstration's declaration (draft -07
-   * §Signing). Only for a synthetic subject whose key is a published test
+   * Private JWK that signs this demonstration's declaration (draft
+   * §The signed Member). Only for a synthetic subject whose key is a published test
    * vector; never the gateway's own key, which signs the self report alone.
    */
   signingJwk?: string | Record<string, unknown>;

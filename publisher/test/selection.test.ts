@@ -10,7 +10,8 @@
  */
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { staticAdapter } from "../src/adapters";
+import { resolve } from "node:path";
+import { staticAdapter, staticFileAdapter } from "../src/adapters";
 import { parseQuery, queryFromSearchParams } from "../src/handler";
 import { monthPeriod, yearPeriod, dayPeriod } from "../src/period";
 import type { Period } from "../src/period";
@@ -175,7 +176,10 @@ const label = (m: number) => `2025-${String(m).padStart(2, "0")}`;
 const monthsOf2025 = Array.from({ length: 12 }, (_, i) => raw(label(i + 1), monthPeriod(2025, i + 1), "example.com", { targetType: "origin" }));
 const yearOf2025 = raw("year 2025", yearPeriod(2025), "example.com", { targetType: "origin" });
 
-const DATASETS: Record<string, { data: RawMetrics | RawMetrics[]; capabilities: "basic" | "extended" }> = {
+/** A dataset is inline data, or the path of a served file in the wire format. */
+type Dataset = { capabilities: "basic" | "extended" } & ({ data: RawMetrics | RawMetrics[]; file?: undefined } | { file: string; data?: undefined });
+
+const DATASETS: Record<string, Dataset> = {
   yearly: { data: monthsOf2025, capabilities: "extended" },
   "year-and-months": { data: [yearOf2025, ...monthsOf2025], capabilities: "extended" },
   "two-targets": {
@@ -230,10 +234,8 @@ const DATASETS: Record<string, { data: RawMetrics | RawMetrics[]; capabilities: 
     data: [raw("daily", dayPeriod("2026-03-20"), "/app/storage", { targetType: "path" })],
   },
   "basic.example": { capabilities: "basic", data: raw("basic", yearPeriod(2025), "basic.example", { targetType: "origin" }) },
-  "organization-trend.example": {
-    capabilities: "basic",
-    data: [raw("2025", yearPeriod(2025), "Acme Retail plc", { targetType: "organization" })],
-  },
+  // The served file of the example set, as a Basic server holds it: four yearly objects.
+  "organization-trend.example": { capabilities: "basic", file: resolve(__dirname, "../../example-responses/example-response-organization-trend.json") },
 };
 
 const M = (...months: number[]) => months.map(label);
@@ -325,8 +327,9 @@ const ROWS: Array<[string, string, string, string[] | typeof IGNORED]> = [
 ];
 
 function publisherFor(dataset: string, representation?: "single"): Publisher {
-  const { data, capabilities } = DATASETS[dataset];
-  return new Publisher(staticAdapter({ data, capabilities }), { cacheTtlMs: 0, ...(representation ? { representation } : {}) });
+  const { data, file, capabilities } = DATASETS[dataset];
+  const adapter = file ? staticFileAdapter({ file, format: "wire", capabilities }) : staticAdapter({ data, capabilities });
+  return new Publisher(adapter, { cacheTtlMs: 0, ...(representation ? { representation } : {}) });
 }
 
 const queryOf = (qs: string): ServiceQuery => parseQuery(queryFromSearchParams(new URLSearchParams(qs))).query;
@@ -365,7 +368,12 @@ describe("the query matrix: publisher-side rows", () => {
     const object = JSON.parse((await publisherFor("basic.example").getSerialized({})).body);
     expect(Array.isArray(object)).toBe(false);
     const array = JSON.parse((await publisherFor("organization-trend.example").getSerialized({})).body);
-    expect(array).toHaveLength(1);
+    expect(array.map((o: SustainabilityMetrics) => o.period.start)).toEqual([
+      "2022-01-01T00:00:00Z",
+      "2023-01-01T00:00:00Z",
+      "2024-01-01T00:00:00Z",
+      "2025-01-01T00:00:00Z",
+    ]);
   });
 
   it("Z and .000Z spellings of one bound give one response and one entity tag", async () => {

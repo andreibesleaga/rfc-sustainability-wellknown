@@ -260,8 +260,8 @@ describe("carbonTxtResult rejects a poisoned Host (fix 9)", () => {
 });
 
 // #10 floor before cap
-describe("security floor-before-cap (fix 10)", () => {
-  it("yields up to 366 daily objects even when sub-daily entries precede them", () => {
+describe("security day floor (fix 10)", () => {
+  it("drops the sub-daily entries and keeps every daily one", () => {
     const daily = (i: number): SustainabilityMetrics => ({
       updated: "2026-01-01T00:00:00Z",
       capabilities: "basic",
@@ -278,7 +278,7 @@ describe("security floor-before-cap (fix 10)", () => {
     const subDaily = { ...daily(0), period: { start: "2026-01-01T12:00:00Z", end: "2026-01-02T12:00:00Z" } };
     const mixed = [...Array.from({ length: 200 }, () => subDaily), ...Array.from({ length: 400 }, (_, i) => daily(i))];
     const out = secureReports(mixed);
-    expect(out.length).toBe(366); // all daily, floor applied before the cap
+    expect(out.length).toBe(400); // all daily; the floor drops the sub-daily ones, nothing is cut
     expect(out.every((r) => isOnDayBoundaries(r.period))).toBe(true);
   });
 });
@@ -392,11 +392,11 @@ describe("security conforms to draft -02 review hardening", () => {
     expect(Math.abs(sum - (out["carbon-footprint"] as number))).toBeLessThan(0.05); // rounding only
   });
 
-  it("arrays are sorted ascending and truncation keeps the most recent periods", () => {
+  it("arrays are sorted ascending and are not truncated", () => {
     const months = Array.from({ length: 12 }, (_, i) => rep(`2026-${String(i + 1).padStart(2, "0")}`));
     const shuffled = [months[5], months[0], months[11], ...months.slice(1, 5), ...months.slice(6, 11)];
     const out = secureReports(shuffled, { maxObjects: 3 });
-    expect(out.map((r) => r.period.start.slice(0, 7))).toEqual(["2026-10", "2026-11", "2026-12"]);
+    expect(out.map((r) => r.period.start.slice(0, 7))).toEqual(months.map((r) => r.period.start.slice(0, 7)));
   });
 });
 

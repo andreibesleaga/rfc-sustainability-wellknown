@@ -100,8 +100,8 @@ app.listen(3000);
 ```
 
 Fastify is the same shape with `fastifySustainability` (see `README.md` §Fastify
-plugin for the full example). Both middlewares implement every draft-required
-behavior (405+`Allow`, conditional requests, CORS, optional bidirectional
+plugin for the full example). Both middlewares implement every behavior this package
+provides (405+`Allow`, conditional requests, CORS, optional bidirectional
 carbon.txt) — you don't need to reimplement anything from §3 below unless you're
 on a framework without a bundled middleware.
 
@@ -135,9 +135,8 @@ This is enough for a cron job, a build step, or feeding a static-file deployment
 `ETag`/conditional requests, CORS, caching headers) as a plain function returning
 `{ status, headers, body }` — wire it into any request/response model:
 
-**Access control**: the draft answers a `GET` without query parameters with
-`200 OK`, and `404` when nothing is published. Access control is out of scope: a
-server **MAY** restrict access to the declaration, and a deployment
+**Access control**: the draft (Location and Transport) leaves access control, caching and every other aspect
+of the HTTP exchange to RFC 9110 and RFC 9111 and to the publisher. A deployment
 that restricts the resource, or rate-limits it, responds as RFC 9110 defines
 (`401`, `403`, `429`).
 Nothing here forces the document on every requester — wrap or front the handler
@@ -145,7 +144,7 @@ with whatever authorization your deployment needs.
 
 **CORS**: successful responses SHOULD include
 `Access-Control-Allow-Origin: *` (WebFinger practice, so browser-based
-aggregators can read the public document). `handleRequest`, both middlewares,
+aggregators can read the public document; deployment practice). `handleRequest`, both middlewares,
 and the standalone server emit the header on **every** response — 200/304 and
 the 404/405/503 error statuses alike, so cross-origin clients can read errors
 too. Set the `cors` option to another value or `false` to override.
@@ -179,7 +178,8 @@ the draft's Query Parameters):
    held. Objects are returned as held: **nothing is summed, merged or split**, and a
    period nobody published gets no answer made up for it;
 7. when none matches, the answer is **`200` with `[]`**. `404` is only for a source that
-   holds nothing at all when no parameter was honored. A request that honors no
+   holds nothing at all, for a Basic publisher or one with `representation: "single"`; an Extended
+   publisher answers `200` with `[]`. A request that honors no
    parameter, to an Extended publisher, gets the held objects as a sorted array,
    even when there is one; `representation: "single"` on the `Publisher` answers it
    with the object of the latest period instead. A Basic publisher serves what the
@@ -334,11 +334,11 @@ pattern too if you want your custom adapter to be test-friendly.
 
 **Return everything the source holds.** `fetch()` returns one `RawMetrics`, or an array when the
 source holds several periods or targets. The publisher normalizes them, selects those that match the
-honored query (§3b), applies the safeguards (366 cap keeping the most recent, day floor) and
+honored query (§3b), applies the safeguards (day floor, ordering) and refuses a source that holds more than 366 objects and
 answers. An adapter does not filter by the request and never adds figures together to answer it;
 it may use the honored query to fetch less from a remote source (a `target` or a range
 it passes on), but what it returns for a period is that period's own figures. An empty array is a source
-that holds nothing: `404` for a request that honors no parameter, `200` and `[]` for one that does.
+that holds nothing: `404` for a Basic publisher (or one with `representation: "single"`), `200` and `[]` for an Extended one.
 
 ## 5. Deployment recipes
 
@@ -423,7 +423,7 @@ The three option bags accepted by `new Publisher(adapter, options)`:
   wire. `cacheKeyFor(query)` and `cacheSize` expose the canonical cache key and
   the number of entries held. There is no `now` and no `targetPrefixes`: the
   publisher reads no clock for a period and matches no prefix.
-- **`SecurityOptions`** (`src/security.ts`): `maxObjects` (default 366),
+- **`SecurityOptions`** (`src/security.ts`): `maxObjects` (default 366; the most objects the adapter may hold, above it the build is refused and no answer is cut),
   `dayFloor` (`"drop"` by default: an object whose period is not a calendar day
   or longer is left out with a warning; `"warn"` keeps it and warns; `"off"` keeps
   it silently; a 23-hour or 25-hour day of a daylight-saving change qualifies),
@@ -431,8 +431,8 @@ The three option bags accepted by `new Publisher(adapter, options)`:
   you opt in; when `true`, deterministic per-period ±1% noise per the draft's
   Privacy Considerations, keyed by the period's bounds as UTC instants),
   `noiseDisclosed` (required with `applyNoise`) and `onWarning`.
-  Enabling `applyNoise` carries a **MUST**:
-  the methodology document MUST state that noise is applied, and MUST bound its
+  Enabling `applyNoise` carries an obligation the draft states without a keyword:
+  the methodology document states that noise is applied and bounds its
   magnitude (±1% for this implementation). Do not enable it without publishing
   that statement — the library never turns it on for you, and refuses it until you
   confirm with `noiseDisclosed: true` (CLI `--noise-disclosed`).

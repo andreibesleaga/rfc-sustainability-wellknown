@@ -64,6 +64,13 @@ function registerAllMethods(fastify: FastifyLike, path: string, handler: Fastify
   }
 }
 
+/**
+ * The body as bytes. Fastify adds `; charset=utf-8` to the Content-Type of a
+ * string payload (not on HEAD, which has none); the registered media type has
+ * no parameters, so every body goes out as a Buffer, which keeps the header as set.
+ */
+const bytes = (body: string): Buffer => Buffer.from(body, "utf8");
+
 /** True for methods other than GET/HEAD (which get the 405 treatment). */
 function isDisallowed(method: string | undefined): boolean {
   const m = (method ?? "GET").toUpperCase();
@@ -75,7 +82,7 @@ export async function fastifySustainability(
   options: FastifyPluginOptions,
 ): Promise<void> {
   const { publisher, carbonTxt, ...handlerOpts } = options;
-  const rateLimited = rateLimitGate(handlerOpts);
+  const rateLimited = rateLimitGate(handlerOpts, publisher);
   const cors: Record<string, string> =
     handlerOpts.cors !== false
       ? { "Access-Control-Allow-Origin": handlerOpts.cors ?? "*" }
@@ -86,7 +93,7 @@ export async function fastifySustainability(
     reply
       .code(405)
       .headers({ Allow: "GET, HEAD", "Content-Type": "application/json", ...cors });
-    return reply.send(JSON.stringify({ error: "method not allowed" }));
+    return reply.send(bytes(JSON.stringify({ error: "method not allowed" })));
   };
 
   registerAllMethods(fastify, WELL_KNOWN_PATH, async (req: any, reply: any) => {
@@ -94,7 +101,7 @@ export async function fastifySustainability(
     const limited = rateLimited(req.ip ?? req.socket?.remoteAddress);
     if (limited) {
       reply.code(limited.status).headers(limited.headers);
-      return String(req.method).toUpperCase() === "HEAD" ? reply.send() : reply.send(limited.body);
+      return String(req.method).toUpperCase() === "HEAD" ? reply.send() : reply.send(bytes(limited.body));
     }
     const ifNoneMatch = req.headers?.["if-none-match"];
     const { query } = parseQuery(req.query ?? {});
@@ -103,7 +110,7 @@ export async function fastifySustainability(
     if (result.status === 304 || String(req.method).toUpperCase() === "HEAD") {
       return reply.send();
     }
-    return reply.send(result.body);
+    return reply.send(bytes(result.body));
   });
 
   if (carbonTxt) {
@@ -113,7 +120,7 @@ export async function fastifySustainability(
         const result = carbonTxtResult(carbonTxt, handlerOpts, req.headers?.host);
         reply.code(result.status).headers(result.headers);
         if (String(req.method).toUpperCase() === "HEAD") return reply.send();
-        return reply.send(result.body);
+        return reply.send(bytes(result.body));
       });
     }
   }

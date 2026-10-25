@@ -14,9 +14,10 @@ export async function loadEd25519Key(file) {
   } catch {
     throw new Error(`signing key ${file}: not valid JSON (expected a private JWK from: sustainability-publisher keygen)`);
   }
-  const named = jwk?.alg ?? (jwk?.kty === "oct" ? "HS256" : undefined);
-  if (named !== undefined && named !== "Ed25519") {
-    throw new Error(`signing key ${file}: the algorithm ${named} is not accepted; sign with Ed25519 (sustainability-publisher keygen --alg Ed25519)`);
+  // A symmetric key is named here; for any other key `importSigningKey` decides the algorithm (it maps an
+  // Ed25519 key whose `alg` says EdDSA to Ed25519), and the check below refuses what is not Ed25519.
+  if (jwk?.kty === "oct") {
+    throw new Error(`signing key ${file}: the algorithm HS256 is not accepted; sign with Ed25519 (sustainability-publisher keygen --alg Ed25519)`);
   }
   const key = await importSigningKey(jwk);
   if (key.alg !== "Ed25519") throw new Error(`signing key ${file}: the algorithm ${key.alg} is not accepted; sign with Ed25519`);

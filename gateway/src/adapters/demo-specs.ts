@@ -44,7 +44,7 @@ import {
   watershedAdapter,
   type SourceAdapter,
 } from "sustainability-wellknown-publisher";
-import { lastFullMonthPeriod, yearPeriod, type Period, type RawMetrics } from "sustainability-wellknown-publisher";
+import { compareDateTimes, lastFullMonthPeriod, yearPeriod, type Period, type RawMetrics } from "sustainability-wellknown-publisher";
 import { PUBLIC_BASE_URL, type GatewayConfig } from "../config";
 import type { LiveDeps, LiveSpec } from "../live";
 import { SFC_LEDGER_DEMO_DOMAIN, deepCheck, sfcLedgerBridgeAdapter, shallowCheck } from "./sfc-ledger-bridge";
@@ -76,19 +76,25 @@ function withUpdated(adapter: SourceAdapter, updatedIso: string): SourceAdapter 
   };
 }
 
+/** One gigabyte (10^9 octets), the quantity of the `per-gigabyte` functional unit. */
+const GIGABYTE = 1e9;
+
 /**
- * Re-express a kWh energy figure in Wh before the publisher normalizes it. The
- * library rounds every member to four decimal places, which turns the energy of
- * one crawl (a fraction of a watt-hour) into 0 kWh beside a non-zero carbon.
+ * Publish an adapter's carbon (gCO2e for the bytes it was given) as a software
+ * carbon intensity score for that quantity, and drop the energy and carbon
+ * members: they would read as the totals of the period, which a figure for a
+ * fixed quantity of traffic is not.
  */
-function energyInWh(adapter: SourceAdapter): SourceAdapter {
+function carbonAsScorePerGigabyte(adapter: SourceAdapter): SourceAdapter {
   return {
     ...adapter,
     async fetch(query) {
       const raw = await adapter.fetch(query);
-      const toWh = (r: RawMetrics): RawMetrics =>
-        r.energy && r.energy.unit === "kWh" ? { ...r, energy: { value: r.energy.value * 1000, unit: "Wh" } } : r;
-      return Array.isArray(raw) ? raw.map(toWh) : toWh(raw);
+      const toScore = (r: RawMetrics): RawMetrics => {
+        const { energy, carbon, ...rest } = r;
+        return carbon ? { ...rest, sciScore: carbon.value, functionalUnit: "per-gigabyte" } : rest;
+      };
+      return Array.isArray(raw) ? raw.map(toScore) : toScore(raw);
     },
   };
 }
@@ -131,6 +137,8 @@ function gridDemoAdapter(
   deps: LiveDeps,
   intensity: number,
   sourceNote: string,
+  /** The instant the intensity was read (RFC 3339): the figure changes with it, so `updated` is not before it. */
+  retrievedAt: string,
   wattsByMonth: Record<string, number> = {},
 ): SourceAdapter {
   const period = lastFullMonthPeriod(deps.now());
@@ -152,7 +160,7 @@ function gridDemoAdapter(
       gridIntensity: intensity,
       carbonAccounting: "location-based",
     }),
-    period.end,
+    compareDateTimes(retrievedAt, period.end) > 0 ? retrievedAt : period.end,
   );
 }
 
@@ -167,23 +175,24 @@ function co2jsDemoAdapter(
 ): SourceAdapter {
   const period = lastFullMonthPeriod(deps.now());
   return withUpdated(
-    energyInWh(co2jsAdapter({
+    carbonAsScorePerGigabyte(co2jsAdapter({
     provider:
       "Demonstration by the gateway operator of the publisher package's `co2js` adapter " +
-      "(Green Web Foundation CO2.js, Apache-2.0, Sustainable Web Design model). The byte " +
-      `count is REAL: ${crawlBytes} bytes, the measured size of one full crawl of every ` +
-      "document this gateway serves. Grid intensity: CO2.js bundled Ember annual world " +
-      "average (CC BY 4.0, cite Ember). Green-hosting status via GWF Greencheck (Green " +
-      "Domains dataset, ODbL). The result estimates the transfer footprint of ONE full " +
-      "crawl — a functional unit, not this service's total footprint (see the gateway's " +
-      "own report at the root well-known path for that). " +
+      "(Green Web Foundation CO2.js, Apache-2.0, Sustainable Web Design model). The " +
+      "score is the model's grams CO2e for one gigabyte (10^9 octets) transferred " +
+      "(functional unit per-gigabyte): a rate, not this service's total footprint (see " +
+      "the gateway's own report at the root well-known path for that). For scale, one " +
+      `full crawl of every document this gateway serves is ${crawlBytes} bytes. ` +
+      "Grid intensity: CO2.js bundled Ember annual " +
+      "world average (CC BY 4.0, cite Ember). Green-hosting status via GWF Greencheck " +
+      "(Green Domains dataset, ODbL). " +
       (greencheck.domain
         ? "Green-hosting status is checked LIVE against Greencheck daily."
         : "Green-hosting status: not claimed (no live Greencheck lookup in this mode; " +
           "recorded default false)."),
       methodologyUri: "https://developers.thegreenwebfoundation.org/co2js/overview/",
       period,
-      bytes: crawlBytes,
+      bytes: GIGABYTE,
       model: "swd",
       ...(greencheck.domain
         ? { greencheckDomain: greencheck.domain }
@@ -481,6 +490,7 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
           `LIVE from the National Energy System Operator (NESO) Carbon Intensity API, ` +
             `${intensity} gCO2/kWh for the current GB half-hour at refresh time, refreshed ` +
             "daily and cached. Data: NESO Carbon Intensity API, CC BY 4.0.",
+          dateTimeOf(deps.now().getTime()),
           wattsByMonth,
         );
       },
@@ -493,6 +503,7 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
             `(${NESO_FIXTURE_INTENSITY} gCO2/kWh, retrieved ${NESO_FIXTURE_RETRIEVED}); the ` +
             "live API was unavailable at the last refresh. Data: NESO Carbon Intensity API, " +
             "CC BY 4.0.",
+          `${NESO_FIXTURE_RETRIEVED}T00:00:00Z`,
           wattsByMonth,
         ),
       labelLive: "adapter:computed (LIVE NESO grid intensity, daily)",
@@ -533,14 +544,16 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       attribution: "CO2.js Apache-2.0; Ember CC BY 4.0; GWF Green Domains ODbL",
       input: {
         body: {
-          "bytes-transferred": crawlBytes,
-          measured: "the serialized size of one crawl of every document this gateway serves, at start-up",
+          "bytes-transferred": GIGABYTE,
+          "crawl-bytes": crawlBytes,
+          measured: "crawl-bytes is the serialized size of one crawl of every document this gateway serves, at start-up; the score is computed for one gigabyte",
           model: "Sustainable Web Design model, version 4, as implemented by CO2.js",
           "green-hosting": "looked up at start-up with the Green Web Foundation Greencheck API when a public base URL is set",
         },
         note:
-          "The only input CO2.js needs is a byte count. This one is real: the gateway measures it " +
-          "by serializing every document it serves when it starts.",
+          "The only input CO2.js needs is a byte count: one gigabyte, so the result is a score per " +
+          "gigabyte. The size of one crawl of this gateway, measured by serializing every document " +
+          "it serves when it starts, is given for scale.",
       },
     },
     {

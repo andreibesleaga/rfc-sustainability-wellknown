@@ -10,7 +10,7 @@ import { honoredQuery, QUERY_PARAMETERS } from "./selection";
 import { ServiceQuery } from "./types";
 
 export interface HandlerOptions {
-  /** Cache-Control max-age in seconds. Default 86400 (draft RECOMMENDED). */
+  /** Cache-Control max-age in seconds. Default 86400 (this package's default). */
   maxAge?: number;
   /** Set Access-Control-Allow-Origin (aggregators). Default "*". */
   cors?: string | false;
@@ -35,9 +35,8 @@ export interface HandlerOptions {
   /**
    * Media type for the 200 document response. Defaults to
    * `"sustainability-data+json"`, which serves `Content-Type:
-   * application/sustainability-data+json` — draft §Mandatory Minimum Supported
-   * Service requires this for a successful response and forbids any other media
-   * type there. Pass `"json"` to instead serve `Content-Type:
+   * application/sustainability-data+json`, the type the draft registers (Location
+   * and Transport). Pass `"json"` to instead serve `Content-Type:
    * application/json`, which the draft says a consumer MAY process as a
    * declaration, for a deployment whose consumers predate the registration;
    * that is not conformant publishing. Both settings send
@@ -123,7 +122,8 @@ export class RateLimiter {
  * is unset. It returns the `429` response for a request from `client` that is
  * over the limit, else `undefined`; a client of unknown address is not counted.
  */
-export function rateLimitGate(opts: HandlerOptions): (client: string | undefined) => HandlerResult | undefined {
+export function rateLimitGate(opts: HandlerOptions, publisher?: Publisher): (client: string | undefined) => HandlerResult | undefined {
+  publisher?.warnIfUnlimited(opts.rateLimit !== undefined);
   if (!opts.rateLimit) return () => undefined;
   const limiter = new RateLimiter(opts.rateLimit);
   return (client) => {
@@ -375,8 +375,8 @@ export async function handleRequest(
         ...headers,
         "Content-Type": contentType,
         ...(opts.contentLanguage ? { "Content-Language": opts.contentLanguage } : {}),
-        // Fixed here so GET and HEAD carry the same header fields (draft:
-        // HEAD "MUST receive the same status and header fields").
+        // Fixed here so GET and HEAD carry the same header fields (RFC 9110,
+        // Section 9.3.2).
         "Content-Length": String(Buffer.byteLength(body)),
         "X-Content-Type-Options": "nosniff",
         ETag: etag,

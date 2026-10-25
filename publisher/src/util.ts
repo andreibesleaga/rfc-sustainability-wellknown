@@ -16,6 +16,38 @@ import {
 /** Largest upstream JSON body an adapter will read (an emissions API answer is a few kilobytes). */
 export const MAX_UPSTREAM_BYTES = 4 * 1024 * 1024;
 
+/**
+ * The body of a response as text, read with a running byte count: it throws as
+ * soon as the body passes `maxBytes`, without reading the rest. A response with
+ * no stream (a test double) is read whole and measured.
+ */
+export async function readBodyCapped(
+  res: { body?: ReadableStream<Uint8Array> | null; text(): Promise<string> },
+  maxBytes: number,
+  what: string,
+): Promise<string> {
+  const tooLarge = () => new Error(`${what} exceeds ${maxBytes} bytes`);
+  if (!res.body) {
+    const text = await res.text();
+    if (Buffer.byteLength(text) > maxBytes) throw tooLarge();
+    return text;
+  }
+  const reader = res.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      throw tooLarge();
+    }
+    chunks.push(Buffer.from(value));
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
 /** Minimal JSON fetch over the global `fetch` (Node 22): bounded in time and size. */
 export async function fetchJson(
   url: string,
@@ -27,10 +59,11 @@ export async function fetchJson(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { ...init, signal: controller.signal });
-    const text = await res.text();
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} for ${url} ${text.slice(0, 200)}`);
-    if (Buffer.byteLength(text) > maxBytes) throw new Error(`upstream body from ${url} exceeds ${maxBytes} bytes`);
-    return JSON.parse(text);
+    if (!res.ok) {
+      const detail = await readBodyCapped(res, 1024, "error body").catch(() => "");
+      throw new Error(`HTTP ${res.status} ${res.statusText} for ${url} ${detail.slice(0, 200)}`);
+    }
+    return JSON.parse(await readBodyCapped(res, maxBytes, `upstream body from ${url}`));
   } finally {
     clearTimeout(timer);
   }

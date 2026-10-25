@@ -61,8 +61,9 @@ const r = await fetchSustainability("https://example.org", {
 ```
 
 `start` and `end` are RFC 3339 date-times; the request goes out in UTC whatever offset you give. A
-request with no parameter returns everything the server holds, as an array in ascending order of
-`period.start`. A server may ignore any parameter, so:
+request with no parameter is answered, by a server that supports the query parameters (`capabilities: "extended"`),
+with what it holds as an array in ascending order of `period.start`; a Basic server or a static file may answer with one
+object. An empty array is a valid answer and means nothing was selected. A server may ignore any parameter, so:
 
 * `r.honored` says per parameter whether every object received matches it (`start: true`, `granularity: false`, ...).
 * `r.notAsRequested` lists, one line per mismatch, what the server sent that you did not ask for. Such a response must not be recorded as covering the period or target you requested.
@@ -117,8 +118,7 @@ rewrites a document into -10 by the same rules.
 
 ### Extension members
 
-Data the draft does not define goes under `extensions`, an object whose member names are absolute URIs and whose values are objects. An `https` URI documents the members for a human; `urn:uuid:` plus a
-lowercase UUID (not the Nil or Max UUID) is the other form. A key is a name, not a locator: it is never fetched, and nothing inside a value is executed.
+Data the draft does not define goes under `extensions`, an object whose values are objects. An extension name is a URI under the definer's control when the name was minted (for example an `https` URI), or a UUID URN (`urn:uuid:…`) for a definer without a domain. It is an identifier, compared as a string after JSON escapes are decoded, and never dereferenced; nothing inside a value is executed.
 
 ### Signatures
 
@@ -142,7 +142,7 @@ const r = await fetchSustainability("https://example.org", {
 |---|---|
 | `{ status: "unsigned" }` | No `signed` member. This is not evidence of anything |
 | `{ status: "verified", ... }` | `alg`, `deprecatedAlg` (when the identifier is `EdDSA`), `kid`, `thumbprint` (RFC 7638), `publicJwk`, `keyTrust`, `precedence`, `cty`, `modifiedAfterSigning`, `modifiedMembers`, `replaySuspected` |
-| `{ status: "unverified", reason }` | Never "false". `reason`: `malformed`, `alg-none`, `mac-alg`, `alg-rejected`, `cty-missing`, `cty-wrong`, `crit-unknown`, `no-key`, `private-key-in-header`, `key-alg-mismatch`, `pin-mismatch`, `invalid-signature`, `payload-not-declaration`, `payload-subject-mismatch`, `payload-carries-signed` |
+| `{ status: "unverified", reason }` | Never "false". `reason`: `malformed`, `alg-none`, `mac-alg`, `alg-rejected`, `cty-missing`, `cty-wrong`, `crit-unknown`, `no-key`, `private-key-in-header`, `key-alg-mismatch`, `pin-mismatch`, `invalid-signature`, `payload-not-declaration`, `payload-subject-mismatch` |
 
 `keyTrust` and what it means for the members you use:
 
@@ -234,13 +234,14 @@ if (r.status === "ok") {
 ---
 ## 4. Disclosure links (passive by design)
 
-> **`https` only:** the URI-valued members (`methodology-uri`,
-> `disclosure-uri`, `verifiable-attestation-uri`, `upstream[].declaration`)
-> MUST be absolute `https` URIs, and a consumer MUST NOT automatically
-> dereference one carrying any other scheme. `fetchDisclosure()` therefore refuses a non-`https` (or non-absolute)
-> URI **before** making a request — `http:`, `ftp:`, `file:` and `data:` never
-> reach your fetch implementation. A document carrying one is still valid and
-> still usable; you just cannot follow that link with this helper.
+> **URI references, https to follow:** `methodology-uri`, `disclosure-uri`,
+> `verifiable-attestation-uri` and `upstream[].declaration` are URI references,
+> resolved against the URI the declaration was retrieved from
+> (`FetchResult.url`; pass it as `base`). `fetchDisclosure()` resolves the
+> reference first and dereferences only an `https` result: an `http:`, `ftp:`,
+> `file:` or `data:` result, or a relative reference with no `base`, is refused
+> before any request. A document carrying such a value is still valid; you just
+> cannot follow that link with this helper.
 
 `resolveDisclosureLinks(doc)` reads the `disclosure-uri` and
 `verifiable-attestation-uri` fields off an already-fetched document. **It never
@@ -288,37 +289,53 @@ you.
 ## 5. Conformance-checking any origin
 
 `runConformanceChecks(origin, fetchImpl?, options?)` (also exposed as the CLI's
-`--strict` flag) runs a small battery of six checks against a target origin:
-a Basic request returns a single object, the 200 response uses the
-`application/sustainability-data+json` media type (a MUST), the OPTIONAL
-`signed` member is absent or verifies (MUST), the response carries an ETag, a
-conditional GET with that ETag returns `304`, a non-GET/HEAD method returns
-`405` with an `Allow` header, and an Extended `granularity` request returns a
-valid (sorted, schema-conformant) array. 
+`--strict` flag) runs a battery of twelve checks against a target origin, in
+this order:
 
-Each check carries the BCP 14 strength of the requirement it tests in
-`check.level` (`"MUST"` or `"SHOULD"`), because the two are not equivalent
-verdicts: `report.allPassed` is true when no **MUST**-level check failed —
-that is the conformance verdict — while `report.allPassedIncludingRecommended`
-additionally requires every SHOULD to pass. An origin on static hosting that
-returns `405` but cannot be configured to add an `Allow` header is conformant,
-and should not be reported as failing.
+| Check | Level | Draft section |
+|---|---|---|
+| Basic request returns a schema-valid declaration (one object or an array) | MUST | Body |
+| Basic 200 response uses the `application/sustainability-data+json` media type (generic `application/json` warns) | MUST | Location and Transport |
+| Embedded signature (OPTIONAL `signed` member): absent, or present and verifiable | MUST | The signed Member |
+| Signature algorithm identifier is Ed25519 or ES256 (`EdDSA` warns) | SHOULD | The signed Member |
+| Response carries an ETag | INFO | HTTP practice |
+| Conditional GET with a fresh ETag returns 304 | INFO | HTTP practice |
+| A method other than GET/HEAD gets 405 with Allow | INFO | HTTP practice |
+| A query value outside the profile is ignored, not refused | MUST | Query Parameters |
+| A range that selects nothing is answered 200 (an empty array when honored), never 404 | MUST | Query Parameters |
+| A server that honors a query parameter publishes capabilities extended | MUST | Mandatory Members |
+| Extended range request (start, end, granularity=monthly) returns a valid response (ascending by period.start when an array) | MUST | Query Parameters |
+| Periods are whole calendar years or months (informational) | INFO | Mandatory Members |
+
+Every request of the battery, the raw probes included, goes through the same
+transport as `fetchSustainability`: the connect-time address check, bounded
+redirects (a redirect onto a refused address is never requested), the timeout,
+and bodies that are discarded unread.
+
+Each check carries the strength of what it tests in `check.level`:
+`"MUST"` and `"SHOULD"` are the draft's own keywords, and `"INFO"` marks HTTP
+practice (ETag, conditional requests, `405`) that RFC 9110 and RFC 9111 describe
+and the draft leaves to the publisher. An unmet `INFO` check is a `WARN`, never
+a failure. `report.allPassed` is true when no **MUST**-level check failed, which
+is the conformance verdict, while `report.allPassedIncludingRecommended`
+additionally requires every other check to pass. An origin on static hosting that
+cannot add an `Allow` header or an ETag is conformant, and is not reported as
+failing.
 
 Each check also carries a three-valued `check.outcome`:
 
 | `outcome` | `pass` | Meaning |
 |---|---|---|
 | `"pass"` | `true` | the requirement is met |
-| `"fail"` | `false` | it is not — a failed MUST is non-conformance and sets the exit code; a failed SHOULD is an unmet recommendation |
+| `"fail"` | `false` | it is not — a failed MUST is non-conformance and sets the exit code; a failed SHOULD or INFO check is an unmet recommendation |
 | `"warn"` | `false` | reported, but not held against the origin: it affects neither `allPassed` nor the exit code |
 
 Two states warn today. A publisher still serving the generic
 `application/json` media type — detail `generic media type (application/json):
-processed, but a conformant 200 response carries
-application/sustainability-data+json` — is a **MUST**-level check reporting a
-non-conformance the battery deliberately does not fail an origin over while the
-dedicated media type is awaiting IANA registration and the draft still has
-consumers process it. A verified `signed` member whose payload differs from the
+a consumer may process it, but the draft publishes the declaration as
+application/sustainability-data+json` — is reported on the **MUST**-level media
+type check as a warning, because the draft lets a consumer process a `200`
+response of that type. A verified `signed` member whose payload differs from the
 plain members warns too: the difference is reported, not held against the
 origin. There is no strict flag: the `WARN` line is the whole message. Anything
 that is neither media type (`text/html`, say) is a plain `fail`, and the
@@ -369,19 +386,25 @@ your implementation as a smoke test before shipping a change. Without
 flag — the draft's HTTPS requirement is unconditional, and a bare hostname is
 promoted to `https://` rather than downgraded.
 
-Sample output against a publisher still serving the generic media type (valid,
-not conformant), which still exits `0`:
+Sample output against a publisher serving the generic media type (valid and
+conformant, with a warning), which exits `0`:
 
 ```
-PASS  [MUST] Basic request returns a schema-valid single object
-WARN  [MUST] Basic 200 response uses the application/sustainability-data+json media type — generic media type (application/json): processed, but a conformant 200 response carries application/sustainability-data+json
-PASS  [MUST] Embedded signature (OPTIONAL `signed` member): absent, or present and verifiable — not signed (optional)
-PASS  [SHOULD] Response carries an ETag
-PASS  [SHOULD] Conditional GET with a fresh ETag returns 304
-PASS  [SHOULD] A method other than GET/HEAD gets 405 with Allow
-PASS  [MUST] Extended granularity request returns a valid response (sorted array when honored)
+PASS  [MUST] Basic request returns a schema-valid declaration (one object or an array) (Body)
+WARN  [MUST] Basic 200 response uses the application/sustainability-data+json media type (Location and Transport) — generic media type (application/json): a consumer may process it, but the draft publishes the declaration as application/sustainability-data+json
+PASS  [MUST] Embedded signature (OPTIONAL `signed` member): absent, or present and verifiable (The signed Member) — not signed (optional)
+PASS  [SHOULD] Signature algorithm identifier is Ed25519 or ES256 (EdDSA is the deprecated identifier) (The signed Member)
+PASS  [INFO] Response carries an ETag (HTTP practice, RFC 9110 and RFC 9111; not a requirement of the draft)
+PASS  [INFO] Conditional GET with a fresh ETag returns 304 (HTTP practice, RFC 9110 and RFC 9111; not a requirement of the draft)
+PASS  [INFO] A method other than GET/HEAD gets 405 with Allow (HTTP practice, RFC 9110 and RFC 9111; not a requirement of the draft)
+PASS  [MUST] A query value outside the profile is ignored, not refused (Query Parameters)
+PASS  [MUST] A range that selects nothing is answered 200 (an empty array when honored), never 404 (Query Parameters) — not honored (allowed: a static file satisfies every request)
+PASS  [MUST] A server that honors a query parameter publishes capabilities extended (Mandatory Members) — honors no query parameter (a static file satisfies every request)
+PASS  [MUST] Extended range request (start, end, granularity=monthly) returns a valid response (ascending by period.start when an array) (Query Parameters) — parameters not honored (allowed: a static file satisfies every request)
+PASS  [INFO] Periods are whole calendar years or months (informational) (Mandatory Members)
+capabilities: basic
 
-Conformant: all MUST-level checks passed. WARN lines are unmet recommendations or advisory findings (such as the generic media type).
+Conformant: all MUST-level checks passed. WARN lines are unmet recommendations, HTTP practice the draft leaves to the publisher, or advisory findings (such as the generic media type).
 ```
 
 ### Tolerance, and what is deliberately not implemented
@@ -389,11 +412,10 @@ Conformant: all MUST-level checks passed. WARN lines are unmet recommendations o
 This is a **-10 client**, and the few places it is lenient are the places the
 draft itself is. `fetchSustainability` processes both media types (the
 registered one and the generic `application/json`) and refuses any other unread;
-the battery **warns** rather than fails on the generic one, and will keep doing
-so until the RFC publishes and IANA has registered the dedicated type; an
+the battery **warns** rather than fails on the generic one; an
 unrecognized top-level member is ignored and reported as an `unknown-member`
-warning; and a non-`https` URI member is a warning that never invalidates a
-declaration. The `legacyCompat` reading described in §1 goes further: it reads the forms of -08 and -09 that -10 replaced, and it is a courtesy beyond the specification, not
+warning; and a URI member that is not a URI reference is a warning
+(`uri-not-a-reference`) that never invalidates a declaration. The `legacyCompat` reading described in §1 goes further: it reads the forms of -08 and -09 that -10 replaced, and it is a courtesy beyond the specification, not
 required of a conformant consumer; do not build new publishers on it. `legacyCompat: false` turns it off.
 
 **Signature verification is never automatic.** The `signed` member is OPTIONAL
@@ -401,8 +423,9 @@ and this package checks it only on request (`--verify`, `verifySignature`, and
 the battery's signature check). A valid signature proves integrity and key
 continuity, not identity — unless the key is already known out of band — and a
 valid signature over false data is still false data. That is also why a
-verified payload replaces the members served **only** when the key was pinned
-or supplied out of band: with a key carried in the signature's own header,
+verified payload replaces the members served **only** when the key was pinned,
+supplied out of band, or validated through an `x5c` chain to one of your
+`trustAnchors`: with a key carried in the signature's own header,
 anyone able to add a member to the served document could otherwise replace
 every figure in it.
 
@@ -411,7 +434,7 @@ revisited URIs and in total retrievals, and the comparison it produces is
 evidence about consistency between two self-asserted claims, never proof of
 either.
 
-**Every SSRF protection §Consumer Considerations asks for is implemented**, on
+**Every protection the draft's Security Considerations asks of a consumer is implemented**, on
 every dereference path: bounded time, size, objects and redirects; HTTPS on
 every hop; the depth, revisit and total-retrieval bounds on the
 upstream walk (the last of which is also what bounds its breadth); and the refusal of a connection to an address that is not public unicast,

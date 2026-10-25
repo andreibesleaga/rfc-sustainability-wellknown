@@ -32,8 +32,7 @@ point a domain of yours at the service (Settings → Networking → custom domai
 declaration is then served from your own name, which is what makes it your origin's declaration.
 Without `SD_SIGNING_KEY_JWK` each start signs with a fresh key (the log shows only its public half). To keep one
 key: `npx -y -p sustainability-wellknown-publisher sustainability-publisher keygen --out key.jwk` on your machine,
-then set `SD_SIGNING_KEY_JWK` to the file's content as a secret; never commit the file. To list this as a Railway template (owner step): dashboard → the project →
-"Create template", add the variable descriptions from `.env.example`.
+then set `SD_SIGNING_KEY_JWK` to the file's content as a secret; never commit the file.
 
 ## Anywhere else
 `docker build -t sustainability-data-node . && docker run -p 8080:8080 --env-file .env sustainability-data-node`

@@ -10,7 +10,7 @@
  *
  * Docs: https://developer.salesforce.com/docs/atlas.en-us.netzero_cloud_dev_guide.meta/
  */
-import { CarbonUnit, EnergyUnit, MeasurementMethod } from "../../tokens";
+import { CarbonAccounting, CarbonUnit, EnergyUnit, MeasurementMethod } from "../../tokens";
 import { RawMetrics, SourceAdapter } from "../../types";
 import { fetchJson } from "../../util";
 
@@ -51,6 +51,12 @@ export interface SalesforceNzcConfig {
   /** Net Zero Cloud carbon is in metric tonnes. */
   carbonUnit?: CarbonUnit;
   fieldMap?: Partial<SalesforceFieldMap>;
+  /**
+   * The accounting the scope-2 field follows. Default `"market-based"`, which
+   * matches the default field (`TotalScope2MktEmissions`); a location-based
+   * `fieldMap.scope2` needs `"location-based"`.
+   */
+  carbonAccounting?: CarbonAccounting;
   measurementMethod?: MeasurementMethod;
   fixture?: SoqlResponse;
   /** Declared service level; "basic" unless the deployment honors Extended query parameters. */
@@ -131,7 +137,7 @@ export function salesforceNzcAdapter(config: SalesforceNzcConfig): SourceAdapter
           period: yr,
           energy: { value: energy, unit: energyUnit },
           carbon: { value: carbonTotal, unit: carbonUnit },
-          carbonAccounting: "market-based",
+          carbonAccounting: config.carbonAccounting ?? "market-based",
           scope1,
           scope2,
           scope3,

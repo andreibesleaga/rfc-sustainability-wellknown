@@ -590,7 +590,7 @@ describe("flags, output and exit codes", () => {
     const { origin } = await startRecording(EXAMPLE_DOC);
     const out = captureStdout();
     expect(await runCli([origin, "--allow-http", "--strict"])).toBe(0);
-    expect(out.join("\n")).toContain("(Section 2.2, Query Parameters)");
+    expect(out.join("\n")).toContain("(Query Parameters)");
     expect(out).toContain("capabilities: basic");
   });
 

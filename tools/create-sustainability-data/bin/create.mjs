@@ -40,7 +40,8 @@ const USAGE = `usage: create-sustainability-data [options]
   --disclosure-uri URI_REFERENCE --verifiable-attestation-uri URI_REFERENCE
   --measurement-method TOKEN --upstream [ROLE:]URI_REFERENCE --extension 'NAME={"member": 1}'
   --key PRIVATE.jwk       sign with an Ed25519 key (sustainability-publisher keygen)
-  --methodology-stub [--noise PERCENT]   also write methodology.md to fill in
+  --methodology-stub [--noise PERCENT]   also write methodology.md to fill in; --noise records that you
+                                         perturbed the figures yourself within PERCENT (the tool changes nothing)
   --host ${HOSTS.join("|")} --out DIR --updated DATE-TIME --yes
 
 target-type:

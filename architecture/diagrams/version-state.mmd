@@ -3,13 +3,16 @@ stateDiagram-v2
         state "1.0 (historical): 4 metric members mandatory, negative value = not-reported sentinel, optional target-path (absent = origin-wide)" as V10
         state "1.1 (historical): adds optional disclosure-uri" as V11
         state "2.0 (historical, -03 through -06): 8 mandatory + 16 optional members, omission is the only not-reported mechanism, mandatory target (+ optional target-type hint since -04), CO2e renames, energy/carbon optional with kWh/gCO2e defaults; -06 fixed 2.0 as the single defined label a publisher MUST use" as V20
-        state "unlabeled (current, -07): the version member is removed outright, not replaced by a new label; 7 mandatory + 19 optional members; extensions keyed by absolute URI (https or urn-uuid) replaces reverse-domain naming; new upstream and signed members; top-level member set closed" as V07
+        state "unlabeled (-07 to -08): the version member is removed outright, not replaced by a new label; 7 mandatory + 19 optional members; extensions keyed by absolute URI (https or urn-uuid) replaces reverse-domain naming; new upstream and signed members; top-level member set closed" as V07
+        state "period object (-09 to -10, current): reporting-period is replaced by period {start, end}; -10 makes every date an RFC 3339 date-time and every token member one of a listed set" as V10P
         state "Client processing of ANY document (field-driven, never version-driven): negative value in a non-negative member = not reported (subsumes the sentinel); missing target = origin-wide report; unknown members ignored; a version member, where one is carried by a 1.x/2.0-era document, is never rejected or branched on" as COMPAT
 
         [*] --> V10
         V10 --> V11 : add disclosure-uri
         V11 --> V20 : BREAKING revision (draft -03)
         V20 --> V07 : BREAKING revision (draft -07) — version label withdrawn
+        V07 --> V10P : BREAKING revision (draft -09) — period object
+        V10P --> COMPAT : consumed under
         V20 --> COMPAT : consumed under
         V11 --> COMPAT : consumed under
         V10 --> COMPAT : consumed under
@@ -24,7 +27,10 @@ stateDiagram-v2
         state "-04 POSTED: URI suffix renamed to sustainability-data (ISE naming feedback), optional target-type member added" as POSTED4
         state "-05 POSTED: posted 2026-07-28 — disclosure-uri made format- and location-agnostic, Internationalization Considerations added; no wire change" as POSTED5
         state "-06 POSTED: posted 2026-09-10 — application/sustainability-data+json required, HTTPS raised to MUST, nosniff, OPTIONAL detached JWS, version fixed as a single label; no wire change" as POSTED6
-        state "-07 LATEST POSTED: posted 2026-09-17, under ISE review — withdraws the .jws companion resource for an embedded OPTIONAL signed member, removes version (7 mandatory members), closes the top-level member set, replaces reverse-domain extensions with a URI-keyed extensions object, adds upstream, drops nosniff and the server-side 366 cap, adds ABNF query-parameter processing" as POSTED7
+        state "-07 POSTED: posted 2026-09-17, under ISE review — withdraws the .jws companion resource for an embedded OPTIONAL signed member, removes version (7 mandatory members), closes the top-level member set, replaces reverse-domain extensions with a URI-keyed extensions object, adds upstream, drops nosniff and the server-side 366 cap, adds ABNF query-parameter processing" as POSTED7
+        state "-08 POSTED: posted 2026-10-09 — RFC 7942 Implementation Status appendix and answers to the ART-area early review of -07" as POSTED8
+        state "-09 POSTED: posted 2026-10-16 — restructured; reporting-period replaced by the period object" as POSTED9
+        state "-10 POSTED 2026-10-24 (current, under ISE review): every date an RFC 3339 date-time, every token member one of a listed set" as POSTED10
         state "Informational RFC + IANA 'sustainability-data' well-known URI (provisional, promotable to permanent)" as RFC
 
         [*] --> GREEN
@@ -35,6 +41,9 @@ stateDiagram-v2
         POSTED4 --> POSTED5 : ISE review of -04
         POSTED5 --> POSTED6 : ISE security round + first commissioned review
         POSTED6 --> POSTED7 : posted 2026-09-17
-        POSTED7 --> RFC : ISE approval + RFC Editor
+        POSTED7 --> POSTED8 : posted 2026-10-09
+        POSTED8 --> POSTED9 : posted 2026-10-16
+        POSTED9 --> POSTED10 : posted 2026-10-24
+        POSTED10 --> RFC : ISE approval + RFC Editor
         RFC --> [*]
     }

@@ -30,7 +30,7 @@ export function createSustainabilityServer(
 ): Server {
   const paths = new Set([WELL_KNOWN_PATH, ...(opts.extraPaths ?? [])]);
   const carbonPaths = new Set(opts.carbonTxt ? CARBON_TXT_PATHS : []);
-  const rateLimited = rateLimitGate(opts);
+  const rateLimited = rateLimitGate(opts, publisher);
 
   // CORS header echoed on every response (incl. 404/405/500) so cross-origin
   // aggregators can read error statuses, not just 200s.

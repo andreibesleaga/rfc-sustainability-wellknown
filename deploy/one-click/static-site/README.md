@@ -10,8 +10,8 @@ npx -y -p sustainability-wellknown-consumer sustainability-fetch https://your.ho
 ```
 
 ## Deploy buttons
-These work once this folder lives in its own public repository (owner step: create
-`sustainability-data-site-template` from this folder, then replace the URL below):
+These work once this folder lives in its own public repository, for example `sustainability-data-site-template`;
+replace the URL below with yours:
 
 ```markdown
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/andreibesleaga/sustainability-data-site-template)

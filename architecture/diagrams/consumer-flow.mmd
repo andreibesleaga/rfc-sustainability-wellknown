@@ -1,5 +1,5 @@
 flowchart TD
-    START["fetchSustainability(origin, options)"] --> URL["Build URL: origin + /.well-known/sustainability-data<br/>+ target / period / granularity params<br/>+ If-None-Match when ETag known"]
+    START["fetchSustainability(origin, options)"] --> URL["Build URL: origin + /.well-known/sustainability-data<br/>+ target / start / end / granularity params<br/>+ If-None-Match when ETag known"]
     URL --> REQ["GET with AbortSignal.timeout (default 30s)"]
 
     REQ -- "timeout / abort" --> TMO(["status: timeout"])
@@ -20,7 +20,7 @@ flowchart TD
     LC -- "no" --> VAL
     INJ --> VAL
 
-    VAL{"validateDocument()<br/>JTD schema + sci↔functional-unit +<br/>cross-entry array rules<br/>(ascending periods, uniform precision,<br/>single target, empty array invalid)"}
+    VAL{"validateDocument()<br/>JTD schema + sci↔functional-unit +<br/>prose rules (start before end,<br/>at least one metric, day floor)"}
     VAL -- "fail" --> INV
     VAL -- "pass" --> OK(["status: ok<br/>{document, etag?, legacy?}"])
 

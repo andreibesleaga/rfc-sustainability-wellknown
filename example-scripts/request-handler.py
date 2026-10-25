@@ -11,11 +11,12 @@ The query parameters follow the draft (Query Parameters):
     JSON array of the objects that satisfy every parameter it honors, in ascending order of
     `period.start` as instants, ties by `period.end` and `target`; an empty selection is
     `200` and `[]`; objects come back as held, nothing is aggregated;
-  * a value that does not match the draft's ABNF (`start` and `end` in UTC with `Z`, second 60
-    included; `granularity` yearly, monthly or daily), a name that is repeated, and any name
+  * a value that does not match the draft's ABNF (`start` and `end` in UTC with `Z`; a leap
+    second, 23:59:60, is ignored rather than read as 59; `granularity` yearly, monthly or
+    daily), a name that is repeated, and any name
     the draft does not define are ignored, never a `400` and never read as another value;
   * a server whose objects are all `basic` is a static file: it ignores every parameter and
-    answers with its current declaration.
+    answers with what it holds, as it holds it.
 
 A teaching reference for hand-rolled (non-Node) deployments, not a production
 implementation; for a full, tested gateway see `publisher/` in this repository.
@@ -165,7 +166,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Cache-Control", "public, max-age=86400")
         self.send_header("ETag", etag)
-        # Successful responses SHOULD include this CORS header (public document, browser-based clients).
+        # Deployment practice (not a draft requirement): allow browser clients.
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()

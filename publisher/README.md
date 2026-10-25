@@ -10,7 +10,7 @@ It ingests metrics from pluggable **source adapters**, normalizes them to the dr
 field model, **validates every payload against this repository's JTD schema at runtime
 before serving** (publish-only-if-valid; the CDDL schema cross-checks the same
 documents independently in CI), and exposes the Basic and Extended service
-levels with the draft's mandated DoS and privacy safeguards.
+levels with the draft's day floor and optional noise, and a server-side object cap of its own.
 
 It ships three ways to deploy:
 
@@ -23,14 +23,14 @@ It ships three ways to deploy:
 
 ```
   source adapter  ──▶  normalize  ──▶  security safeguards  ──▶  JTD validation gate  ──▶  cache  ──▶  HTTP
-  (Salesforce,         (units,          (366 cap, day floor,     (RFC 8927, the repo      (ETag,       (200 / 404
+  (Salesforce,         (units,          (366 held, day floor,    (RFC 8927, the repo      (ETag,       (200 / 404
    MS, Watershed,       J→kWh,           ~1% noise)               schema; never publish    24h)         503 / 304)
    Kepler, Climatiq,    E×I→carbon,                               an invalid document)
    static/computed)     SCI)
 ```
 
-A request is answered `200` with the objects selected, `404` when the source holds nothing and no
-parameter was honored, `304` for a matching `If-None-Match`, `405` for a method other than `GET` and
+A request is answered `200` with the objects selected, `404` when a Basic publisher (or one with
+`representation: "single"`) holds nothing, `304` for a matching `If-None-Match`, `405` for a method other than `GET` and
 `HEAD`, and `503` when the adapter fails or its output does not validate.
 
 If a payload fails validation, the gateway returns **503 and serves nothing** — it never
@@ -135,7 +135,7 @@ await app.listen({ port: 8080 });
 
 All entry points (standalone server, both middlewares, `handleRequest`) emit
 `Access-Control-Allow-Origin: *` on every response — the draft says successful
-responses SHOULD carry it (WebFinger practice), and echoing it on the error
+responses SHOULD carry it (WebFinger practice; not a requirement of the draft), and echoing it on the error
 statuses too lets cross-origin aggregators read those as well (`cors` option to
 override/disable).
 
@@ -167,7 +167,7 @@ All entry points share one procedure:
 A request that honors no parameter (none sent, or all ignored) to an Extended publisher is answered with the objects
 held as a sorted array, even when it holds one. A deployment that publishes one current report and wants an object may
 set `representation: "single"` on the `Publisher`, which then answers such a request with the object of the latest
-period. A Basic publisher serves what the adapter returns as it returns it.
+period. A Basic publisher serves the objects the adapter returns, after the day floor, in ascending order of `period.start`.
 
 Because a server may ignore any parameter, the consumer compares the `period` and `target` of every object it receives with
 what it asked for. `parseQuery` returns `{ query, ignored }`; `ignored` names each parameter that was left out and why,
@@ -176,8 +176,8 @@ for the operator's log.
 ### What the server is obliged to serve
 
 A `GET` without query parameters is answered `200 OK` with the declaration; when
-the source holds nothing it is `404`, and an Extended publisher that holds nothing answers a request that
-honors a parameter with `200` and `[]`. Access control is outside the scope of
+the source holds nothing, a Basic publisher (or one with `representation: "single"`) answers `404` and
+an Extended one answers `200` with `[]`. Access control is outside the scope of
 the specification: a server **MAY** restrict access to the declaration, and a
 deployment that restricts or rate-limits a request responds as RFC 9110 defines
 (`401`, `403`, `429`) — nothing in this package presumes otherwise, so
@@ -210,6 +210,7 @@ address may make `requests` requests in a window of `windowMs` (default 60 000);
 `Retry-After` in seconds. The counts are kept in memory in each process and for at most `maxClients` addresses (default
 10 000). Behind a reverse proxy the address is the proxy's unless the framework is told to trust it (`trust proxy` in
 Express, `trustProxy` in Fastify); the standalone server uses the socket's address.
+An Extended publisher with no `rateLimit` reports once, through `onWarning`, when the server or middleware is set up.
 
 ## Media type and the `application/json` fallback
 
@@ -239,8 +240,7 @@ responses (404/405/503 JSON error objects) are never declarations, so they
 always use `application/json` regardless of this option, and
 a `304 Not Modified` response carries no `Content-Type` at all (there is no
 body to type). `HEAD` responses carry the same `Content-Type` as the
-corresponding `GET`, per the draft's "same status and header fields, no body"
-rule. The two media-type strings are exported as `MEDIA_TYPE` and
+corresponding `GET` (RFC 9110, Section 9.3.2: the same header fields, no body). The two media-type strings are exported as `MEDIA_TYPE` and
 `LEGACY_MEDIA_TYPE` from the package root.
 
 ## Signing the declaration (draft §Signing)
@@ -360,7 +360,7 @@ Product and organization names are used only to identify the data sources these 
 | `energy-consumption` / `-unit` | energy or J→kWh | `parameters.energy` | `ActualEnergyConsumption` (MWh) | `energyKwh` (or configured) | `energyKwh` |
 | `carbon-footprint` / `-unit` | E × `gridIntensity` (gCO2e) | `co2e` (kg→gCO2e) | `TotalEmissions` (tCO2e) | `totalEmissions` (tCO2e) | `totalEmissionsKgCo2e` (kg) |
 | `scope-1/2/3` | — | — | `TotalScope{1,2,3}*` | tenant usage → `scope-3` | `scope{1,2,3}Kg` |
-| `carbon-accounting` | config | — | `market-based` | — | footprint field |
+| `carbon-accounting` | config | — | `market-based` (`carbonAccounting` sets it; a location-based `fieldMap.scope2` needs `"location-based"`) | — | footprint field |
 | `period` | config / last full month | config / last full month | `Year`: the whole year | config | footprint label / config |
 
 ### What every adapter does with the closed sets
@@ -380,8 +380,8 @@ Product and organization names are used only to identify the data sources these 
   A score in a unit the draft does not list goes in `extensions` (the `computedAdapter` takes an `extensions` option for
   it), under a URI name whose definition states the unit, with `sciScore` and `functionalUnit` left out; the publisher
   refuses any other `functionalUnit` and says so.
-- **Empty source.** A CSV or Slurm export that yields no usable row holds nothing: a request that honors no parameter
-  is answered `404`, one that honors a parameter `200` with `[]`. Skipped CSV rows are reported through `onSkip`.
+- **Empty source.** A CSV or Slurm export that yields no usable row holds nothing: a Basic publisher (or one with
+  `representation: "single"`) answers `404` and an Extended one `200` with `[]`. Skipped CSV rows are reported through `onSkip`.
 
 
 ## Configuration file
@@ -413,8 +413,8 @@ optional `target-type` member: an enumerated hint classifying the
 kind of subject `target` names — one of the nine of the draft: `organization`, `facility`, `origin`, `path`, `service`,
 `product`, `device`, `tenant`, `data-source`. The publisher throws on any other value
 (fail-loud on its own output); when re-ingesting a foreign document, `fromWire()`
-instead **drops** an unrecognized `target-type` per the draft's tolerance rule for
-enumerated members.
+instead **drops** an unrecognized `target-type` by its compatibility reading of older
+documents.
 
 `publisher.security.dayFloor` is what happens to an object whose period is not a calendar day or longer
 (`start` and `end` each the first instant of a calendar day in its own offset; a 23-hour or 25-hour day at a change of
@@ -485,9 +485,9 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
 
 ## Security & privacy safeguards (draft §Security / §Privacy)
 
-- **DoS**: arrays capped at 366 objects, keeping the **most recent**, with a warning when the cap cuts
-  (`SecurityOptions.maxObjects` raises or lowers it). The selection is made first and the cap applied to it, so a limit
-  cuts what is returned, never what is held. Responses are cached (in-memory) and `Cache-Control`/`ETag` set; the cache
+- **DoS**: the number of objects the adapter holds is capped at 366; above it the build is refused with an error
+  naming `maxObjects` (`SecurityOptions.maxObjects` raises or lowers it). The cap bounds what is held; an answer is
+  never truncated. (This is a deployment safeguard; the draft bounds the consumer, not the server.) Responses are cached (in-memory) and `Cache-Control`/`ETag` set; the cache
   key is derived from the honored parameters in a canonical order, so requests that differ only in parameters the
   publisher ignores cannot multiply cache entries (above).
 - **Traffic analysis**: a period shorter than a calendar day can tie figures to individual requests, and real-time
@@ -501,12 +501,11 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
   (per the draft's Privacy Considerations); the multiplicative factor preserves
   the sign of negative scope values (removals). Noise covers only the additive family
   (energy, footprint, scopes): the range-bounded `renewable-energy` member is **never
-  noised**, so the draft's stay-in-range MUST ("bounded members MUST remain within their
-  range") is trivially satisfied.
+  noised**, and this package keeps bounded members in range.
   The library **refuses** `applyNoise` unless you also set `noiseDisclosed: true` (CLI: `--noise-disclosed`),
   your confirmation that the statement below is made.
-  **Disclosure is a MUST, and it is yours to make**: if you enable `applyNoise`, the
-  methodology document MUST state that noise is applied and MUST bound its magnitude
+  **Disclosure is yours to make**: the draft says the methodology document states that noise is applied and
+  bounds its magnitude; if you enable `applyNoise`, the document must do so
   (at most ±1% for this implementation). The library cannot write that statement for you
   and cannot check that you wrote it, which is exactly why it never enables noise on your
   behalf — opting in *is* taking on the disclosure obligation. `methodology-uri` is where
@@ -519,8 +518,7 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
   building a document, over the object without its `signed` member — so the payload
   never contains `signed` itself, every object of an array response is signed, and no
   cache or conditional-request path can serve a signature that does not match the body
-  beside it ("a publisher MUST NOT serve an object whose `signed` payload differs from
-  the object it accompanies"). `assertSignedMatches()` enforces that invariant on every
+  beside it ("A publisher that regenerates an object regenerates its signature in the same step"). `assertSignedMatches()` enforces that invariant on every
   document the publisher and the `sign` CLI emit, and is exported for your own checks.
 
 ## Conformance
@@ -531,8 +529,7 @@ carbon.txt emit/parse/discover helpers depend on `@tgwf/co2` (Apache-2.0) and `@
 repo's **independent** Python (JTD) and Ruby (CDDL) validators in CI — see
 `.github/workflows/publisher.yml`.
 
-> Note on extensibility: the bundled JTD/CDDL schemas **close** the top-level
-> member set, and publisher-defined data lives under `extensions`, keyed by a URI. The
+> Note on extensibility: the bundled JTD/CDDL schemas are open (unknown members pass), as the draft's CDDL is; the publisher's gate, `assertValid`, refuses a top-level member the draft does not define, and publisher-defined data lives under `extensions`, keyed by a URI. The
 > schemas cannot express the form of those keys, the URI-reference form of the URI
 > members, the value ranges, the date-time and `start`-before-`end` rules or the at-least-one rule;
 > `src/validate.ts` enforces those prose rules alongside the schema, so nothing
@@ -543,7 +540,7 @@ repo's **independent** Python (JTD) and Ruby (CDDL) validators in CI — see
 Once a server built with this publisher is deployed, verify it the same way any
 `/.well-known/sustainability-data` origin is verified — curl for headers/body plus the
 consumer's `--strict` conformance battery. See
-[consumer/README.md § Verify a live deployment](../consumer/README.md#verify-a-live-deployment)
+[consumer/README.md § CLI](../consumer/README.md#cli)
 for the four commands and expected output (`--verify` reports the outcome of the
 `signed` member's verification).
 

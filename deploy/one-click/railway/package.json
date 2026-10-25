@@ -6,7 +6,7 @@
   "type": "module",
   "description": "One-click sustainability-data publisher: figures from environment variables, served and signed at /.well-known/sustainability-data.",
   "engines": {
-    "node": ">=22.12"
+    "node": ">=22.13"
   },
   "scripts": {
     "start": "node server.mjs",

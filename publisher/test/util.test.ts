@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { PeriodError } from "../src/period";
 import type { SustainabilityMetrics } from "../src/types";
-import { aLabelOf, fromWire, hasReportableContent, lastFullMonthPeriod, nowDateTime, olderPeriodOf, readJson } from "../src/util";
+import { aLabelOf, fromWire, hasReportableContent, lastFullMonthPeriod, nowDateTime, olderPeriodOf, readBodyCapped, readJson } from "../src/util";
 import { normalize } from "../src/normalize";
 
 const wire = (over: Record<string, unknown> = {}): SustainabilityMetrics =>
@@ -204,5 +204,26 @@ describe("small helpers", () => {
     expect(hasReportableContent({ "disclosure-uri": "" })).toBe(false);
     expect(hasReportableContent({ "energy-unit": "kWh" })).toBe(false);
     expect(hasReportableContent(null)).toBe(false);
+  });
+});
+
+describe("readBodyCapped", () => {
+  it("throws before the whole body is read", async () => {
+    let pulled = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1;
+        controller.enqueue(new Uint8Array(512 * 1024));
+        if (pulled === 4) controller.close();
+      },
+    });
+    await expect(readBodyCapped({ body, text: async () => "" }, 1024 * 1024, "the body")).rejects.toThrow(/exceeds 1048576 bytes/);
+    expect(pulled).toBeLessThan(4);
+  });
+
+  it("returns the text of a body within the cap, and measures a response with no stream", async () => {
+    const body = new ReadableStream<Uint8Array>({ start(c) { c.enqueue(new TextEncoder().encode("héllo")); c.close(); } });
+    expect(await readBodyCapped({ body, text: async () => "" }, 100, "x")).toBe("héllo");
+    await expect(readBodyCapped({ text: async () => "abcdef" }, 5, "x")).rejects.toThrow(/exceeds 5 bytes/);
   });
 });

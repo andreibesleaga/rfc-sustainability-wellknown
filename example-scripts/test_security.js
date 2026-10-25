@@ -90,16 +90,15 @@ test("a 23-hour day of a daylight-saving change is a calendar day", () => {
   assert.ok(!isOnDayBoundaries({ start: "2026-03-29T01:00:00+01:00", end: "2026-03-30T01:00:00+02:00" }));
 });
 
-test("caps at 366 keeping the most recent, after the day floor", () => {
+test("refuses more than 366 held objects, counted after the day floor", () => {
   const sixHours = { ...day("2030-01-01", "2030-01-02"), period: { start: "2030-01-01T00:00:00Z", end: "2030-01-01T06:00:00Z" } };
   const data = Array.from({ length: 400 }, (_, i) => {
     const start = new Date(Date.UTC(2025, 0, 1 + i)).toISOString().slice(0, 10);
     const end = new Date(Date.UTC(2025, 0, 2 + i)).toISOString().slice(0, 10);
     return day(start, end);
   });
-  const out = secureSustainabilityReport([sixHours, ...data]);
-  assert.strictEqual(out.length, 366);
-  assert.strictEqual(out[365].period.start, "2026-02-04T00:00:00Z");
+  assert.throws(() => secureSustainabilityReport([sixHours, ...data]), /maxObjects/);
+  assert.strictEqual(secureSustainabilityReport([sixHours, ...data.slice(0, 366)]).length, 366);
 });
 
 test("values are exact unless noise is turned on", () => {

@@ -11,7 +11,7 @@
   "target": "example.com",
   "energy-consumption": 1.5,
   "energy-unit": "kWh",
-  "carbon-footprint": 469.8488,
+  "carbon-footprint": 469.84875,
   "carbon-unit": "gCO2e",
   "carbon-intensity-gCO2e-per-kWh": 313.2325,
   "renewable-energy": 45,

@@ -90,12 +90,13 @@ class SecureSustainabilityReportTests(unittest.TestCase):
         self.assertTrue(is_on_day_boundaries({"start": "2026-03-29T00:00:00+01:00", "end": "2026-03-30T00:00:00+02:00"}))
         self.assertFalse(is_on_day_boundaries({"start": "2026-03-29T01:00:00+01:00", "end": "2026-03-30T01:00:00+02:00"}))
 
-    def test_caps_at_366_keeping_the_most_recent_after_the_day_floor(self):
+    def test_refuses_more_than_366_held_objects_after_the_day_floor(self):
         first = date(2025, 1, 1)
         data = [day((first + timedelta(i)).isoformat(), (first + timedelta(i + 1)).isoformat()) for i in range(400)]
-        out = secure_sustainability_report([six_hours()] + data)
-        self.assertEqual(len(out), 366)
-        self.assertEqual(out[-1]["period"]["start"], "2026-02-04T00:00:00Z")
+        with self.assertRaisesRegex(ValueError, "max_objects"):
+            secure_sustainability_report([six_hours()] + data)
+        # the day floor drops the six-hour object first, so 366 held objects are fine
+        self.assertEqual(len(secure_sustainability_report([six_hours()] + data[:366])), 366)
 
     def test_values_are_exact_unless_noise_is_turned_on(self):
         out = secure_sustainability_report([day("2026-01-01", "2026-01-02")])

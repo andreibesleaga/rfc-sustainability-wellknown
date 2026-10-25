@@ -309,7 +309,7 @@ function within(a: Dec, b: Dec, tolerance: Dec): boolean {
 
 /** Powers of ten from the draft's energy units to kWh, and from its carbon units to kgCO2e. */
 const KWH_EXPONENT: Record<string, number> = { Wh: -3, kWh: 0, MWh: 3, GWh: 6 };
-const KG_EXPONENT: Record<string, number> = { gCO2e: -3, kgCO2e: 0, mtCO2e: 3 };
+const KG_EXPONENT: Record<string, number> = { gCO2e: -3, kgCO2e: 0, tCO2e: 3 };
 
 function pow10(k: number): bigint {
   return 10n ** BigInt(k);
@@ -1339,6 +1339,10 @@ export async function shallowCheck(doc: unknown, opts: ShallowOptions): Promise<
     for (const [member, k] of [["scope-2", O.scope2], ["scope-3", O.scope3]] as const) {
       if (typeof d[member] !== "number") {
         row(`S5c coherence-${member}`, "SKIPPED", `no ${member} in the declaration`);
+        continue;
+      }
+      if (KG_EXPONENT[cunit] === undefined) {
+        row(`S5c coherence-${member}`, "FAIL", `carbon-unit ${cunit} is not one of gCO2e, kgCO2e, tCO2e`);
         continue;
       }
       const sum = sumMember(ops, k);

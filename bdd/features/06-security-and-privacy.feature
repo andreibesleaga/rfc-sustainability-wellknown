@@ -528,7 +528,7 @@ Feature: Security and privacy
     Given an extended publisher with monthly entries for "2025-01" and noise enabled
     Then the ratios between energy, carbon, intensity and the annualized figure equal the ratios before noise
 
-  # ---- added by the 24 Oct review: extensions, claimant, evidence, transport, held set, privacy advice ----
+  # ---- extensions, claimant, evidence, transport, held set, privacy advice ----
 
   @REQ-EXT-01 @golden @rk-opt-12
   Scenario: The yearly example carries two extensions, each an object under its own name
@@ -889,12 +889,9 @@ Feature: Security and privacy
     And the body is a JSON array of 83 objects
 
   @REQ-SEC-07 @error @UC-7.1
-  Scenario: A publisher whose maximum is 10 says so when 11 objects match
-    Given an extended publisher with a maximum of 10 objects and 11 matching periods
-    And the publisher is served on a local port
-    When I send GET "/.well-known/sustainability-data?granularity=monthly"
-    Then the body is a JSON array of 10 objects
-    And the operator log mentions "omitted"
+  Scenario: A publisher whose maximum is 10 refuses to be built over 11 held objects
+    Given an extended publisher with a maximum of 10 objects holding 11 periods
+    Then building the publisher is refused and the message names "maxObjects"
 
   @REQ-SEC-07 @edge @UC-7.1
   Scenario: Whatever the clock, the gateway holds at most 200 objects, so no selection is cut

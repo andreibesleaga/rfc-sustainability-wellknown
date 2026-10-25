@@ -31,6 +31,6 @@ ${extensions.length ? extensions.map((n) => `- ${n}: TODO say what it holds`).jo
 
 ## Perturbation
 
-${noise === undefined ? "No perturbation was applied to the published values." : `Perturbation was applied within ${noise} percent of the true values.`}
+${noise === undefined ? "No perturbation was applied to the published values." : `Perturbation was applied by the publisher within ${noise} percent of the true values (multiplicative, once at generation time, consistent across related members).`}
 `;
 }

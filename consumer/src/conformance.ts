@@ -6,18 +6,24 @@
 import { DEFAULT_TIMEOUT_MS, fetchSustainability } from "./fetch";
 import { resolveWellKnownUrl } from "./fetch";
 import { ACCEPT_HEADER, classifyMediaType, LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "./media-type";
-import { AddressLookup } from "./transport";
+import { AddressLookup, discardBody, secureGet } from "./transport";
 import { isWholeCalendarPeriod, yearPeriod } from "./period";
 import { Capabilities } from "./tokens";
 import { FetchResult, SustainabilityMetrics } from "./types";
 
 /**
- * BCP 14 strength of the requirement a check tests. This matters for reporting:
- * a static host that cannot emit an `Allow` header on its own 405 is violating
- * a SHOULD, not a MUST, and a battery that renders both as "FAIL" tells a
- * publisher their conformant deployment is broken.
+ * The strength of what a check tests. This matters for reporting: a static
+ * host that cannot emit an `Allow` header on its own 405 is not violating
+ * the draft, and a battery that renders it as "FAIL" tells a publisher their
+ * conformant deployment is broken.
+ *
+ *  - `"MUST"` — a requirement of the draft;
+ *  - `"SHOULD"` — a recommendation of the draft;
+ *  - `"INFO"` — HTTP practice or an observation the draft does not require
+ *    (RFC 9110 and RFC 9111 leave caching and the other aspects of the exchange
+ *    to the publisher); never counted against an origin.
  */
-export type ConformanceLevel = "MUST" | "SHOULD";
+export type ConformanceLevel = "MUST" | "SHOULD" | "INFO";
 
 /**
  * The verdict of a single check.
@@ -49,7 +55,7 @@ export interface ConformanceCheck {
   /** The three-valued verdict; `pass` is derived from it. */
   outcome: ConformanceOutcome;
   level: ConformanceLevel;
-  /** The section of the draft the check tests, e.g. "Section 2.2, Query Parameters". */
+  /** The section of the draft the check tests, e.g. "Query Parameters". */
   section?: string;
   detail?: string;
 }
@@ -110,8 +116,8 @@ export interface ConformanceOptions {
    * Forwarded to fetchSustainability: allow a non-HTTPS origin (default
    * false, per the draft's HTTPS MUST). Needed to run the battery against a
    * local instance — `http://127.0.0.1:8080` in CI — which is exactly the
-   * smoke test this battery is meant for; the raw probes below speak to
-   * whatever URL the caller named either way.
+   * smoke test this battery is meant for. The raw probes obey the same
+   * transport rules as every other request.
    */
   allowInsecure?: boolean;
   /** Resolver for the address check, forwarded to fetchSustainability. */
@@ -124,19 +130,27 @@ export interface ConformanceOptions {
    * It has exactly one use: choosing the year the Extended granularity check
    * asks about, which is the current one — the period a live publisher is most
    * likely to hold entries for. Nothing else in the battery reads it, and no
-   * verdict depends on it (a publisher holding nothing for that year answers
-   * `404`, which the check accepts). Pass a fixed clock so a run is reproducible
+   * verdict depends on it beyond which year is asked for (a publisher holding
+   * nothing for that year answers `200` with `[]`; a `404` fails the check).
+   * Pass a fixed clock so a run is reproducible
    * and a recorded request URL does not change with the date, as the publisher
    * package's `PublisherOptions.now` does for the aggregation rule.
    */
   now?: () => Date;
 }
 
+/** The section of the HTTP-practice checks: the draft leaves these aspects of the exchange to the publisher. */
+const HTTP_PRACTICE = "HTTP practice, RFC 9110 and RFC 9111; not a requirement of the draft";
+
 /** A target no origin names: an origin that honors `target` answers it with `[]`, one that ignores it answers as usual. */
 const PROBE_TARGET = "conformance-probe.invalid";
 /** A month long past, for which no origin holds a declaration. */
 const PROBE_RANGE = { start: "1900-01-01T00:00:00Z", end: "1900-02-01T00:00:00Z" };
-/** Values outside the query ABNF: each is ignored by the parameter alone and never read as another value. */
+/**
+ * Values the query rules exclude: each is ignored by the parameter alone and
+ * never read as another value. Most do not match the ABNF; "2025-02-30"
+ * matches it but is not a date (RFC 3339 limits the day to the month's length).
+ */
 const IGNORED_VALUES = [
   "start=2025-01-01",
   "start=2025-01-01t00:00:00z",
@@ -147,7 +161,7 @@ const IGNORED_VALUES = [
 
 export async function runConformanceChecks(
   origin: string,
-  fetchImpl: typeof fetch = globalThis.fetch,
+  fetchImpl?: typeof fetch,
   options: ConformanceOptions = {},
 ): Promise<ConformanceReport> {
   const checks: ConformanceCheck[] = [];
@@ -158,9 +172,24 @@ export async function runConformanceChecks(
   // earlier revision would be converted and pass the schema gate, masking
   // exactly the non-conformance this battery exists to detect.
   const fetchOpts = { fetchImpl, timeoutMs, maxBytes, legacyCompat: false, allowInsecure, allowPrivateAddresses, lookup };
-  // Raw probes get the same default timeout as fetchSustainability: a hanging
-  // origin must not stall the battery on undici's ~5-minute defaults.
-  const rawSignal = () => AbortSignal.timeout(timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  // The raw probes go through the same transport as every other fetch: the
+  // connect-time address check, bounded redirects and the same timeout, so a
+  // hanging or hostile origin cannot stall or steer the battery. A probe's
+  // body is discarded unread.
+  const probe = async (url: string, method: "GET" | "POST" = "GET") => {
+    const got = await secureGet(new URL(url), {
+      fetchImpl,
+      method,
+      timeoutMs: timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      allowInsecure,
+      allowPrivateAddresses,
+      lookup,
+      headers: { Accept: ACCEPT_HEADER },
+    });
+    if (!got.ok) throw new Error(`${got.refusal.reason}${got.refusal.detail ? `: ${got.refusal.detail}` : ""}`);
+    await discardBody(got.res);
+    return got.res;
+  };
   const wellKnown = resolveWellKnownUrl(origin).toString();
 
   const basic = await fetchSustainability(origin, fetchOpts).catch((err: unknown) => err as Error);
@@ -173,7 +202,7 @@ export async function runConformanceChecks(
   };
 
   checks.push(
-    await check("Basic request returns a schema-valid declaration (one object or an array)", "MUST", "Section 3.1, Body", async () => {
+    await check("Basic request returns a schema-valid declaration (one object or an array)", "MUST", "Body", async () => {
       const r = basicOk();
       if (r.status !== "ok") return `expected ok, got ${r.status}`;
       return true;
@@ -181,19 +210,13 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    // A 200 response MUST carry `application/sustainability-data+json`. A
-    // publisher still serving the generic `application/json` is reported as
-    // WARN rather than FAIL: a consumer keeps processing those, and the type is
-    // still awaiting IANA registration. Anything else is a fail, including a
-    // missing Content-Type, since a response of another type is not a declaration.
-    await check(`Basic 200 response uses the ${MEDIA_TYPE} media type`, "MUST", "Section 2.1, Location and Transport", async () => {
-      const res = await fetchImpl(wellKnown, {
-        method: "GET",
-        headers: { Accept: ACCEPT_HEADER },
-        signal: rawSignal(),
-      });
-      // Drain the body so the socket is released promptly.
-      await res.arrayBuffer().catch(() => undefined);
+    // The draft publishes the declaration with `application/sustainability-data+json`,
+    // and a consumer MAY also process a 200 response of `application/json`. A
+    // publisher serving the generic type is reported as WARN rather than FAIL.
+    // Any other type is a fail, including a missing Content-Type, since a
+    // response carrying another media type is not a declaration.
+    await check(`Basic 200 response uses the ${MEDIA_TYPE} media type`, "MUST", "Location and Transport", async () => {
+      const res = await probe(wellKnown);
       if (res.status !== 200) return `expected 200 for the Basic request, got ${res.status}`;
       const raw = res.headers.get("content-type");
       switch (classifyMediaType(raw)) {
@@ -202,7 +225,7 @@ export async function runConformanceChecks(
         case "json":
           return {
             outcome: "warn",
-            detail: `generic media type (${LEGACY_MEDIA_TYPE}): processed, but a conformant 200 response carries ${MEDIA_TYPE}`,
+            detail: `generic media type (${LEGACY_MEDIA_TYPE}): a consumer may process it, but the draft publishes the declaration as ${MEDIA_TYPE}`,
           };
         default:
           return `Content-Type is neither ${MEDIA_TYPE} nor ${LEGACY_MEDIA_TYPE}: "${raw ?? ""}"`;
@@ -222,7 +245,7 @@ export async function runConformanceChecks(
     await check(
       "Embedded signature (OPTIONAL `signed` member): absent, or present and verifiable",
       "MUST",
-      "Section 3.6, The signed Member",
+      "The signed Member",
       async () => {
         const r = await fetchSustainability(origin, { ...fetchOpts, verifySignature: true });
         signatures = r;
@@ -251,7 +274,7 @@ export async function runConformanceChecks(
   checks.push(
     // EdDSA verifies, as the same algorithm as Ed25519, but RFC 9864 deprecates
     // the identifier: a publisher is told so without being failed.
-    await check("Signature algorithm identifier is Ed25519 or ES256 (EdDSA is the deprecated identifier)", "SHOULD", "Section 3.6, The signed Member", async () => {
+    await check("Signature algorithm identifier is Ed25519 or ES256 (EdDSA is the deprecated identifier)", "SHOULD", "The signed Member", async () => {
       const outcomes = signatures?.status === "ok" ? (signatures.signatures ?? []) : [];
       const deprecated = outcomes.some((s) => s.status === "verified" && s.deprecatedAlg);
       return deprecated ? { outcome: "warn", detail: "the signature names EdDSA; Ed25519 is the identifier of the same algorithm" } : true;
@@ -259,28 +282,30 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    await check("Response carries an ETag", "SHOULD", "Section 2.1, Location and Transport", async () => {
+    // The three HTTP-practice checks (ETag, 304, 405) test what RFC 9110 and
+    // RFC 9111 describe and the draft leaves to the publisher: an unmet one is
+    // a WARN and never an unmet requirement of the draft.
+    await check("Response carries an ETag", "INFO", HTTP_PRACTICE, async () => {
       const r = basicOk();
-      return r.status === "ok" && !!r.etag;
+      return r.status === "ok" && !!r.etag ? true : { outcome: "warn", detail: "no ETag (HTTP practice; the draft leaves caching to the publisher)" };
     }),
   );
 
   checks.push(
-    await check("Conditional GET with a fresh ETag returns 304", "SHOULD", "Section 2.1, Location and Transport", async () => {
+    await check("Conditional GET with a fresh ETag returns 304", "INFO", HTTP_PRACTICE, async () => {
       const first = basicOk();
-      if (first.status !== "ok" || !first.etag) return "no ETag to test conditional request with";
+      if (first.status !== "ok" || !first.etag) return { outcome: "warn", detail: "no ETag to test a conditional request with" };
       const second = await fetchSustainability(origin, { ...fetchOpts, ifNoneMatch: first.etag });
-      return second.status === "not-modified" || `expected not-modified, got ${second.status}`;
+      return second.status === "not-modified" || { outcome: "warn", detail: `expected not-modified, got ${second.status}` };
     }),
   );
 
   checks.push(
-    await check("A method other than GET/HEAD gets 405 with Allow", "SHOULD", "Section 2.1, Location and Transport", async () => {
-      const res = await fetchImpl(wellKnown, { method: "POST", signal: rawSignal() });
-      await res.arrayBuffer().catch(() => undefined);
-      if (res.status !== 405) return `expected 405, got ${res.status}`;
+    await check("A method other than GET/HEAD gets 405 with Allow", "INFO", HTTP_PRACTICE, async () => {
+      const res = await probe(wellKnown, "POST");
+      if (res.status !== 405) return { outcome: "warn", detail: `expected 405, got ${res.status}` };
       const allow = res.headers.get("allow") ?? "";
-      return allow.includes("GET") || `Allow header missing GET: "${allow}"`;
+      return allow.includes("GET") || { outcome: "warn", detail: `Allow header missing GET: "${allow}"` };
     }),
   );
 
@@ -288,10 +313,9 @@ export async function runConformanceChecks(
     // A start, end or granularity value that does not match the ABNF is ignored
     // by that parameter alone: the answer is the one for a request without it.
     // A 400 (or a 404) refuses a request the draft says to answer.
-    await check("A query value outside the profile is ignored, not refused", "MUST", "Section 2.2, Query Parameters", async () => {
+    await check("A query value outside the profile is ignored, not refused", "MUST", "Query Parameters", async () => {
       for (const value of IGNORED_VALUES) {
-        const res = await fetchImpl(`${wellKnown}?${value}`, { method: "GET", headers: { Accept: ACCEPT_HEADER }, signal: rawSignal() });
-        await res.arrayBuffer().catch(() => undefined);
+        const res = await probe(`${wellKnown}?${value}`);
         if (res.status !== 200) {
           return `?${value} was answered ${res.status}; a value that does not match the query ABNF is ignored and the request answered as if it were absent, never refused`;
         }
@@ -309,7 +333,7 @@ export async function runConformanceChecks(
   }));
 
   checks.push(
-    await check("A range that selects nothing is answered 200 (an empty array when honored), never 404", "MUST", "Section 2.2, Query Parameters", async () => {
+    await check("A range that selects nothing is answered 200 (an empty array when honored), never 404", "MUST", "Query Parameters", async () => {
       const { range } = await honoring();
       if (range.status !== "ok") return `a range no object falls in was answered ${range.status === "not-found" ? "404" : range.status}; an empty selection is the empty array, not an error`;
       if (Array.isArray(range.document) && range.document.length === 0) return { outcome: "pass", detail: "empty array" };
@@ -320,7 +344,7 @@ export async function runConformanceChecks(
   checks.push(
     // A server that honors at least one parameter publishes `capabilities`
     // extended, so a client knows to ask. A static file honors none and says basic.
-    await check("A server that honors a query parameter publishes capabilities extended", "MUST", "Section 3.2, Mandatory Members", async () => {
+    await check("A server that honors a query parameter publishes capabilities extended", "MUST", "Mandatory Members", async () => {
       const asked = await honoring();
       // An answer honors a parameter when it is an array every object of which satisfies it; the empty array does.
       const by = (r: (typeof asked)["target"], ...keys: Array<"target" | "start" | "end" | "granularity">) =>
@@ -337,7 +361,7 @@ export async function runConformanceChecks(
   );
 
   checks.push(
-    await check("Extended range request (start, end, granularity=monthly) returns a valid response (ascending by period.start when an array)", "MUST", "Section 2.2, Query Parameters", async () => {
+    await check("Extended range request (start, end, granularity=monthly) returns a valid response (ascending by period.start when an array)", "MUST", "Query Parameters", async () => {
       const r = await fetchSustainability(origin, { ...fetchOpts, ...year, granularity: "monthly" });
       if (r.status !== "ok") return `expected ok, got ${r.status}`;
       if (!Array.isArray(r.document)) return { outcome: "pass", detail: "parameters not honored (allowed: a static file satisfies every request)" };
@@ -351,7 +375,7 @@ export async function runConformanceChecks(
   checks.push(
     // Informational: the periods an origin publishes by default are whole
     // calendar years or months. Another period is allowed and is only noted.
-    await check("Periods are whole calendar years or months (informational)", "SHOULD", "Section 3.2, Mandatory Members", async () => {
+    await check("Periods are whole calendar years or months (informational)", "INFO", "Mandatory Members", async () => {
       const other = basicObjects.find((o) => !isWholeCalendarPeriod(o.period, "yearly") && !isWholeCalendarPeriod(o.period, "monthly"));
       return other
         ? { outcome: "warn", detail: `period ${other.period.start}/${other.period.end} is neither a whole calendar year nor a whole month (allowed; noted only)` }

@@ -148,7 +148,7 @@ jobs:
         working-directory: schemas-validators
         run: |
           cddl --version | grep -q '0.12.14'
-          bash validate-all.sh --example-responses
+          bash validate-all.sh
       # Three-way schema equality (schemas-validators/response-schema.json ==
       # publisher/src/schema.ts == consumer/src/schema.ts) is enforced by each
       # package's own test suite: publisher/test/conformance.test.ts and

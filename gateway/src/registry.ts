@@ -68,9 +68,9 @@ export interface Subject {
  * subject, which has to point at the tenant-scoped declaration relayed here.
  *
  * Hard-coding one deployment's host would make the member false everywhere
- * else, and the draft requires an absolute "https" URI, so a relative one is
- * not an option. The token is resolved once at load time against the origin the
- * gateway is actually served from (`BASE_URL`, falling back to the reference
+ * else, and a relative reference would resolve against the `/{domain}/` relay
+ * path, not the tenant URL, so the token is resolved once at load time to an
+ * absolute URI against the origin the gateway is actually served from (`BASE_URL`, falling back to the reference
  * deployment), which is what makes a consumer's `--upstream` chain walk resolve
  * to a declaration this gateway really answers.
  */
@@ -190,7 +190,7 @@ export async function loadSubjectFile(file: string, baseUrl: string = PUBLIC_BAS
   const parsed = JSON.parse(readFileSync(file, "utf8")) as unknown;
 
   if (Array.isArray(parsed)) {
-    // This registry's rule, not the draft's: -07 lets a body be one object or
+    // This registry's rule, not the draft's: the draft lets a body be one object or
     // an array, but a relayed subject here is Basic-only and is one dated
     // transcription of one period, so a trend file has no way to be served.
     throw new Error(
@@ -263,7 +263,7 @@ export async function subjectFromAdapter(opts: {
   /** Safeguards of the publisher, notably `maxObjects`, the most objects one response holds. */
   security?: PublisherOptions["security"];
   /**
-   * Draft -07 §Signing: when set, the publisher embeds a `signed` member in
+   * Draft §The signed Member: when set, the publisher embeds a `signed` member in
    * every declaration object it builds — including each object of an Extended
    * trend array. Only the gateway's own report is ever signed here: a relayed
    * document is not the gateway's to vouch for. The one exception is the

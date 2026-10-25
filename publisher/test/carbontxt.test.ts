@@ -131,3 +131,21 @@ describe("discoverCarbonTxt fallbacks fail closed", () => {
     expect(seen.some((u) => u.includes("www."))).toBe(false);
   });
 });
+
+describe("discoverCarbonTxt bounds what it follows and reads", () => {
+  it("does not follow a CarbonTxt-Location header that is not https", async () => {
+    const seen: string[] = [];
+    const fetch = (async (url: string) => {
+      seen.push(url);
+      const headers = { get: (name: string) => (url === "https://acme.example/" && name.toLowerCase() === "carbontxt-location" ? "http://127.0.0.1/x" : null) };
+      return { ok: url === "https://acme.example/", status: url === "https://acme.example/" ? 200 : 404, headers, text: async () => "" };
+    }) as never;
+    expect(await discoverCarbonTxt("https://acme.example", { fetch })).toBeNull();
+    expect(seen.some((u) => u.includes("127.0.0.1"))).toBe(false);
+  });
+
+  it("refuses a carbon.txt body larger than the cap", async () => {
+    const fetch = mockFetch({ "https://acme.example/carbon.txt": { body: "a".repeat(70 * 1024) } });
+    await expect(discoverCarbonTxt("https://acme.example", { fetch })).rejects.toThrow(/exceeds 65536 bytes/);
+  });
+});

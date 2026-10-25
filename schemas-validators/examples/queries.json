@@ -60,7 +60,7 @@
   {"id":"Q59","dataset":"extended.example","query":"granularity=daily","expect":["/app/storage|2026-03-20T00:00:00Z"],"honored":true},
   {"id":"Q60","dataset":"extended.example","query":"granularity=monthly","expect":[],"honored":true},
   {"id":"Q61","dataset":"basic.example","query":"start=2023-01-01T00:00:00Z&granularity=monthly","expect":["example.com|2026-02-01T00:00:00Z"],"honored":false},
-  {"id":"Q62","dataset":"organization-trend.example","query":"granularity=yearly","expect":["Example Annual Corp (example.org)|2025-01-01T00:00:00Z"],"honored":false},
+  {"id":"Q62","dataset":"organization-trend.example","query":"granularity=yearly","expect":["Example Annual Corp (example.org)|2022-01-01T00:00:00Z","Example Annual Corp (example.org)|2023-01-01T00:00:00Z","Example Annual Corp (example.org)|2024-01-01T00:00:00Z","Example Annual Corp (example.org)|2025-01-01T00:00:00Z"],"honored":false},
   {"id":"Q63","dataset":"year-and-months.example","query":"target=example.com&start=2025-11-01T00:00:00Z","expect":["example.com|2025-01-01T00:00:00Z","example.com|2025-11-01T00:00:00Z","example.com|2025-12-01T00:00:00Z"],"honored":true},
   {"id":"Q64","dataset":"year-and-months.example","query":"target=example.com&end=2025-02-01T00:00:00Z","expect":["example.com|2025-01-01T00:00:00Z","example.com|2025-01-01T00:00:00Z"],"honored":true},
   {"id":"Q65","dataset":"year-and-months.example","query":"target=example.com&granularity=yearly","expect":["example.com|2025-01-01T00:00:00Z"],"honored":true},

@@ -50,6 +50,10 @@ describe("gateway/examples fidelity", () => {
     const onDisk = readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith(".json")).sort();
     expect(caseFiles).toEqual(onDisk);
   });
+
+  it("no case note describes a free-text measurement-method (the token set is closed)", () => {
+    for (const c of WIRE_CASES) expect(c.note, c.file).not.toMatch(/free-text/i);
+  });
 });
 
 /** The parameterless answer of every served example (the matrix's table of served examples): one object with its period, or the whole array. */
@@ -62,7 +66,7 @@ const BARE: Record<string, readonly [string, string] | number> = {
   "origin-annual.example": Y2025,
   "signed.example": Y2025,
   "organization.example": Y2025,
-  "organization-trend.example": Y2025,
+  "organization-trend.example": 4,
   "comprehensive.example": Y2025,
   "removals.example": Y2025,
   "product.example": Y2025,
@@ -137,7 +141,7 @@ describe("wire-format example serving", () => {
   });
 
   it("serves a series as its latest object where the file declares it, and says so in the index", async () => {
-    for (const domain of ["organization-trend.example", "yearly.example", "yearly-monthly-target.example", "daily-trend.example", "unit-grid.example", "dst-days.example", "local-days.example", "signed-array.example"]) {
+    for (const domain of ["yearly.example", "yearly-monthly-target.example", "daily-trend.example", "unit-grid.example", "dst-days.example", "local-days.example", "signed-array.example"]) {
       expect(srv.gw.examples.get(domain)!.serving, domain).toBe("latest");
     }
     const idx = await (await fetch(url("/index.json"))).json();
@@ -391,6 +395,14 @@ describe("adapter demonstrations", () => {
     }
   });
 
+  it("co2js-demo.example publishes a score per gigabyte, not a total for the month", () => {
+    const d = srv.gw.live.managed.get("co2js-demo.example")!.subject.document;
+    expect(d["sci-score"]).toBeGreaterThan(0);
+    expect(d["functional-unit"]).toBe("per-gigabyte");
+    expect(d["energy-consumption"]).toBeUndefined();
+    expect(d["carbon-footprint"]).toBeUndefined();
+  });
+
   it("passes consumer validation for every demonstration document", () => {
     for (const m of srv.gw.live.managed.values()) {
       expect(validateDocument(m.subject.document).valid, m.spec.domain).toBe(true);
@@ -430,6 +442,8 @@ describe("live mode with an injected upstream", () => {
     expect(m.subject.document.provider).toContain("LIVE");
     expect(m.subject.document.provider).toContain("217 gCO2/kWh");
     expect(m.subject.document["carbon-intensity-gCO2e-per-kWh"]).toBe(217);
+    // The figure changes with the reading, so `updated` is the retrieval instant.
+    expect(m.subject.document.updated).toBe("2026-10-17T12:00:00Z");
     expect(validateDocument(m.subject.document).valid).toBe(true);
   });
 
@@ -448,6 +462,8 @@ describe("live mode with an injected upstream", () => {
     expect(m.upstreamError).toContain("ECONNREFUSED");
     expect(m.subject.document.provider).toContain("RECORDED");
     expect(m.subject.document["carbon-intensity-gCO2e-per-kWh"]).toBe(NESO_FIXTURE_INTENSITY);
+    // The recording predates the period, so the close of the period is the later instant.
+    expect(m.subject.document.updated).toBe("2026-10-01T00:00:00Z");
   });
 
   it("refreshes to new live data, and keeps the last good document on a failed refresh", async () => {

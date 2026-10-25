@@ -139,7 +139,7 @@ Feature: Compatibility with -08 and -09 documents
     And the fetched member "sci-score" is the number <new score>
     And the member "functional-unit" is reported as converted
 
-    Examples: E3 rule 5 and E5 rules 5 and 5a (case-insensitive)
+    Examples: the -08 and -09 score and unit forms (case-insensitive)
       | legacy                       | score | unit              | new score  |
       | per-thousand-requests        | 12    | per-request       | 0.012      |
       | per-thousand-API-requests    | 0.42  | per-request       | 0.00042    |
@@ -365,7 +365,7 @@ Feature: Compatibility with -08 and -09 documents
     And the upgrade prints a line mentioning "<line>"
     And the upgrade exits with status 0
 
-    Examples: fixtures copied from the -08 and -09 example-responses at phase S5, plus one live gateway data file
+    Examples: fixtures copied from the -08 and -09 example responses, plus one live gateway data file
       | file                                     | line                  |
       | bdd/fixtures/legacy/08-organization.json | reporting-period      |
       | bdd/fixtures/legacy/09-organization.json | period                |
@@ -507,7 +507,7 @@ Feature: Compatibility with -08 and -09 documents
     When the upgrade tool runs on the document
     Then the upgrade output "provider" is in Normalization Form C
 
-  # ---- added by the 24 Oct review: upgrade exit status, no partial output, standard output by default ----
+  # ---- upgrade exit status, no partial output, standard output by default ----
 
   @REQ-CMP-04g @golden @rk-cmp-2
   Scenario: A document with nothing to change makes the upgrade exit 0

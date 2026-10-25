@@ -13,6 +13,5 @@
   "energy-unit": "kWh",
   "carbon-footprint": 64400000,
   "carbon-unit": "gCO2e",
-  "functional-unit": "per-job",
   "carbon-intensity-gCO2e-per-kWh": 230
 }

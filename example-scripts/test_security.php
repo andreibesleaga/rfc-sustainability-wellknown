@@ -84,9 +84,10 @@ $first = new DateTimeImmutable('2025-01-01', new DateTimeZone('UTC'));
 for ($i = 0; $i < 400; $i++) {
     $data[] = day($first->modify("+$i day")->format('Y-m-d'), $first->modify('+' . ($i + 1) . ' day')->format('Y-m-d'));
 }
-$out = secureSustainabilityReport(array_merge([sixHours()], $data));
-check('caps at 366 keeping the most recent, after the day floor',
-    count($out) === 366 && $out[365]['period']['start'] === '2026-02-04T00:00:00Z');
+check('refuses more than 366 held objects, counted after the day floor',
+    throws(fn () => secureSustainabilityReport(array_merge([sixHours()], $data))));
+check('366 held objects are accepted',
+    count(secureSustainabilityReport(array_merge([sixHours()], array_slice($data, 0, 366)))) === 366);
 
 $out = secureSustainabilityReport([day('2026-01-01', '2026-01-02')]);
 check('values are exact unless noise is turned on', $out[0]['energy-consumption'] === 100);

@@ -38,7 +38,7 @@ import { httpDate, loadRegistry, subjectFromAdapter, type Subject } from "./regi
 import { LEGAL_PATH, LEGAL_TEXT } from "./legal";
 import { BADGE_ROUTE, VALIDATE_PATH, Validator, badgeSvg, checkHost, isBusy, noticeBadgeSvg, parseOrigin, type ValidatorDeps } from "./validate";
 import { crossValidate, type CrossValidation } from "./verify";
-import { loadSelfMeasured } from "./self-measured";
+import { loadSelfEnteredAt, loadSelfMeasured } from "./self-measured";
 
 /** `/{domain}/.well-known/sustainability-data` — the primary route. */
 const SUBJECT_ROUTE = new RegExp(`^/([^/]{1,${LIMITS.maxDomainLength}})/\\.well-known/sustainability-data$`);
@@ -69,7 +69,7 @@ export interface Gateway {
   /**
    * Returns the self subject for the CURRENT reporting period. This
    * deployment's parameterless report is the most recently completed month
-   * (-07 leaves the choice to the publisher), so when the month rolls over (and
+   * (the draft leaves the choice to the publisher), so when the month rolls over (and
    * no fixed SELF_PERIOD is pinned) the self report is regenerated instead of
    * freezing at whatever month the process booted in.
    */
@@ -200,9 +200,9 @@ async function serveDocument(
         return notModified(headers);
       }
     }
-    // The `provider` member is human-readable text; the draft's
-    // Internationalization Considerations ask publishers to identify its
-    // language at the HTTP layer. No negotiation is offered, so no `Vary`.
+    // The `provider` member is human-readable text; the draft's `provider`
+    // definition has a publisher state its language. No negotiation is offered,
+    // so no `Vary`.
     headers["Content-Language"] = "en";
     return withBody(200, headers, r.body);
   }
@@ -352,7 +352,7 @@ export async function route(
     const domain = m[1].toLowerCase();
     const subject = gw.subjects.get(domain);
     if (!subject) {
-      // Draft "no-data rule": nothing published for this subject -> 404.
+      // This gateway holds nothing for this subject -> 404.
       return jsonError(
         404,
         "no sustainability metadata is published here for that reporting subject",
@@ -442,7 +442,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
    */
   const selfClock = () => (opts.clock ? opts.clock() : opts.now ?? new Date());
 
-  // ---- The signing key for the gateway's OWN report (draft -07 §Signing).
+  // ---- The signing key for the gateway's OWN report (draft §The signed Member).
   // A key that cannot be imported stops the deploy, like a bad data file: a
   // gateway that claims to sign and cannot is worse than one that does not
   // sign. ----
@@ -458,6 +458,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   // ---- Worked adapter example #1: the gateway's own report, produced by the
   // published `computedAdapter` rather than hand-written. ----
   const selfMeasured = config.self.measured ? loadSelfMeasured(config.dataDir) : {};
+  const selfEnteredAt = config.self.measured ? loadSelfEnteredAt(config.dataDir) : {};
   const selfAdapter = (period: Period | undefined) =>
     selfReportAdapter({
       target: config.self.target,
@@ -467,8 +468,10 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       period,
       watts: config.self.watts,
       wattsByMonth: selfMeasured,
+      enteredAtByMonth: selfEnteredAt,
       gridIntensity: config.self.gridIntensity,
       liveSince: config.self.liveSince,
+      modelChangedAt: config.self.modelChangedAt,
       verifiableAttestationUri: config.self.verifiableAttestationUri,
       clock: selfClock,
     });
@@ -489,7 +492,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       // On the day it went live the gateway holds no whole day yet: it still starts, the
       // parameterless request is "no data" and a query is the empty array.
       emptyAt: dateTimeOf(startOfDay(selfClock().getTime())),
-      // Draft -07 §Signing: the publisher inserts the `signed` member into
+      // Draft §The signed Member: the publisher inserts the `signed` member into
       // every object it builds — the parameterless declaration and each
       // object of an Extended trend alike. The gateway implements no signing
       // of its own; it only hands the library the key. The public key travels
@@ -679,7 +682,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       });
     };
 
-    // Draft Security Considerations §Denial of Service: rate-limit the well-known URI. Applied
+    // Draft Security Considerations: a server that computes answers SHOULD rate-limit; this deployment limits every path. Applied
     // before routing so every path but the health check counts; the platform
     // health checker must never be throttled.
     const limited = async (): Promise<Result | undefined> => {

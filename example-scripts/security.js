@@ -2,7 +2,7 @@
  * The three safeguards of the draft's Security and Privacy Considerations, as a
  * zero-dependency kit (the same behavior as the publisher's `secureReports`):
  *
- *  1. DoS protection      - cap an array at 366 objects, keeping the most recent.
+ *  1. DoS protection      - refuse a held set above 366 objects; an answer is never truncated.
  *  2. Traffic analysis    - keep to periods of a calendar day or longer: by default an
  *                           object whose bounds are not the first instant of a calendar
  *                           day in their own offset is dropped with a warning.
@@ -264,22 +264,20 @@ function selectObjects(held, query) {
 
 /**
  * The objects to serve for a request. A server whose objects are all `basic`
- * supports no parameter: it ignores them all and answers with its current
- * declaration, the objects of the latest period. Otherwise it honors the
+ * supports no parameter: it ignores them all and answers with what it holds, as
+ * it holds it (a static file). Otherwise it honors the
  * parameters that match the draft; with none, the answer is every object held.
  * @param {SustainabilityObject[]} held
  * @param {string} rawQuery the query component, without the "?"
  */
 function answerQuery(held, rawQuery) {
   if (held.some((object) => object.capabilities === "extended")) return selectObjects(held, honoredQuery(rawQuery));
-  const sorted = [...held].sort(compareObjects);
-  const latest = sorted[sorted.length - 1];
-  return sorted.filter((object) => object.period.start === latest.period.start && object.period.end === latest.period.end);
+  return [...held];
 }
 
 /**
  * Apply the safeguards to a list of objects; returns a new array in ascending
- * order of period, of at most `maxObjects` objects.
+ * order of period, of at most `maxObjects` objects (a larger held set is refused).
  * @param {SustainabilityObject[]} reports
  * @param {SecurityOptions} [options]
  * @returns {SustainabilityObject[]}
@@ -303,8 +301,7 @@ function secureSustainabilityReport(reports, options = {}) {
 
   secured = [...secured].sort(compareObjects);
   if (secured.length > maxObjects) {
-    warn(`${secured.length} objects selected; the ${maxObjects} most recent are published`);
-    secured = secured.slice(-maxObjects);
+    throw new Error(`${secured.length} objects held, more than maxObjects (${maxObjects}); raise maxObjects or hold fewer objects (an answer is never truncated)`);
   }
   return applyNoise ? secured.map(withNoise) : secured;
 }

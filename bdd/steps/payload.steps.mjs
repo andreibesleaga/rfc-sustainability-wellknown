@@ -1016,7 +1016,7 @@ Then("the methodology stub lists the extension name {string}", async function (n
 });
 
 Then("the methodology stub says that perturbation was applied within {int} percent", async function (percent) {
-  assert.ok((await stubOfTheTool(this)).includes(`Perturbation was applied within ${percent} percent`));
+  assert.match(await stubOfTheTool(this), new RegExp(`Perturbation was applied .*within ${percent} percent`));
 });
 
 Then("the methodology stub has the heading {string}", async function (heading) {

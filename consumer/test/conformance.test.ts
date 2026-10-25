@@ -148,7 +148,9 @@ describe("runConformanceChecks(): the Basic request", () => {
 
   it("every check names the section of the draft it tests", async () => {
     const report = await runConformanceChecks(await serve(), undefined, ALLOW_INSECURE);
-    for (const c of report.checks) expect(c.section, c.name).toMatch(/^Section \d+(\.\d+)?, /);
+    // The draft's sections have names, not numbers.
+    for (const c of report.checks) expect(c.section, c.name).toMatch(/^[A-Za-z]/);
+    for (const c of report.checks) expect(c.section, c.name).not.toMatch(/Section \d/);
   });
 
   it("charset parameters and case do not change the media-type verdict", async () => {
@@ -162,7 +164,7 @@ describe("runConformanceChecks(): the Basic request", () => {
     const ct = byName(report).get(CONTENT_TYPE_CHECK);
     expect(ct).toMatchObject({ level: "MUST", outcome: "warn", pass: false });
     expect(ct?.detail).toBe(
-      "generic media type (application/json): processed, but a conformant 200 response carries application/sustainability-data+json",
+      "generic media type (application/json): a consumer may process it, but the draft publishes the declaration as application/sustainability-data+json",
     );
     expect(report.allPassed).toBe(true);
     expect(failures(report)).toEqual([]);
@@ -195,7 +197,7 @@ describe("runConformanceChecks(): the Basic request", () => {
     expect(report.allPassed).toBe(true);
     expect(report.allPassedIncludingRecommended).toBe(false);
     const checks = byName(report);
-    expect(checks.get("Conditional GET with a fresh ETag returns 304")?.pass).toBe(false);
+    expect(checks.get("Conditional GET with a fresh ETag returns 304")).toMatchObject({ pass: false, outcome: "warn", level: "INFO" });
     expect(checks.get("Basic request returns a schema-valid declaration (one object or an array)")?.pass).toBe(true);
     expect(checks.get("Response carries an ETag")?.pass).toBe(true);
     expect(checks.get("A method other than GET/HEAD gets 405 with Allow")?.pass).toBe(true);
@@ -205,8 +207,59 @@ describe("runConformanceChecks(): the Basic request", () => {
     const odd = object({ start: "2026-01-01T00:00:00Z", end: "2026-01-15T00:00:00Z" });
     const report = await runConformanceChecks(await serve({ held: [odd] }), undefined, ALLOW_INSECURE);
     const note = byName(report).get("Periods are whole calendar years or months (informational)");
-    expect(note).toMatchObject({ level: "SHOULD", outcome: "warn" });
+    expect(note).toMatchObject({ level: "INFO", outcome: "warn" });
     expect(note?.detail).toContain("neither a whole calendar year nor a whole month");
+    expect(report.allPassed).toBe(true);
+  });
+});
+
+describe("runConformanceChecks(): HTTP practice is information, not a requirement of the draft", () => {
+  it("a server with no ETag that answers a POST with 400 still conforms, with three INFO warnings", async () => {
+    const origin = await listen((req, res) => {
+      if (req.method === "POST") return void res.writeHead(400).end();
+      res.writeHead(200, { "Content-Type": MEDIA_TYPE }).end(JSON.stringify(object()));
+    });
+    const report = await runConformanceChecks(origin, undefined, ALLOW_INSECURE);
+    expect(report.allPassed).toBe(true);
+    const info = report.checks.filter((c) => c.level === "INFO" && c.outcome === "warn");
+    expect(info.map((c) => c.name)).toEqual([
+      "Response carries an ETag",
+      "Conditional GET with a fresh ETag returns 304",
+      "A method other than GET/HEAD gets 405 with Allow",
+    ]);
+    expect(info.every((c) => c.section?.includes("not a requirement of the draft"))).toBe(true);
+  });
+});
+
+describe("runConformanceChecks(): the raw probes obey the transport rules", () => {
+  it("opens no connection when the name resolves to a loopback address", async () => {
+    let connections = 0;
+    const origin = await listen(() => undefined);
+    server!.on("connection", () => connections++);
+    const port = new URL(origin).port;
+    const report = await runConformanceChecks(`https://probe.test:${port}`, undefined, { lookup: async () => ["127.0.0.1"], timeoutMs: 2000 });
+    expect(connections).toBe(0);
+    const checks = byName(report);
+    expect(checks.get("Basic request returns a schema-valid declaration (one object or an array)")?.pass).toBe(false);
+    expect(checks.get(CONTENT_TYPE_CHECK)).toMatchObject({ outcome: "fail" });
+    expect(checks.get(CONTENT_TYPE_CHECK)?.detail).toContain("blocked-address");
+    expect(checks.get("A method other than GET/HEAD gets 405 with Allow")?.detail).toContain("blocked-address");
+    expect(checks.get(IGNORED_CHECK)?.detail).toContain("blocked-address");
+  });
+
+  it("refuses a redirect of the POST probe to a link-local address and never requests it", async () => {
+    const asked: string[] = [];
+    const fetchImpl = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      asked.push(`${init?.method ?? "GET"} ${url}`);
+      if (init?.method === "POST") return new Response(null, { status: 302, headers: { Location: "http://169.254.169.254/latest/meta-data" } });
+      return new Response(JSON.stringify(object()), { status: 200, headers: { "Content-Type": MEDIA_TYPE } });
+    }) as typeof fetch;
+    const report = await runConformanceChecks("https://probe.test", fetchImpl, { lookup: async () => ["93.184.216.34"] });
+    expect(asked.some((a) => a.includes("169.254.169.254"))).toBe(false);
+    const check = byName(report).get("A method other than GET/HEAD gets 405 with Allow");
+    expect(check?.outcome).toBe("fail");
+    expect(check?.detail).toMatch(/insecure-transport|blocked-address/);
     expect(report.allPassed).toBe(true);
   });
 });
@@ -216,7 +269,7 @@ describe("runConformanceChecks(): the query parameters", () => {
     const report = await runConformanceChecks(await serve({ refuseBadValues: true }), undefined, ALLOW_INSECURE);
     expect(report.allPassed).toBe(false);
     const check = byName(report).get(IGNORED_CHECK);
-    expect(check).toMatchObject({ level: "MUST", outcome: "fail", section: "Section 2.2, Query Parameters" });
+    expect(check).toMatchObject({ level: "MUST", outcome: "fail", section: "Query Parameters" });
     expect(check?.detail).toContain("400");
     expect(failures(report).map((c) => c.name)).toEqual([IGNORED_CHECK]);
   });

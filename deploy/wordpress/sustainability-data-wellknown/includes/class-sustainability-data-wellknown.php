@@ -180,10 +180,32 @@ final class Sustainability_Data_Wellknown {
 		if ( $s( 'disclosure_uri' ) !== '' && ! self::is_https( $s( 'disclosure_uri' ) ) ) {
 			$p['disclosure_uri'] = __( 'Disclosure page must be an https:// address.', 'sustainability-data-wellknown' );
 		}
+		if ( 'path' === $s( 'target_type' ) && '' !== $s( 'target' ) && '/' !== $s( 'target' )[0] ) {
+			$p['target'] = __( 'A path target begins with "/", for example /api/v1.', 'sustainability-data-wellknown' );
+		}
 		if ( $s( 'energy_kwh' ) === '' && $s( 'carbon_kgco2e' ) === '' && $s( 'disclosure_uri' ) === '' ) {
 			$p['figures'] = __( 'Give an energy figure, a carbon figure or a disclosure page: a declaration carries a figure or an evidence link.', 'sustainability-data-wellknown' );
 		}
 		return $p;
+	}
+
+	/**
+	 * What the draft only recommends, as field => message: a period of a calendar day or longer, each bound the
+	 * first instant of a calendar day in its own offset. Shown as a warning; it does not stop the declaration.
+	 */
+	public static function warnings( array $o ): array {
+		$start = trim( (string) ( $o['period_start'] ?? '' ) );
+		$end   = trim( (string) ( $o['period_end'] ?? '' ) );
+		$a     = self::date_time( $start );
+		$b     = self::date_time( $end );
+		if ( null === $a || null === $b || $a >= $b ) {
+			return array(); // not a period at all: problems() reports it
+		}
+		$midnight = static fn( string $v ): bool => (bool) preg_match( '/T00:00:00(?:\.0+)?(?:Z|[+-]\d{2}:\d{2})$/', $v );
+		if ( ! $midnight( $start ) || ! $midnight( $end ) || $b->getTimestamp() - $a->getTimestamp() < 23 * 3600 ) {
+			return array( 'period_floor' => __( 'A period should be a calendar day or longer, each bound at midnight in its offset.', 'sustainability-data-wellknown' ) );
+		}
+		return array();
 	}
 
 	private static function is_https( string $u ): bool {
@@ -422,6 +444,9 @@ final class Sustainability_Data_Wellknown {
 		$out['saved_at'] = time();
 		foreach ( self::problems( $out ) as $field => $message ) {
 			add_settings_error( 'sdwk', 'sdwk_' . $field, $message, 'error' );
+		}
+		foreach ( self::warnings( $out ) as $field => $message ) {
+			add_settings_error( 'sdwk', 'sdwk_' . $field, $message, 'warning' );
 		}
 		return $out;
 	}

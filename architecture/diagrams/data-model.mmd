@@ -53,14 +53,14 @@ classDiagram
 
     class UpstreamEntry {
         <<upstream[] element, new in -07>>
-        +declaration : string — absolute https URI of the provider's declaration
+        +declaration : string — URI reference of the provider's declaration
         +role : string — OPTIONAL token, e.g. hosting, cloud, cdn, network, electricity
     }
     OptionalMetrics "1" o-- "0..*" UpstreamEntry : holds
 
     class ExtensionMembers {
-        <<extensions object, new in -07 - keyed by absolute URI>>
-        +extension name : string — RFC 3986 absolute URI, ASCII, no fragment
+        <<extensions object, new in -07 - keyed by a URI>>
+        +extension name : string — a URI, compared as a string
         +form A : an https URI the definer controls, documenting the extension
         +form B : urn-uuid plus a lowercase hyphenated UUID, RFC 9562
         +value : object — members defined by whoever minted that name

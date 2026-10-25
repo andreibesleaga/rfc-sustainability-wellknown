@@ -232,7 +232,7 @@ Feature: Mandatory service
       | شركة المثال (esg@example.example)             |
       | Пример ООО (esg@primer.example)               |
 
-  # ---- added by the 24 Oct review: HTTP exchange, media type parameters, IANA entry, empty source ----
+  # ---- HTTP exchange, media type parameters, IANA entry, empty source ----
 
   @REQ-URI-08 @golden
   Scenario: A conditional GET carrying the current entity tag is answered 304
@@ -347,10 +347,8 @@ Feature: Mandatory service
       | github-pages | application/octet-stream |
 
   @REQ-IAN-04 @UC-1.3 @edge
-  Scenario: A sustainability-data.json file, which no kit maps, is served by the host as application/json
-    Given the static kit "netlify" serving a valid declaration
-    When I send GET "/.well-known/sustainability-data.json"
-    Then the header "Content-Type" is "application/json"
+  Scenario: A sustainability-data.json file is mapped by no rule of the kit, so the host serves it by its extension
+    Then the kit "netlify" maps no rule to the path "/.well-known/sustainability-data.json"
 
   @REQ-LIB-03 @golden
   Scenario: A non-empty source answers 200 when no parameter is sent

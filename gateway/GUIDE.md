@@ -153,9 +153,8 @@ Content-Length: 939
 Notes on each of those, and on the rules behind them:
 
 - **`Content-Type` is the dedicated `application/sustainability-data+json`
-  media type by default** — the draft's §Location and Transport
-  requires it for a `200` response and forbids any other media type
-  there. Set `SUSTAINABILITY_MEDIA_TYPE=json` to switch the whole service to
+  media type by default** — the type the draft registers (Location and
+  Transport); a consumer MAY also process `application/json`. Set `SUSTAINABILITY_MEDIA_TYPE=json` to switch the whole service to
   the generic `application/json` type instead (the type under which
   declarations published before the registration exist, and which a consumer
   MAY still process; **not** conformant publishing), or pin one subject to it
@@ -174,9 +173,8 @@ Notes on each of those, and on the rules behind them:
 - **`Last-Modified` comes from the document's own `updated` member**, not from
   the file's mtime. It describes the published document, not the deploy, so it
   is stable across redeploys and replicas.
-- **`Content-Language: en`** identifies the language of the human-readable
-  `provider` text, which the specification's Internationalization
-  Considerations ask publishers to do at the HTTP layer. No negotiation is
+- **`Content-Language: en`** states the language of the `provider` text, as the
+  draft's `provider` definition says a publisher does. No negotiation is
   offered, so there is no `Vary`.
 - **`HEAD` returns byte-identical headers** to `GET`, `Content-Length`
   included, with no body.
@@ -186,12 +184,13 @@ Notes on each of those, and on the rules behind them:
   server that does not support the Extended parameters to ignore them and return
   the Basic response. `?start=2019-01-01T00:00:00Z&granularity=hourly&target=/x` returns the
   byte-identical `200` with the same `ETag`. This also collapses every query
-  string onto one cache entry, which is the specification's Denial-of-Service
-  guidance about bounding the cache-key space. (On the declared-extended example
+  string onto one cache entry, which keeps the cache-key space to one entry per
+  subject (this deployment's choice; the draft's last Security Considerations
+  paragraph asks a server that computes answers to rate-limit and cache). (On the declared-extended example
   subjects the parameters are honored; a value outside the grammar is ignored
   the same way, and equal values share one cache entry however they are spelled,
   so the key space stays bounded there too.)
-- **An unknown subject is `404`** — the no-data rule — with the same JSON body
+- **An unknown subject is `404`**: this gateway holds nothing for it, with the same JSON body
   as any other unknown path:
 
   ```json
@@ -226,7 +225,7 @@ The data layer is drop-in: **no code change is needed.**
    {
      "updated": "2026-07-29T00:00:00Z",
      "capabilities": "basic",
-     "provider": "Illustrative mapping prepared by the gateway operator, NAME (EMAIL), from the reporting subject's own published DOCUMENT; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: …",
+     "provider": "Illustrative mapping prepared by the gateway operator, OPERATOR ROLE (role address, e.g. registry@your.domain), from the reporting subject's own published DOCUMENT; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: …",
      "measurement-method": "third-party-modeled",
      "methodology-uri": "https://example.com/their-actual-report.pdf",
      "period": { "start": "2025-01-01T00:00:00Z", "end": "2026-01-01T00:00:00Z" },
@@ -254,18 +253,20 @@ The data layer is drop-in: **no code change is needed.**
      `hardware-estimated`, `cloud-billing`, `third-party-modeled`), `carbon-unit` one
      of `gCO2e`, `kgCO2e`, `tCO2e`;
    - `target-type` one of `organization`, `origin`, `service` for a real
-     subject (a synthetic `.example` vector may use any of the eight);
+     subject (a synthetic `.example` vector may use any of the nine);
    - every URI member an absolute `https` URI, `upstream[].declaration`
-     included;
+     included (this registry's house style; the draft allows any URI
+     reference);
    - **the top-level member set is closed**: the draft forbids a publisher adding a
      member of its own. Anything this specification does not define goes in
-     `extensions`, an object whose keys are absolute URIs (RFC 3986; ASCII,
-     scheme in lowercase, no fragment) and whose values are objects. Two forms are used in practice: an
-     `https` URI under your own control, which should identify a page
-     documenting the extension, or `urn:uuid:` plus a lowercase hyphenated UUID
-     (RFC 9562), for a definer without a domain. The key is an identifier
-     compared as a string — nothing is ever fetched from it — and there is no
-     registry. This registry's own name is
+     `extensions`, an object whose keys are extension names and whose values are
+     objects. An extension name is a URI under the definer's control when the
+     name was minted (for example an `https` URI), or a UUID URN
+     (`urn:uuid:…`, RFC 9562) for a definer without a domain. It is an
+     identifier, compared as a string after JSON escapes are decoded, and never
+     dereferenced; there is no registry of names. This registry itself mints
+     only lowercase `https` names and lowercase UUID URNs: a house style, not a
+     rule of the draft. This registry's own name is
      `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041`; mint your own once
      (`python3 -c "import uuid;print('urn:uuid:'+str(uuid.uuid4()))"`, or pick
      an `https` URI you control) and publish what its members mean in your
@@ -344,7 +345,7 @@ which reads the same data from a file, is not used here):
 | Subject | Adapter | Mode |
 |---|---|---|
 | `grid-intensity-demo.example` | `computed` | **live** — grid intensity fetched daily from the NESO (GB) Carbon Intensity API (keyless, CC BY 4.0) |
-| `co2js-demo.example` | `co2js` | **live** when `BASE_URL` is set — CO2.js computes locally over the gateway's own measured crawl bytes; green-hosting via keyless GWF Greencheck (ODbL) |
+| `co2js-demo.example` | `co2js` | **live** when `BASE_URL` is set — CO2.js computes locally a `sci-score` per gigabyte (`per-gigabyte`), with the size of one crawl of the gateway given for scale; green-hosting via keyless GWF Greencheck (ODbL) |
 | `carbontxt-demo.example` | `carbontxt-api` | live when `GWF_API_KEY` is set (free key); otherwise replay of the real, retrieved `thegreenwebfoundation.org/carbon.txt` |
 | `climatiq-demo.example` | `climatiq` | replay only: a synthetic response in Climatiq's documented shape. Climatiq's terms restrict redistribution, so this deployment relays nothing Climatiq computes, even with a key set |
 | `kepler-demo.example` | `kepler-prometheus` | replay (no publicly queryable Prometheus with Kepler metrics exists) |
@@ -399,8 +400,8 @@ swap one option:
 keplerPrometheusAdapter({
   provider: "Example Corp (sustainability@example.com)",
   methodologyUri: "https://example.com/methodology",
-  reportingPeriod: "2025",
-  gridIntensity: 373,
+  period: "2025",
+  gridIntensity: 245, // your grid's gCO2e/kWh, with its source in the methodology
   // replay:
   fixture: KEPLER_FIXTURE_2025,
   // live — delete `fixture` and add:
@@ -594,9 +595,8 @@ lockfile with `npm ci`, ships only production dependencies and compiled output,
 runs as a non-root user, and builds byte-identically on a laptop.
 
 **Before citing the URL**: make sure `SELF_METHODOLOGY_URI` resolves publicly.
-It is a mandatory member of a document you are publishing, and the
-specification requires the resource behind it to be retrievable without
-authentication. The default points at `gateway/METHODOLOGY.md` on GitHub, which
+It is a mandatory member of a document you are publishing, so make sure it
+resolves publicly, since readers follow it. The default points at `gateway/METHODOLOGY.md` on GitHub, which
 works once the branch is pushed.
 
 ## Configuration reference
@@ -624,6 +624,7 @@ injects.
 | `SELF_WATTS` | `3` | Modelled average container power draw. |
 | `SELF_GRID_INTENSITY` | `245` | gCO2e/kWh: the Netherlands, 2024 (EEA, CC BY 4.0), where this deployment runs; sourced and caveated in METHODOLOGY.md. Set it to your own region's figure. |
 | `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When the gateway went live (RFC 3339). The self model counts no hours before it; a range wholly before it selects nothing and is answered `200` and `[]`. |
+| `SELF_MODEL_CHANGED_AT` | `2026-10-02T00:00:00Z` | When the self model's figures were last restated (RFC 3339). A complete period that ended earlier states this instant as `updated`, because its figures were recomputed then. |
 | `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report — the URL of a signed third-party statement (the reference deployment: a `vc+jwt` credential issued with `scripts/issue-attestation.mjs`). |
 | `SELF_SIGNING_KEY_URL` | *(unset)* | Where the PUBLIC signing key is hosted; shown on the index so verifiers can pin it. The key itself travels in the JWS header. |
 | `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | The PRIVATE JWK (JSON) that signs the self report: every declaration object it emits then carries a `signed` member. Unset, the member is simply absent, which the draft says means only that the publisher did not sign. Generate with `npx -p sustainability-wellknown-publisher sustainability-publisher keygen --out <file>` and paste the file's contents; never commit it. |
@@ -656,8 +657,9 @@ gateway relays static annual disclosures. It has no finer-grained data to
 slice, so `start`, `end` and `granularity` would be honest only as no-ops — and the
 specification's answer for a server that does not support them is to ignore
 them and return the Basic response, which is exactly what happens. The side
-benefit is that the cache-key space is one entry per subject, which is the
-specification's Denial-of-Service guidance.
+benefit is that the cache-key space is one entry per subject (this deployment's
+choice; the draft's last Security Considerations paragraph asks a server that
+computes answers to rate-limit and cache).
 
 ## The gateway's own report: Extended, signed, attested
 
@@ -727,10 +729,10 @@ implements the current draft): `sustainability-fetch <base> --strict --verify-at
 --verify-attestation` (one fetch, both outcomes on stderr). The upstream chain
 is `sustainability-fetch <base>/tenant-demo.example --upstream`.
 
-**Why `node:http` rather than Express or Fastify.** The specification pins exact
-status codes and header sets, and a framework that adds `X-Powered-By`, rewrites
-`ETag`, or synthesises its own `HEAD` handling gets in the way of demonstrating
-that. The core server has no runtime dependencies beyond the publisher package.
+**Why `node:http` rather than Express or Fastify.** The gateway pins exact
+status codes and header sets so that what it serves can be checked byte for byte,
+and a framework that adds `X-Powered-By`, rewrites `ETag`, or synthesises its
+own `HEAD` handling gets in the way of demonstrating that. The core server has no runtime dependencies beyond the publisher package.
 Teams that already run Express or Fastify can use the publisher package's own
 middlewares for a single-subject deployment; this gateway's multi-subject
 routing is exported as `route()` for embedding.

@@ -2,7 +2,7 @@
 The three safeguards of the draft's Security and Privacy Considerations, as a
 zero-dependency kit (the same behavior as the publisher's `secureReports`):
 
- 1. DoS protection      - cap an array at 366 objects, keeping the most recent.
+ 1. DoS protection      - refuse a held set above 366 objects; an answer is never truncated.
  2. Traffic analysis    - keep to periods of a calendar day or longer: by default an
                           object whose bounds are not the first instant of a calendar
                           day in their own offset is dropped with a warning.
@@ -200,14 +200,12 @@ def supports_parameters(held):
 
 def answer_query(held, raw_query):
     """The objects to serve for a request. A server that supports no parameter
-    ignores them all and answers with its current declaration, the objects of the
-    latest period. Otherwise it honors the parameters that match the draft; with
-    none, the answer is every object held."""
+    ignores them all and answers with what it holds, as it holds it (a static
+    file). Otherwise it honors the parameters that match the draft; with none,
+    the answer is every object held."""
     if supports_parameters(held):
         return select_objects(held, honored_query(raw_query))
-    ordered = sorted(held, key=sort_key)
-    latest = ordered[-1]["period"] if ordered else None
-    return [obj for obj in ordered if obj["period"] == latest]
+    return list(held)
 
 
 def _with_noise(obj):
@@ -225,7 +223,7 @@ def secure_sustainability_report(
     reports, max_objects=366, day_floor="drop", apply_noise=False, noise_disclosed=False, on_warning=None
 ):
     """Apply the safeguards to a list of objects; returns a new list in ascending
-    order of period, of at most `max_objects` objects. `day_floor` is "drop",
+    order of period, of at most `max_objects` objects (a larger held set is refused). `day_floor` is "drop",
     "warn" or "off"."""
     warn = on_warning or (lambda message: None)
     if apply_noise and not noise_disclosed:
@@ -249,6 +247,8 @@ def secure_sustainability_report(
 
     secured.sort(key=sort_key)
     if len(secured) > max_objects:
-        warn(f"{len(secured)} objects selected; the {max_objects} most recent are published")
-        secured = secured[-max_objects:]
+        raise ValueError(
+            f"{len(secured)} objects held, more than max_objects ({max_objects}); "
+            "raise max_objects or hold fewer objects (an answer is never truncated)"
+        )
     return [_with_noise(obj) for obj in secured] if apply_noise else secured

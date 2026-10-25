@@ -64,6 +64,10 @@ export interface SelfReportConfig {
    * month listed here uses its own figure; every other month uses `watts`.
    */
   wattsByMonth?: Record<string, number>;
+  /** When each entered month ("YYYY-MM") was entered (RFC 3339); the objects that cover it are not older. */
+  enteredAtByMonth?: Record<string, string>;
+  /** The instant the model's figures were last restated (RFC 3339); an earlier period is not older. */
+  modelChangedAt?: string;
   /** Grid carbon intensity, gCO2e/kWh (cited in METHODOLOGY.md). */
   gridIntensity: number;
   /** The instant the gateway went live (RFC 3339); hours before it never count. */
@@ -210,6 +214,21 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
     return sum;
   };
 
+  const enteredAt = Object.entries(config.enteredAtByMonth ?? {}).map(([month, at]) => ({ month, at: epochMs(at) }));
+  const restated = config.modelChangedAt === undefined ? 0 : epochMs(config.modelChangedAt);
+
+  /**
+   * `updated` of a period: its close, or the later instant its figures were
+   * restated or entered, never after `now`. A period in progress states `now`.
+   */
+  const updatedOf = (span: Span, now: number): string => {
+    if (span.end > now) return dateTimeOf(now);
+    const first = monthKey(dateTimeOf(span.start));
+    const last = monthKey(dateTimeOf(span.end - 1));
+    const entered = enteredAt.filter((e) => e.month >= first && e.month <= last).map((e) => e.at);
+    return dateTimeOf(Math.min(now, Math.max(span.end, restated, ...entered)));
+  };
+
   /** One report for one period, via the published computed adapter. */
   const report = async (span: Span, now: number): Promise<RawMetrics | undefined> => {
     if (overlapHours(span, liveSince, now) <= 0) return undefined;
@@ -230,9 +249,7 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
     const raw = (await inner.fetch({})) as RawMetrics;
     return {
       ...raw,
-      // A complete period is stamped with its close, a period in progress with
-      // the start of the day its figures were evaluated at (`now`).
-      updated: span.end <= now ? period.end : dateTimeOf(now),
+      updated: updatedOf(span, now),
       target: config.target,
       targetType: "service",
       disclosureUri: config.disclosureUri,

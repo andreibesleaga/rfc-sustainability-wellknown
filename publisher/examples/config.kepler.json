@@ -8,7 +8,6 @@
       "prometheusUrl": "http://localhost:9090",
       "query": "sum(increase(kepler_node_platform_joules_total[30d]))",
       "gridIntensity": 230,
-      "functionalUnit": "per-job",
       "capabilities": "basic"
     }
   },

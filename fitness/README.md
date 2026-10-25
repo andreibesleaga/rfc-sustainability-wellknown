@@ -16,8 +16,9 @@ clock.
   before the end of any period; every rule key of the manifest is cited by a scenario.
 - `repository-invariants.test.mjs`: no public file points at the private folder; the author's e-mail only in the
   posted drafts; no "chapter n" wording; Node >= 22.13 for every package that loads the publisher or the consumer
-  (the SFC checker keeps 22.12); the gateway and the initializer ask for the library versions in this repository;
-  the consumer never imports the publisher and the gateway reaches both only by package name; every example and
+  (the SFC checker and the Railway and Home Assistant deployment kits included); no public document states the
+  extension-name rules that `-10` removed; the gateway and the initializer ask for the library versions in this
+  repository; the consumer never imports the publisher and the gateway reaches both only by package name; every example and
   served data file validates with the shipped consumer; every signed served example names `Ed25519` or `ES256`, the
   media type in `cty` and a `jwk` with the public key only; the root README names the version of each package, the
   number of served examples and the draft revision the software implements; the two npm packages stay under 1 MB

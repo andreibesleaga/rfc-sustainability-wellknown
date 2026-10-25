@@ -573,6 +573,7 @@ for (const el of document.querySelectorAll(".host")) el.textContent = location.o
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>Sustainability Data Reference Gateway</title>
 <meta name="description" content="A live reference deployment of the /.well-known/sustainability-data well-known URI (draft-besleaga-sustainability-wellknown): machine-readable energy and carbon declarations, worked examples of every case in the draft, and an open-source publisher and consumer.">
 <style>
@@ -639,6 +640,7 @@ form.check { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; ma
 .cmd { overflow-x:auto; border:1px solid var(--line); border-radius:4px; padding:.75rem .9rem;
   background:var(--warnbg); background:color-mix(in srgb, var(--bg) 92%, var(--fg) 8%); }
 pre.cmd code { font-size:.82em; white-space:pre; }
+p code { overflow-wrap:anywhere; }
 ul { padding-left:1.2rem; }
 footer { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); color:var(--dim); font-size:.9rem; }
 </style>
@@ -767,7 +769,7 @@ whole month and year, and the months at either end so far. No parameters: the la
 does not define are ignored, and the answer is the one for no parameter. A range that selects nothing, or a
 <code>target</code> the gateway does not report, is <code>200</code> with an empty array.</li>
 </ul>
-<pre class="cmd"><code>${doc.self["extended-examples"].map((p) => `curl -s "<span class="host">${BASE_TOKEN}</span>${escapeHtml(p)}"`).join("\n")}</code></pre>
+<pre class="cmd" role="region" tabindex="0" aria-label="Example requests, scrollable"><code>${doc.self["extended-examples"].map((p) => `curl -s "<span class="host">${BASE_TOKEN}</span>${escapeHtml(p)}"`).join("\n")}</code></pre>
 
 <h2>Integrity and attestation</h2>
 <ul>
@@ -859,7 +861,7 @@ request line for its retention period, as the legal notice says).</p>
 <input id="origin" name="origin" type="url" inputmode="url" placeholder="https://example.com" required pattern="https://.*" spellcheck="false">
 <button type="submit">Check</button>
 </form>
-<div role="status" aria-live="polite"><pre id="check-out" class="cmd" hidden></pre></div>
+<div role="status" aria-live="polite"><pre id="check-out" class="cmd" tabindex="0" aria-label="Check result, scrollable" hidden></pre></div>
 <p>Badge for a README, computed from the same hourly check:
 <code>![sustainability-data](<span class="host">${BASE_TOKEN}</span>/badge/example.com.svg)</code></p>
 
@@ -875,11 +877,11 @@ the most used servers, hosts and frameworks are in
 <h2>Verify it yourself</h2>
 <p>With the reference consumer
 (<a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer"><code>sustainability-wellknown-consumer</code></a>
-0.7.0+). <code>--strict</code> runs the conformance battery: a failed <code>MUST</code> fails it,
+0.8.0+). <code>--strict</code> runs the conformance battery: a failed <code>MUST</code> fails it,
 an unmet <code>SHOULD</code> is reported. Signatures come back <em>verified</em>,
 <em>unsigned</em> or <em>unverified</em> — never the data as "true"
 (<a href="${REPO_DOCS}/consumer/README.md" rel="noopener noreferrer">docs</a>).</p>
-<pre class="cmd"><code><span class="dim"># this gateway's own report, full battery, plus its attestation</span>
+<pre class="cmd" role="region" tabindex="0" aria-label="Verification commands, scrollable"><code><span class="dim"># this gateway's own report, full battery, plus its attestation</span>
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --strict --verify-attestation
 <span class="dim"># any subject, by its path prefix</span>
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/wikimedia.org --strict

@@ -919,6 +919,14 @@ Given("the static kit {string} configured to redirect the well-known path to {st
   this.kit = { name, texts: [`location = ${WELL_KNOWN} { return 301 ${location}; }`] };
 });
 
+// A kit rule is a line that starts a path (netlify, cloudflare-pages) or a quoted "source" (vercel); a trailing * is a prefix match.
+Then("the kit {string} maps no rule to the path {string}", function (name, path) {
+  const text = loadKit(name).texts.join("\n");
+  const rules = [...text.matchAll(/^(\/\S*)\s*$|"source":\s*"([^"]+)"/gm)].map((m) => m[1] ?? m[2]);
+  const matching = rules.filter((rule) => (rule.endsWith("*") ? path.startsWith(rule.slice(0, -1)) : rule === path));
+  assert.deepEqual(matching, [], `${name} has a rule for ${path}`);
+});
+
 When("the kit check runs", function () {
   const answer = kitAnswer(this.kit);
   if (answer.status !== 200) {

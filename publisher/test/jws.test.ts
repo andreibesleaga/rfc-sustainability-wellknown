@@ -27,7 +27,7 @@ import {
 } from "../src/jws";
 import { expressSustainability } from "../src/middleware/express";
 import { fastifySustainability } from "../src/middleware/fastify";
-import { periodFromReportingPeriod } from "../src/period";
+import { monthPeriod, periodFromReportingPeriod } from "../src/period";
 import { Publisher } from "../src/publisher";
 import { createSustainabilityServer } from "../src/server";
 import type { RawMetrics, SustainabilityMetrics } from "../src/types";
@@ -220,7 +220,7 @@ describe("the signed member (draft §Signing)", () => {
 
   it("signs every object of an array individually", async () => {
     const key = await generateSigningKey();
-    const months = ["2026-01", "2026-02"].map((p) => ({ ...declaration(), "reporting-period": p }));
+    const months = [monthPeriod(2026, 1), monthPeriod(2026, 2)].map((period) => ({ ...declaration(), period }));
     const signed = (await signDocument(months, key)) as SustainabilityMetrics[];
     expect(signed).toHaveLength(2);
     for (const [i, entry] of signed.entries()) {
@@ -488,8 +488,8 @@ describe("CLI keygen / sign / key loading", () => {
   });
 
   // Draft §URI-Valued Members: these members are URI references, so a relative one
-  // is signed as it stands; one that is not a reference at all is signed with a warning.
-  it("signs a declaration whose URI members are URI references, and warns about one that is not", async () => {
+  // is signed as it stands; one that is not a reference at all is refused, and nothing is written.
+  it("signs a declaration whose URI members are URI references, and refuses one that is not", async () => {
     const keyFile = join(dir, "sign4.jwk");
     await runKeygen(["--out", keyFile], capture().stream);
     const input = join(dir, "uris.json");
@@ -506,8 +506,9 @@ describe("CLI keygen / sign / key loading", () => {
       expect(written).toEqual([]);
 
       writeFileSync(input, JSON.stringify({ ...DECLARATION, "disclosure-uri": "not a uri" }));
-      await runSign([input, outFile, "--key", keyFile], capture().stream);
-      expect(written.join("")).toMatch(/warning: .*disclosure-uri is not a URI reference/);
+      rmSync(outFile);
+      await expect(runSign([input, outFile, "--key", keyFile], capture().stream)).rejects.toThrow(/disclosure-uri is not a URI reference/);
+      expect(existsSync(outFile)).toBe(false);
     } finally {
       stderr.mockRestore();
     }

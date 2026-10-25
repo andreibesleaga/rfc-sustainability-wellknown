@@ -2,7 +2,7 @@ Feature: Reference gateway demos
   The reference gateway is a live demonstration and a test fixture: its own report, the registry of curated
   subjects, the public validator and badge, the index of examples, and the routes that make the draft's rules
   visible. Nothing here is a requirement of the draft (Appendix B.2 only describes it); the scenarios pin the
-  behaviour of gateway 0.2.0. Rows are those of 04-EXAMPLE-MATRIX.md Part C (G01 to G36, GV1 to GV13).
+  behaviour of gateway 0.2.0. Row ids G01 to G36 and GV1 to GV13 are the gateway's example matrix; each scenario names what it checks.
 
   Background:
     Given the clock is fixed at "2026-10-17T12:00:00Z"
@@ -125,7 +125,7 @@ Feature: Reference gateway demos
     Then the gateway is running
 
   @REQ-GWY-02 @error @UC-7.2
-  Scenario: A data file in -09 form stops the start and the message names the upgrade command
+  Scenario: A data file in -08 form (reporting-period) stops the start and the message names the upgrade command
     Given a gateway data file whose declaration is in a "reporting-period" member
     When the gateway starts
     Then the gateway refuses to start

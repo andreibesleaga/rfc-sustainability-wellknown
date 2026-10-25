@@ -1,12 +1,12 @@
 /**
  * Media types for the `/.well-known/sustainability-data` response.
  *
- * Draft §Mandatory Minimum Supported Service: a successful (`200 OK`) response
- * carrying a declaration MUST use the `application/sustainability-data+json`
- * media type registered by the draft, and MUST NOT carry any other.
+ * Draft, Location and Transport: a declaration is published with the
+ * `application/sustainability-data+json` media type the draft registers; a
+ * consumer MAY also process a `200 OK` response of `application/json` as a
+ * declaration, and a response of any other media type is not a declaration.
  * `LEGACY_MEDIA_TYPE` is `application/json`, the media type declarations
- * published before that registration carry in the field; a consumer MUST
- * process the dedicated type and MAY process this one. It is exposed here so a
+ * published before that registration carry in the field. It is exposed here so a
  * publisher can opt into serving it instead
  * (`HandlerOptions.mediaType: "json"`) for such a deployment — doing so is not
  * conformant publishing.

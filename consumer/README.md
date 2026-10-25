@@ -74,8 +74,10 @@ response covers is in `covers`; never record a response as covering more than th
 A declaration object names the `target` it is about and the `period` it covers as an object with
 `start` and `end` (RFC 3339 date-times, `end` exclusive). There is no `reporting-period` label.
 Energy is in `energy-unit` (`Wh`, `kWh`, `MWh`, `GWh`), carbon in `carbon-unit` (`gCO2e`, `kgCO2e`,
-`tCO2e`). A request with no parameter returns what the server holds as an array, in ascending order
-of `period.start`; an empty array is a valid answer and means the server holds nothing, not an error.
+`tCO2e`). A server that supports the query parameters (`capabilities: "extended"`) answers a request
+with no parameter with what it holds as an array, in ascending order of `period.start`; a Basic
+server or a static file may answer with one object. An empty array is a valid answer and means
+nothing was selected.
 
 ## Upgrading from 0.7.x
 

@@ -2,9 +2,10 @@
 # validate-all.sh — Run the CDDL and JTD validators over the example corpus and
 # compare each exit status with the verdict recorded in examples/manifest.json.
 #
-#   ./validate-all.sh                     the manifest corpus (default)
-#   ./validate-all.sh --example-responses also check ../example-responses/*.json
-#   EXAMPLE_RESPONSES=10 ./validate-all.sh   same, through the environment
+#   ./validate-all.sh                     the manifest corpus (served files included)
+#
+# --example-responses and EXAMPLE_RESPONSES=10 are accepted and change nothing: the
+# files of ../example-responses/ are manifest entries (E01 and on) and always run.
 #
 # Corpus: examples/manifest.json is an array of entries
 #   { "id": "I06", "path": "invalid/period-bound-not-string.json",
@@ -21,10 +22,7 @@
 #
 # First check: the CDDL block of the draft equals response-schema.cddl.
 #
-# TEMPORARY switch (removed once ../example-responses/ is converted): it still holds the
-# files served for -08 until they are converted, so they are checked against
-# the -10 schemas only on request (--example-responses, or EXAMPLE_RESPONSES=10).
-# When checked, every file there must pass both validators.
+# Every file of ../example-responses/ must be a manifest entry.
 #
 # Needs python3 with the jtd package (PYTHON overrides the interpreter) and the
 # cddl gem 0.12.14 on PATH. Exit status: 0 when every verdict matches, 1 on a
@@ -42,11 +40,9 @@ MANIFEST="$CORPUS_DIR/manifest.json"
 EXAMPLES_DIR="../example-responses"
 DRAFT="../internet-drafts/draft-besleaga-sustainability-wellknown-10.md"
 
-CHECK_RESPONSES=0
-[[ "${EXAMPLE_RESPONSES:-}" == "10" ]] && CHECK_RESPONSES=1
 for arg in "$@"; do
     case "$arg" in
-        --example-responses) CHECK_RESPONSES=1 ;;
+        --example-responses) ;;  # accepted for older callers; the files always run
         -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown argument: $arg (try --help)" >&2; exit 2 ;;
     esac
@@ -164,15 +160,15 @@ for dir in valid tolerated invalid prose; do
     done < <(find "$CORPUS_DIR/$dir" -name "*.json" | sort)
 done
 
-# --- TEMPORARY: the served example files ---------------------------------------
-if [[ $CHECK_RESPONSES -eq 1 ]]; then
-    mapfile -t SERVED < <(find "$EXAMPLES_DIR" -maxdepth 1 -name "*.json" | sort)
-    echo "Served files (temporary switch): ${#SERVED[@]} file(s), both validators must pass."
-    for example in "${SERVED[@]}"; do
-        expect "$(basename "$example") JTD"  validator-json.py "$example" true
-        expect "$(basename "$example") CDDL" validator-cddl.py "$example" true
-    done
-fi
+# --- the served example files are in the manifest -----------------------------
+for f in "$EXAMPLES_DIR"/*.json; do
+    rel="../../example-responses/$(basename "$f")"
+    if [[ -z "${LISTED[$rel]:-}" ]]; then
+        echo "$rel is on disk but not in the manifest"
+        FAIL=$((FAIL + 1))
+        ERRORS+=("$rel is on disk but not in the manifest")
+    fi
+done
 
 echo ""
 echo "========================================"

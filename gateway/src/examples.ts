@@ -148,12 +148,10 @@ export const WIRE_CASES: CaseDef[] = [
     file: "example-response-organization-trend.json",
     domain: "organization-trend.example",
     caseName: "Yearly trend, Basic service",
-    serving: "latest",
+    serving: "all",
     note:
       "A multi-year trend file whose document declares capabilities:basic. The parameterless " +
-      "response is the most recent year, which this deployment serves as an object (the draft " +
-      "allows an object or an array); the full trend is in the file, and a Basic subject ignores " +
-      "every parameter.",
+      "response is the array of every held year; a Basic subject ignores every parameter.",
   },
   {
     file: "example-response-comprehensive.json",
@@ -173,7 +171,7 @@ export const WIRE_CASES: CaseDef[] = [
     note:
       "A scope member MAY be negative where the accounting method nets removals; carbon-footprint " +
       "stays gross, so the scopes no longer sum to it and the methodology document explains why. " +
-      "Also shows a free-text measurement-method and an attestation link for the removals claim; " +
+      "Also shows an attestation link for the removals claim; " +
       "the source file omits energy-unit, and the served document carries the materialized kWh.",
   },
   {

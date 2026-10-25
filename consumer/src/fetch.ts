@@ -68,7 +68,7 @@ export function resolveWellKnownUrl(origin: string): URL {
 /**
  * Default overall request timeout (ms). A non-responding origin must not hang
  * the caller forever; 30s is a generous ceiling for a well-known GET that a
- * server SHOULD be serving from cache (see draft §Operational Considerations).
+ * server answers from a prepared file or cache.
  */
 export const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -359,22 +359,18 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
   // What the response covers is what its objects name, never what was asked for.
   const covers = declarationObjects.map((o) => ({ target: o.target, period: { start: o.period.start, end: o.period.end } }));
 
-  // Redirected across origins. The consumer attributes the declaration to the
-  // origin of the final response; where that origin differs from the one it
-  // queried, the declaration is a claim by that other origin, and the consumer
-  // MUST NOT record it as a declaration of the origin it queried unless the
-  // object's `target` names that origin. `url` already reports the final
-  // origin; this is the distinct signal that the attribution moved.
+  // Redirected across origins. Every value in a declaration is a claim of the
+  // publisher of the origin that served the final response (draft, Self-Asserted
+  // Claims). `url` already reports the final origin; this is the distinct
+  // signal that the origin moved. `attributable` is information only: whether
+  // every object's `target` names the origin queried.
   let redirectedAcrossOrigins: { queried: string; final: string; attributable: boolean } | undefined;
   if (finalUrl.origin !== url.origin) {
     const attributable = declarationObjects.every((o) => targetNamesOrigin(o.target, url));
     redirectedAcrossOrigins = { queried: url.origin, final: finalUrl.origin, attributable };
     warnings.push(
-      `cross-origin-redirect: ${isolate(url.origin)} redirected to ${isolate(finalUrl.origin)}, so the declaration ` +
-        `is a claim by ${isolate(finalUrl.origin)}` +
-        (attributable
-          ? `; its target names ${isolate(url.origin)}, so it MAY also be recorded as a declaration of the origin queried`
-          : `; its target does not name ${isolate(url.origin)}, so it MUST NOT be recorded as a declaration of the origin queried`),
+      `cross-origin-redirect: ${isolate(url.origin)} redirected to ${isolate(finalUrl.origin)}; ` +
+        `every value is a claim of ${isolate(finalUrl.origin)} (draft, Self-Asserted Claims)`,
     );
   }
 
@@ -438,7 +434,8 @@ export async function fetchSustainability(origin: string, options: FetchOptions 
     // A consumer walking the chain MUST refuse any URI it has already
     // retrieved. The starting declaration's own URL is one such URI, so the
     // walk starts with it already visited.
-    const visited = new Set([finalUrl.toString().split("#")[0]]);
+    // That is both the URI asked for and the one that answered.
+    const visited = new Set([url, finalUrl].map((u) => u.toString().split("#")[0]));
     const comparisons = await compareUpstream(
       first,
       {

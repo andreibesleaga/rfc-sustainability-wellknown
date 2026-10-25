@@ -73,20 +73,35 @@ const atLeast = (range, [major, minor]) => {
 };
 const packageJson = (pkg) => JSON.parse(readFileSync(join(ROOT, pkg, "package.json"), "utf8"));
 
-// The publisher and the consumer need Node 22.13 (require() of ES modules, unflagged); everything that loads them inherits it.
-const NEEDS_22_13 = ["publisher", "consumer", "gateway", "bdd", "fitness", "tools/create-sustainability-data", "tools/report-to-declaration"];
-// The SFC profile checker still runs on the earlier consumer line and keeps the earlier floor.
-const NEEDS_22_12 = ["sfc-compliance"];
+// The publisher and the consumer need Node 22.13 (require() of ES modules, unflagged); everything that loads them inherits it,
+// the SFC checker and the two deployment kits that run the publisher included.
+const NEEDS_22_13 = [
+  "publisher",
+  "consumer",
+  "gateway",
+  "bdd",
+  "fitness",
+  "sfc-compliance",
+  "tools/create-sustainability-data",
+  "tools/report-to-declaration",
+  "deploy/one-click/railway",
+  "deploy/home-assistant/sustainability-data",
+];
 
 test("every package that loads the publisher or the consumer declares Node 22.13 or newer", () => {
   for (const pkg of NEEDS_22_13) {
     const node = packageJson(pkg).engines?.node ?? "";
     assert.ok(atLeast(node, [22, 13]), `${pkg}: engines.node = ${JSON.stringify(node)}`);
   }
-  for (const pkg of NEEDS_22_12) {
-    const node = packageJson(pkg).engines?.node ?? "";
-    assert.ok(atLeast(node, [22, 12]), `${pkg}: engines.node = ${JSON.stringify(node)}`);
-  }
+});
+
+test("no public document states the extension-name rules that -10 removed", () => {
+  const removed = /Nil and Max UUID|octet for octet/;
+  const offenders = publicTextFiles()
+    .filter((p) => p.endsWith(".md") && !/CHANGELOG/i.test(p) && !rel(p).startsWith("internet-drafts/"))
+    .filter((p) => removed.test(readFileSync(p, "utf8")))
+    .map(rel);
+  assert.deepEqual(offenders, []);
 });
 
 test("the packages that use the libraries ask for the version in this repository", () => {

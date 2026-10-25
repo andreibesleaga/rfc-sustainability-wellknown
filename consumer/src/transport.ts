@@ -109,6 +109,8 @@ export const systemAddressLookup: AddressLookup = async (hostname) =>
 export interface SecureGetOptions {
   /** A stand-in for the transport (tests). Without it the request goes through undici with the connect-time check. */
   fetchImpl?: typeof fetch;
+  /** The request method on every hop (default GET); the conformance battery probes with POST. */
+  method?: "GET" | "POST";
   timeoutMs: number;
   allowInsecure?: boolean;
   headers?: Record<string, string>;
@@ -134,6 +136,12 @@ export interface SecureGetOptions {
    * stay on whatever is given here.
    */
   ca?: string | readonly string[];
+  /**
+   * Called with every redirect target before it is requested. A string
+   * refuses the hop (the string is the refusal's detail), so a caller keeping
+   * a set of retrieved URIs can stop a redirect onto one of them.
+   */
+  refuseHop?: (target: URL) => string | undefined;
 }
 
 /** A refusal decided by the transport rules, before or after the request. */
@@ -144,6 +152,8 @@ export interface TransportRefusal {
     | "too-many-redirects"
     | "timeout"
     | "network-error"
+    /** A redirect led to a URI the caller had already retrieved (see `SecureGetOptions.refuseHop`). */
+    | "already-retrieved"
     /** The certificate chain or the host name did not verify; no byte of the body was read. */
     | "tls-error"
     /** The host is, or resolves to, a loopback, private, link-local or otherwise non-unicast address. */
@@ -283,7 +293,7 @@ function failure(err: unknown, url: URL): TransportRefusal {
 }
 
 /**
- * GET `url`, following at most five redirects, checking each hop against the
+ * GET `url` (or POST, see `method`), following at most five redirects, checking each hop against the
  * transport rules before requesting it. The returned response is unread, and
  * the one deadline `timeoutMs` covers the hops and the reading of the body.
  */
@@ -316,7 +326,7 @@ export async function secureGet(url: URL, opts: SecureGetOptions): Promise<Secur
     let res: Response;
     try {
       res = await doFetch(current.toString(), {
-        method: "GET",
+        method: opts.method ?? "GET",
         headers: opts.headers,
         redirect: "manual",
         signal,
@@ -339,6 +349,11 @@ export async function secureGet(url: URL, opts: SecureGetOptions): Promise<Secur
       } catch {
         release();
         return { ok: false, refusal: { reason: "network-error", url: current.toString(), detail: `unparseable Location "${location}"` } };
+      }
+      const barred = opts.refuseHop?.(current);
+      if (barred !== undefined) {
+        release();
+        return { ok: false, refusal: { reason: "already-retrieved", url: current.toString(), detail: barred } };
       }
       redirected = true;
       continue;

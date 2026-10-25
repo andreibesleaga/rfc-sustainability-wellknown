@@ -667,7 +667,9 @@ describe("attribution after a redirect", () => {
     expect(foreign.status).toBe("ok");
     if (foreign.status !== "ok") return;
     expect(foreign.redirectedAcrossOrigins).toEqual({ queried: "https://asked.example", final: "https://elsewhere.example", attributable: false });
-    expect(foreign.warnings?.some((w) => w.startsWith("cross-origin-redirect") && w.includes("MUST NOT be recorded"))).toBe(true);
+    const note = foreign.warnings?.find((w) => w.startsWith("cross-origin-redirect")) ?? "";
+    expect(note).toContain("every value is a claim of \u2068https://elsewhere.example\u2069");
+    expect(note).not.toMatch(/\bMAY\b|MUST NOT/);
     expect(foreign.url).toBe("https://elsewhere.example/.well-known/sustainability-data");
   });
 

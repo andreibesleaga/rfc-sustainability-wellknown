@@ -35,8 +35,10 @@ An `http` URL is refused, because the specification requires HTTPS.
 
 Options: `--verify-attestation` fetches the statement at
 `verifiable-attestation-uri` and checks it, and is off by default so that a run
-needs no network; `--now=<RFC 3339>` sets the fixed clock; `--json` prints the
-rows as JSON.
+needs no network; `--trusted-issuer-key=<jwk file>` trusts an issuer's public key, without
+which a statement signed under the key in its own header is reported as not attested;
+`--now=<RFC 3339>` sets a fixed clock (the default is the current time); `--json`
+prints the rows as JSON.
 
 Exit status is 0 normally, 1 when the document does not conform to the
 specification or when an annual network figure is at or above the 1 GWh cap, and

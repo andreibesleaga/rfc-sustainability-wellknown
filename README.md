@@ -59,7 +59,7 @@ The gateway also serves illustrative mappings of real organizations' own publish
 | | |
 |---|---|
 | **Real organisations** | Figures transcribed from each organisation's own report, with the source document, retrieval date and licence recorded per figure. Served only where the source's terms allow reuse; seven are withheld: six because their terms forbid reuse, one (Fastly) because its terms could not be read. |
-| **Every case in the draft** | 42 wire-format examples: every `target-type`, unit, accounting basis, period precision, trend shape, negative scope, upstream chain, both kinds of extension name, and one really signed declaration. |
+| **Every case in the draft** | 42 wire-format examples: every `target-type`, unit, accounting basis, period precision, trend shape, negative scope, upstream chain, both kinds of extension name, and three really signed declarations (two Ed25519, one ES256). |
 | **Every adapter** | Eleven demonstrations (Kepler/Prometheus, NESO grid intensity, CO2.js, carbon.txt, Climatiq, Salesforce Net Zero Cloud, Microsoft emissions, Watershed, the IETF GREEN power-and-energy YANG model, the Green Web Foundation's DIST file, and an experimental, synthetic ledger example). Each shows **its raw input next to the declaration it becomes** at `/{domain}/input`, with the licence and a live-upstream link where one exists. |
 | **Its own report** | Extended service: the objects it holds since go-live, selected by `start`, `end`, `granularity` and `target` and returned as they are held, never summed. Energy from the host's usage metrics where entered (else a stated assumption), the Netherlands grid factor (EEA), an embedded `signed` member, and a Verifiable Credential attesting the model. |
 | **HTTP behaviour** | The dedicated media type, strong ETags and `304`s, CORS, `405` with `Allow`, identical `404`s for an unknown subject and a withheld one, `200` with an empty array when a range or target selects nothing, rate limiting, and a legal notice with a removal route. |
@@ -119,7 +119,7 @@ current release, **`0.8.0`**, implements draft `-10`.
 **[`sustainability-wellknown-consumer`](https://www.npmjs.com/package/sustainability-wellknown-consumer)**; the
 current release, **`0.8.0`**, implements draft `-10`; by default it also reads the `-08` and `-09` forms that `-10` replaced.
 
-- **What it does:** fetches, validates defensively (schema plus the draft's cross-entry rules), verifies the embedded
+- **What it does:** fetches, validates defensively (schema plus this package's prose checks: start before end, at-least-one-metric, the sci-score dependency, the day floor and the URI forms), verifies the embedded
   `signed` member, walks `upstream` declarations (depth three at most, no URI twice), and transforms a document to
   CSV, NDJSON, one row per metric, or trend aggregates.
 - **How to use it:** one function call, a client class for repeated polling, or the `sustainability-fetch` CLI, whose
@@ -151,7 +151,7 @@ curl -sI https://example.org/sustainability-methodology.html | head -1
 
 The walkthrough, the expected output, the `--strict` severity model (a failed `MUST` is `FAIL`; an unmet `SHOULD`
 is `WARN` and does not fail the check) and the consumer version needed for a `-10` document are in
-[consumer/README.md § Verify a live deployment](consumer/README.md#verify-a-live-deployment).
+[consumer/README.md § CLI](consumer/README.md#cli).
 
 ---
 
@@ -233,7 +233,7 @@ changed, and which library releases implemented them, is in [internet-drafts/REA
 | `example-response-comprehensive.json` | Comprehensive organization report (`target-type: "organization"`) for a fictional data-centre operator — every optional member that fits an organization, plus six `https`-keyed `extensions` carrying what the base format does not define: ISO/IEC 30134 facility KPIs (PUE/REF/ITEU/ERF/CER/WUE) and CUE, water, waste, hardware circularity, refrigerant and generator emissions, and renewable procurement. Every figure is invented and internally coherent (the scopes sum to `carbon-footprint`; `carbon-intensity-gCO2e-per-kWh` times `energy-consumption` is `scope-2`). |
 | `example-response-origin-annual.json` | Basic service — annual origin-level report (`target-type: "origin"`), the primary real-world static-file use case: no query parameters, one calendar year |
 | `example-response-service.json` | Basic service — SaaS `target-type: "service"` annual report, with `sci-score`/`functional-unit` |
-| `example-response-product.json` | Basic service — hardware product carbon disclosure (`target-type: "product"`), Digital Product Passport style, per-unit lifecycle `functional-unit` |
+| `example-response-product.json` | Basic service — hardware product carbon disclosure (`target-type: "product"`), Digital Product Passport style, assessed per unit (`target-type` product) |
 | `example-response-device.json` | Basic service — IoT/edge node with hardware-metered energy (`target-type: "device"`), demonstrating a URI-keyed `extensions` member |
 | `example-response-tenant.json` | Basic service — cloud tenant allocation (`target-type: "tenant"`, `measurement-method: "cloud-billing"`), full Scope 1/2/3 |
 | `example-response-data-source.json` | Basic service — metrics-feed/data-source report (`target-type: "data-source"`) |
@@ -283,7 +283,7 @@ Formal schemas and validation tooling. See [schemas-validators/README.md](schema
 ```bash
 cd schemas-validators/
 python3 install.py
-./validate-all.sh --example-responses
+./validate-all.sh
 ```
 
 ---
@@ -306,8 +306,8 @@ Server-side security middleware implementing the operational safeguards from the
 
 | Safeguard | Detail |
 |---|---|
-| **DoS protection** | As of `-07`, the specification bounds only the *consumer* (it MUST limit the bytes and objects it accepts); the earlier `-06` server-side "cap at 366 objects" MUST/RECOMMENDED rule is removed. `security.py`/`.js`/`.php` still cap published arrays at 366 entries (one leap year of daily data), keeping the most recent periods, as a server-side defense-in-depth measure, not a spec requirement |
-| **Traffic analysis prevention** | Drop entries whose `reporting-period` is not a calendar day, month or year (the draft says publishers SHOULD NOT report finer than 24 hours; a longer string is malformed) |
+| **DoS protection** | As of `-07`, the specification bounds only the *consumer* (it MUST limit the bytes and objects it accepts); the earlier `-06` server-side "cap at 366 objects" MUST/RECOMMENDED rule is removed. `security.py`/`.js`/`.php` still refuse a held set above 366 entries (one leap year of daily data), never truncating an answer, as a server-side defense-in-depth measure, not a spec requirement |
+| **Traffic analysis prevention** | Drop (or warn about) objects whose period is shorter than a calendar day or whose bounds are not the first instant of a calendar day in their own offset (the draft: a period SHOULD be a calendar day or longer; real-time telemetry is NOT RECOMMENDED) |
 | **Anti-fingerprinting** (optional) | ~1% multiplicative (sign-preserving) noise on `energy-consumption`, `carbon-footprint`, `scope-1/2/3`, applied once at generation time, deterministic per reporting period, consistent across related fields — non-negative members stay non-negative, and negative scope values keep their sign |
 
 ---
@@ -322,7 +322,7 @@ Drop-in configuration snippets for serving `/.well-known/sustainability-data`. S
 | `apache.conf` | Apache `Alias` + `<Location>` block: same features, rate limiting options (commented) |
 | `README.md` | Setup instructions, feature comparison table, security notes |
 
-Both set the media type (MUST), `Cache-Control: public, max-age=86400` and `ETag`/`Last-Modified` (RECOMMENDED), `Access-Control-Allow-Origin: *` on successful responses (SHOULD), `405` with `Allow: GET, HEAD` for other methods, and a commented rate-limiting snippet for dynamic `period`/`granularity` parameters; the feature table in that README lists each with its requirement level.
+Both set the registered media type, `Cache-Control: public, max-age=86400` and `ETag`/`Last-Modified`, `Access-Control-Allow-Origin: *` on successful responses, `405` with `Allow: GET, HEAD` for other methods (HTTP practice, not requirements of the draft), and a commented rate-limiting snippet for the dynamic `start`/`end`/`granularity` parameters (the draft: SHOULD rate-limit a server that computes answers); the feature table in that README lists each.
 
 ---
 

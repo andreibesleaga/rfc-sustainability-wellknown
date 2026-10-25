@@ -17,11 +17,10 @@
  * mechanism of draft-besleaga-sustainability-wellknown and is not
  * independent assurance.
  *
- * Binding to a declaration (-07). Draft -07, Appendix A step 5, says only that
- * "an issuer attesting the figures of one period instead carries a copy of that
- * declaration", and that "this document does not constrain the credential
- * format, so an issuer using another arrangement states it in its own profile".
- * Everything below is THIS TOOL'S PROFILE, not the draft's: `--declaration
+ * Binding to a declaration. Draft -10, Appendix A step 5, says: "Its
+ * `credentialSubject` carries the derivation model, its constants and formulas,
+ * and the entered months". The draft defines no binding of the credential to one
+ * declaration. Everything below is THIS TOOL'S PROFILE, not the draft's: `--declaration
  * <file>` reads one served declaration, strips its `signed` member, and carries
  * the copy at `credentialSubject.declaration`; the reference consumer then
  * reports the binding as `match` or `mismatch`. There is no digest: the copy is

@@ -15,9 +15,10 @@
  * surface): https only; a registered DNS name only (no IP literals, no
  * `localhost`, no single-label or `.local`/`.internal` names); the consumer's
  * own transport protections then refuse a name that resolves to a private or
- * link-local address at check time, and on every redirect (a DNS answer that
- * changes between that check and the connection is not closed, as the consumer
- * documents; only an https request on port 443 to the checked name is ever
+ * link-local address (the consumer checks the address in the lookup of the
+ * connection it actually opens, on every hop, so a DNS answer that changes
+ * after the check cannot pass; true when no `fetchImpl` is injected, as in
+ * production; only an https request on port 443 to the checked name is ever
  * attempted); 64 KiB body cap; 5-second timeout; one retrieval in flight per
  * host; a global budget of new retrievals per minute across all clients; a
  * stricter per-client rate limit for requests that cause a retrieval (a badge

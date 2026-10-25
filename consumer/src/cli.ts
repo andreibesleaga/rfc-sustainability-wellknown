@@ -44,11 +44,11 @@ const USAGE =
   "                objects of one target whose periods do not overlap and that\n" +
   "                share one carbon-accounting value (or none) are added; else the\n" +
   "                reason is printed and the exit code is 1.\n" +
-  "  --allow-http  Permit a plain-HTTP origin. The draft requires HTTPS and says\n" +
-  "                a consumer MUST NOT accept a declaration retrieved over\n" +
-  "                unauthenticated HTTP, so an http:// origin is refused without\n" +
-  "                this flag — use it only against a local server or in CI. It\n" +
-  "                also permits loopback addresses, and nothing else.\n" +
+  "  --allow-http  Permit a plain-HTTP origin. The draft requires that a\n" +
+  "                declaration be published and retrieved over HTTPS, so an\n" +
+  "                http:// origin is refused without this flag; use it only\n" +
+  "                against a local server or in CI. It also permits loopback\n" +
+  "                addresses, and nothing else.\n" +
   "  --allow-private  Permit a private, link-local or other non-public address\n" +
   "                (an origin on your own network). Separate from --allow-http.\n" +
   "  --strict      Run the conformance battery against the origin instead (alias\n" +
@@ -413,8 +413,7 @@ export async function runCli(argv: string[]): Promise<number> {
     return 2;
   }
 
-  // Draft MUST: a consumer MUST NOT accept a declaration retrieved over
-  // unauthenticated HTTP. A bare hostname was already promoted to https above;
+  // Draft MUST: a declaration is published and retrieved over HTTPS. A bare hostname was already promoted to https above;
   // an explicit http:// origin is a deliberate choice, so it gets a deliberate
   // flag rather than a silent downgrade.
   const allowInsecure = opts["allow-http"] === true;
@@ -443,8 +442,8 @@ export async function runCli(argv: string[]): Promise<number> {
     if (report.capabilities) console.log(`capabilities: ${report.capabilities}`);
     if (report.allPassed && !report.allPassedIncludingRecommended) {
       console.log(
-        "\nConformant: all MUST-level checks passed. WARN lines are unmet recommendations" +
-          " or advisory findings (such as the generic media type).",
+        "\nConformant: all MUST-level checks passed. WARN lines are unmet recommendations," +
+          " HTTP practice the draft leaves to the publisher, or advisory findings (such as the generic media type).",
       );
     }
     // The signature is part of the battery; the attestation is an explicit extra.
@@ -509,10 +508,7 @@ export async function runCli(argv: string[]): Promise<number> {
       if (result.redirectedAcrossOrigins) {
         const r = result.redirectedAcrossOrigins;
         console.error(
-          `cross-origin redirect: ${r.queried} redirected to ${r.final}, so this declaration is a claim by ${r.final}` +
-            (r.attributable
-              ? `; its target names ${r.queried}, so it may also be recorded against the origin queried`
-              : `; its target does not name ${r.queried}, so it MUST NOT be recorded as a declaration of ${r.queried}`),
+          `cross-origin redirect: ${r.queried} redirected to ${r.final}; every value is a claim of ${r.final} (draft, Self-Asserted Claims)`,
         );
       }
       if (result.warnings) for (const w of result.warnings) console.error(`warning: ${w}`);

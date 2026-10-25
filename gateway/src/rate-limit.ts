@@ -1,6 +1,6 @@
 /**
- * Per-client request rate limiting (draft Security Considerations §Denial of Service: servers
- * SHOULD rate-limit requests to the well-known URI). The limiter itself is
+ * Per-client request rate limiting (draft Security Considerations: a server that computes
+ * answers on demand SHOULD rate-limit; this deployment limits every path). The limiter itself is
  * `rate-limiter-flexible`'s in-memory backend; this module only fixes the
  * gateway's policy — one fixed window per client, `Retry-After` on refusal —
  * and how a client is identified behind a platform proxy.

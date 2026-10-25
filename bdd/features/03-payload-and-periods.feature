@@ -561,7 +561,7 @@ Feature: Payload and periods
       | neg-space-separator.json            |
       | neg-updated-lowercase-z.json        |
 
-  # ---- added by the 24 Oct review: arrays, I-JSON, language, target, derived members, links, examples ----
+  # ---- arrays, I-JSON, language, target, derived members, links, examples ----
 
   @REQ-BDY-03 @golden @rk-body-1 @rk-mand-12
   Scenario: An origin and one of its services in one array are accepted
@@ -775,13 +775,6 @@ Feature: Payload and periods
     Then the target member is byte-identical to "Grün GmbH"
     And the target member is not "Gruen GmbH"
     And the target member is not "Grun GmbH"
-
-  @REQ-TGT-02 @error @req-d38c718d @rk-mand-11
-  Scenario: The publisher has no translation hook for target, so the target passes through unchanged
-    Given an extended publisher holding the target "Grün GmbH"
-    When the publisher builds the declarations
-    And the consumer reads them
-    Then the target member is byte-identical to "Grün GmbH"
     And the publisher's options have no translate or transliterate member
 
   @REQ-TGT-02 @edge @req-d38c718d @rk-mand-11

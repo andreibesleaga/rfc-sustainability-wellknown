@@ -40,8 +40,8 @@ document says so in band, in its `provider` member, and the index page says so
 again.
 
 The specification anticipates precisely this: a `target` naming a subject other
-than the origin is, in the draft's words, "a claim made by the origin's operator
-about that subject, and nothing more."
+than the origin is, in the draft's words, "a claim by the origin's publisher
+about that target".
 
 ## 2. The gateway's own report
 
@@ -190,6 +190,11 @@ average output rate (EPA eGRID2022, 823.1 lb CO2/MWh), which matched neither the
 region nor the current year. The model is evaluated on demand, so every period
 the gateway reports — including July to September 2026 — is now computed with
 245. Figures fetched before that date used 373 and differ by that ratio.
+Because those figures were restated, an object for a complete period that ended
+before 2026-10-02 states `updated` 2026-10-02T00:00:00Z (`SELF_MODEL_CHANGED_AT`),
+and an object covering a month whose power was entered later states the instant
+it was entered (the `entered` member of that month in `data/_self-measured.json`),
+so a consumer holding an older copy sees a later `updated` for the same period.
 
 Honest caveats:
 
@@ -267,13 +272,14 @@ end, plus three adapters that live in this gateway (described at the end of this
   document: the subject demonstrates the computation, not a location-accurate
   footprint.
 - **`co2js-demo.example`** (`co2js` adapter) runs the Green Web Foundation's
-  CO2.js Sustainable Web Design model locally over a REAL input: the measured
-  byte size of one crawl of every curated and example document this gateway
-  serves at boot. Grid intensity comes from CO2.js's bundled Ember annual
+  CO2.js Sustainable Web Design model locally for one gigabyte of transfer; the
+  measured byte size of one crawl of every curated and example document this
+  gateway serves at boot is given for scale. Grid intensity comes from CO2.js's bundled Ember annual
   world average (CC BY 4.0); green-hosting status from the keyless Greencheck
-  API (ODbL) when a public `BASE_URL` is configured. The result is the
-  transfer footprint of one crawl — a functional unit, not this service's
-  total footprint (§2 is that).
+  API (ODbL) when a public `BASE_URL` is configured. The result is a
+  `sci-score` with `functional-unit` `per-gigabyte`, a rate and not this
+  service's total footprint (§2 is that); it carries no `energy-consumption` or
+  `carbon-footprint`.
 
 The remaining five (`carbontxt-demo`, `climatiq-demo`, `salesforce-nzc-demo`,
 `ms-sustainability-demo`, `watershed-demo`) carry their own methodology links
@@ -417,15 +423,15 @@ either.
 
 ## 6. Extension names used here
 
-Data the specification does not define travels in the `extensions` member, whose
-keys are absolute URIs, written in ASCII with the scheme in lowercase and no
-fragment. Two forms are permitted: an `https` URI under the definer's control,
-which should identify human-readable documentation of the extension, or
-`urn:uuid:` followed by a lowercase hyphenated UUID, for a definer without a
-domain. A key is an identifier, not a locator — it is compared as a
-string and never dereferenced, so a later change in who owns a domain does not
-change what an existing declaration means. There is no registry, and a consumer
-ignores a key whose definition it does not implement.
+Data the specification does not define travels in the `extensions` member. An
+extension name is a URI under the definer's control when the name was minted
+(for example an `https` URI), or a UUID URN (`urn:uuid:…`) for a definer without
+a domain. It is an identifier, compared as a string after JSON escapes are
+decoded, and never dereferenced, so a later change in who owns a domain does not
+change what an existing declaration means. This registry itself mints only
+lowercase `https` names and lowercase UUID URNs: a house style, not a rule of
+the draft. There is no registry of names, and a consumer ignores a key whose
+definition it does not implement.
 
 The specification asks a publisher's methodology document to list the extension
 names it uses with their definitions. The names the gateway serves are below, and
@@ -462,7 +468,7 @@ with one member, **`pue`** (number — power usage effectiveness, ISO/IEC
 30134-2). An illustrative name for data defined outside the specification,
 minted for these two files so that the draft's own `urn:uuid:16c36135…` name
 above keeps its one meaning (`packaging-recycled-percent`): a name is compared
-octet for octet, and one name never carries two definitions.
+as a string, and one name never carries two definitions.
 
 ### `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle`, `.../carbon-neutrality`, `.../network-topology` and `.../ledger-evidence`
 
@@ -528,7 +534,7 @@ whole of its sustainability data — everything the specification does not defin
 - **`…/hardware-lifecycle`** — general-purpose hardware, expected service life,
   whether embodied carbon is inside `scope-3`, refurbished share, take-back
   programme. A different name from the SFC profile's `hardware-lifecycle` above:
-  same topic, different definer, and a name is compared octet for octet.
+  same topic, different definer, and a name is compared as a string.
 - **`…/direct-emissions`** — refrigerant leakage and generator diesel, in mass
   and in tonnes CO2e, declared as already inside `scope-1` rather than added to
   it.

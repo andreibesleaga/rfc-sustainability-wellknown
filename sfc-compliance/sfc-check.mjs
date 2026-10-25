@@ -53,12 +53,6 @@ export const isAnnualPeriod = (o) => !periodError(o.period) && isWholeCalendarPe
 /** An object's period as text for the report: "start to end", or "(none)". */
 export const periodLabel = (o) => (periodError(o.period) ? "(none)" : `${o.period.start} to ${o.period.end}`);
 
-/**
- * The clock. Injected everywhere a library reads one, so that a run is
- * reproducible and no verdict moves with the date. Override with --now.
- */
-export const DEFAULT_CLOCK = new Date("2026-01-01T00:00:00Z");
-
 const isNumber = (v) => typeof v === "number" && Number.isFinite(v);
 const isString = (v) => typeof v === "string" && v.length > 0;
 const isObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -241,6 +235,7 @@ async function checkAttestation(rows, obj, options) {
   try {
     result = await verifyAttestation(uri, {
       base: options.base,
+      trustedIssuerKeys: options.trustedIssuerKeys,
       now: options.clock,
       declaration: obj,
       timeoutMs: options.timeoutMs,
@@ -256,11 +251,22 @@ async function checkAttestation(rows, obj, options) {
     return;
   }
   const binding = result.binding ? result.binding.status : "not-checked";
+  if (result.attested) {
+    rows.push(
+      row(
+        "DECLARED",
+        "C3-attestation",
+        `attested by ${result.issuer}: signature verified under a trusted key (${result.alg}), covers the target and period, declaration copy ${binding}. This is evidence about the statement, not about the figures`
+      )
+    );
+    return;
+  }
+  const coverage = result.coverage ? result.coverage.status : "not-checked";
   rows.push(
     row(
-      "DECLARED",
+      "INFO",
       "C3-attestation",
-      `a statement by ${result.issuer} was fetched and its signature checks out (${result.alg}, key ${result.assurance}, declaration copy ${binding}). It is attested, not verified: this is evidence about the statement, not about the figures`
+      `a statement by ${result.issuer} was fetched and its signature verifies under ${result.assurance === "issuer-key-pinned" ? "a trusted key" : `the key in its own header (${result.alg}); that key is trusted no further than the credential carrying it`}, coverage ${coverage}, declaration copy ${binding}, so the object is not attested. Pass --trusted-issuer-key=<jwk file> to trust the issuer's key`
     )
   );
 }
@@ -336,12 +342,13 @@ function checkLedgerEvidence(rows, obj) {
  */
 export async function checkDocument(doc, options = {}) {
   const opts = {
-    clock: options.clock ?? DEFAULT_CLOCK,
+    clock: options.clock ?? new Date(),
     verifyAttestation: options.verifyAttestation === true,
     timeoutMs: options.timeoutMs,
     fetchImpl: options.fetchImpl,
     lookup: options.lookup,
     base: options.base,
+    trustedIssuerKeys: options.trustedIssuerKeys,
   };
   const rows = [];
   const objects = objectsOf(doc);
@@ -391,8 +398,10 @@ function describeFetchFailure(fetched) {
 
 /** The HTTP half of C4, which needs a live origin. */
 export async function checkOrigin(origin, options = {}) {
-  const clock = options.clock ?? DEFAULT_CLOCK;
+  const clock = options.clock ?? new Date();
+  // The compatibility reading is off: the checker judges the document as served.
   const fetched = await fetchSustainability(origin, {
+    legacyCompat: false,
     timeoutMs: options.timeoutMs,
     fetchImpl: options.fetchImpl,
     lookup: options.lookup,
@@ -418,7 +427,8 @@ export async function checkOrigin(origin, options = {}) {
       ? row("PASS", "C4-origin", `${report.checks.length} checks run against ${report.origin}; every MUST passed`)
       : row("FAIL", "C4-origin", `${musts.length} MUST level checks failed: ${musts.map((c) => c.name).join(", ")}`)
   );
-  for (const check of failed.filter((c) => c.level === "SHOULD")) {
+  // Everything below MUST level that did not pass: unmet recommendations, HTTP practice, notes.
+  for (const check of report.checks.filter((c) => c.level !== "MUST" && c.outcome !== "pass")) {
     result.rows.push(row("WARN", "C4-origin", `${check.name}: ${check.detail ?? "recommendation not met"}`));
   }
   if (musts.length > 0) {
@@ -445,7 +455,8 @@ function usage() {
     "usage: node sfc-check.mjs <https origin or local file> [options]",
     "",
     "  --verify-attestation   fetch the statement at verifiable-attestation-uri and check it (default off)",
-    "  --now=<RFC 3339>       the fixed clock the checks read (default 2026-01-01T00:00:00Z)",
+    "  --now=<RFC 3339>       the fixed clock the checks read (default: the current time)",
+    "  --trusted-issuer-key=<jwk file>  an attestation issuer's public key, trusted out of band (default: none)",
     "  --json                 print the rows as JSON instead of text",
     "  --help                 this text",
     "",
@@ -453,14 +464,25 @@ function usage() {
   ].join("\n");
 }
 
+/** A public JWK from a file, or the error that says which file was unusable. */
+function readJwk(file) {
+  try {
+    return JSON.parse(readFileSync(file, "utf8"));
+  } catch (err) {
+    throw new Error(`--trusted-issuer-key: cannot read a JWK from ${file}: ${err.message}`);
+  }
+}
+
 export function parseArgs(argv) {
-  const options = { verifyAttestation: false, json: false, clock: DEFAULT_CLOCK, help: false };
+  const options = { verifyAttestation: false, json: false, help: false };
   let subject;
   for (const arg of argv) {
     if (arg === "--verify-attestation") options.verifyAttestation = true;
     else if (arg === "--json") options.json = true;
     else if (arg === "--help" || arg === "-h") options.help = true;
-    else if (arg.startsWith("--now=")) {
+    else if (arg.startsWith("--trusted-issuer-key=")) {
+      options.trustedIssuerKeys = [...(options.trustedIssuerKeys ?? []), readJwk(arg.slice("--trusted-issuer-key=".length))];
+    } else if (arg.startsWith("--now=")) {
       const when = new Date(arg.slice("--now=".length));
       if (Number.isNaN(when.getTime())) throw new Error(`--now is not a date: ${arg}`);
       options.clock = when;
@@ -488,7 +510,7 @@ export async function main(argv) {
   if (/^https:\/\//i.test(subject)) {
     result = await checkOrigin(subject, options);
   } else if (/^http:\/\//i.test(subject)) {
-    process.stderr.write("the draft requires https, and a consumer must not accept a declaration fetched over http\n");
+    process.stderr.write("a declaration is published and retrieved over https (draft, Location and Transport)\n");
     return 2;
   } else {
     let doc;

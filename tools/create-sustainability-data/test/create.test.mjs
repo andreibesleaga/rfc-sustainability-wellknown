@@ -214,6 +214,16 @@ test("signing: a symmetric HS256 key and an ES256 key are refused and named", as
   await assert.rejects(build({ ...origin, key: join(dir, "missing.jwk") }, { now: NOW }), /ENOENT/);
 });
 
+test("signing: a key file naming alg EdDSA on an Ed25519 key signs, and the header says Ed25519", async () => {
+  const dir = scratch();
+  const file = join(dir, "eddsa.jwk");
+  const jwk = await exportPrivateJwk(await generateSigningKey("Ed25519"));
+  writeFileSync(file, JSON.stringify({ ...jwk, alg: "EdDSA" }));
+  const r = await build({ ...origin, key: file }, { now: NOW });
+  const header = JSON.parse(Buffer.from(r.doc.signed.split(".")[0], "base64url").toString());
+  assert.equal(header.alg, "Ed25519");
+});
+
 test("with no key the file is unsigned and the tool says so", async () => {
   const r = await build(origin, { now: NOW });
   assert.equal("signed" in r.doc, false);

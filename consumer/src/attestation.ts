@@ -29,9 +29,9 @@ export const VC_V2_CONTEXT = "https://www.w3.org/ns/credentials/v2";
 
 /**
  * How the credential binds to the declaration (draft -10, Appendix A step 5:
- * the issuer "issues a verifiable credential whose subject contains a copy of
- * the declaration object (without `signed`)", and the consumer "compares the
- * credential's copy with the verified payload").
+ * the credential's `credentialSubject` carries the derivation model, its
+ * constants and formulas, and the entered months). Carrying a copy of the
+ * declaration object is this package's binding profile, not the draft's.
  *
  *  - `match` — the copy is structurally identical to the declaration the
  *    caller supplied. The issuer signed THAT object, not merely its URL.

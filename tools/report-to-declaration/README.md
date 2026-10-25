@@ -53,7 +53,7 @@ excluded, at midnight in one fixed offset. `Z` is the default; `--offset +02:00`
 label of a year, month or day is the whole calendar unit; a range ends at the first instant of the
 day after its last date. `evidence.md` shows the label and the two date-times side by side. An offset
 that changes inside the period (daylight-saving time) is not read: state the offset of the report's
-accounting day, or publish with `sustainability-publisher upgrade`. Recorded replies written for
+accounting day, or build the period with the publisher's `yearPeriod`/`monthPeriod`/`dayPeriod` and an IANA zone (for example `yearPeriod(2025, "Europe/Berlin")`), which writes the offset in force at each bound. Recorded replies written for
 earlier revisions (member `reporting-period`, unit `mtCO2e`) still replay and are read as `period` and
 `tCO2e`.
 

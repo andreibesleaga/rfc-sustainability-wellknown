@@ -67,7 +67,7 @@ Feature: Query parameters
     Then the body lists the periods 2025-02
 
   @REQ-QRY-03 @REQ-QRY-07 @UC-2.2 @rk-qry-2 @error @req-ee318dc3
-  Scenario Outline: A start or end that does not match the profile is ignored, never read as another value
+  Scenario Outline: A start or end that does not match the profile, or names no real date and time, is ignored, never read as another value
     When I send GET "/.well-known/sustainability-data?target=example.com&granularity=monthly&start=<value>&end=2025-03-01T00:00:00Z"
     Then the status is 200
     And the body lists the periods 2025-01, 2025-02
@@ -87,9 +87,20 @@ Feature: Query parameters
       | 2025-02-30T00:00:00Z          |
       | 2025-13-01T00:00:00Z          |
       | 2025-02-01T25:00:00Z          |
-      | 2016-12-31T23:59:60Z          |
       | 1738368000                    |
       |                               |
+
+  @impl @REQ-QRY-07 @rk-qry-2 @edge @req-ee318dc3
+  Scenario: A real leap second bound is ignored, because it cannot be read without reading it as 23:59:59
+    When I send GET "/.well-known/sustainability-data?target=example.com&granularity=monthly&start=2016-12-31T23:59:60Z&end=2025-03-01T00:00:00Z"
+    Then the status is 200
+    And the body lists the periods 2025-01, 2025-02
+
+  @impl @REQ-QRY-19 @rk-qry-2 @edge @req-6c3122f6
+  Scenario: A request whose only parameter is a real leap second is answered as a request without parameters
+    When I send GET "/.well-known/sustainability-data?start=2016-12-31T23:59:60Z"
+    Then the status is 200
+    And the body is the same as for GET "/.well-known/sustainability-data"
 
   @REQ-QRY-07 @rk-qry-2 @rk-qry-3 @edge @req-ee318dc3
   Scenario: A positive offset written with a literal plus is a space after form decoding and is ignored
@@ -419,7 +430,7 @@ Feature: Query parameters
     Then the fetch reports nothing as not requested
     And the recorded coverage is "2026-01-01T00:00:00Z" to "2026-03-01T00:00:00Z"
 
-  # ---- added by the 24 Oct review: target value, parameterless request, partial answers ----
+  # ---- target value, parameterless request, partial answers ----
 
   @REQ-QRY-08 @golden @req-e6268aef @rk-qry-5
   Scenario Outline: A path prefix selects the same object whether or not its slash is percent-encoded
@@ -471,9 +482,8 @@ Feature: Query parameters
       | ?granularity=weekly                          |
       | ?start=2025-02-01&end=garbage                |
       | ?granularity=Monthly&unknown=1               |
-      | ?start=2016-12-31T23:59:60Z                  |
 
-  @REQ-QRY-19 @edge @req-6c3122f6 @rk-qry-7
+  @impl @REQ-QRY-19 @edge @req-6c3122f6 @rk-qry-7
   Scenario: Equal period.start values are ordered by period.end, then target, and full ties keep the held order
     Given an extended publisher holding these periods in this order:
       | label       | start                | end                  | target       |

@@ -131,7 +131,7 @@ describe("GET /.well-known/sustainability-data (G01 to G09)", () => {
     expect(Array.isArray(doc)).toBe(false);
     expect(doc.period).toEqual({ start: "2026-09-01T00:00:00Z", end: "2026-10-01T00:00:00Z" });
     expect(doc.capabilities).toBe("extended");
-    expect(doc.updated).toBe("2026-10-01T00:00:00Z");
+    expect(doc.updated).toBe("2026-10-02T00:00:00Z"); // the figures were restated on 2 October (the model change)
   });
 
   it("G02 September and its thirty days come back in ascending order, the shorter day first", async () => {
@@ -252,14 +252,14 @@ describe("GET /.well-known/sustainability-data (G01 to G09)", () => {
 
   it("Last-Modified is the latest updated among the objects returned, and a 304 carries it", async () => {
     const first = await get("?start=2026-08-01T00:00:00Z&end=2026-09-01T00:00:00Z");
-    expect(first.headers.get("last-modified")).toBe("Tue, 01 Sep 2026 00:00:00 GMT");
+    expect(first.headers.get("last-modified")).toBe("Fri, 02 Oct 2026 00:00:00 GMT");
     const etag = first.headers.get("etag")!;
     const second = await fetch(`${srv.base}${SELF}?start=2026-08-01T00:00:00Z&end=2026-09-01T00:00:00Z`, { headers: { "if-none-match": etag } });
     expect(second.status).toBe(304);
-    expect(second.headers.get("last-modified")).toBe("Tue, 01 Sep 2026 00:00:00 GMT");
+    expect(second.headers.get("last-modified")).toBe("Fri, 02 Oct 2026 00:00:00 GMT");
     expect(second.headers.get("content-length")).toBeNull();
     const since = await fetch(`${srv.base}${SELF}?start=2026-08-01T00:00:00Z&end=2026-09-01T00:00:00Z`, {
-      headers: { "if-modified-since": "Tue, 01 Sep 2026 00:00:00 GMT" },
+      headers: { "if-modified-since": "Fri, 02 Oct 2026 00:00:00 GMT" },
     });
     expect(since.status).toBe(304);
   });

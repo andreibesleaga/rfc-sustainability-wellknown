@@ -110,8 +110,8 @@ default; set them under **Variables** (dashboard) or with
 | `HOST` | `0.0.0.0` | Bind address. Leave it. |
 | `DATA_DIR` | `<app>/data` | Where subject documents are read from. |
 | `EXAMPLES_DIR` | `<app>/examples` | Where the canonical wire-format example documents are read from. |
-| `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`, the draft's RECOMMENDED value. |
-| `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` declaration response media type. `sustainability-data+json` (default) serves the dedicated `application/sustainability-data+json` type the draft requires, with `X-Content-Type-Options: nosniff`; `json` serves the generic `application/json` type instead (a consumer MAY process it, but publishing it is not conformant; also with `nosniff`). One subject can be pinned to the generic type regardless of this default via `data/_media-type.json` — see `GUIDE.md`. |
+| `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…`, this deployment's default. |
+| `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` declaration response media type. `sustainability-data+json` (default) serves the dedicated `application/sustainability-data+json` type the draft registers, with `X-Content-Type-Options: nosniff`; `json` serves the generic `application/json` type instead (a consumer MAY process it, but publishing it is not conformant; also with `nosniff`). One subject can be pinned to the generic type regardless of this default via `data/_media-type.json` — see `GUIDE.md`. |
 | `BASE_URL` | *(empty)* | Public base URL, for absolute links in the index. Setting it also turns the co2js demonstration's Greencheck lookup live (keyless). |
 | `GWF_API_KEY` | *(unset)* | Optional free Green Web Foundation key → carbontxt demonstration runs live. |
 | `CLIMATIQ_API_KEY` | *(unset)* | Optional; set only under your own Climatiq license (their terms restrict redistribution) — replay is the default. The demo passes Climatiq's required `data_version` selector (`^34`, set in `demo-specs.ts`). |
@@ -123,6 +123,7 @@ default; set them under **Variables** (dashboard) or with
 | `SELF_WATTS` | `3` | Modelled average container power draw. |
 | `SELF_GRID_INTENSITY` | `245` | gCO2e/kWh: the Netherlands, 2024 (EEA). Set your service's region. Cited in `METHODOLOGY.md`. |
 | `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When this gateway went live; the self model counts no hours before it. |
+| `SELF_MODEL_CHANGED_AT` | `2026-10-02T00:00:00Z` | When the self model's figures were last restated; earlier complete periods state it as `updated`. |
 | `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | Private JWK (JSON) signing the gateway's own report: every declaration object it emits then carries a `signed` member (the draft defines no separate signature resource). See [Signing and attestation](#signing-and-attestation). |
 | `SELF_SIGNING_KEY_URL` | *(unset)* | Public URL of the signing key's public half (index display). |
 | `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report. |
@@ -185,9 +186,9 @@ a day). A request with a query string (`?start=…`) or an unusual
 > result, and delete `railway.json`. Nothing in this guide changes otherwise.
 
 > **Do this before citing the deployment.** `SELF_METHODOLOGY_URI` is a
-> mandatory member of a document you are publishing, and the draft requires the
-> resource behind it to be publicly retrievable without authentication. Make
-> sure the default URL actually resolves once you have pushed, or override it.
+> mandatory member of a document you are publishing. Make sure it resolves
+> publicly, since readers follow it: check that the default URL actually
+> resolves once you have pushed, or override it.
 
 ---
 

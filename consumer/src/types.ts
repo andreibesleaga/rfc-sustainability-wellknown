@@ -333,10 +333,8 @@ export type FetchResult =
       /** Whether the response honored each parameter sent; absent when none was sent. */
       honored?: Honored;
       /**
-       * The URL of the final response — after any redirect — which the draft
-       * makes the origin the declaration is attributed to (§Mandatory Minimum
-       * Supported Service: "MUST attribute the declaration to the origin of
-       * the final response").
+       * The URL of the final response, after any redirect; every value is a
+       * claim of the publisher of its origin (draft, Self-Asserted Claims).
        */
       url: string;
       etag?: string;
@@ -402,22 +400,16 @@ export type FetchResult =
       notAsRequested?: string[];
       /**
        * Set ONLY when the final response came from a DIFFERENT origin than the
-       * one queried. Such a declaration is a claim by that other origin, and
-       * this consumer does not record it as a declaration of the origin it
-       * queried unless the object's `target` names that origin.
-       *
-       * `url` already names the final origin, which the declaration is
-       * attributed to. This field is the distinct signal that the attribution
-       * moved: `attributable` says whether the caller may nevertheless record
-       * the declaration against the origin it queried, which it may only when
-       * every object's `target` names that origin.
+       * one queried. Every value is then a claim of that other origin; `url`
+       * already names it, and this field is the distinct signal that the
+       * origin moved.
        */
       redirectedAcrossOrigins?: {
         /** The origin the consumer queried. */
         queried: string;
         /** The origin of the final response, which the declaration is attributed to. */
         final: string;
-        /** True only when every object's `target` names the queried origin. */
+        /** Whether every object's `target` names the origin queried (information only). */
         attributable: boolean;
       };
       /**

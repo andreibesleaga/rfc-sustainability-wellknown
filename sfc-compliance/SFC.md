@@ -91,7 +91,7 @@ conformant units.
   verification (its non-goals), and carries no hardware-lifecycle members — though an
   implementer could publish such figures inside the draft's `extensions` member, under an
   absolute-URI extension name it chooses once — an `https` URI it controls, or `urn:uuid:`
-  plus a lowercase hyphenated UUID (RFC 9562) — e.g. a `hardware-lifecycle-years` member of
+  plus a UUID (RFC 9562) — e.g. a `hardware-lifecycle-years` member of
   its own.
 - Concrete engineering artifacts sometimes associated with SFC deployments (attestation
   event schemas, `/v1/sustainability/*` service APIs, conformance-check suites) are
@@ -148,8 +148,8 @@ all the assets named are in this repository:
    `server-configurations/nginx.conf` and `apache.conf` files are copy-paste ready
    (caching, 405, CORS included). Validate once with `schemas-validators/validate-all.sh`.
 2. **CDN / load-balancer route (no origin change at all).** Route the single well-known
-   path to a static object at the edge — the draft's Deployment section explicitly
-   anticipates this; the rest of the infrastructure is untouched.
+   path to a static object at the edge — the draft's Terminology allows an intermediary
+   to answer on the publisher's behalf; the rest of the infrastructure is untouched.
 3. **Middleware on an existing HTTP gateway (an afternoon).** `npm install
    sustainability-wellknown-publisher` and mount the Express/Fastify middleware on the
    RPC gateway, explorer, or status service already in production; the static or

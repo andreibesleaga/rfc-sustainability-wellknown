@@ -354,7 +354,7 @@ describe("404 when no metadata", () => {
 });
 
 describe("security safeguards", () => {
-  it("caps arrays at 366 objects", () => {
+  it("does not cut a list of objects (the cap bounds what is held, not what is answered)", () => {
     const many: SustainabilityMetrics[] = Array.from({ length: 500 }, (_, i) => ({
       updated: "2026-01-01T00:00:00Z",
       capabilities: "extended",
@@ -368,7 +368,7 @@ describe("security safeguards", () => {
       "carbon-footprint": 1,
       "carbon-unit": "gCO2e",
     }));
-    expect(secureReports(many).length).toBe(366);
+    expect(secureReports(many).length).toBe(500);
   });
 
   it("drops sub-day entries with a warning by default (traffic-analysis floor)", () => {

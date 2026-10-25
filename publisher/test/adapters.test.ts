@@ -158,6 +158,13 @@ describe("adapters produce schema-valid documents (replay mode)", () => {
     expect((doc as any)["scope-3"]).toBe(41850.9);
   });
 
+  it("salesforce-nzc states the accounting its scope-2 field follows", async () => {
+    const config = { provider: "Acme Net Zero", methodologyUri: "https://acme/methodology", fixture: readJson(FX("salesforce-soql.json")) };
+    expect(((await docOf(salesforceNzcAdapter(config))) as any)["carbon-accounting"]).toBe("market-based");
+    const located = await docOf(salesforceNzcAdapter({ ...config, carbonAccounting: "location-based" }));
+    expect((located as any)["carbon-accounting"]).toBe("location-based");
+  });
+
   it("ms-sustainability follows pagination and aggregates", async () => {
     const doc = await docOf(
       msSustainabilityAdapter({

@@ -62,13 +62,57 @@ test('no public text says "chapter <n>"', () => {
   assert.deepEqual(offenders, []);
 });
 
-test("every package declares Node 22.12 or newer", () => {
-  for (const pkg of ["publisher", "consumer", "gateway", "sfc-compliance", "bdd", "fitness", "tools/report-to-declaration"]) {
-    const p = join(ROOT, pkg, "package.json");
-    const j = JSON.parse(readFileSync(p, "utf8"));
-    const node = j.engines?.node ?? "";
-    assert.match(node, />=\s*(2[2-9]|[3-9]\d)/, `${pkg}: engines.node = ${JSON.stringify(node)}`);
+/** `>=22.13` -> [22, 13]; undefined when the range is not a plain lower bound. */
+function lowerBound(range) {
+  const m = /^>=\s*(\d+)\.(\d+)/.exec(range ?? "");
+  return m ? [Number(m[1]), Number(m[2])] : undefined;
+}
+const atLeast = (range, [major, minor]) => {
+  const bound = lowerBound(range);
+  return bound !== undefined && (bound[0] > major || (bound[0] === major && bound[1] >= minor));
+};
+const packageJson = (pkg) => JSON.parse(readFileSync(join(ROOT, pkg, "package.json"), "utf8"));
+
+// The publisher and the consumer need Node 22.13 (require() of ES modules, unflagged); everything that loads them inherits it,
+// the SFC checker and the two deployment kits that run the publisher included.
+const NEEDS_22_13 = [
+  "publisher",
+  "consumer",
+  "gateway",
+  "bdd",
+  "fitness",
+  "sfc-compliance",
+  "tools/create-sustainability-data",
+  "tools/report-to-declaration",
+  "deploy/one-click/railway",
+  "deploy/home-assistant/sustainability-data",
+];
+
+test("every package that loads the publisher or the consumer declares Node 22.13 or newer", () => {
+  for (const pkg of NEEDS_22_13) {
+    const node = packageJson(pkg).engines?.node ?? "";
+    assert.ok(atLeast(node, [22, 13]), `${pkg}: engines.node = ${JSON.stringify(node)}`);
   }
+});
+
+test("no public document states the extension-name rules that -10 removed", () => {
+  const removed = /Nil and Max UUID|octet for octet/;
+  const offenders = publicTextFiles()
+    .filter((p) => p.endsWith(".md") && !/CHANGELOG/i.test(p) && !rel(p).startsWith("internet-drafts/"))
+    .filter((p) => removed.test(readFileSync(p, "utf8")))
+    .map(rel);
+  assert.deepEqual(offenders, []);
+});
+
+test("the packages that use the libraries ask for the version in this repository", () => {
+  const publisher = packageJson("publisher").version;
+  const consumer = packageJson("consumer").version;
+  for (const pkg of ["gateway", "tools/create-sustainability-data"]) {
+    const deps = packageJson(pkg).dependencies ?? {};
+    assert.equal(deps["sustainability-wellknown-publisher"], `^${publisher}`, `${pkg}: publisher dependency`);
+    if (pkg === "gateway") assert.equal(deps["sustainability-wellknown-consumer"], `^${consumer}`, `${pkg}: consumer dependency`);
+  }
+  assert.equal(publisher, consumer, "the two libraries are released together");
 });
 
 test("the consumer never imports the publisher, and the gateway reaches both only by package name", () => {
@@ -97,13 +141,49 @@ test("every example response and every served data file validates with the shipp
       n += 1;
     }
   }
-  assert.ok(n >= 40, `only ${n} documents validated`);
+  assert.ok(n >= 60, `only ${n} documents validated`);
 });
 
-test("the root README names the publisher version in package.json", () => {
-  const version = JSON.parse(readFileSync(join(ROOT, "publisher", "package.json"), "utf8")).version;
+test("every signed served example names Ed25519 or ES256, the media type in cty, and a minimal public jwk", () => {
+  const dir = join(ROOT, "example-responses");
+  let signed = 0;
+  for (const name of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
+    const doc = JSON.parse(readFileSync(join(dir, name), "utf8"));
+    for (const object of Array.isArray(doc) ? doc : [doc]) {
+      if (object.signed === undefined) continue;
+      const header = JSON.parse(Buffer.from(object.signed.split(".")[0], "base64url").toString("utf8"));
+      assert.ok(["Ed25519", "ES256"].includes(header.alg), `${name}: alg ${header.alg}`);
+      assert.equal(header.cty, "sustainability-data+json", `${name}: cty`);
+      const allowed = header.alg === "Ed25519" ? ["kty", "crv", "x"] : ["kty", "crv", "x", "y"];
+      assert.deepEqual(Object.keys(header.jwk ?? {}).sort(), allowed.sort(), `${name}: the jwk carries only the public key`);
+      signed += 1;
+    }
+  }
+  assert.ok(signed >= 3, `only ${signed} signed objects found`);
+});
+
+const NAMED_IN_ROOT_README = [
+  ["publisher", "the publisher"],
+  ["consumer", "the consumer"],
+  ["gateway", "the gateway"],
+  ["tools/create-sustainability-data", "create-sustainability-data"],
+  ["tools/report-to-declaration", "report-to-declaration"],
+];
+
+test("the root README names the version in each package.json", () => {
   const readme = readFileSync(join(ROOT, "README.md"), "utf8");
-  assert.ok(readme.includes(`\`${version}\``), `README does not mention publisher ${version}`);
+  for (const [pkg, label] of NAMED_IN_ROOT_README) {
+    const version = packageJson(pkg).version;
+    assert.ok(readme.includes(`\`${version}\``), `README does not mention ${label} ${version}`);
+  }
+});
+
+test("the root README states the number of served examples and the draft revision of the software", () => {
+  const readme = readFileSync(join(ROOT, "README.md"), "utf8");
+  const served = readdirSync(join(ROOT, "example-responses")).filter((f) => f.endsWith(".json")).length;
+  assert.ok(new RegExp(`\\b${served} JSON response files`).test(readme), `README does not say "${served} JSON response files"`);
+  assert.ok(/implements Internet-Draft version `-10`/.test(readme), "README does not say the software implements -10");
+  assert.ok(!/implements Internet-Draft version `-0\d`/.test(readme), "README names an earlier draft as implemented");
 });
 
 test("the two npm packages stay small", () => {
@@ -115,14 +195,22 @@ test("the two npm packages stay small", () => {
   }
 });
 
-test("unit tests inject their clocks: no bare Date.now() or new Date() in test files", () => {
+const CLOCK_READ = /\bDate\.now\(\)|new Date\(\)/;
+const CLOCK_DIRS = [
+  ...["publisher", "consumer", "gateway"].map((pkg) => join(ROOT, pkg, "test")),
+  ...["tools/create-sustainability-data", "tools/report-to-declaration"].map((pkg) => join(ROOT, pkg, "test")),
+  join(ROOT, "bdd", "steps"),
+  join(ROOT, "fitness"),
+];
+
+test("tests and steps inject their clocks: no bare Date.now() or new Date()", () => {
   const offenders = [];
-  for (const pkg of ["publisher", "consumer", "gateway"]) {
-    for (const p of walk(join(ROOT, pkg, "test"))) {
-      if (!/\.ts$/.test(p)) continue;
-      const lines = readFileSync(p, "utf8").split("\n");
-      lines.forEach((line, i) => {
-        if (/\bDate\.now\(\)|new Date\(\)/.test(line) && !/\/\/.*(fixed|injected|clock|allowed)/i.test(line)) offenders.push(`${rel(p)}:${i + 1}`);
+  for (const dir of CLOCK_DIRS) {
+    for (const p of walk(dir)) {
+      if (!/\.(ts|mjs)$/.test(p) || p.endsWith("repository-invariants.test.mjs")) continue;
+      readFileSync(p, "utf8").split("\n").forEach((line, i) => {
+        if (/^\s*(\/\/|\/?\*)/.test(line)) return; // a comment may mention the rule
+        if (CLOCK_READ.test(line) && !/\/\/.*(fixed|injected|clock|allowed)/i.test(line)) offenders.push(`${rel(p)}:${i + 1}`);
       });
     }
   }

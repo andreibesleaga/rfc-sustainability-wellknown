@@ -1,0 +1,24 @@
+{
+  "updated": "2026-02-25T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Chain Hosting (sustainability@chain.example)",
+  "measurement-method": "hardware-estimated",
+  "methodology-uri": "https://chain.example/sustainability/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
+  "target": "Chain Hosting DC",
+  "target-type": "facility",
+  "energy-unit": "MWh",
+  "carbon-unit": "tCO2e",
+  "energy-consumption": 900,
+  "carbon-footprint": 310,
+  "carbon-accounting": "location-based",
+  "upstream": [
+    {
+      "declaration": "../../chain-colo.example/.well-known/sustainability-data",
+      "role": "colocation"
+    }
+  ]
+}

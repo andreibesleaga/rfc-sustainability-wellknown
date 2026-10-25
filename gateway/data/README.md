@@ -101,22 +101,22 @@ logs are not carried in the repository.
 
 ## Extension names served here
 
-The keys of the `extensions` member are absolute URIs (ASCII, scheme in
-lowercase, no fragment), compared as strings and never dereferenced — either an
-`https` URI under the definer's own control, which should identify
-human-readable documentation of the extension, or
-`urn:uuid:` followed by a lowercase hyphenated UUID, for a definer without a
-domain. There is no registry, and a consumer ignores a key it does not
-implement. The specification asks a publisher's methodology document to list the
+The keys of the `extensions` member are extension names. An extension name is a
+URI under the definer's control when the name was minted (for example an `https`
+URI), or a UUID URN (`urn:uuid:…`) for a definer without a domain. It is an
+identifier, compared as a string after JSON escapes are decoded, and never
+dereferenced. This registry itself mints only lowercase `https` names and
+lowercase UUID URNs: a house style, not a rule of the draft. There is no
+registry of names, and a consumer ignores a key it does not implement. The specification asks a publisher's methodology document to list the
 names it uses together with what their members mean; these are the gateway's,
 and the same list appears in [`METHODOLOGY.md`](../METHODOLOGY.md).
 
 | Extension name | Used by | Members |
 |---|---|---|
-| `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041` | `go.eco.json`, `hmrc.gov.uk.json` (and the withheld `microsoft.com.json`, `ovhcloud.com.json`) | `reporting-period-basis` (string) — the exact boundary of a fiscal reporting period whose `reporting-period` can only carry the calendar year in which it ended, as `fiscal-year-ended-<YYYY-MM-DD>`. Defined by this gateway's operator. The `urn:uuid:` form is used because the definition is the operator's, not any one domain's. |
+| `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041` | none now (earlier copies of `go.eco.json`, `hmrc.gov.uk.json`, and the withheld `microsoft.com.json`, `ovhcloud.com.json` carried it) | `reporting-period-basis` (string) — it stated the exact boundary of a fiscal period as `fiscal-year-ended-<YYYY-MM-DD>`, at a time when the period member could only carry the calendar year in which it ended. No served document carries it now: `period` states the exact bounds of a fiscal year. Defined by this gateway's operator. The `urn:uuid:` form was used because the definition is the operator's, not any one domain's. |
 | `https://acme.example/esg/extensions/water-and-waste` | `tenant-demo.example.json` | `water-consumption-m3` (number, cubic metres), `waste-generated-kg` (number, kilograms), `waste-recycled-percent` (number, 0–100). Defined, in the fiction of the specification's own worked example, by that example's publisher; reproduced here verbatim so the deployment serves the example as written. It demonstrates the `https` form of the key. `acme.example` is a reserved name (RFC 2606), so this particular URI documents nothing, where a real definer's would. |
 | `urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845` | `tenant-demo.example.json` | `packaging-recycled-percent` (number, 0–100). The other half of the specification's worked example: a name minted by a party that wants one independent of any domain. |
-| `urn:uuid:96a3b405-2151-4b00-842e-02a5260331c1` | `example-response-device.json`, `example-response-extended.json` (wire-format examples) | `pue` (number — power usage effectiveness, ISO/IEC 30134-2). An illustrative name for data defined outside the specification. It is deliberately NOT the draft's `urn:uuid:16c36135…` name above: that one means `packaging-recycled-percent`, and a name is compared octet for octet, so one name never carries two definitions. |
+| `urn:uuid:96a3b405-2151-4b00-842e-02a5260331c1` | `example-response-device.json`, `example-response-extended.json` (wire-format examples) | `pue` (number — power usage effectiveness, ISO/IEC 30134-2). An illustrative name for data defined outside the specification. It is deliberately NOT the draft's `urn:uuid:16c36135…` name above: that one means `packaging-recycled-percent`, and a name is compared as a string, so one name never carries two definitions. |
 | `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle` | `sfc-network.example.json`, `sfc-operator.example.json`, `sfc-ledger-demo.example` (generated in code) | `general-purpose-hardware` (boolean — the subject's equipment is general-purpose rather than purpose-built for this workload), `single-use-asic-required` (boolean — participation requires hardware that has no other use), `expected-service-life-years` (number, years — the planned service life before replacement), `embodied-carbon-in-scope-3` (boolean — the emissions of making that hardware are inside the same object's `scope-3` figure), `reuse-and-recycling-policy-uri` (string, absolute `https` URI — the published end-of-life policy). Minted under a domain the gateway operator controls. **The normative definition is [`sfc-compliance/PROFILE.md`](../../sfc-compliance/PROFILE.md)**; this row records only what the documents here carry. |
 | `https://andreibesleaga.com/sfc/extensions/carbon-neutrality` | `sfc-network.example.json`, `sfc-ledger-demo.example` (generated in code) | `net-zero-status` (string — the subject's own claim about its annual position; the SFC framework calls it net zero, and it is an offset-coverage position, retired credits set against gross emissions, not a claim of climate neutrality), `renewable-procurement` (string — how renewable supply is procured), `residual-emissions-tCO2e` (number, metric tonnes CO2e — what remains for the period after reductions, which the retirements are meant to address), `offsets-retired-tCO2e` (number, metric tonnes CO2e retired for the reporting period), `offset-registry-uri` (string, absolute `https` URI — the retirement record), `offsets-attested-by` (string — the party that issued the statement at `verifiable-attestation-uri`, named so a reader knows whose key to look for; the profile's rule 6 is to say *attested*, never *verified*). Gross figures stay in the top-level members: a neutrality claim is carried here, with its evidence, and never by reducing `carbon-footprint`, which is defined as gross and MUST NOT be negative. **Defined in [`sfc-compliance/PROFILE.md`](../../sfc-compliance/PROFILE.md).** |
 | `https://andreibesleaga.com/sfc/extensions/network-topology` | `sfc-network.example.json`, `sfc-operator.example.json`, `sfc-ledger-demo.example` (generated in code) | At network level: `consensus-mechanism` (string), `validated-node-count` (number, count — nodes counted as taking part over the reporting period), `node-count-validation-method` (string — how that count was established), `per-transaction-energy-Wh` (number, watt-hours per transaction), `nakamoto-coefficient` (number, count), `geographic-regions` (number, count). At operator level, the membership members: `member-of-network` (string — the network the subject participates in) and `network-declaration` (string, absolute `https` URI — where that network's own declaration is published), which `upstream` cannot express because a network is not a supplier. **Defined in [`sfc-compliance/PROFILE.md`](../../sfc-compliance/PROFILE.md).** |
@@ -124,7 +124,7 @@ and the same list appears in [`METHODOLOGY.md`](../METHODOLOGY.md).
 | `https://greenhost.example/esg/extensions/facility-efficiency` | `example-response-comprehensive.json` (wire-format example) | `reporting-basis` (string — `annualized`), `measurement-boundary` (string — `site`), `site-identifier` (string), `site-total-energy-MWh` (number, MWh — the one site the KPIs cover, a part of the organization-wide `energy-consumption`), `pue` (number — ISO/IEC 30134-2), `ref` (number, 0–1 — 30134-3, renewable energy factor for that site), `iteu` (number, 0–1 — 30134-5), `erf` (number, 0–1 — 30134-6), `cer` (number — 30134-8, cooling capacity per unit of cooling energy), `wue-L-per-kWh` (number, litres per kWh — 30134-9), `cue-kgCO2e-per-kWh` (number, kgCO2e per IT kWh — The Green Grid), `heat-reuse-delivered-MWh` (number, MWh). |
 | `https://greenhost.example/esg/extensions/water` | `example-response-comprehensive.json` (wire-format example) | `water-withdrawal-m3`, `water-consumption-m3`, `water-discharge-m3` (numbers, cubic metres; consumption + discharge = withdrawal), `municipal-supply-share-percent`, `groundwater-share-percent`, `recycled-water-share-percent` (numbers, 0–100, shares of withdrawal summing to 100), `water-stress-level` (string — the basin's stress band for the reporting site). |
 | `https://greenhost.example/esg/extensions/waste` | `example-response-comprehensive.json` (wire-format example) | `waste-generated-kg`, `hazardous-waste-kg`, `e-waste-kg` (numbers, kilograms; the last two are parts of the first), `diverted-from-landfill-percent`, `recycled-percent`, `e-waste-reuse-percent` (numbers, 0–100). |
-| `https://greenhost.example/esg/extensions/hardware-lifecycle` | `example-response-comprehensive.json` (wire-format example) | `general-purpose-hardware` (boolean), `expected-service-life-years` (number, years), `embodied-carbon-in-scope-3` (boolean — the emissions of making that hardware are inside the same object's `scope-3` figure), `refurbished-hardware-share-percent` (number, 0–100), `take-back-programme-uri` (string, absolute `https` URI). A DIFFERENT name from the SFC profile's `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle` above: same topic, different definer, and a name is compared octet for octet. |
+| `https://greenhost.example/esg/extensions/hardware-lifecycle` | `example-response-comprehensive.json` (wire-format example) | `general-purpose-hardware` (boolean), `expected-service-life-years` (number, years), `embodied-carbon-in-scope-3` (boolean — the emissions of making that hardware are inside the same object's `scope-3` figure), `refurbished-hardware-share-percent` (number, 0–100), `take-back-programme-uri` (string, absolute `https` URI). A DIFFERENT name from the SFC profile's `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle` above: same topic, different definer, and a name is compared as a string. |
 | `https://greenhost.example/esg/extensions/direct-emissions` | `example-response-comprehensive.json` (wire-format example) | `included-in-scope-1` (boolean — these emissions are inside the same object's `scope-1` figure, which they are not allowed to restate), `refrigerant-leakage-kg` (number, kilograms), `refrigerant-gwp-basis` (string — the GWP set used), `refrigerant-leakage-tCO2e` (number, metric tonnes CO2e), `diesel-generator-hours` (number, hours), `diesel-fuel-litres` (number, litres), `diesel-emissions-tCO2e` (number, metric tonnes CO2e). |
 | `https://greenhost.example/esg/extensions/renewable-procurement` | `example-response-comprehensive.json` (wire-format example) | `power-purchase-agreement-share-percent`, `unbundled-certificate-share-percent`, `on-site-generation-share-percent` (numbers, 0–100 — the split of the base `renewable-energy` percentage by how the supply was obtained, summing to it), `on-site-generation-kWh` (number, kWh), `grid-mix-basis` (string — the mix the residual supply is priced against). |
 
@@ -157,15 +157,15 @@ complete; those files are in `withheld/` and are not served.
 | Source (`methodology-uri`) | <https://cf-assets.www.cloudflare.com/slt3lc6tev37/2lg914L21Lyfpcya6weavX/6ded4e6ca673dbc1197c6b772a92aa29/Emission_inventory_PDF__2024.pdf> (short link `https://cfl.re/impact-report-2024`) |
 | Disclosure index | <https://www.cloudflare.com/impact/> |
 | Retrieved | 2025-07-15 (original transcription), re-verified 2026-07-28/29 with no figure changing. `updated` is 2026-07-29 because the document's `provider` caveat text was expanded on that date; every numeric member is unchanged since the 2025-07-15 transcription. |
-| Scope 1 / 2 (LB) / 3 | 198 / 62,782 / 43,071 mtCO2e — all read |
-| `carbon-footprint` | 106,051 mtCO2e |
+| Scope 1 / 2 (LB) / 3 | 198 / 62,782 / 43,071 tCO2e — all read |
+| `carbon-footprint` | 106,051 tCO2e |
 | Assurance | independently reviewed and verified by Shift Advantage |
 
 Caveats, disclosed here and in the document's `provider`:
 
 - **The 106,051 total is the sum of the three published location-based scope
   figures, not a row printed in the report.** The report's printed total row is
-  the *market-based* 43,071 mtCO2e (market-based Scope 2 is 0 for 2024). The
+  the *market-based* 43,071 tCO2e (market-based Scope 2 is 0 for 2024). The
   document declares `carbon-accounting: "location-based"`, on which basis the
   sum is the correct total.
 - **`energy-consumption` is omitted** because the 2025 Impact Report states two
@@ -190,7 +190,7 @@ figure's source and retrieval date are recorded.
 | Attestation (`verifiable-attestation-uri`) | <https://akasus-wp-objectstore.us-ord-1.linodeobjects.com/uploads/20260723123132/Akamai-2025-GHG-Verification-Statement.pdf> |
 | Disclosure index | <https://www.akamaisustainability.com/> |
 | Retrieved | 2026-07-28 / 2026-07-29 |
-| Scope 1 / 2 (MB) / 3 | 70 / 173,000 / 180,350 mtCO2e — all read |
+| Scope 1 / 2 (MB) / 3 | 70 / 173,000 / 180,350 tCO2e — all read |
 | Energy | 1,082,840 MWh — read |
 | Assurance | reasonable assurance, CY2025, Scope 1, 2 and selected Scope 3 categories 3 and 8 |
 
@@ -204,7 +204,7 @@ Caveats:
   climate-disclosure document published no gross-total row and this member was
   omitted; the FY25 report also independently re-confirms the 1,082,840 MWh
   energy figure and the 52% clean-energy row.)
-- Location-based Scope 2 is 322,800 mtCO2e. The market-based basis is declared
+- Location-based Scope 2 is 322,800 tCO2e. The market-based basis is declared
   and used; the location-based figure is not carried.
 - **`renewable-energy: 52`** is the 2025 row of the metrics addendum. The
   narrative report separately describes procurement rising "from 56% to 59% of
@@ -219,12 +219,12 @@ Caveats:
 | Source (`methodology-uri`) | <https://investors.fastly.com/files/doc_governance/2025/Nov/26/2024-Fastly-Sustainability-Report-290db1.pdf> |
 | Disclosure index | *omitted* — see caveats |
 | Retrieved | 2026-07-29 (the origin intermittently blocks automated fetches; read via an Internet Archive capture of that exact URL) |
-| Scope 1 / 2 (LB) / 3 | 102 / 10,987 / 35,222 mtCO2e — all read |
-| `carbon-footprint` | 46,311 mtCO2e — read, and the scopes sum to it exactly |
+| Scope 1 / 2 (LB) / 3 | 102 / 10,987 / 35,222 tCO2e — all read |
+| `carbon-footprint` | 46,311 tCO2e — read, and the scopes sum to it exactly |
 | Energy / renewable | 36,179 MWh / 64.7% — read |
 
 Caveats: the location-based basis is declared and used; the market-based total
-is 37,506 mtCO2e (Scope 2 5,091, Scope 3 32,314). `energy-consumption` is
+is 37,506 tCO2e (Scope 2 5,091, Scope 3 32,314). `energy-consumption` is
 electricity for equipment across the global PoP network and Fastly's offices,
 which is the report's stated boundary. **`disclosure-uri` is omitted** (an
 earlier revision pointed at `fastly.com/social-impact/`): that page returns 404,
@@ -242,12 +242,12 @@ the `methodology-uri` document.
 | Source (`methodology-uri`) | <https://assets.mozilla.net/pdf/Mozilla_Impact_Report_2026.pdf> |
 | Disclosure index | <https://www.mozilla.org/en-US/impact/> |
 | Retrieved | 2026-07-29 (2026 SEI Fact Sheet, PDF created 2026-06-30) |
-| Scope 1 / 2 (MB) / 3 | 30 / 0 / 17,288 mtCO2e — all read (Table 1, 2025 column) |
-| `carbon-footprint` | 17,318 mtCO2e — read, market-based, scopes sum exactly |
+| Scope 1 / 2 (MB) / 3 | 30 / 0 / 17,288 tCO2e — all read (Table 1, 2025 column) |
+| `carbon-footprint` | 17,318 tCO2e — read, market-based, scopes sum exactly |
 
 Caveats: inventories were prepared by Watershed. Mozilla publishes no
 location-based total (the location-based purchased-electricity line for 2025 is
-91 mtCO2e; summing would be a derivation and is not published here). **No
+91 tCO2e; summing would be a derivation and is not published here). **No
 absolute energy figure is published**, so `energy-consumption` is omitted.
 `renewable-energy: 100` is the source's figure scoped to global leased office
 and data-centre spaces ("In 2025, Mozilla sourced 100% renewable energy for all
@@ -266,8 +266,8 @@ edition.
 | Source (`methodology-uri`) | <https://upload.wikimedia.org/wikipedia/commons/d/d7/Wikimedia_Foundation_Environmental_Sustainability_Metrics_2024.pdf> |
 | Disclosure index | <https://meta.wikimedia.org/wiki/Sustainability> |
 | Retrieved | 2026-07-29 |
-| Scope 1 / 2 / 3 | 0.00 / 12.95 / 4,195.49 mtCO2e — all read |
-| `carbon-footprint` | 4,208.44 mtCO2e — read, scopes sum exactly |
+| Scope 1 / 2 / 3 | 0.00 / 12.95 / 4,195.49 tCO2e — all read |
+| `carbon-footprint` | 4,208.44 tCO2e — read, scopes sum exactly |
 | Energy | 5,425,584 kWh — read |
 
 Caveats: **`carbon-accounting` is omitted.** The source does not label the
@@ -286,27 +286,23 @@ reported zero, not an omission.
 | Source (`methodology-uri`) | <https://aka.ms/SustainabilityFactsheet2026> (2026 Environmental Data Fact Sheet) |
 | Disclosure index | <https://www.microsoft.com/en-us/corporate-responsibility/sustainability> |
 | Retrieved | 2026-07-28, re-confirmed 2026-07-29 |
-| Scope 1 / 2 (MB) / 3 (GHGP) | 170,887 / 2,707,428 / 18,243,000 mtCO2e — all read |
-| `carbon-footprint` | 21,121,000 mtCO2e — read (GHGP, market-based) |
+| Scope 1 / 2 (MB) / 3 (GHGP) | 170,887 / 2,707,428 / 18,243,000 tCO2e — all read |
+| `carbon-footprint` | 21,121,000 tCO2e — read (GHGP, market-based) |
 | Energy | 37,461,476 MWh — read |
 | Assurance | Section 1 reviewed by Deloitte & Touche LLP |
 
 **Fiscal-year caveat — read this before using the document.** FY25 is
 **1 July 2024 – 30 June 2025**, not a calendar year, and Microsoft publishes no
-calendar-year inventory. The specification's `reporting-period` admits only
-whole calendar periods, so the document carries `"2025"` — the calendar year in
-which the fiscal year ended — and states the exact boundary two further ways: in
-the `provider` text, and in a machine-readable member. Since -07 closed the
-top-level member set, that member lives inside `extensions`, under this
-registry's own extension name `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041`
-(see [Extension names served here](#extension-names-served-here)), as
-`reporting-period-basis`, whose value is `"fiscal-year-ended-2025-06-30"`. (It
-was the top-level member `io.github.andreibesleaga.reporting-period-basis`
-through -06.) A consumer comparing this declaration with a calendar-year one is
+calendar-year inventory. The specification's `period` member is an object with
+exact `start` and `end` bounds, so the document carries
+`2024-07-01T00:00:00Z` to `2025-07-01T00:00:00Z` and the `provider` text says
+it is a fiscal year. (Earlier copies carried the calendar year `"2025"` and a
+`reporting-period-basis` member in an extension; see
+[Extension names served here](#extension-names-served-here).) A consumer comparing this declaration with a calendar-year one is
 comparing offset periods.
 
 Other caveats: the market-based basis is declared; location-based Scope 2 is
-12,030,556 mtCO2e and is not carried. Scope 3 and the total are the
+12,030,556 tCO2e and is not carried. Scope 3 and the total are the
 GHG-Protocol figures; Microsoft separately reports 17,412,000 / 20,290,000 under
 management's criteria, which are not carried. The published total is stated to
 the nearest thousand, so the scopes sum to 21,121,315 against a published
@@ -324,14 +320,12 @@ publishes no inventory of its own, so no separate declaration is served for it.
 | Disclosure index | <https://corporate.ovhcloud.com/en/sustainability/> |
 | Retrieved | 2026-07-28 |
 | Scope 1 / 2 (MB) / 3 (MB) | 1,325 / 9,981 / 101,557 tCO2e — all read |
-| `carbon-footprint` | 112,863 mtCO2e — read, scopes sum exactly |
+| `carbon-footprint` | 112,863 tCO2e — read, scopes sum exactly |
 | Energy / renewable | 516 GWh / 100% — read |
 
 **Fiscal-year caveat.** FY2025 is **1 September 2024 – 31 August 2025**. As with
-Microsoft, `reporting-period` carries `"2025"` (the calendar year in which the
-fiscal year ended) and the boundary is stated in the `provider` text and in
-the same `reporting-period-basis` member of the same extension name
-(`"fiscal-year-ended-2025-08-31"`).
+Microsoft, `period` states the exact bounds, `2024-09-01T00:00:00Z` to
+`2025-09-01T00:00:00Z`, and the `provider` text says it is a fiscal year.
 
 Other caveats: market-based basis; the location-based figures (total 158,748,
 Scope 2 58,087, Scope 3 99,336) are not carried. `energy-consumption` covers
@@ -346,7 +340,7 @@ Balance" infographic PDF has no extractable text layer and was not used.
 | Source (`methodology-uri`) | <https://cdn.hetzner.com/assets/Uploads/downloads/Umwelterklaerung.pdf> (EMAS Umwelterklärung 2025, covering 2022–2024) |
 | Disclosure index | <https://www.hetzner.com/unternehmen/nachhaltigkeit/> |
 | Retrieved | 2026-07-29 |
-| `carbon-footprint` | 272.5 mtCO2e — read from the report's combined Scope 1 and Scope 2 figure for 2024 |
+| `carbon-footprint` | 272.5 tCO2e — read from the report's combined Scope 1 and Scope 2 figure for 2024 |
 | Energy / renewable | 235 GWh / 100% — read |
 | Assurance | EMAS-validated by verifier DE-V-0404, 21 July 2025; EMAS registration DE-158-00156 |
 
@@ -366,9 +360,9 @@ page is an avoided-emissions claim, not an inventory figure, and is excluded.
 | Source (`methodology-uri`) | <https://wordpress.com/blog/2020/09/21/toward-zero-reducing-and-offsetting-our-data-center-power-emissions/> |
 | Disclosure index | <https://automattic.com/sustainability/> |
 | Retrieved | 2026-07-28/29 |
-| `carbon-footprint` | 1,850 mtCO2e — read ("an overall figure of 1,850 tonnes of CO2e for 2020") |
+| `carbon-footprint` | 1,850 tCO2e — read ("an overall figure of 1,850 tonnes of CO2e for 2020") |
 | Renewable | ~50% — read ("As of 2020, about 50% of our data center energy needs come from renewables") |
-| `scope-3` | 1,850 mtCO2e — read: the source classifies the figure ("we treat the emissions from data center power use as being in Scope 3") |
+| `scope-3` | 1,850 tCO2e — read: the source classifies the figure ("we treat the emissions from data center power use as being in Scope 3") |
 
 Caveats: **data-centre operations only** — it excludes travel and everything
 else, and Automattic has never published a scoped inventory. **The figure is
@@ -382,7 +376,7 @@ multiplied by 1.5 as a PUE proxy ("multiply that by 1.5 to obtain a
 conservative estimate that accounts for power usage effectiveness") — computed
 by Automattic itself, not by a third party, so `third-party-modeled` would
 misattribute it. This
-document is kept deliberately: `reporting-period` and `updated` exist so a
+document is kept deliberately: `period` and `updated` exist so a
 consumer can see staleness rather than have to guess at it.
 
 ---
@@ -396,7 +390,7 @@ consumer can see staleness rather than have to guess at it.
 | `carbon-footprint` | 30,310 tCO2e — read: "Total gross emissions … 30.31" in a table headed "tCO2e, 000s", column 2025-26 |
 | Energy | 115,351 MWh — the SUM of the five rows filled for 2025-26 under "Energy consumption (kWh, 000s)": electricity non-renewable 2,692, electricity renewable 54,871, gas 52,170, oil 290, Stratford district heating 5,328 |
 
-Caveats: financial year, carried as 2026 (the year in which it ended) with `reporting-period-basis` `fiscal-year-ended-2026-03-31`; Scope 1 and 2 are published only combined (21.60 thousand tCO2e) and Scope 3 only for business travel (7.48 thousand), so no scope member is carried; no accounting basis stated. The 2024-25 column of the new report matches the figures previously served (33.16 / 120,160), so nothing was restated.
+Caveats: financial year, carried as `period` `2025-04-01T00:00:00Z` to `2026-04-01T00:00:00Z`; Scope 1 and 2 are published only combined (21.60 thousand tCO2e) and Scope 3 only for business travel (7.48 thousand), so no scope member is carried; no accounting basis stated. The 2024-25 column of the new report matches the figures previously served (33.16 / 120,160), so nothing was restated.
 
 ### `home.cern.json` — CERN, CY2024
 
@@ -486,8 +480,8 @@ Caveats:
 | Source (`methodology-uri`) | <https://scottlogic.cdn.prismic.io/scottlogic/kZE3OZhZL4ljNWHy_EnvironmentalImpactReport2025.pdf> (Environmental Impact Report 2025, pages 4–5) |
 | Disclosure index | <https://www.scottlogic.com/who-we-are/sustainability> |
 | Retrieved | 2026-10-02 (read by two independent readers and checked by a third against the PDF); the CY2024 emissions served until then (0 / 41 / 489, total 530) are restated unchanged in the 2025 report; the CY2024 energy figure (226,110 kWh) is not restated there |
-| Scope 1 / 2 / 3 | 0 / 39 / 431 mtCO2e — all read (page 4, "Scope 2 – 39 tCO2e (8.2%)" etc., and the table on page 5) |
-| `carbon-footprint` | 470 mtCO2e — read: "(Market-based) Total … 470" |
+| Scope 1 / 2 / 3 | 0 / 39 / 431 tCO2e — all read (page 4, "Scope 2 – 39 tCO2e (8.2%)" etc., and the table on page 5) |
+| `carbon-footprint` | 470 tCO2e — read: "(Market-based) Total … 470" |
 | Energy | 214,219 kWh — read: "We consumed 214,219 kWh of energy" |
 
 Caveats:
@@ -518,8 +512,8 @@ can return if Torchbox agrees in writing.
 | Source (`methodology-uri`) | <https://torchbox.com/about/impact-report-2024/> (sustainability section) |
 | Disclosure index | <https://torchbox.com/sustainability-policy/> |
 | Retrieved | 2026-10-01 |
-| `carbon-footprint` | 265.02 mtCO2e — read: "our total location-based emissions fell to 265.02 tCO₂e" |
-| Scope 1 / 2 (LB) | 8.59 / 2.4 mtCO2e — read |
+| `carbon-footprint` | 265.02 tCO2e — read: "our total location-based emissions fell to 265.02 tCO₂e" |
+| Scope 1 / 2 (LB) | 8.59 / 2.4 tCO2e — read |
 
 Caveats:
 
@@ -583,9 +577,8 @@ Caveats:
 
 Caveats:
 
-- **Fiscal year, not calendar year.** `reporting-period` carries 2025, the
-  calendar year in which the fiscal year ended, and `reporting-period-basis`
-  (`fiscal-year-ended-2025-09-30`) states the boundary.
+- **Fiscal year, not calendar year.** `period` states the exact bounds,
+  `2024-10-01T00:00:00Z` to `2025-10-01T00:00:00Z`.
 - No accounting basis is named and no energy total is published; both are
   omitted.
 
@@ -613,8 +606,8 @@ than re-homed: the `extensions` mechanism that replaces it is demonstrated on
 `tenant-demo.example.json` below, with the draft's own worked extension name,
 and on the four fiscal-year subjects above (two of them withheld) with this registry's.
 
-Internally consistent by construction: 4,310 + 9,888 + 114,260 = 128,458 mtCO2e,
-and 41,200 MWh × 240 gCO2e/kWh = 9,888 mtCO2e (the Scope 2 figure). Source: none
+Internally consistent by construction: 4,310 + 9,888 + 114,260 = 128,458 tCO2e,
+and 41,200 MWh × 240 gCO2e/kWh = 9,888 tCO2e (the Scope 2 figure). Source: none
 — **invented**. `methodology-uri` points at this gateway's own
 [`METHODOLOGY.md`](../METHODOLOGY.md), which says so.
 
@@ -622,7 +615,7 @@ and 41,200 MWh × 240 gCO2e/kWh = 9,888 mtCO2e (the Scope 2 figure). Source: non
 
 A synthetic software service (`2025`) reporting a Software Carbon Intensity
 score with its mandatory `functional-unit`, to exercise that co-occurrence rule
-on a live endpoint. 1,860 MWh × 373 gCO2e/kWh = 693.78 mtCO2e. Source: none —
+on a live endpoint. 1,860 MWh × 373 gCO2e/kWh = 693.78 tCO2e. Source: none —
 **invented**. `methodology-uri` points at
 [`METHODOLOGY.md`](../METHODOLOGY.md).
 
@@ -635,8 +628,8 @@ describes for an upstream that reports per customer. The identifier is
 deliberately opaque: naming the customer in the provider's public declaration
 would disclose the commercial relationship to every reader.
 
-180,000 kWh and 48 mtCO2e, with the delivered energy under the provider's own
-Scope 2 (48 mtCO2e), and 180,000 kWh × 267 gCO2e/kWh ≈ 48 mtCO2e. Source: none
+180,000 kWh and 48 tCO2e, with the delivered energy under the provider's own
+Scope 2 (48 tCO2e), and 180,000 kWh × 267 gCO2e/kWh ≈ 48 tCO2e. Source: none
 — **invented**. `methodology-uri` points at
 [`METHODOLOGY.md`](../METHODOLOGY.md).
 
@@ -644,7 +637,7 @@ Scope 2 (48 mtCO2e), and 180,000 kWh × 267 gCO2e/kWh ≈ 48 mtCO2e. Source: non
 
 The other end of that relationship, and the live counterpart of the draft's
 "Organization with Upstream Providers and Extensions" example. A synthetic
-organization's annual inventory for `2025` (1.2 GWh, 310 mtCO2e, scopes
+organization's annual inventory for `2025` (1.2 GWh, 310 tCO2e, scopes
 35 + 115 + 160 = 310) that additionally carries:
 
 - **`upstream`** — one entry, `role: "cloud"`, whose `declaration` is the URL
@@ -654,8 +647,8 @@ organization's annual inventory for `2025` (1.2 GWh, 310 mtCO2e, scopes
   the declaration is validated or served, so the member names a real,
   retrievable declaration on whatever origin the gateway runs. A consumer's
   `sustainability-fetch …/tenant-demo.example --upstream` therefore walks a
-  chain that genuinely resolves, and finds 180,000 kWh / 48 mtCO2e to sit inside
-  the subject's own 1,200,000 kWh / 310 mtCO2e — `consistent`, which is evidence
+  chain that genuinely resolves, and finds 180,000 kWh / 48 tCO2e to sit inside
+  the subject's own 1,200,000 kWh / 310 tCO2e — `consistent`, which is evidence
   about consistency between two self-asserted claims and never proof of either.
 - **`extensions`** — the draft's own worked example, reproduced verbatim: the
   water and waste members under
@@ -683,10 +676,10 @@ that is not an origin, an organization, a device or a tenant. The period is a
 whole calendar year (`2025`), because a system-wide annual total is what the
 figures are.
 
-800 MWh and 95.5 mtCO2e, internally consistent on every axis a consumer can
-cross-check: 0 + 33.1 + 62.4 = 95.5 mtCO2e; 800,000 kWh x 41.4 gCO2e/kWh =
-33.12 mtCO2e against the declared market-based `scope-2` of 33.1 (0.06%
-rounding); 95.5 mtCO2e = the declared 95,500 `estimated-annual-emissions-kgCO2e`.
+800 MWh and 95.5 tCO2e, internally consistent on every axis a consumer can
+cross-check: 0 + 33.1 + 62.4 = 95.5 tCO2e; 800,000 kWh x 41.4 gCO2e/kWh =
+33.12 tCO2e against the declared market-based `scope-2` of 33.1 (0.06%
+rounding); 95.5 tCO2e = the declared 95,500 `estimated-annual-emissions-kgCO2e`.
 MWh is used rather than GWh so the energy figure stays an integer. The
 `verifiable-attestation-uri` is a reserved-name URI that dereferences to
 nothing — presence of that member is evidence of nothing, here or anywhere.
@@ -710,8 +703,8 @@ nothing.
 ### `sfc-operator.example.json` — one operator inside that network
 
 The other level of the same picture: a single node operator, `target-type:
-"origin"`, `hardware-metered` at its own machines, 4,820 kWh and 0.19 mtCO2e for
-`2025` (4,820 kWh x 39.4 gCO2e/kWh = 0.19 mtCO2e, carried as the whole of its
+"origin"`, `hardware-metered` at its own machines, 4,820 kWh and 0.19 tCO2e for
+`2025` (4,820 kWh x 39.4 gCO2e/kWh = 0.19 tCO2e, carried as the whole of its
 market-based Scope 2). Source: none — **invented**. `methodology-uri` points at
 [`METHODOLOGY.md`](../METHODOLOGY.md).
 

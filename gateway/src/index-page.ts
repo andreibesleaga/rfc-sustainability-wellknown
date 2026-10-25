@@ -2,7 +2,9 @@
  * The human-readable (`GET /`) and machine-readable (`GET /index.json`) index
  * of everything this gateway serves.
  */
+import { monthPeriod, wholeCalendarUnit, type Granularity, type Period } from "sustainability-wellknown-publisher";
 import type { GatewayConfig } from "./config";
+import { monthKey } from "./adapters/self-report";
 import { ISSUES_URL, LEGAL_PATH, OPERATOR_CONTACT_URL, OPERATOR_NAME } from "./legal";
 import type { WireExample } from "./examples";
 import { escapeHtml } from "./http";
@@ -36,11 +38,12 @@ export interface IndexEntry {
   path: string;
   target: string;
   "target-type"?: string;
-  "reporting-period": string;
+  /** Both bounds, as the served declaration states them. */
+  period: Period;
   "measurement-method": string;
   "methodology-uri": string;
   "disclosure-uri"?: string;
-  /** The declarations this subject's figures derive from (draft -07 §Upstream Declarations). */
+  /** The declarations this subject's figures derive from (the draft, Upstream Declarations). */
   upstream?: { declaration: string; role?: string }[];
   provider: string;
   updated: string;
@@ -64,7 +67,7 @@ export interface DemoEntry {
   /** ISO timestamp of the last successful (re)build. */
   refreshed: string;
   target: string;
-  "reporting-period": string;
+  period: Period;
   /** Present when the last live refresh failed and older data is being served. */
   "upstream-error"?: string;
   /** The recorded input the adapter transforms, served at `path`. */
@@ -78,16 +81,25 @@ export interface ExampleEntry {
   case: string;
   shape: "object" | "array";
   entries: number;
-  /** For the declared-extended array cases: the period that, sliced at `granularity`, is the whole trend. */
-  period?: string;
-  /** Honored granularity parameter, for the declared-extended array cases. */
-  granularity?: string;
+  /** What a request that names no parameter is answered with: `object`, `latest` (the newest of the file) or `all` (the whole array). */
+  serving: "object" | "latest" | "all";
+  /** For the declared-extended array cases: the smallest range, in UTC, that covers every object. */
+  range?: Period;
+  /** For the declared-extended array cases whose objects are all whole in one unit: that unit. */
+  granularity?: Granularity;
   file: string;
   /** The canonical file in the repository, which the served document reproduces. */
   "source-file": string;
   note: string;
   target: string;
-  "reporting-period": string;
+  /** The `target-type` of the object served to a request that names no parameter, when it has one. */
+  "target-type"?: string;
+  /** For a part of an origin (a service, a path, a device or a product): what the figures are (draft, Parts of an Origin). */
+  allocation?: string;
+  /** The `provider` text of the object served to a request that names no parameter, shown as a tooltip. */
+  provider: string;
+  /** The period of the object served to a request that names no parameter (the newest, for an array). */
+  period: Period;
 }
 
 export interface IndexDocument {
@@ -104,7 +116,7 @@ export interface IndexDocument {
   self: {
     path: string;
     target: string;
-    /** The self report honours `period` and `granularity` (draft Extended service). */
+    /** The self report honours `start`, `end`, `target` and `granularity` (draft Extended service). */
     capabilities: "extended";
     /** The instant the gateway went live; the model counts no hours before it. */
     "live-since": string;
@@ -112,7 +124,7 @@ export interface IndexDocument {
     "extended-examples": string[];
     /**
      * The OPTIONAL signature EMBEDDED in each self declaration object as its
-     * `signed` member (draft -07 §Signing), or null when the deployment holds
+     * `signed` member (the draft, Signing), or null when the deployment holds
      * no key. There is no separate signature resource: the signature travels
      * inside the body.
      */
@@ -159,9 +171,11 @@ export const DEMO_NOTE =
 
 export const EXAMPLES_NOTE =
   "Every case in the specification's example set, served live, with synthetic figures under " +
-  "reserved .example names. A trend example (one that declares capabilities: extended) answers " +
-  "a request without parameters with its newest entry as one object (-07 allows an object or an " +
-  "array), and a request for a finer granularity with the sorted array of entries.";
+  "reserved .example names. A file that holds a series answers a request without parameters with " +
+  "its newest object, or with the whole array where the objects belong together; a case that " +
+  "declares capabilities: extended answers start, end, target and granularity with the objects " +
+  "it holds that satisfy them (an empty array when none does), and a case that declares basic " +
+  "ignores them.";
 
 export const CROSS_VALIDATION_NOTE =
   "At start-up, every document served here is produced by the published publisher library " +
@@ -175,13 +189,29 @@ const REPO = "https://github.com/andreibesleaga/rfc-sustainability-wellknown";
 const SPEC_URL =
   "https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/";
 
+/**
+ * A period as a reader wants it: the year (`2025`), month (`2025-03`) or day
+ * (`2025-03-20`) it is when it is a whole one in UTC, else both bounds. For
+ * display only; the exact bounds go in a `title` and in `index.json`.
+ */
+export function describePeriod(p: Period): string {
+  const unit = wholeCalendarUnit(p);
+  const whole = p.start.endsWith("T00:00:00Z") && p.end.endsWith("T00:00:00Z");
+  if (unit && whole) return p.start.slice(0, unit === "yearly" ? 4 : unit === "monthly" ? 7 : 10);
+  return `${p.start}/${p.end}`;
+}
+
+function periodCell(p: Period): string {
+  return `<code title="${escapeHtml(`${p.start} to ${p.end}`)}">${escapeHtml(describePeriod(p))}</code>`;
+}
+
 function entry(s: Subject, kind: "file" | "adapter"): IndexEntry {
   const d = s.document;
   const e: IndexEntry = {
     domain: s.domain,
     path: `/${s.domain}${WELL_KNOWN_PATH}`,
     target: d.target,
-    "reporting-period": d["reporting-period"],
+    period: d.period,
     "measurement-method": d["measurement-method"],
     "methodology-uri": d["methodology-uri"],
     provider: d.provider,
@@ -228,7 +258,7 @@ function demoEntry(m: ManagedSubject): DemoEntry {
     attribution: m.spec.attribution,
     refreshed: m.refreshedAt,
     target: d.target,
-    "reporting-period": d["reporting-period"],
+    period: d.period,
   };
   if (m.upstreamError) e["upstream-error"] = m.upstreamError;
   const input = m.spec.input;
@@ -239,6 +269,13 @@ function demoEntry(m: ManagedSubject): DemoEntry {
   }
   return e;
 }
+
+/** The target types that name a part of an origin or of an organization; their figures are an allocation. */
+const PART_TARGET_TYPES = new Set(["service", "path", "device", "product"]);
+
+const ALLOCATION_NOTE =
+  "The figures are the publisher's allocation of the origin's or the organization's resources to this part, " +
+  "by the method the methodology document describes.";
 
 function exampleEntry(x: WireExample): ExampleEntry {
   const d = x.subject.document;
@@ -251,12 +288,17 @@ function exampleEntry(x: WireExample): ExampleEntry {
     file: x.file,
     "source-file": `${REPO}/blob/main/example-responses/${x.file}`,
     note: x.note,
+    serving: x.serving,
     target: d.target,
-    "reporting-period": d["reporting-period"],
+    provider: d.provider,
+    period: d.period,
   };
-  if (x.granularity) {
-    e.period = x.period;
-    e.granularity = x.granularity;
+  const targetType = (d as { "target-type"?: string })["target-type"];
+  if (targetType !== undefined) e["target-type"] = targetType;
+  if (targetType !== undefined && PART_TARGET_TYPES.has(targetType)) e.allocation = ALLOCATION_NOTE;
+  if (x.extended && x.range) {
+    e.range = x.range;
+    if (x.granularity) e.granularity = x.granularity;
   }
   return e;
 }
@@ -281,23 +323,24 @@ export interface LiveRequest {
  */
 export function liveRequests(doc: IndexDocument): LiveRequest[] {
   const self = doc.self;
-  const year = self["live-since"].slice(0, 4);
-  const [monthly, monthlyTrend, daily] = self["extended-examples"];
+  const year = Number(monthKey(self["live-since"]).slice(0, 4));
+  const [goLiveMonth, monthly, daily] = self["extended-examples"];
   const subject = doc.subjects[0];
   const demo = doc["adapter-demonstrations"].entries[0];
-  const trend = doc["wire-format-examples"].entries.find((x) => x.granularity);
+  const trend = doc["wire-format-examples"].entries.find((x) => x.granularity && x.range);
   const withUpstream = doc.subjects.filter((s) => s.upstream && s.upstream.length > 0);
   // tenant-demo.example is the worked upstream pair of the specification's own example; prefer it, whatever the registry order.
   const downstream = withUpstream.find((s) => s.domain === "tenant-demo.example") ?? withUpstream[0];
   const out: LiveRequest[] = [
-    { href: self.path, what: "the gateway's own report, parameterless", expect: "200, the most recently completed month" },
-    { href: monthly, what: "Extended: one month since go-live", expect: "200, that month's figures" },
-    { href: monthlyTrend, what: "Extended: a year sliced monthly", expect: "200, a sorted array, one entry per month since go-live" },
-    { href: daily, what: "Extended: a month sliced daily", expect: "200, a sorted array, one entry per day since go-live" },
-    { href: `${self.path}?period=${Number(year) - 1}`, what: "Extended: a period before go-live", expect: "404, the draft's no-data rule" },
-    { href: `${self.path}?period=${year}&granularity=weekly`, what: "Extended: an unknown granularity value", expect: "200, the parameter is ignored" },
-    { href: `${self.path}?period=${year}&period=${Number(year) - 1}`, what: "Extended: a parameter given twice", expect: "400, the request is ambiguous" },
-    { href: `${self.path}?target=/other`, what: "Extended: the target parameter", expect: "404 — one process has no path prefixes, so the published set is empty; byte for byte the no-data 404 above" },
+    { href: self.path, what: "the gateway's own report, parameterless", expect: "200, one object: the most recently completed month" },
+    { href: goLiveMonth, what: "Extended: a range, the month of go-live", expect: "200, an array: the objects held that overlap the range, ascending" },
+    { href: monthly, what: "Extended: granularity alone", expect: "200, an array: every whole month held" },
+    { href: daily, what: "Extended: the days", expect: "200, an array: the most recent whole days held" },
+    { href: `${self.path}?start=${year - 1}-01-01T00:00:00Z&end=${year}-01-01T00:00:00Z&granularity=monthly`, what: "Extended: a range before go-live", expect: "200, [] — nothing is held before go-live" },
+    { href: `${self.path}?granularity=weekly`, what: "Extended: an unknown granularity value", expect: "200, the parameter is ignored: the parameterless answer" },
+    { href: `${self.path}?start=${year}-08-01`, what: "Extended: a date without a time", expect: "200, ignored, never read as another value: the parameterless answer" },
+    { href: `${self.path}?granularity=monthly&granularity=daily`, what: "Extended: a parameter given twice", expect: "200, ignored: the parameterless answer" },
+    { href: `${self.path}?target=/other`, what: "Extended: a target the gateway does not report", expect: "200, []" },
   ];
   if (self.signature) {
     out.push({
@@ -315,7 +358,7 @@ export function liveRequests(doc: IndexDocument): LiveRequest[] {
   if (subject) {
     out.push(
       { href: subject.path, what: `a curated subject declaration (${subject.domain})`, expect: "200, application/sustainability-data+json" },
-      { href: `${subject.path}?period=${year}`, what: "a Basic subject with a query parameter", expect: "200, the parameter is ignored" },
+      { href: `${subject.path}?start=${year}-01-01T00:00:00Z&granularity=monthly`, what: "a Basic subject with query parameters", expect: "200, the parameters are ignored" },
     );
   }
   if (downstream && downstream.upstream) {
@@ -327,10 +370,11 @@ export function liveRequests(doc: IndexDocument): LiveRequest[] {
   }
   if (demo) out.push({ href: demo.path, what: `an adapter demonstration (${demo.domain})`, expect: "200, mapped from its upstream" });
   if (trend) {
-    out.push(
-      { href: `${trend.path}?period=${trend.period}&granularity=${trend.granularity}`, what: `a wire-format example declaring Extended (${trend.domain}): a period sliced finer`, expect: `200, its sorted trend array (${trend.entries} entries)` },
-      { href: `${trend.path}?granularity=${trend.granularity}`, what: `the same example, granularity alone`, expect: "200, one object — not finer than the default period" },
-    );
+    const query = rangeQuery(trend);
+    out.push({ href: `${trend.path}?${query}`, what: `a wire-format example declaring Extended (${trend.domain}): its range`, expect: `200, a sorted array (${trend.entries} objects)` });
+    if (trend.granularity) {
+      out.push({ href: `${trend.path}?granularity=${trend.granularity}`, what: "the same example, granularity alone", expect: `200, a sorted array (${trend.entries} objects)` });
+    }
   }
   out.push(
     { href: `/nobody.example${WELL_KNOWN_PATH}`, what: "an unknown subject", expect: "404" },
@@ -338,6 +382,20 @@ export function liveRequests(doc: IndexDocument): LiveRequest[] {
     { href: "/healthz", what: "the health check", expect: "200" },
   );
   return out;
+}
+
+/**
+ * Working requests on the self report, from the month it went live: the range of that month, the months
+ * held, and the days held.
+ */
+function extendedExamples(liveSince: string): string[] {
+  const [year, month] = monthKey(liveSince).split("-").map(Number);
+  const goLive = monthPeriod(year, month);
+  return [
+    `${WELL_KNOWN_PATH}?start=${goLive.start}&end=${goLive.end}`,
+    `${WELL_KNOWN_PATH}?granularity=monthly`,
+    `${WELL_KNOWN_PATH}?granularity=daily`,
+  ];
 }
 
 export function buildIndex(
@@ -375,14 +433,10 @@ export function buildIndex(
     capabilities: "basic",
     self: {
       path: WELL_KNOWN_PATH,
-      target: self.document.target,
+      target: config.self.target,
       capabilities: "extended",
       "live-since": config.self.liveSince,
-      "extended-examples": [
-        `${WELL_KNOWN_PATH}?period=${config.self.liveSince.slice(0, 7)}`,
-        `${WELL_KNOWN_PATH}?period=${config.self.liveSince.slice(0, 4)}&granularity=monthly`,
-        `${WELL_KNOWN_PATH}?period=${config.self.liveSince.slice(0, 7)}&granularity=daily`,
-      ],
+      "extended-examples": extendedExamples(config.self.liveSince),
       signature: extras?.signing
         ? {
             member: "signed",
@@ -434,7 +488,7 @@ function row(e: IndexEntry): string {
   return `<tr>
   <td><a href="${escapeHtml(e.path)}"><code>${escapeHtml(e.domain)}</code></a> ${badge}</td>
   <td>${bdi(e.target)}${e["target-type"] ? ` <span class="dim">(${escapeHtml(e["target-type"])})</span>` : ""}</td>
-  <td><code>${escapeHtml(e["reporting-period"])}</code></td>
+  <td>${periodCell(e.period)}</td>
   <td><code>${escapeHtml(e["measurement-method"])}</code></td>
   <td><a href="${escapeHtml(e["methodology-uri"])}" rel="noopener noreferrer nofollow" aria-label="${escapeHtml(e.domain)}: ${e.synthetic ? "methodology" : "source document"}">${e.synthetic ? "methodology" : "source document"}</a>${e["source-file"] ? `<br><a href="${escapeHtml(e["source-file"])}" rel="noopener noreferrer" class="dim" aria-label="${escapeHtml(e.domain)}: data file">data file</a>` : ""}</td>
 </tr>`;
@@ -453,7 +507,7 @@ function demoRow(e: DemoEntry): string {
   <td><code>${escapeHtml(e.adapter.replace(/^adapter:/, ""))}</code></td>
   <td>${inputCell(e)}</td>
   <td>${bdi(e.upstream)}<br><span class="dim">${bdi(e.attribution)}</span>${err}</td>
-  <td><code>${escapeHtml(e["reporting-period"])}</code></td>
+  <td>${periodCell(e.period)}</td>
 </tr>`;
 }
 
@@ -468,17 +522,26 @@ function inputCell(e: DemoEntry): string {
     `<br><span class="dim">${bdi(e.input.note)}</span>`;
 }
 
+/** The query that selects every object of an Extended array case, as it is written in a link. */
+export function rangeQuery(e: Pick<ExampleEntry, "range" | "granularity">): string | undefined {
+  if (!e.range) return undefined;
+  return `start=${e.range.start}&end=${e.range.end}${e.granularity ? `&granularity=${e.granularity}` : ""}`;
+}
+
 function exampleRow(e: ExampleEntry): string {
-  const shape =
-    e.shape === "array"
-      ? e.granularity
-        ? `array (${e.entries}) <span class="dim">?period=${escapeHtml(e.period ?? "")}&amp;granularity=${escapeHtml(e.granularity)}</span>`
-        : `object <span class="dim">(the file holds ${e.entries}; the newest is served)</span>`
-      : "object";
+  const query = rangeQuery(e);
+  const served =
+    e.serving === "all"
+      ? `array (${e.entries})`
+      : e.serving === "latest"
+        ? `object <span class="dim">(the file holds ${e.entries}; the newest is served)</span>`
+        : "object";
+  const shape = query ? `${served}<br><span class="dim">?${escapeHtml(query)}: array (${e.entries})</span>` : served;
   return `<tr>
   <td><a href="${escapeHtml(e.path)}"><code>${escapeHtml(e.domain)}</code></a> <span class="badge example">example</span></td>
-  <td>${bdi(e.case)}<br><a href="${escapeHtml(e["source-file"])}" rel="noopener noreferrer" class="dim">source file</a></td>
+  <td>${bdi(e.case)}<br><span class="dim" title="${escapeHtml(e.provider)}">target ${bdi(e.target)}</span><br><a href="${escapeHtml(e["source-file"])}" rel="noopener noreferrer" class="dim">source file</a></td>
   <td>${shape}</td>
+  <td>${periodCell(e.period)}</td>
   <td>${bdi(e.note)}</td>
 </tr>`;
 }
@@ -510,6 +573,7 @@ for (const el of document.querySelectorAll(".host")) el.textContent = location.o
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>Sustainability Data Reference Gateway</title>
 <meta name="description" content="A live reference deployment of the /.well-known/sustainability-data well-known URI (draft-besleaga-sustainability-wellknown): machine-readable energy and carbon declarations, worked examples of every case in the draft, and an open-source publisher and consumer.">
 <style>
@@ -570,12 +634,13 @@ th { font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var
 .dim { color:var(--dim); }
 .visually-hidden { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
   clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0; }
-pre.check { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0 1rem; }
+form.check { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0 1rem; }
 .check input { flex: 1 1 18rem; min-width: 12rem; padding: .4rem .6rem; font: inherit; }
 .check button { padding: .4rem .9rem; font: inherit; }
 .cmd { overflow-x:auto; border:1px solid var(--line); border-radius:4px; padding:.75rem .9rem;
   background:var(--warnbg); background:color-mix(in srgb, var(--bg) 92%, var(--fg) 8%); }
 pre.cmd code { font-size:.82em; white-space:pre; }
+p code { overflow-wrap:anywhere; }
 ul { padding-left:1.2rem; }
 footer { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); color:var(--dim); font-size:.9rem; }
 </style>
@@ -646,7 +711,7 @@ normalization, and schema validation, and is served over HTTPS at
 </g>
 </svg>
 <figcaption>Every declaration below is produced by this path. The media type and the HTTPS
-requirement are those of draft revision -07; a deployment kept on the generic
+requirement are those of the draft; a deployment kept on the generic
 <code>application/json</code> type is still served, and flagged as such.</figcaption>
 </figure>
 
@@ -678,7 +743,7 @@ ${doc["adapter-demonstrations"].entries.map(demoRow).join("\n")}
 <div class="scroll" role="region" tabindex="0" aria-label="Wire-format examples, scrollable">
 <table>
 <caption class="visually-hidden">Wire-format examples</caption>
-<thead><tr><th scope="col">Endpoint</th><th scope="col">Case</th><th scope="col">Shape</th><th scope="col">Demonstrates</th></tr></thead>
+<thead><tr><th scope="col">Endpoint</th><th scope="col">Case</th><th scope="col">Shape</th><th scope="col">Period</th><th scope="col">Demonstrates</th></tr></thead>
 <tbody>
 ${doc["wire-format-examples"].entries.map(exampleRow).join("\n")}
 </tbody>
@@ -693,15 +758,18 @@ a fixed assumption, except months the operator entered from the host's usage met
 report's <code>provider</code> field lists. Every constant is in the
 <a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology</a>.</p>
 <ul>
-<li><strong>Queries (Extended service).</strong> <code>period</code> = <code>YYYY</code>,
-<code>YYYY-MM</code> or <code>YYYY-MM-DD</code>, any time since go-live
-(<code>${escapeHtml(doc.self["live-since"])}</code>); <code>granularity</code> = <code>monthly</code>
-or <code>daily</code>. No parameters: the last complete month.</li>
-<li><strong>Errors and limits.</strong> A period before go-live: <code>404</code>. A period
-still in progress: the part so far. A repeated parameter or an impossible date: <code>400</code>.
-Any <code>target</code>: <code>404</code> (one process, no path prefixes to publish).</li>
+<li><strong>Queries (Extended service).</strong> <code>start</code> and <code>end</code> = a UTC date-time
+such as <code>2026-09-01T00:00:00Z</code> (the range includes <code>start</code> and excludes <code>end</code>;
+either may be left out); <code>granularity</code> = <code>yearly</code>, <code>monthly</code> or <code>daily</code>
+(the whole years, months or days); <code>target</code> = <code>${bdi(doc.self.target)}</code>. The answer is
+an array of the objects held that satisfy them, since go-live
+(<code>${escapeHtml(doc.self["live-since"])}</code>): whole days of the most recent 120 days, every
+whole month and year, and the months at either end so far. No parameters: the last complete month, as one object.</li>
+<li><strong>Nothing is repaired.</strong> A value that does not match, a parameter given twice and a name the draft
+does not define are ignored, and the answer is the one for no parameter. A range that selects nothing, or a
+<code>target</code> the gateway does not report, is <code>200</code> with an empty array.</li>
 </ul>
-<pre class="cmd"><code>${doc.self["extended-examples"].map((p) => `curl -s "<span class="host">${BASE_TOKEN}</span>${escapeHtml(p)}"`).join("\n")}</code></pre>
+<pre class="cmd" role="region" tabindex="0" aria-label="Example requests, scrollable"><code>${doc.self["extended-examples"].map((p) => `curl -s "<span class="host">${BASE_TOKEN}</span>${escapeHtml(p)}"`).join("\n")}</code></pre>
 
 <h2>Integrity and attestation</h2>
 <ul>
@@ -748,7 +816,7 @@ subject, this report and its Extended variants, and the trend arrays of the Exte
 <ul>
 <li><strong>Service level.</strong> Third-party declarations are Basic: query parameters are
 ignored, never an error. Extended: this gateway's report, and the examples that declare
-<code>capabilities: "extended"</code> (an array only for a granularity finer than the period).</li>
+<code>capabilities: "extended"</code> (an array of the objects that satisfy the parameters, empty when none does).</li>
 <li><strong>Media type.</strong> <code>application/sustainability-data+json</code>; errors (<code>400</code>,
 <code>404</code>, <code>405</code>, <code>503</code>) <code>application/json</code>; all with
 <code>nosniff</code>. A switch to the generic JSON type (<code>SUSTAINABILITY_MEDIA_TYPE</code>,
@@ -760,11 +828,10 @@ and page; strong <code>ETag</code> and <code>Last-Modified</code>, <code>304</co
 <li><strong>Methods.</strong> <code>GET</code> and <code>HEAD</code>; anything else
 <code>405</code> with <code>Allow: GET, HEAD</code>. Unknown subject <code>404</code>.</li>
 <li><strong>Extensions.</strong> Data the format does not define goes in <code>extensions</code>,
-keyed by an absolute URI (<a href="https://www.rfc-editor.org/rfc/rfc3986" rel="noopener noreferrer">RFC 3986</a>),
-ASCII, lowercase scheme, no fragment: an <code>https</code> URI the definer controls, or
-<code>urn:uuid:</code> + a lowercase hyphenated UUID
-(<a href="https://www.rfc-editor.org/rfc/rfc9562" rel="noopener noreferrer">RFC 9562</a>).
-Compared as text, never fetched, no registry; unknown ones are ignored; the set of top-level
+keyed by a URI (<a href="https://www.rfc-editor.org/rfc/rfc3986" rel="noopener noreferrer">RFC 3986</a>):
+in practice an <code>https</code> URI the definer controls, or a <code>urn:uuid</code> name
+(<a href="https://www.rfc-editor.org/rfc/rfc9562" rel="noopener noreferrer">RFC 9562</a>) for a definer without a domain.
+Compared as a string, never fetched, no registry; unknown ones are ignored; the set of top-level
 members stays closed. Names used here:
 <a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology</a>.
 ${carriersSentence(doc["extension-carriers"])}</li>
@@ -794,7 +861,7 @@ request line for its retention period, as the legal notice says).</p>
 <input id="origin" name="origin" type="url" inputmode="url" placeholder="https://example.com" required pattern="https://.*" spellcheck="false">
 <button type="submit">Check</button>
 </form>
-<pre id="check-out" class="cmd" hidden aria-live="polite"></pre>
+<div role="status" aria-live="polite"><pre id="check-out" class="cmd" tabindex="0" aria-label="Check result, scrollable" hidden></pre></div>
 <p>Badge for a README, computed from the same hourly check:
 <code>![sustainability-data](<span class="host">${BASE_TOKEN}</span>/badge/example.com.svg)</code></p>
 
@@ -810,16 +877,16 @@ the most used servers, hosts and frameworks are in
 <h2>Verify it yourself</h2>
 <p>With the reference consumer
 (<a href="https://www.npmjs.com/package/sustainability-wellknown-consumer" rel="noopener noreferrer"><code>sustainability-wellknown-consumer</code></a>
-0.7.0+). <code>--strict</code> runs the conformance battery: a failed <code>MUST</code> fails it,
+0.8.0+). <code>--strict</code> runs the conformance battery: a failed <code>MUST</code> fails it,
 an unmet <code>SHOULD</code> is reported. Signatures come back <em>verified</em>,
 <em>unsigned</em> or <em>unverified</em> — never the data as "true"
 (<a href="${REPO_DOCS}/consumer/README.md" rel="noopener noreferrer">docs</a>).</p>
-<pre class="cmd"><code><span class="dim"># this gateway's own report, full battery, plus its attestation</span>
+<pre class="cmd" role="region" tabindex="0" aria-label="Verification commands, scrollable"><code><span class="dim"># this gateway's own report, full battery, plus its attestation</span>
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --strict --verify-attestation
 <span class="dim"># any subject, by its path prefix</span>
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/wikimedia.org --strict
 <span class="dim"># a trend array</span>
-npx -y -p sustainability-wellknown-consumer sustainability-fetch "<span class="host">${BASE_TOKEN}</span>/yearly.example${WELL_KNOWN_PATH}?period=2025&amp;granularity=monthly"
+npx -y -p sustainability-wellknown-consumer sustainability-fetch "<span class="host">${BASE_TOKEN}</span>/yearly.example${WELL_KNOWN_PATH}?start=2025-01-01T00:00:00Z&amp;end=2026-01-01T00:00:00Z&amp;granularity=monthly"
 <span class="dim"># the signature, and an upstream chain</span>
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span> --verify
 npx -y -p sustainability-wellknown-consumer sustainability-fetch <span class="host">${BASE_TOKEN}</span>/tenant-demo.example --upstream

@@ -8,7 +8,7 @@ the right headers.
 
 ```
 GET  /{domain}/.well-known/sustainability-data   one subject's declaration
-GET  /.well-known/sustainability-data            the gateway's own report (Extended: ?period= &granularity=)
+GET  /.well-known/sustainability-data            the gateway's own report (Extended: ?start= &end= &granularity= &target=)
                                                  signed in place: each object carries `signed` (OPTIONAL)
 GET  /                                           human-readable index
 GET  /index.json                                 machine-readable index
@@ -16,19 +16,27 @@ GET  /healthz                                    liveness
 GET  /legal                                      legal notice: what the third-party documents are, corrections and removal
 ```
 
+Every route except `/healthz` allows 600 requests a minute per client (`RATE_LIMIT_PER_MINUTE`); the next one is
+answered `429` with `Retry-After`, and that answer is never stored as a declaration. `HEAD` answers with the headers
+of `GET` and no body, a conditional `GET` with the current `ETag` answers `304`, and any other method `405` with
+`Allow: GET, HEAD`.
+
 ## Public validator and badge
 
 `GET /validate?origin=https://host` fetches that origin's `/.well-known/sustainability-data` once with the
 published consumer library and answers JSON: `valid` (schema-valid, the draft's media type; `json` noted as
-tolerated), `invalid` (reachable, not a usable declaration) or `unreachable`, with the signature state,
-the period and the target. `GET /badge/<host>.svg` is the same outcome as a badge for a README. The target
+tolerated), `invalid` (reachable, not a usable declaration) or `unreachable`, with the format (`current`, or
+`legacy` for a file written to an earlier revision of the draft, with what was read in another spelling in
+`converted` and what was not used in `disregarded`), the signature state, the period (an object with `start`
+and `end`) and the target. `GET /badge/<host>.svg` is the same outcome as a badge for a README. The target
 is fetched at most once an hour, `https` and public DNS names only, 64 KiB and 5 s caps; a name that resolves
-to a private, loopback or link-local address at check time is refused (the consumer's transport rules; a DNS
-answer that changes between that check and the connection is not closed, as the consumer documents), only an
-`https` request on port 443 to that name is ever attempted; a stricter per-client limit applies to requests
+to a private, loopback or link-local address is refused (the consumer checks the address in the lookup of the
+connection it actually opens, on every hop, so a DNS answer that changes after the check cannot pass; true when no
+`fetchImpl` is injected, as in production), only an
+`https` request on port 443 to that name is ever attempted; a stricter per-client budget applies to requests
 that cause a retrieval (a badge served from the hourly cache does not, so shared egress such as GitHub's camo
-proxy is tolerated), and a global budget of new retrievals per minute; when that budget is spent the answer is
-`503` with `Retry-After` and a grey "try later" badge, never an outcome about the origin (`unreachable` means
+proxy is tolerated), and a global budget of new retrievals per minute; when either budget is spent the answer is
+`503` with `Retry-After` and a "try later" badge, never an outcome about the origin (`unreachable` means
 the origin was contacted and gave no usable response); no result is stored. `VALIDATOR_EXCLUDE` (comma-separated host names) refuses hosts whose
 operators asked not to be fetched. The
 front page has a form for it. A check is a statement about bytes at a moment, never an endorsement; the
@@ -46,8 +54,8 @@ disables both routes.
   [`data/README.md`](data/README.md).
 - A **worked example** of generating these documents from a publisher adapter
   rather than by hand — see [GUIDE.md](GUIDE.md#wiring-an-adapter).
-- A **complete -07 publication** for its own report: the Extended service
-  (`period`/`granularity` since go-live), the OPTIONAL `signed` member embedded
+- A **complete publication** for its own report: the Extended service
+  (`start`, `end` and `granularity`, since go-live), the OPTIONAL `signed` member embedded
   in every declaration object it emits, a linked Verifiable Credential
   attesting the reporting model, and per-client rate limiting — with the honesty caveats stated on the page (the figures are a
   model; operator and attester are the same person). See
@@ -105,9 +113,9 @@ The notice is not legal advice and is not a substitute for it.
   exceptions are deliberate: the gateway's *own* report is Extended, because only
   its figures come from a model the gateway can evaluate for any period, and the
   wire-format examples whose documents declare `capabilities: "extended"` honour
-  `period` and `granularity`. Nor does it sign or attest anything on a third
+  `start`, `end` and `granularity`. Nor does it sign or attest anything on a third
   party's behalf: no declaration it relays is signed *by the gateway*, on
-  purpose — the one pre-signed example carries the signature its own file
+  purpose — the three pre-signed examples carry the signatures their own files
   arrived with.
   The gateway's own declaration carries no `upstream` member either — the
   hosting platform publishes no declaration, so naming one would be false.
@@ -117,12 +125,12 @@ Anything invented lives under a reserved `.example` name (RFC 2606), says
 
 ## Quick start
 
-**Node.js 22.12 or newer** is required (runtime and tests: the JOSE library is loaded as an ES module through `require()`, unflagged since 22.12; Vitest 5 needs 22.12 too).
+**Node.js 22.13 or newer** is required (the publisher and consumer 0.8.0 declare 22.13; the JOSE library is loaded as an ES module through `require()`, unflagged since 22.12, and Vitest 5 needs 22.12).
 
 ```bash
 npm install
 npm run build
-npm test                       # 473 tests
+npm test                       # 730 tests
 node dist/index.js             # 0.0.0.0:8080
 curl -sS http://127.0.0.1:8080/index.json | jq '.subjects[].domain'
 ```

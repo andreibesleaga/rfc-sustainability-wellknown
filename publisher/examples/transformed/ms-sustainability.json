@@ -1,14 +1,17 @@
 {
-  "updated": "2026-09-16T07:20:17Z",
+  "updated": "2026-06-01T00:00:00Z",
   "capabilities": "basic",
   "provider": "Contoso Cloud Ops (cloudops@contoso.example)",
   "measurement-method": "cloud-billing",
   "methodology-uri": "https://contoso.example/methodology/azure-emissions",
-  "reporting-period": "2026-04",
+  "period": {
+    "start": "2026-04-01T00:00:00Z",
+    "end": "2026-05-01T00:00:00Z"
+  },
   "target": "contoso.example",
   "energy-consumption": 11070,
   "energy-unit": "kWh",
   "carbon-footprint": 3.18,
-  "carbon-unit": "mtCO2e",
+  "carbon-unit": "tCO2e",
   "scope-3": 3.18
 }

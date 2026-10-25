@@ -1,640 +1,289 @@
 /**
- * Reporting periods and the Extended service's selection rule — the draft's
- * §Extended Query Parameters, as pure functions over a sorted trend:
+ * Date-times and periods of the draft (§Mandatory Members, §Query Parameters).
  *
- *  - `period` names a calendar year, month or day (UTC); an entry belongs to
- *    it when its own `reporting-period` lies inside it. When the parameter is
- *    absent the period is that of the Basic response — and, where the Basic
- *    response is an array, that of its LAST object (draft step 2);
- *  - `granularity` denotes a PRECISION: `monthly` denotes month precision and
- *    `daily` denotes day precision. Year is coarser than month, which is
- *    coarser than day. The parameter is ignored when the precision it denotes
- *    is not finer than the period's (draft step 3);
- *  - an array is returned ONLY when a granularity is in effect (draft: "A
- *    server MUST NOT return an array unless G is in effect"), and it holds
- *    exactly the held entries WHOSE PRECISION IS G inside P; one that IS in
- *    effect but matches no held entry is no data (404);
- *  - otherwise one object: the entry for the period itself, or — when only
- *    finer entries exist — their aggregate, formed by {@link aggregatePeriod}
- *    exactly as draft step 5 lists it, else no data (404). The contributing
- *    entries are "the held entries of ONE PRECISION that lie within P" — the
- *    COARSEST precision held inside it — which "MUST NOT overlap" and "MUST
- *    cover P, or, where P has not yet completed, the completed portion of it
- *    that step 6 provides for"; {@link contributingEntries} chooses them, and a
- *    set that cannot meet those conditions has no aggregate the server can
- *    honestly serve, so it is answered as no data;
- *  - a publisher that does not support the parameters ignores them and
- *    returns the Basic response: the most recently completed period.
- */
-import { convertCarbon, convertEnergy } from "./normalize";
-import {
-  CarbonUnit,
-  Capabilities,
-  EnergyUnit,
-  METRIC_MEMBERS,
-  ServiceQuery,
-  SustainabilityDocument,
-  SustainabilityMetrics,
-} from "./types";
-import { round } from "./util";
-
-/**
- * Draft period shape: `YYYY`, `YYYY-MM`, or `YYYY-MM-DD` — the ABNF's
- * `period-value` rule (renamed from `period` in -07, which now names the whole
- * `period=` parameter). Month is bounded to 01-12 and day to 01-31 by the
- * pattern; {@link isCalendarPeriod} also checks the day exists in that month.
- * Exported as the single source of truth; adapters import this rather than
- * duplicating the pattern.
- */
-export const PERIOD_RE = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
-
-/** True for a well-formed `period-value` whose day, if any, exists (no "2026-02-30"). */
-export function isCalendarPeriod(period: string): boolean {
-  if (!PERIOD_RE.test(period)) return false;
-  if (period.length < 10) return true;
-  const [y, m, d] = period.split("-").map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d));
-  return date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
-}
-
-/**
- * The precision of a period, as the draft names it: year, month or day, "year
- * being the coarsest". Ordered so that a LARGER number is FINER, which is the
- * only comparison the procedure needs (`isFiner`).
- */
-export const PRECISION = { year: 1, month: 2, day: 3 } as const;
-export type Precision = (typeof PRECISION)[keyof typeof PRECISION];
-
-/** The precision a `period-value` has: year, month or day. */
-export function periodPrecision(period: string): Precision {
-  return period.length === 4 ? PRECISION.year : period.length === 7 ? PRECISION.month : PRECISION.day;
-}
-
-/**
- * Draft §Extended Query Parameters: "the granularity `monthly` denotes month
- * precision and `daily` denotes day precision". One vocabulary, one mapping —
- * the parameter is never compared against a period directly, only the
- * precision it denotes is.
- */
-const GRANULARITY_PRECISION: Record<"monthly" | "daily", Precision> = {
-  monthly: PRECISION.month,
-  daily: PRECISION.day,
-};
-export function granularityPrecision(granularity: "monthly" | "daily"): Precision {
-  return GRANULARITY_PRECISION[granularity];
-}
-
-/** True when precision `a` is finer than precision `b` (year < month < day). */
-export function isFiner(a: Precision, b: Precision): boolean {
-  return a > b;
-}
-
-/** True when `entryPeriod` lies inside `period` (same or finer precision). */
-export function isWithin(entryPeriod: string, period: string): boolean {
-  return entryPeriod === period || entryPeriod.startsWith(`${period}-`);
-}
-
-/** Two digits, the zero-padded form every `period-value` component takes. */
-const pad2 = (n: number): string => String(n).padStart(2, "0");
-
-/**
- * The instant a period ENDS, exclusive, as epoch milliseconds in UTC: the first
- * instant that is no longer inside it. A `period-value` "names a whole calendar
- * year, month or day in UTC unless the methodology document states otherwise"
- * (draft §Extended Query Parameters), so `2026` ends at 2027-01-01T00:00:00Z,
- * `2026-02` at 2026-03-01T00:00:00Z and `2026-02-28` at 2026-03-01T00:00:00Z.
- */
-export function periodEndMs(period: string): number {
-  const [year, month, day] = period.split("-").map(Number);
-  if (period.length === 4) return Date.UTC(year + 1, 0, 1);
-  if (period.length === 7) return Date.UTC(year, month, 1);
-  return Date.UTC(year, month - 1, day + 1);
-}
-
-/**
- * True when a period has COMPLETED as of `now`: every instant of it has passed.
- * A period ending exactly at `now` has completed — its last instant is behind
- * us — which makes `2026-02` complete at 2026-03-01T00:00:00Z and not before.
- */
-export function isCompleted(period: string, now: Date): boolean {
-  return periodEndMs(period) <= now.getTime();
-}
-
-/**
- * THE COMPLETED PORTION of `period`, as the sub-periods of it at `precision`
- * that have themselves completed by `now`, in ascending order. This is the set
- * draft step 5 requires the contributing entries of an aggregate to cover:
- * "they MUST cover P, or, where P has not yet completed, the completed portion
- * of it that step 6 provides for".
+ * A date-time is an RFC 3339 `date-time` written with `T` and `Z` in upper case.
+ * A period is the half-open range from `start`, included, to `end`, excluded;
+ * `start` is before `end` as instants, whatever offsets the two bounds carry.
+ * Whether a period is a whole calendar day, month or year is decided from the
+ * calendar fields of each bound in its own offset, never from the length of the
+ * span: a month that crosses a change of daylight-saving time is still a month.
  *
- * ONE rule serves both halves of that sentence, because a period that has
- * completed has no sub-period that has not: for a finished year at month
- * precision the list is all twelve months, and for a year still running it is
- * the months that have ended — January to August on 2026-09-16, September being
- * still in progress. So the caller asks only "is every period in this list
- * held?", and both the finished-period case and the step 6 case fall out of it.
- *
- * THE CLOCK is the only input beyond the period itself, and it is a parameter
- * rather than a call to `Date.now()` inside: every caller down to {@link
- * selectPeriod} takes it, `Publisher` reads it from `PublisherOptions.now`, and
- * a test therefore pins it instead of depending on the wall clock. A deployment
- * whose figures for a month land some days into the next one can pass a clock
- * that lags by that much, which states its own reporting calendar explicitly
- * rather than leaving the aggregate to appear and disappear with the date.
- *
- * The list is empty when `precision` is not finer than the period's (nothing
- * inside it is a sub-period of that precision) and when nothing inside the
- * period has completed yet.
+ * Every calendar and instant computation of the package goes through this
+ * module, over `temporal-polyfill`. Nothing exported here exposes a Temporal
+ * type. Shared module: it depends on that library and on a type of `tokens.ts`
+ * only, reads no clock, and is copied byte for byte into the consumer.
  */
-export function completedSubPeriods(period: string, precision: Precision, now: Date): string[] {
-  const outer = periodPrecision(period);
-  if (!isFiner(precision, outer)) return [];
-  const year = Number(period.slice(0, 4));
-  const months =
-    outer === PRECISION.year
-      ? Array.from({ length: 12 }, (_, i) => i + 1)
-      : [Number(period.slice(5, 7))];
-  const subPeriods: string[] = [];
-  for (const month of months) {
-    const monthPeriod = `${year}-${pad2(month)}`;
-    if (precision === PRECISION.month) {
-      subPeriods.push(monthPeriod);
-      continue;
-    }
-    // Day 0 of the NEXT month is the last day of this one, leap years included.
-    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-    for (let day = 1; day <= lastDay; day += 1) subPeriods.push(`${monthPeriod}-${pad2(day)}`);
-  }
-  return subPeriods.filter((p) => isCompleted(p, now));
-}
+import { Temporal } from "temporal-polyfill";
+import type { Granularity } from "./tokens";
 
-/**
- * The Basic response this publisher serves for a trend: the entry for the most
- * recently completed period. Exported so the period rule of draft step 2 is
- * expressed once and can be read off the same value a Basic request returns.
- */
-export function basicResponse(entries: SustainabilityMetrics[]): SustainabilityDocument | undefined {
-  return entries.length > 0 ? entries[entries.length - 1] : undefined;
-}
+// The `date-time` rule of the draft's CDDL: `dt-head .cat dt-tail`.
+const HEAD = "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}";
+const TAIL = "(\\.[0-9]+)?(Z|(\\+|-)[0-9]{2}:[0-9]{2})";
 
-/**
- * Draft §Extended Query Parameters, step 2: with `period` absent, P is "the
- * `reporting-period` of the Basic response, and, where the Basic response is an
- * array, the `reporting-period` of its last object".
- */
-export function basicResponsePeriod(doc: SustainabilityDocument): string | undefined {
-  if (Array.isArray(doc)) {
-    const last = doc[doc.length - 1];
-    return last?.["reporting-period"];
-  }
-  return doc["reporting-period"];
-}
+/** The form of an `updated`, `period.start` or `period.end` value; whether it names a real moment is `dateTimeError`'s question. */
+export const DATE_TIME_RE = new RegExp(`^${HEAD}${TAIL}$`);
 
-/** The energy and carbon members that sum, with the unit member each one is expressed in. */
-const SUMMABLE: ReadonlyArray<{ member: "energy-consumption" | "carbon-footprint" | "scope-1" | "scope-2" | "scope-3"; unit: "energy-unit" | "carbon-unit" }> = [
-  { member: "energy-consumption", unit: "energy-unit" },
-  { member: "carbon-footprint", unit: "carbon-unit" },
-  { member: "scope-1", unit: "carbon-unit" },
-  { member: "scope-2", unit: "carbon-unit" },
-  { member: "scope-3", unit: "carbon-unit" },
-];
+/** The `utc-date-time` of the query ABNF: the same form with the offset fixed to `Z`. */
+export const UTC_DATE_TIME_RE = new RegExp(`^${HEAD}(\\.[0-9]+)?Z$`);
 
-/**
- * Draft step 5: "`provider`, `measurement-method`, `methodology-uri`, `target`
- * and `target-type` are those of the contributing entries, which MUST agree."
- */
-export const MUST_AGREE_MEMBERS = [
-  "provider",
-  "measurement-method",
-  "methodology-uri",
-  "target",
-  "target-type",
-] as const;
+export type PeriodErrorCode =
+  | "date-time-form"
+  | "date-time-value"
+  | "period-shape"
+  | "period-order"
+  | "calendar-label"
+  | "zone";
 
-/**
- * Members the draft's list neither sums nor names as carried over. They are not
- * metric members, so "every other metric member is omitted" does not reach
- * them; carrying one contributor's value alone would, however, describe
- * the aggregate with that contributor's context. Draft step 5: "Any other
- * optional member that is not a metric, other than `energy-unit` and
- * `carbon-unit`, whose values the rule on sums above fixes, is carried only
- * where every contributing entry carries it with the same value, and omitted
- * otherwise" — so a member absent from any one entry is omitted, exactly as a
- * member whose values differ is. The two unit members are deliberately NOT in
- * this list: they are fixed by the rule on sums (the unit the LAST contributing
- * entry declares), so a disagreement between entries never drops them and
- * silently reverts the aggregate to the `kWh`/`gCO2e` defaults.
- */
-const AGREE_OR_OMIT_MEMBERS = [
-  "carbon-accounting",
-  "disclosure-uri",
-  "verifiable-attestation-uri",
-  "upstream",
-  "extensions",
-] as const;
-
-/**
- * A data set the server cannot honestly aggregate, in any of the three ways
- * draft step 5 names: the contributing entries disagree on a member that MUST
- * agree, they overlap, or they do not cover the period. All three have the same
- * outcome — "responds as it does when it has no data", the ordinary `404` — and
- * all three are the same kind of event for the OPERATOR: a defect in the
- * published data set rather than a fault of the request or a broken server. So
- * they share a base class, which {@link handleRequest} catches in one place: the
- * requester gets the no-data response, and `onError` fires with the error that
- * says which condition failed and on which periods.
- */
-export class UnservableAggregateError extends Error {
-  constructor(message: string) {
+export class PeriodError extends RangeError {
+  constructor(
+    readonly code: PeriodErrorCode,
+    message: string,
+  ) {
     super(message);
-    this.name = "UnservableAggregateError";
+    this.name = "PeriodError";
   }
 }
 
-/**
- * Raised when the contributing entries of an aggregate do not cover the period.
- *
- * Draft step 5: the contributing entries "MUST cover P, or, where P has not yet
- * completed, the completed portion of it that step 6 provides for: a server
- * holding figures for only part of a finished period cannot present their sum as
- * a figure for the whole of it". {@link completedSubPeriods} lists what must be
- * held; `missing` names what is not, so the operator can see the gap.
- */
-export class AggregateCoverageError extends UnservableAggregateError {
-  constructor(
-    public readonly period: string,
-    public readonly missing: string[],
-  ) {
-    super(
-      `aggregate for "${period}": the contributing entries do not cover it — ` +
-        `${missing.length} of its completed sub-period(s) are not held ` +
-        `(${missing.slice(0, 6).join(", ")}${missing.length > 6 ? ", …" : ""}); the draft requires the ` +
-        "contributing entries of an aggregate to cover P, or, where P has not yet completed, the " +
-        "completed portion of it, since figures for part of a period cannot be served as a figure " +
-        "for the whole of it",
-    );
-    this.name = "AggregateCoverageError";
+/** One declaration's `period`: `start` included, `end` excluded. */
+export interface Period {
+  start: string;
+  end: string;
+}
+
+/** A period object, or a calendar label as `periodFromReportingPeriod` reads it. */
+export type PeriodInput = Period | string;
+
+// The bound as the moment it names, in the offset it is written in. Second 60 is
+// read as 59, as Temporal reads it; `hasLeapSecond` lets a caller note that.
+function zoned(value: unknown): Temporal.ZonedDateTime {
+  if (typeof value !== "string" || !DATE_TIME_RE.test(value)) {
+    throw new PeriodError("date-time-form", `not an RFC 3339 date-time with upper-case T and Z: ${JSON.stringify(value)}`);
+  }
+  const zone = value.endsWith("Z") ? "UTC" : value.slice(-6);
+  // RFC 3339 time-numoffset: time-hour 00-23 and time-minute 00-59 (the CDDL pattern is looser).
+  if (zone !== "UTC" && !/^[+-]([01][0-9]|2[0-3]):[0-5][0-9]$/.test(zone)) {
+    throw new PeriodError("date-time-value", `not a real date and time: ${JSON.stringify(value)} (the offset ${zone} is not time-numoffset)`);
+  }
+  try {
+    return Temporal.ZonedDateTime.from(`${value}[${zone}]`, { offset: "reject", overflow: "reject" });
+  } catch (e) {
+    throw new PeriodError("date-time-value", `not a real date and time: ${JSON.stringify(value)} (${(e as Error).message})`);
   }
 }
 
-/**
- * Raised when the contributing entries of an aggregate overlap, which after the
- * one-precision rule can only mean the same period held twice (draft step 5,
- * "they MUST NOT overlap"; §Payload Format, a trend "MUST NOT overlap"). Summing
- * such a set would count that period twice, so there is no aggregate to serve.
- */
-export class AggregateOverlapError extends UnservableAggregateError {
-  constructor(
-    public readonly period: string,
-    public readonly duplicated: string[],
-  ) {
-    super(
-      `aggregate for "${period}": the contributing entries overlap — ` +
-        `${duplicated.join(", ")} held more than once; the draft requires the contributing entries ` +
-        "of an aggregate not to overlap, since summing them would count that period twice",
-    );
-    this.name = "AggregateOverlapError";
+const instant = (value: unknown): Temporal.Instant => zoned(value).toInstant();
+
+/** Why `value` is not a date-time of the draft, or `undefined` when it is one. */
+export function dateTimeError(value: unknown): string | undefined {
+  try {
+    zoned(value);
+    return undefined;
+  } catch (e) {
+    if (e instanceof PeriodError) return e.message;
+    throw e;
   }
 }
 
+/** Whether `value` is a date-time of the draft: the form, and a real date, time and offset. */
+export const isDateTime = (value: unknown): value is string => dateTimeError(value) === undefined;
+
+/** Whether a date-time names the leap second 23:59:60, which is read as 23:59:59. */
+export const hasLeapSecond = (value: string): boolean => value.slice(17, 19) === "60";
+
 /**
- * Raised when the contributing entries of an aggregate disagree on a member the
- * draft says MUST agree. The publisher cannot form a conformant aggregate and
- * MUST NOT invent one from a single contributor: draft step 5, "where they do
- * not, the server MUST NOT serve an aggregate, since it could only misdescribe
- * what the figures are about, and responds as it does when it has no data".
- *
- * The CLIENT therefore sees the no-data response — for this resource `404`,
- * byte for byte what a period with no entries inside it gets ({@link
- * handleRequest} maps it there). The OPERATOR still hears about it: the
- * `onError` hook is called with this error, whose message names the member and
- * the values that disagreed, because a disagreement is a defect in the
- * published data set rather than something to lose silently.
+ * Whether `value` is a `utc-date-time` a server honors for `start` or `end`. A
+ * leap second does not count: it would be read as another value.
  */
-export class AggregateDisagreementError extends UnservableAggregateError {
-  constructor(
-    public readonly member: string,
-    public readonly values: unknown[],
-  ) {
-    super(
-      `aggregate for a coarser period: the contributing entries disagree on "${member}" ` +
-        `(${values.map((v) => JSON.stringify(v)).join(", ")}); the draft requires the contributing ` +
-        "entries of an aggregate to agree on provider, measurement-method, methodology-uri, " +
-        "target and target-type",
-    );
-    this.name = "AggregateDisagreementError";
+export const isUtcDateTime = (value: unknown): value is string =>
+  isDateTime(value) && UTC_DATE_TIME_RE.test(value) && !hasLeapSecond(value);
+
+/** Compare two date-times as instants, whatever their offsets: negative, zero or positive. */
+export const compareDateTimes = (a: string, b: string): number => Temporal.Instant.compare(instant(a), instant(b));
+
+/** The instant in UTC with `Z`, and a fraction only when it is not zero: the form of a query value and of a key. */
+export const toUtcQueryValue = (value: string): string => instant(value).toString();
+
+function checkPeriod(value: unknown): PeriodError | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return new PeriodError("period-shape", "a period is an object with the members start and end");
   }
-}
-
-/** The unit a member is expressed in, with the draft's default when absent. */
-function unitOf(entry: SustainabilityMetrics, unit: "energy-unit" | "carbon-unit"): string {
-  return (entry[unit] as string | undefined) ?? (unit === "energy-unit" ? "kWh" : "gCO2e");
-}
-
-/** Structural equality over JSON values (member order in objects is significant). */
-const sameValue = (a: unknown, b: unknown): boolean => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
-
-/**
- * THE CONTRIBUTING ENTRIES of an aggregate for `period`, as draft step 5
- * defines them: "the held entries of one precision that lie within P: where the
- * server holds more than one precision inside P, it takes the coarsest… They
- * MUST NOT overlap… and they MUST cover P, or, where P has not yet completed,
- * the completed portion of it that step 6 provides for."
- *
- * Returns `undefined` when nothing finer lies inside the period at all — the
- * plain no-data outcome (404) — and THROWS an {@link UnservableAggregateError}
- * when what is held cannot be aggregated honestly (an overlap, or a gap in the
- * coverage): the same 404 for the requester, with the operator told why, since
- * "a server whose held data cannot meet these conditions has no aggregate it can
- * honestly serve and responds as it does when it has no data".
- *
- * Four rules, applied here rather than at the call site so that every caller
- * of the exported {@link aggregatePeriod} gets them:
- *
- *  - WITHIN P AND FINER. Only an entry lying inside P contributes, and only one
- *    whose precision is finer than P's: an entry for P itself is the answer to
- *    the request, not a contribution to an aggregate of it ({@link
- *    selectPeriod} returns it directly).
- *  - ONE PRECISION, THE COARSEST. Where a publisher holds more than one
- *    precision inside P — the twelve months of a year and a few days inside one
- *    of those months, to take the draft's own example — the two sets MUST NOT be
- *    summed together, because each of those days is already counted inside its
- *    month. The draft NAMES which set is taken: "where the server holds more
- *    than one precision inside P, it takes the coarsest, so that two servers
- *    holding the same data return the same figures". So this takes the COARSEST
- *    precision held inside P (months, in that example) and drops every entry of
- *    any other precision — not a choice this package makes but the rule it
- *    implements. The rule is deterministic, depends only on the set of periods
- *    held, and is the one that reports the period most completely: a publisher's
- *    coarser series normally spans the whole of P, while its finer entries cover
- *    a part of it. It is also stable — publishing a day inside a month that is
- *    already held never changes the year's aggregate — and it reads the
- *    publisher's own coarser figures, which are its own reconciliation of the
- *    finer ones, rather than re-deriving them.
- *  - NO OVERLAP. Two entries of the same precision name either the same period
- *    or disjoint periods, so once one precision is chosen the only way left to
- *    overlap is to hold one period twice. A trend "MUST NOT overlap"
- *    (§Payload Format), so such a set is a defect in the published data: it has
- *    no aggregate ({@link AggregateOverlapError}), and the requester gets the
- *    no-data response rather than a figure counting that period twice.
- *  - COVERAGE. The entries must TILE P — "they MUST cover P, or, where P has not
- *    yet completed, the completed portion of it that step 6 provides for: a
- *    server holding figures for only part of a finished period cannot present
- *    their sum as a figure for the whole of it". Having several entries is not
- *    coverage: every sub-period of P at the chosen precision that has completed
- *    by `now` must be held ({@link completedSubPeriods}), so a year missing its
- *    June, and a year holding only January to March once the year is over, both
- *    fail, while a year still running whose completed months are all held passes
- *    and is served as the completed portion to date (step 6). A gap is
- *    {@link AggregateCoverageError} — the no-data response for the requester and
- *    a report for the operator, exactly as an overlap is. An entry for the
- *    sub-period still in progress is not required and, where the publisher holds
- *    one, still contributes: what its entries cover is the publisher's own
- *    statement, which step 6 leaves to it.
- *
- * The chosen entries are returned in ASCENDING ORDER of `reporting-period`,
- * whatever order the caller held them in, so "the last contributing entry in
- * ascending order of `reporting-period`" (the aggregate's unit, below) is
- * literally the last of them.
- */
-export function contributingEntries(
-  entries: SustainabilityMetrics[],
-  period: string,
-  now: Date = new Date(),
-): SustainabilityMetrics[] | undefined {
-  const target = periodPrecision(period);
-  const candidates = entries.filter(
-    (e) =>
-      isWithin(e["reporting-period"], period) &&
-      isFiner(periodPrecision(e["reporting-period"]), target),
-  );
-  if (candidates.length === 0) return undefined;
-
-  // The coarsest precision held inside P: the SMALLEST `PRECISION` value, since
-  // a larger number is the finer one.
-  const coarsest = candidates.reduce<Precision>((chosen, e) => {
-    const p = periodPrecision(e["reporting-period"]);
-    return p < chosen ? p : chosen;
-  }, PRECISION.day);
-
-  const contributing = candidates.filter((e) => periodPrecision(e["reporting-period"]) === coarsest);
-  const held = new Set(contributing.map((e) => e["reporting-period"]));
-  if (held.size !== contributing.length) {
-    // One period held twice: the entries overlap, so there is no aggregate.
-    const heldCount = new Map<string, number>();
-    for (const e of contributing) {
-      const p = e["reporting-period"];
-      heldCount.set(p, (heldCount.get(p) ?? 0) + 1);
+  const { start, end } = value as Record<string, unknown>;
+  for (const [name, bound] of [["start", start], ["end", end]] as const) {
+    try {
+      zoned(bound);
+    } catch (e) {
+      if (e instanceof PeriodError) return new PeriodError(e.code, `period.${name}: ${e.message}`);
+      throw e;
     }
-    const duplicated = [...heldCount]
-      .filter(([, count]) => count > 1)
-      .map(([p]) => p)
-      .sort();
-    throw new AggregateOverlapError(period, duplicated);
   }
+  if (compareDateTimes(start as string, end as string) >= 0) {
+    return new PeriodError("period-order", `period.start must be before period.end (got ${start} and ${end})`);
+  }
+  return undefined;
+}
 
-  // Draft step 5: the contributing entries MUST COVER P — or, where P has not
-  // yet completed, its completed portion. Coverage is a TILING, not a count:
-  // every sub-period of P at the chosen precision that has completed by `now`
-  // has to be one of them, so a gap anywhere (in the middle, or a finished
-  // period whose last months were never published) leaves the server with no
-  // aggregate it can honestly serve.
-  const missing = completedSubPeriods(period, coarsest, now).filter((p) => !held.has(p));
-  if (missing.length > 0) throw new AggregateCoverageError(period, missing);
+/** Why `value` is not a period, or `undefined` when it is one: two date-times, `start` before `end`. */
+export const periodError = (value: unknown): string | undefined => checkPeriod(value)?.message;
 
-  // The period forms are zero-padded, so a lexicographic sort is chronological.
-  return [...contributing].sort((a, b) => a["reporting-period"].localeCompare(b["reporting-period"]));
+/** The period of `value`, with its two bounds as written; throws a `PeriodError` when it is not one. */
+export function parsePeriod(value: unknown): Period {
+  const error = checkPeriod(value);
+  if (error) throw error;
+  const { start, end } = value as Period;
+  return { start, end };
+}
+
+/** The range of a query: an absent bound is unbounded. */
+export interface Range {
+  start?: string;
+  end?: string;
 }
 
 /**
- * THE LAST CONTRIBUTING ENTRY IN ASCENDING ORDER OF `reporting-period`, which
- * draft step 5 makes the source of the aggregate's own units: the sums are
- * "taken after converting the contributing entries to the unit the aggregate
- * declares in `energy-unit` and `carbon-unit`, which is the unit declared by
- * the last contributing entry in ascending order of `reporting-period`" (and,
- * where that entry declares neither, the draft's default for the member —
- * `kWh` and `gCO2e`; see {@link unitOf}).
- *
- * The dimension is the REPORTING PERIOD, never the `updated` timestamp: step 5
- * has a separate rule for `updated` ("the latest `updated` of the contributing
- * entries"), and an entry revised late does not thereby become the one whose
- * unit the aggregate declares. This picks the entry by period rather than by
- * position, so the rule holds for any caller of the exported {@link
- * aggregatePeriod} too, whatever order it passes: the period forms `YYYY`,
- * `YYYY-MM` and `YYYY-MM-DD` are zero-padded and sort lexicographically in
- * chronological order. The contributing entries are of one precision and do not
- * overlap ({@link contributingEntries}), so exactly one of them is last.
+ * Whether `period` overlaps the half-open range `range`: it starts before the
+ * range ends and ends after the range starts, as instants. Two periods that
+ * meet, one's end being the other's start, do not overlap.
  */
-function lastEntryByPeriod(entries: SustainabilityMetrics[]): SustainabilityMetrics {
-  return entries.reduce((latest, e) =>
-    e["reporting-period"] >= latest["reporting-period"] ? e : latest,
+export function overlapsRange(period: Period, range: Range): boolean {
+  return (
+    (range.end === undefined || compareDateTimes(period.start, range.end) < 0) &&
+    (range.start === undefined || compareDateTimes(period.end, range.start) > 0)
   );
 }
 
-/**
- * One object for `period` from the finer entries inside it, exactly as draft
- * §Extended Query Parameters, step 5 lists it:
- *
- *  - the contributing entries are the held entries of ONE PRECISION that lie
- *    within P and do not overlap — {@link contributingEntries} chooses them,
- *    and an aggregate is formed from those alone;
- *  - `reporting-period` is P, and `capabilities` is `extended`;
- *  - `energy-consumption`, `carbon-footprint` and the scope members are sums
- *    taken after converting the contributing entries to the unit the aggregate
- *    itself declares in `energy-unit` and `carbon-unit`, which is the unit
- *    declared by the LAST contributing entry IN ASCENDING ORDER OF
- *    `reporting-period` (see {@link lastEntryByPeriod}) — not the entry with
- *    the latest `updated`, which is a separate rule of the same step;
- *  - each of those members is carried only where EVERY contributing entry
- *    reports it, and omitted otherwise, "since summing where some entries are
- *    silent would understate the period";
- *  - `updated` is the latest `updated` of the contributing entries;
- *  - `provider`, `measurement-method`, `methodology-uri`, `target` and
- *    `target-type` are those of the contributing entries, which MUST agree —
- *    a disagreement raises {@link AggregateDisagreementError}, which is the
- *    no-data outcome for the requester (404) and an `onError` report for the
- *    operator;
- *  - every other metric member is omitted (this library never recomputes one:
- *    a publisher that does so, and says so in its methodology document, adds it
- *    to the object itself).
- *
- * Returns `undefined` when there are no contributing entries to form it from,
- * and when the aggregate would carry no metric member at all: draft step 5,
- * "A server that cannot form an aggregate carrying at least one metric member
- * responds `404 Not Found`".
- */
-export function aggregatePeriod(
-  entries: SustainabilityMetrics[],
-  period: string,
-  now: Date = new Date(),
-): SustainabilityMetrics | undefined {
-  // Draft step 5: the contributing entries are those of ONE precision lying
-  // within P, which MUST NOT overlap. Everything below sums `contributing`, and
-  // never the argument, so a caller handing over a month and a day inside it
-  // does not get that day counted twice.
-  const contributing = contributingEntries(entries, period, now);
-  if (contributing === undefined) return undefined;
-  const rec = (e: SustainabilityMetrics) => e as unknown as Record<string, unknown>;
-  // The unit the aggregate declares is "the unit declared by the last
-  // contributing entry in ascending order of `reporting-period`" (draft step 5).
-  const last = lastEntryByPeriod(contributing);
+/** Whether two periods overlap; see {@link overlapsRange}. */
+export const periodsOverlap = (a: Period, b: Period): boolean => overlapsRange(a, b);
 
-  // "which MUST agree": a disagreement is a defect in the published data set,
-  // never something to paper over by picking one entry's value. The requester
-  // is answered as it is when there is no data (404); the operator is told.
-  for (const member of MUST_AGREE_MEMBERS) {
-    const values = contributing.map((e) => rec(e)[member]);
-    if (values.some((v) => !sameValue(v, values[0]))) {
-      throw new AggregateDisagreementError(member, [...new Set(values.map((v) => JSON.stringify(v)))].map((s) => JSON.parse(s ?? "null")));
-    }
-  }
+/** Order by the instant of `start`, then by the instant of `end`. */
+export const comparePeriodStart = (a: Period, b: Period): number =>
+  compareDateTimes(a.start, b.start) || compareDateTimes(a.end, b.end);
 
-  const out: Record<string, unknown> = {
-    // Mandatory members, in the order the draft lists them. The five that MUST
-    // agree are read off `last` only because the check above has already
-    // established that every contributing entry carries the same value.
-    updated: contributing.map((e) => e.updated).sort().pop() as string,
-    capabilities: "extended",
-    provider: last.provider,
-    "measurement-method": last["measurement-method"],
-    "methodology-uri": last["methodology-uri"],
-    "reporting-period": period,
-    target: last.target,
-  };
+/** A key for the period that is the same however its bounds are spelled: `Z`, `+00:00` and `.000Z` agree. */
+export const canonicalKey = (period: Period): string => `${toUtcQueryValue(period.start)}/${toUtcQueryValue(period.end)}`;
 
-  // Draft step 5: the aggregate declares the unit of the LAST contributing
-  // entry in ascending order of `reporting-period`, and every contribution is
-  // converted into it below.
-  const declared = {
-    "energy-unit": unitOf(last, "energy-unit"),
-    "carbon-unit": unitOf(last, "carbon-unit"),
-  } as const;
+const isMidnight = (z: Temporal.ZonedDateTime): boolean =>
+  z.hour === 0 && z.minute === 0 && z.second === 0 && z.millisecond === 0 && z.microsecond === 0 && z.nanosecond === 0;
 
-  for (const { member, unit } of SUMMABLE) {
-    const reporting = contributing.filter((e) => typeof rec(e)[member] === "number");
-    // Draft step 5: "carried only where every contributing entry reports it,
-    // and omitted otherwise, since summing where some entries are silent would
-    // understate the period".
-    if (reporting.length !== contributing.length) continue;
-    const target = declared[unit];
-    const total = reporting.reduce((sum, e) => {
-      const value = rec(e)[member] as number;
-      const from = unitOf(e, unit);
-      return (
-        sum +
-        (unit === "energy-unit"
-          ? convertEnergy(value, from as EnergyUnit, target as EnergyUnit)
-          : convertCarbon(value, from as CarbonUnit, target as CarbonUnit))
-      );
-    }, 0);
-    out[member] = round(total);
-    out[unit] = target;
-  }
-  // A unit member has no effect without a value it parameterizes.
-  for (const unit of ["energy-unit", "carbon-unit"] as const) {
-    if (!SUMMABLE.some((s) => s.unit === unit && out[s.member] !== undefined)) delete out[unit];
-  }
-
-  // `target-type` is carried when the entries agree — checked above, so the
-  // last entry's value is every entry's value. Absent from all: omitted.
-  if (last["target-type"] !== undefined) out["target-type"] = last["target-type"];
-
-  // Draft step 5, for an optional member that is not a metric: "carried only
-  // where EVERY contributing entry CARRIES IT WITH THE SAME VALUE, and omitted
-  // otherwise". Carrying it is part of the test, not only agreeing where
-  // present: `values[0] !== undefined` rejects a member the first entry does
-  // not carry, and `sameValue` compares an absent value as null, so an entry
-  // that omits it never matches one that carries it.
-  for (const member of AGREE_OR_OMIT_MEMBERS) {
-    const values = contributing.map((e) => rec(e)[member]);
-    if (values[0] !== undefined && values.every((v) => sameValue(v, values[0]))) out[member] = values[0];
-  }
-
-  // `signed` is deliberately absent from every list above: a signature covers
-  // the object it was made for, and an aggregate is a NEW object, signed (if at
-  // all) by the publisher after it is built (draft §Signing, regeneration rule).
-
-  // Draft step 5: an aggregate must carry at least one METRIC member — an
-  // evidence link does not stand in for one here, so a publisher holding only,
-  // say, `sci-score` for the finer periods has no aggregate to serve (404).
-  if (!METRIC_MEMBERS.some((m) => typeof out[m] === "number")) return undefined;
-  return out as unknown as SustainabilityMetrics;
+/** Whether both bounds are the first instant of a calendar day in their own offset (draft §Mandatory Members, a SHOULD). */
+export function isOnDayBoundaries(period: Period): boolean {
+  return isMidnight(zoned(period.start)) && isMidnight(zoned(period.end));
 }
 
 /**
- * Select what a query returns from a trend sorted ascending by period.
- * `undefined` means no data for the request (the no-data rule, 404).
+ * Whether `period` is a whole calendar year, month or day: `start` is the first
+ * instant of one and `end` the first instant of the next, each read in its own
+ * offset. Several whole months are not a whole month.
  */
-export function selectPeriod(
-  entries: SustainabilityMetrics[],
-  query: ServiceQuery,
-  capabilities: Capabilities,
-  now: Date = new Date(),
-): SustainabilityDocument | undefined {
-  if (entries.length === 0) return undefined;
-  const basic = basicResponse(entries) as SustainabilityDocument;
-  if (capabilities !== "extended" || (query.period === undefined && query.granularity === undefined)) return basic;
-
-  // Draft step 2: P is the named period, or the Basic response's — its LAST
-  // object's, where the Basic response is an array.
-  const period = query.period ?? basicResponsePeriod(basic);
-  if (period === undefined) return undefined;
-  const within = entries.filter((e) => isWithin(e["reporting-period"], period));
-  if (within.length === 0) return undefined;
-
-  // Draft step 3: G is the precision the value denotes; the parameter is
-  // ignored when that precision is not finer than P's.
-  // Step 5: with G in effect the response is the array of the held entries
-  // WHOSE PRECISION IS G within P — and nothing else, so none means 404.
-  const g = query.granularity !== undefined ? granularityPrecision(query.granularity) : undefined;
-  if (g !== undefined && isFiner(g, periodPrecision(period))) {
-    const sliced = within.filter((e) => periodPrecision(e["reporting-period"]) === g);
-    return sliced.length > 0 ? sliced : undefined;
+export function isWholeCalendarPeriod(period: Period, unit: Granularity): boolean {
+  const start = zoned(period.start);
+  const end = zoned(period.end);
+  if (!isMidnight(start) || !isMidnight(end)) return false;
+  const first = start.toPlainDate();
+  const next = end.toPlainDate();
+  switch (unit) {
+    case "daily":
+      return first.add({ days: 1 }).equals(next);
+    case "monthly":
+      return first.day === 1 && first.add({ months: 1 }).equals(next);
+    case "yearly":
+      return first.month === 1 && first.day === 1 && first.add({ years: 1 }).equals(next);
   }
-  const exact = within.find((e) => e["reporting-period"] === period);
-  if (exact) return exact;
-  // Step 5: no entry for P itself, so the answer is the aggregate of the finer
-  // entries inside it — of ONE precision, non-overlapping, which
-  // `aggregatePeriod` selects from what it is given (`contributingEntries`).
-  return aggregatePeriod(within, period, now);
+}
+
+/** The calendar unit `period` is whole in, or `undefined` when it is a whole day, month or year in none. */
+export function wholeCalendarUnit(period: Period): Granularity | undefined {
+  return (["daily", "monthly", "yearly"] as const).find((unit) => isWholeCalendarPeriod(period, unit));
+}
+
+// A bound at the first instant of `date` in `zone` ("Z", a fixed offset, or an IANA zone), written in the offset in force then.
+function bound(date: Temporal.PlainDate, zone: string): string {
+  let start: Temporal.ZonedDateTime;
+  try {
+    start = date.toZonedDateTime(zone === "Z" ? "UTC" : zone);
+  } catch (e) {
+    throw new PeriodError("zone", `not a time zone, a fixed offset or "Z": ${JSON.stringify(zone)} (${(e as Error).message})`);
+  }
+  const offset = start.offset === "+00:00" ? "Z" : start.offset;
+  return `${start.toPlainDateTime().toString({ smallestUnit: "second" })}${offset}`;
+}
+
+// The range from the start of `first` to the start of `next`. A zone can skip a whole calendar day
+// (Pacific/Apia skipped 2011-12-30), and then the two starts are the same instant.
+function between(first: Temporal.PlainDate, next: Temporal.PlainDate, zone: string): Period {
+  const period = { start: bound(first, zone), end: bound(next, zone) };
+  if (compareDateTimes(period.start, period.end) >= 0) {
+    throw new PeriodError("period-order", `the range from ${first} to ${next} has no length in ${JSON.stringify(zone)}: the zone has no such calendar day`);
+  }
+  return period;
+}
+
+function calendarDate(year: number, month: number, day: number, label: string): Temporal.PlainDate {
+  try {
+    if (!Number.isInteger(year) || year < 1 || year > 9999) throw new RangeError("the year is outside 1 to 9999");
+    return Temporal.PlainDate.from({ year, month, day }, { overflow: "reject" });
+  } catch (e) {
+    throw new PeriodError("calendar-label", `${label} does not name a calendar date (${(e as Error).message})`);
+  }
+}
+
+/** The whole calendar year, with bounds at midnight in `zone` (default UTC, written `Z`). */
+export function yearPeriod(year: number, zone = "Z"): Period {
+  const first = calendarDate(year, 1, 1, `the year ${year}`);
+  return between(first, first.add({ years: 1 }), zone);
+}
+
+/** The whole calendar month, `month` counted from 1. */
+export function monthPeriod(year: number, month: number, zone = "Z"): Period {
+  const first = calendarDate(year, month, 1, `the month ${year}-${month}`);
+  return between(first, first.add({ months: 1 }), zone);
+}
+
+/** The whole calendar day, `date` written `YYYY-MM-DD`. */
+export function dayPeriod(date: string, zone = "Z"): Period {
+  const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(date);
+  if (!match) throw new PeriodError("calendar-label", `the day ${JSON.stringify(date)} is not YYYY-MM-DD`);
+  const first = calendarDate(Number(match[1]), Number(match[2]), Number(match[3]), `the day ${date}`);
+  return between(first, first.add({ days: 1 }), zone);
+}
+
+/** The calendar quarter, `quarter` counted from 1: three whole months. */
+export function quarterPeriod(year: number, quarter: 1 | 2 | 3 | 4, zone = "Z"): Period {
+  if (![1, 2, 3, 4].includes(quarter)) throw new PeriodError("calendar-label", `the quarter ${quarter} is not 1 to 4`);
+  const first = calendarDate(year, quarter * 3 - 2, 1, `the quarter ${year}-Q${quarter}`);
+  return between(first, first.add({ months: 3 }), zone);
+}
+
+/** Whether `value` is an RFC 3339 `full-date`, the form of a bound before the draft made them date-times. */
+export const isFullDate = (value: unknown): value is string => typeof value === "string" && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value);
+
+/**
+ * The period of an earlier calendar label, `YYYY`, `YYYY-MM` or `YYYY-MM-DD`,
+ * the value of the `reporting-period` member before it was replaced: the whole
+ * year, month or day. A label that names no such date throws a `PeriodError`.
+ */
+export function periodFromReportingPeriod(label: string, zone = "Z"): Period {
+  const match = /^([0-9]{4})(?:-([0-9]{2})(?:-([0-9]{2}))?)?$/.exec(label);
+  if (!match) throw new PeriodError("calendar-label", `reporting-period ${JSON.stringify(label)} is not YYYY, YYYY-MM or YYYY-MM-DD`);
+  const [, year, month, day] = match;
+  if (month === undefined) return yearPeriod(Number(year), zone);
+  if (day === undefined) return monthPeriod(Number(year), Number(month), zone);
+  return dayPeriod(label, zone);
+}
+
+/**
+ * The period of an earlier pair of inclusive `full-date`s, the form of the
+ * previous revision: the range from the start of the first day to the start of
+ * the day after the last.
+ */
+export function periodFromFullDates(dates: { start: string; end: string }, zone = "Z"): Period {
+  if (!isFullDate(dates.start) || !isFullDate(dates.end)) {
+    throw new PeriodError("calendar-label", `the period ${JSON.stringify(dates)} does not hold two full-dates`);
+  }
+  const date = (label: string) => dayPeriod(label, zone);
+  return parsePeriod({ start: date(dates.start).start, end: date(dates.end).end });
+}
+
+/** The period of an object or of a calendar label; throws a `PeriodError` when the input names none. */
+export function toPeriod(input: PeriodInput, zone = "Z"): Period {
+  return typeof input === "string" ? periodFromReportingPeriod(input, zone) : parsePeriod(input);
 }

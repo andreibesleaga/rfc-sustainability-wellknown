@@ -34,7 +34,7 @@ function prefixed(domain: string): typeof fetch {
   }) as typeof fetch;
 }
 
-// The test server is a loopback http:// instance; consumer 0.6.0 refuses a
+// The test server is a loopback http:// instance; the consumer refuses a
 // non-HTTPS origin by default (`{ status: "insecure-transport" }`), so the
 // battery needs the same `allowInsecure` escape hatch the CI smoke test uses
 // (`scripts/conformance.mjs --allow-http`) — never appropriate for a real
@@ -44,15 +44,18 @@ const LOCAL_INSTANCE = { allowInsecure: true };
 describe("repository conformance battery", () => {
   it("passes for the gateway's own report at the root", async () => {
     const report = await runConformanceChecks(srv.base, undefined, LOCAL_INSTANCE);
-    const failed = report.checks.filter((c) => !c.pass);
+    // A failed check is a conformance failure; an informational note (a fiscal year is not a calendar year) is not.
+    const failed = report.checks.filter((c) => c.outcome === "fail");
     expect(failed.map((c) => `${c.name}: ${c.detail ?? ""}`)).toEqual([]);
     expect(report.allPassed).toBe(true);
+    // The battery sends the 0.8.0 parameters (a range, a granularity, a target) and checks the answer to each.
+    expect(report.checks.some((c) => /query|parameter|range/i.test(c.name))).toBe(true);
   });
 
   it("passes for every registered subject", async () => {
     for (const domain of srv.gw.subjects.keys()) {
       const report = await runConformanceChecks(srv.base, prefixed(domain), LOCAL_INSTANCE);
-      const failed = report.checks.filter((c) => !c.pass);
+      const failed = report.checks.filter((c) => c.outcome === "fail");
       expect(failed.map((c) => `${domain} — ${c.name}: ${c.detail ?? ""}`)).toEqual([]);
     }
   });

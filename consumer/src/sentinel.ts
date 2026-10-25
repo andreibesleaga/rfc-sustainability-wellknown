@@ -1,26 +1,58 @@
 /**
- * Legacy-compatibility helpers, and the draft's tolerance rules
- * (draft -07 §Value Constraints and Omitted Metrics).
+ * The compatibility reading of the forms that draft -10 no longer allows
+ * (draft -10 Appendices B.1 and C.1: "the consumer will read both forms").
  *
- * Since -03 there is no in-band "not reported" marker: omitting a member is the
- * only way to convey that a metric is unreported. Historical documents,
- * however, used a negative value as a "not reported" sentinel. The draft's
- * out-of-range rule subsumes the old sentinel: a value "outside a member's
- * stated range ... is treated as not reported", so a negative value in a member
- * defined as NON-NEGATIVE reads as unreported rather than making the object
- * unreadable.
+ * A document of -08 or -09 is not a valid -10 document. This module reads six
+ * forms of such a document as the -10 forms they stand for, in place, and
+ * reports each reading: the period (a -08 `reporting-period` label, a -09
+ * `period` of two full-dates), a `measurement-method`, a `functional-unit`, a
+ * `carbon-unit` (`mtCO2e`), an upstream `role` and a `target-type` outside
+ * today's sets. Nothing else is read: a value of any other member that is not
+ * valid, an `energy-unit`, a `carbon-accounting` or a `capabilities` outside
+ * its set included, stays as served and the document is invalid, because
+ * those members never had another spelling.
  *
- * `scope-1`/`scope-2`/`scope-3` are deliberately NOT in the list below: since
- * -03 they MAY legitimately be negative (net accounting / removals, draft
- * §Value Constraints and Omitted Metrics) and must never be stripped.
+ * The reading follows the same rules as `sustainability-publisher upgrade`, so
+ * that what the consumer reads and what the tool writes agree. What it reports
+ * is split in two lists of member paths, relative to the object and prefixed
+ * `[i].` in an array:
+ *
+ *  - `converted`: the value is used, in another spelling (`period`,
+ *    `functional-unit`, `carbon-unit`);
+ *  - `disregarded`: the value is not used, and a stand-in or nothing takes its
+ *    place (`measurement-method`, `sci-score` with its unit, `upstream[0].role`,
+ *    `target-type`).
+ *
+ * With `legacyCompat: false` nothing here is called, and a document of an
+ * earlier revision is reported invalid as served.
  */
-import { RESPONSE_JTD_SCHEMA } from "./schema";
-import { SustainabilityMetrics, TARGET_TYPES } from "./types";
+import { dayPeriod, isFullDate, Period, PeriodError, periodFromFullDates, periodFromReportingPeriod } from "./period";
+import {
+  isFunctionalUnit,
+  isMeasurementMethod,
+  isTargetType,
+  isUpstreamRole,
+  legacyCarbonUnit,
+  legacyFunctionalUnit,
+  RESIDUAL_METHOD,
+} from "./tokens";
+
+/** What the compatibility reading did to one document: member paths, in the order the members were read. */
+export interface CompatReport {
+  converted: string[];
+  disregarded: string[];
+}
+
+type Rec = Record<string, unknown>;
+
+const isRecord = (v: unknown): v is Rec => typeof v === "object" && v !== null && !Array.isArray(v);
 
 /**
- * The members the draft defines as non-negative ("gross quantities", plus the
- * 0–100 `renewable-energy` percentage). A negative value in any of these reads
- * as "not reported" under the compatibility rule.
+ * The members that hold a metric. Negative figures and numbers past what
+ * binary64 holds are invalid in -10 (there is no in-band "not reported" value,
+ * draft -10 §Optional Members), and a figure that is wrong in this way is never
+ * repaired by the compatibility reading; the list is for code that computes
+ * with a document it has not validated.
  */
 export const NUMERIC_KEYS = [
   "energy-consumption",
@@ -32,243 +64,166 @@ export const NUMERIC_KEYS = [
 ] as const;
 
 /**
- * True when a value in a non-negative member reads as "not reported" (any
- * negative number). For `renewable-energy` — bounded 0-100 inclusive by the
- * draft — a value above 100 is likewise outside the member's stated range and
- * SHOULD be treated as not reported (draft §Value Constraints), so pass the
- * member key to get the range-aware check.
+ * True for a value that cannot be a reported figure of a non-negative member:
+ * a negative number, `NaN` or an infinity, and for `renewable-energy` a value
+ * above 100. A valid -10 document has none; code that computes with a document
+ * it has not validated uses this to leave such a value out of a sum.
  */
 export function isNotReported(value: unknown, key?: string): boolean {
   if (typeof value !== "number") return false;
-  // NaN and ±Infinity are not values a member can carry: JSON has no literal
-  // for either, but `1e999` parses to Infinity, so an origin can put one on the
-  // wire. "A member that is present always carries an actual value" (draft -07
-  // §Value Constraints and Omitted Metrics), and re-serializing one yields
-  // `null` — a wrongly typed member — so it reads as not reported.
-  if (!Number.isFinite(value)) return true;
-  if (value < 0) return true;
+  if (!Number.isFinite(value) || value < 0) return true;
   return key === "renewable-energy" && value > 100;
 }
 
-/**
- * Returns a copy with every out-of-range value in a NON-NEGATIVE member
- * removed (the draft's legacy-compatibility / out-of-range rule applied).
- * Negative scope-1/2/3 values are real data (net accounting) and are left
- * untouched.
- */
-export function withoutSentinels(doc: SustainabilityMetrics): Partial<SustainabilityMetrics> {
-  const out: Record<string, unknown> = { ...doc };
+/** A copy with every value that {@link isNotReported} flags removed; negative scopes are real data (net accounting) and stay. */
+export function withoutSentinels<T extends object>(doc: T): Partial<T> {
+  const out: Rec = { ...(doc as Rec) };
   for (const key of NUMERIC_KEYS) {
     if (isNotReported(out[key], key)) delete out[key];
   }
-  return out as Partial<SustainabilityMetrics>;
+  return out as Partial<T>;
+}
+
+// The extension in which a gateway data file stated the fiscal year that its
+// `reporting-period` label stood for, and its member.
+const FISCAL_YEAR_EXTENSION = "urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041";
+const FISCAL_YEAR_BASIS = "reporting-period-basis";
+const FISCAL_YEAR_ENDED = /^fiscal-year-ended-([0-9]{4}-[0-9]{2}-[0-9]{2})$/;
+
+// The fiscal year that ended on `end`: from the day after the same date a year earlier to the day after `end`.
+function fiscalYear(end: string): Period {
+  const [year, month, day] = end.split("-");
+  const before = dayPeriod(`${Number(year) - 1}-${month}-${month === "02" && day === "29" ? "28" : day}`);
+  return { start: before.end, end: dayPeriod(end).end };
+}
+
+function fiscalYearEnd(rec: Rec): string | undefined {
+  const extension = isRecord(rec.extensions) ? rec.extensions[FISCAL_YEAR_EXTENSION] : undefined;
+  const basis = isRecord(extension) ? extension[FISCAL_YEAR_BASIS] : undefined;
+  return typeof basis === "string" ? FISCAL_YEAR_ENDED.exec(basis)?.[1] : undefined;
+}
+
+// Remove the fiscal-year basis from `extensions`, and what that leaves empty.
+function dropFiscalYearBasis(rec: Rec): void {
+  const extensions = rec.extensions as Rec;
+  const { [FISCAL_YEAR_BASIS]: _basis, ...rest } = extensions[FISCAL_YEAR_EXTENSION] as Rec;
+  const { [FISCAL_YEAR_EXTENSION]: _extension, ...others } = extensions;
+  const kept = Object.keys(rest).length > 0 ? { ...others, [FISCAL_YEAR_EXTENSION]: rest } : others;
+  if (Object.keys(kept).length > 0) rec.extensions = kept;
+  else delete rec.extensions;
+}
+
+// Replace `reporting-period` by `period` where it stood, keeping the order of the members.
+function replaceLabel(rec: Rec, period: Period): void {
+  const entries = Object.entries(rec).map(([name, value]): [string, unknown] => (name === "reporting-period" ? ["period", period] : [name, value]));
+  for (const name of Object.keys(rec)) delete rec[name];
+  Object.assign(rec, Object.fromEntries(entries));
 }
 
 /**
- * The values the -04 draft defines for the enumerated `target-type` member —
- * kept in sync with the JTD schema, which `test/schema.test.ts` byte-checks
- * against the canonical repo schema.
+ * The period of a -08 `reporting-period` label (the whole year, month or day,
+ * or the exact fiscal year a gateway data file states beside it) or of a -09
+ * `period` of two inclusive full-dates (the start of the first day to the start
+ * of the day after the last). A value that names no date, a `period` that
+ * holds one full-date and one date-time, and a label beside a `period` object
+ * are left as served, and the document then fails validation.
  */
-export { TARGET_TYPES };
-
-/**
- * True when a `target-type` value is one this revision defines. Any other
- * value falls under the draft's enumerated-member tolerance rule (§Value
- * Constraints and Omitted Metrics): a client SHOULD disregard the member —
- * interpreting `target` as if `target-type` were absent — rather than reject
- * the document. The counterpart of isNotReported() for this string member;
- * the stripping itself happens in fetch.ts's pre-pass (before the schema
- * gate, whose closed enum would otherwise fail on exactly such a value).
- */
-export function isRecognizedTargetType(value: unknown): value is (typeof TARGET_TYPES)[number] {
-  return typeof value === "string" && (TARGET_TYPES as readonly string[]).includes(value);
-}
-
-/**
- * The enumerated string members the draft's tolerance rule names
- * (§Value Constraints and Omitted Metrics) and, for the two unit members,
- * the numeric members they parameterize — which read as "not reported" once
- * their unit is disregarded. The value sets come from the schema itself.
- */
-export const ENUMERATED_MEMBERS: ReadonlyArray<{ member: string; values: readonly string[]; parameterizes: readonly string[] }> = [
-  { member: "capabilities", values: RESPONSE_JTD_SCHEMA.properties.capabilities.enum, parameterizes: [] },
-  { member: "energy-unit", values: RESPONSE_JTD_SCHEMA.optionalProperties["energy-unit"].enum, parameterizes: ["energy-consumption"] },
-  {
-    member: "carbon-unit",
-    values: RESPONSE_JTD_SCHEMA.optionalProperties["carbon-unit"].enum,
-    parameterizes: ["carbon-footprint", "scope-1", "scope-2", "scope-3"],
-  },
-  { member: "carbon-accounting", values: RESPONSE_JTD_SCHEMA.optionalProperties["carbon-accounting"].enum, parameterizes: [] },
-  { member: "target-type", values: TARGET_TYPES, parameterizes: [] },
-];
-
-/**
- * Expected JSON type of every OPTIONAL member the draft defines. Draft
- * §Value Constraints and Omitted Metrics (-04): "A value of the wrong JSON
- * type (including `null`) is treated as not reported" — fetch.ts's
- * legacy-compatibility pre-pass strips such members (recording them in
- * `disregarded`) before the schema gate would otherwise reject the document.
- *
- * Mandatory members are deliberately NOT listed: stripping one could not make
- * the document processable (it would just fail as "missing" instead of
- * "wrong type"), so a wrong-typed mandatory member still fails validation.
- */
-export type MemberJsonType = "number" | "string" | "array" | "object";
-
-export const OPTIONAL_MEMBER_JSON_TYPES: Readonly<Record<string, MemberJsonType>> = {
-  "energy-consumption": "number",
-  "energy-unit": "string",
-  "carbon-footprint": "number",
-  "carbon-unit": "string",
-  "carbon-accounting": "string",
-  "scope-1": "number",
-  "scope-2": "number",
-  "scope-3": "number",
-  "sci-score": "number",
-  "functional-unit": "string",
-  "carbon-intensity-gCO2e-per-kWh": "number",
-  "estimated-annual-emissions-kgCO2e": "number",
-  "renewable-energy": "number",
-  "verifiable-attestation-uri": "string",
-  "disclosure-uri": "string",
-  "target-type": "string",
-  upstream: "array",
-  extensions: "object",
-  signed: "string",
-};
-
-/**
- * True when an optional member defined by the draft is present with a value
- * of the wrong JSON type (including `null`). `undefined` (absent) is never
- * wrong-typed; members not defined by the draft are unknown members the
- * ignore-unknown rule covers, never "wrong-typed".
- */
-export function isWrongJsonType(key: string, value: unknown): boolean {
-  const expected = OPTIONAL_MEMBER_JSON_TYPES[key];
-  if (expected === undefined || value === undefined) return false;
-  if (expected === "array") return !Array.isArray(value);
-  if (expected === "object") return typeof value !== "object" || value === null || Array.isArray(value);
-  return typeof value !== expected;
-}
-
-/**
- * Every OPTIONAL member the draft types as a number, the scopes included.
- * Derived from {@link OPTIONAL_MEMBER_JSON_TYPES} so the two cannot drift.
- */
-export const NUMERIC_MEMBERS: readonly string[] = Object.keys(OPTIONAL_MEMBER_JSON_TYPES).filter(
-  (k) => OPTIONAL_MEMBER_JSON_TYPES[k] === "number",
-);
-
-/**
- * True when a numeric member carries a value JSON can express but the format
- * cannot: `NaN` or ±`Infinity`.
- *
- * JSON has no literal for either ({{RFC8259}}, Section 6), but a number
- * literal outside the double-precision range — `1e999` — parses to `Infinity`
- * in every JavaScript runtime, which the media type's own security
- * considerations call out ("the implementation-dependent handling ... of
- * numbers outside the range exactly representable in IEEE 754 double
- * precision"). Such a member has no actual value and re-serializes as `null`,
- * so it is disregarded like any other defective value.
- */
-export function isNonFiniteNumber(key: string, value: unknown): boolean {
-  return NUMERIC_MEMBERS.includes(key) && typeof value === "number" && !Number.isFinite(value);
-}
-
-/**
- * The reporting subject for a legacy (1.x) entry that lacks the mandatory
- * `target` member (a pre-06 form, kept readable here): when the entry
- * carries the historical `target-path` member, that member's VALUE is the
- * reporting subject; only when neither member exists is the document an
- * origin-wide report attributed to the final response origin's host.
- * A non-string (or empty) `target-path` is a wrong-typed value — treated as
- * not present, so the origin host applies.
- */
-export function legacyReportingSubject(entry: Record<string, unknown>, originHost: string): string {
-  const tp = entry["target-path"];
-  return typeof tp === "string" && tp !== "" ? tp : originHost;
-}
-
-/**
- * The draft's tolerance rules (§Value Constraints and Omitted Metrics) applied
- * to ONE declaration object, in place: the affected member is stripped before
- * the schema gate — which would otherwise fail the whole object on exactly
- * that value — and its path is appended to `disregarded`, so a caller can
- * still see that tolerance was applied and to what.
- *
- *  1. "A value ... of the wrong JSON type (including `null`) is treated as not
- *     reported", for the draft-defined OPTIONAL members — and, for the same
- *     reason, a numeric member carrying `NaN` or ±`Infinity`, which a `1e999`
- *     literal on the wire produces and which re-serializes as `null`.
- *  1b. Mandatory members take no tolerance, with the one exception the draft
- *     names: "a defective `capabilities` value is read as `basic`, and a
- *     defective value of any other mandatory member leaves the object
- *     non-conformant".
- *  2. "A `sci-score` without `functional-unit` is treated as not reported." A
- *     negative `sci-score` is already "not reported" under the out-of-range
- *     rule and is left in place for this module's on-demand interpretation.
- *  3. "An unrecognized value of `capabilities`, `energy-unit`, `carbon-unit`,
- *     `carbon-accounting`, or `target-type` causes that member to be
- *     disregarded; for a unit member the numeric members it parameterizes are
- *     then treated as not reported, and for `target-type` the consumer reads
- *     `target` as if the member were absent."
- *
- * It is shared rather than inlined because the draft asks for one reading, not
- * two: the fetch path applies it to the declaration it retrieved, and the
- * upstream walk applies it to every declaration it retrieves, which "reads a
- * retrieved declaration exactly as it reads any other, applying the tolerance
- * rules of Value Constraints and Omitted Metrics rather than refusing one over
- * a defective value" (draft -07 §Upstream Declarations).
- *
- * What it deliberately does NOT do is make an unreadable object readable: a
- * missing mandatory member, or a body that is not a declaration at all, is
- * left exactly as served for validation to reject.
- *
- * @param o the declaration object (anything else is ignored)
- * @param path prefix for the reported member paths (e.g. `"[2]."`)
- * @param disregarded collector, appended to in place
- */
-export function applyToleranceRules(o: unknown, path: string, disregarded: string[]): void {
-  if (typeof o !== "object" || o === null || Array.isArray(o)) return;
-  const rec = o as Record<string, unknown>;
-  // (1) Wrong JSON type in a draft-defined OPTIONAL member (stripping a
-  // mandatory member could not make the object processable), and — the same
-  // defect one step in — a numeric member carrying NaN or ±Infinity, which
-  // `1e999` on the wire produces and which no member can actually carry
-  // ({@link isNonFiniteNumber}).
-  for (const key of Object.keys(rec)) {
-    if (isWrongJsonType(key, rec[key]) || isNonFiniteNumber(key, rec[key])) {
-      delete rec[key];
-      disregarded.push(`${path}${key}`);
+function readPeriod(rec: Rec, path: string, report: CompatReport): void {
+  const label = rec["reporting-period"];
+  const period = rec.period;
+  try {
+    if (period === undefined && typeof label === "string") {
+      const end = fiscalYearEnd(rec);
+      if (end !== undefined && label !== end.slice(0, 4)) return;
+      replaceLabel(rec, end === undefined ? periodFromReportingPeriod(label) : fiscalYear(end));
+      if (end !== undefined) dropFiscalYearBasis(rec);
+    } else if (isRecord(period) && isFullDate(period.start) && isFullDate(period.end)) {
+      rec.period = periodFromFullDates({ start: period.start, end: period.end });
+    } else {
+      return;
     }
+    report.converted.push(`${path}period`);
+  } catch (e) {
+    if (!(e instanceof PeriodError)) throw e;
   }
-  // (1b) A value of the wrong JSON type is as defective as an unrecognized
-  // one, and the enumerated-member loop below covers the unrecognized-string
-  // case; this covers the rest. Every other mandatory member is left exactly
-  // as served, so the schema gate reports the object as non-conformant.
-  if ("capabilities" in rec && typeof rec.capabilities !== "string") {
-    rec.capabilities = "basic";
-    disregarded.push(`${path}capabilities`);
-  }
-  // (2) sci-score without functional-unit.
-  const sci = rec["sci-score"];
-  if (typeof sci === "number" && sci >= 0 && rec["functional-unit"] === undefined) {
-    delete rec["sci-score"];
-    disregarded.push(`${path}sci-score`);
-  }
-  // (3) Enumerated-member tolerance. `capabilities` is mandatory, so the
-  // conservative value stands in for it rather than a hole.
-  for (const { member, values, parameterizes } of ENUMERATED_MEMBERS) {
-    const value = rec[member];
-    if (typeof value !== "string" || values.includes(value)) continue;
-    if (member === "capabilities") rec[member] = "basic";
-    else delete rec[member];
-    disregarded.push(`${path}${member}`);
-    for (const dependent of parameterizes) {
-      if (dependent in rec) {
-        delete rec[dependent];
-        disregarded.push(`${path}${dependent}`);
-      }
+}
+
+function readMeasurementMethod(rec: Rec, path: string, report: CompatReport): void {
+  const method = rec["measurement-method"];
+  if (typeof method !== "string" || isMeasurementMethod(method)) return;
+  rec["measurement-method"] = RESIDUAL_METHOD;
+  report.disregarded.push(`${path}measurement-method`);
+}
+
+function readFunctionalUnit(rec: Rec, path: string, report: CompatReport): void {
+  const unit = rec["functional-unit"];
+  if (typeof unit !== "string" || isFunctionalUnit(unit)) return;
+  const score = rec["sci-score"];
+  const read = legacyFunctionalUnit(unit, typeof score === "number" ? score : undefined);
+  if (read === undefined) {
+    delete rec["functional-unit"];
+    report.disregarded.push(`${path}functional-unit`);
+    if (score !== undefined) {
+      delete rec["sci-score"];
+      report.disregarded.push(`${path}sci-score`);
     }
+    return;
   }
+  rec["functional-unit"] = read.unit;
+  if (read.score !== undefined) rec["sci-score"] = read.score;
+  report.converted.push(`${path}functional-unit`);
+}
+
+function readCarbonUnit(rec: Rec, path: string, report: CompatReport): void {
+  const unit = rec["carbon-unit"];
+  const read = typeof unit === "string" ? legacyCarbonUnit(unit) : undefined;
+  if (read === undefined) return;
+  rec["carbon-unit"] = read;
+  report.converted.push(`${path}carbon-unit`);
+}
+
+function readRoles(rec: Rec, path: string, report: CompatReport): void {
+  if (!Array.isArray(rec.upstream)) return;
+  rec.upstream.forEach((entry: unknown, i: number) => {
+    if (!isRecord(entry) || typeof entry.role !== "string" || isUpstreamRole(entry.role)) return;
+    delete entry.role;
+    report.disregarded.push(`${path}upstream[${i}].role`);
+  });
+}
+
+function readTargetType(rec: Rec, path: string, report: CompatReport): void {
+  const type = rec["target-type"];
+  if (typeof type !== "string" || isTargetType(type)) return;
+  delete rec["target-type"];
+  report.disregarded.push(`${path}target-type`);
+}
+
+/**
+ * Read one declaration object of an earlier revision as a -10 object, in
+ * place, and append what was read to `report`. An object that is already a -10
+ * object is left exactly as it is and adds nothing. Anything but an object is
+ * ignored.
+ *
+ * It is the one reading for every declaration the consumer meets: the document
+ * it retrieved, each declaration of an upstream walk, and the payload of a
+ * signature, which must be read like the object it signs for the two to
+ * compare equal.
+ *
+ * @param o the declaration object
+ * @param path prefix of the reported member paths, `"[2]."` for the third object of an array
+ */
+export function applyCompatibilityReading(o: unknown, path: string, report: CompatReport): void {
+  if (!isRecord(o)) return;
+  readPeriod(o, path, report);
+  readMeasurementMethod(o, path, report);
+  readFunctionalUnit(o, path, report);
+  readCarbonUnit(o, path, report);
+  readRoles(o, path, report);
+  readTargetType(o, path, report);
+}
+
+/** The compatibility reading of a body: one object, or each object of an array. */
+export function readDocument(doc: unknown, report: CompatReport): void {
+  if (Array.isArray(doc)) doc.forEach((item, i) => applyCompatibilityReading(item, `[${i}].`, report));
+  else applyCompatibilityReading(doc, "", report);
 }

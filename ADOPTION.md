@@ -4,6 +4,16 @@
 `draft-besleaga-sustainability-wellknown` as an RFC and registering the
 `sustainability-data` well-known URI with IANA. Non-normative supporting material.*
 
+> **Reconciliation note, 2026-10-24.** Where this document says `-08` is the latest posted revision, or that the wire format
+> is that of `-07`, it is out of date; the text is kept as written. `-09` was posted on 2026-10-16 and `-10` on 2026-10-24.
+> Both change the wire format (`reporting-period` became the `period` object, whose bounds are RFC 3339 date-times in `-10`;
+> the `period` query parameter became `start`, `end` and `granularity`; four token members became closed sets; the
+> Internationalization Considerations section was removed). The reference publisher and consumer `0.8.0` and the gateway
+> `0.2.0` implement `-10`. The "366 objects", "aggregation" and `400`/`404` query rules described above for `-06` and
+> `-07` are gone since `-09`: a server returns what it holds and a value it cannot read is ignored. Issue #103 (carbon.txt) was
+> closed by the registry maintainer on 2026-10-21 as completed, with no registration; wherever it is described below as
+> open, declined as filed, or "waiting for input", that is the record up to 2026-10-03.
+
 ## TL;DR
 
 A tiny, low-risk, well-scoped registration creates a **single, standard, machine-readable
@@ -727,7 +737,7 @@ each case teaches about this request.
 | **gpc.json**, **change-password** | W3C specs; registered **provisional** | Provisional is the normal working status for specs from outside the IETF stream — a workable grant, not a demotion. |
 | **ecips** | Individual author; registered **provisional** | Individually authored provisional registrations exist; the registry demands a stable specification, not an institution. |
 | **`ai`** (issue #80) | **Declined** | Rejected for a bare generic word plus an unstable single-owner spec — with the expert explicitly naming "an Independent Stream RFC" as an acceptable durable vehicle for resubmission. Those two defects are precisely what -04 fixed: a descriptive compound (`sustainability-data`) and an Independent Stream RFC as the stable reference. |
-| **carbon.txt** (issue #103) | **Open, "waiting for input"**: filed 2026-07-22; the designated expert declined it as filed on 2026-08-17 because `carbon.txt` is a bare word + suffix, reserved for recognised SDOs; GWF said it would likely pursue an SDO route (GSF or IETF/IRTF) — their stated intent, not a fact | The complementary sibling: an index of where disclosures live, carrying no quantitative metrics (§7.1). The two specifications compose technically whatever carbon.txt's registry outcome. |
+| **carbon.txt** (issue #103) | **Open, "waiting for input"**: filed 2026-07-22; the designated expert declined it as filed on 2026-08-17 because `carbon.txt` is a bare word + suffix, reserved for recognised SDOs; GWF said it would likely pursue an SDO route (GSF or IETF/IRTF) — their stated intent, not a fact. **Update 2026-10-24:** closed by the registry maintainer on 2026-10-21 as completed; `carbon.txt` was not registered | The complementary sibling: an index of where disclosures live, carrying no quantitative metrics (§7.1). The two specifications compose technically whatever carbon.txt's registry outcome. |
 
 **Where this request stands.** Issue #95 — the `sustainability-data` request — is open,
 labeled "waiting for stable reference"; the designated expert's only comment is "Parking
@@ -808,7 +818,7 @@ all** and have been removed from every argument below:
   scale. See §14.2.)
 
 Also re-confirmed on the same retrieval: **`carbon.txt` is still not in the registry** (the
-Green Web Foundation's request, issue #103, was declined as filed on 2026-08-17 and stays open awaiting a renamed or SDO-published specification; re-checked 2026-10-03), and a
+Green Web Foundation's request, issue #103, was declined as filed on 2026-08-17 and stays open awaiting a renamed or SDO-published specification; re-checked 2026-10-03; closed on 2026-10-21 with no registration, re-checked 2026-10-24), and a
 case-insensitive scan for `sustainab`, `carbon`, `energy`, `green`, `climate`, `esg` and `ghg`
 across all 100 suffixes returns **zero** matches — the §12.3 and §13 statements that this
 request collides with nothing hold as of 2026-07-29.

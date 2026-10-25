@@ -1,4 +1,4 @@
-"""Shared by the Python recipes: the document bytes and the four headers."""
+"""Shared by the Python recipes: the document bytes and the response headers."""
 import hashlib
 import os
 from email.utils import formatdate

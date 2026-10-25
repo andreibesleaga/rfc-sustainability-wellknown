@@ -1,4 +1,4 @@
-// Shared by the Node recipes: the document bytes and the four headers.
+// Shared by the Node recipes: the document bytes and the response headers.
 import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -16,7 +16,7 @@ function load(file) {
   }
 }
 export const BODY = load(FILE);
-/** A strong validator over the bytes, and the file's own date, so caches can revalidate (draft, SHOULD). */
+/** A strong validator over the bytes, and the file's own date, so caches can revalidate (RFC 9110, 9111). */
 export const ETAG = `"${createHash("sha256").update(BODY).digest("hex").slice(0, 32)}"`;
 export const LAST_MODIFIED = statSync(FILE).mtime.toUTCString();
 /** True when the request's If-None-Match names the current entity (RFC 9110 §13.1.2). */

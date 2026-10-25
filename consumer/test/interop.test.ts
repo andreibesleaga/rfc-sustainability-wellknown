@@ -1,22 +1,19 @@
 /**
  * Interop tests: the consumer's fetchSustainability()/SustainabilityClient
- * driven against a REAL, live sibling `sustainability-wellknown-publisher`
- * server (its compiled dist/, loaded via a relative require — publisher is
- * deliberately not an npm dependency of consumer; they are sibling packages).
+ * driven against a live sibling `sustainability-wellknown-publisher` server
+ * (its compiled dist/, loaded by a relative require: the publisher is not an
+ * npm dependency of the consumer, the two are sibling packages). This is the one
+ * place the pair is checked against each other rather than against a
+ * hand-built fixture: what the publisher signs, selects and upgrades is what
+ * the consumer reads, verifies and validates.
  *
- * Behavior asserted here is read from the actual publisher source
- * (publisher/src/publisher.ts, adapters/computed.ts, adapters/static.ts,
- * security.ts) rather than assumed — see comments inline.
- *
- * NOTE (-06): the sibling publisher is 0.6.5, so `createSustainabilityServer`
- * serves the dedicated `application/sustainability-data+json` media type by
- * default — test (h) below asserts that the pair agrees on it, which is the
- * point of an interop suite. The rig runs over plain HTTP on 127.0.0.1, so the
- * shared ALLOW_INSECURE opt-out from ./helpers carries the HTTPS exemption;
- * the -05-compatibility path (a publisher serving `application/json`) is
- * covered by the fixture servers in fetch.test.ts and conformance.test.ts.
+ * The rig is plain HTTP on 127.0.0.1, so the shared ALLOW_INSECURE opt-out from
+ * ./helpers carries the HTTPS and loopback exemptions. Keys are generated here
+ * or are the public test key of the publisher's own fixtures; nothing touches
+ * the network.
  */
 import { afterEach, describe, expect, it } from "vitest";
+import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import * as path from "node:path";
@@ -25,25 +22,28 @@ import { fetchSustainability, WELL_KNOWN_PATH } from "../src/fetch";
 import { SustainabilityClient } from "../src/client";
 import { ALLOW_INSECURE } from "./helpers";
 import { SustainabilityMetrics } from "../src/types";
-import { KNOWN_MEMBERS } from "../src/validate";
 
-const publisherDistDir = path.resolve(__dirname, "../../publisher/dist");
-const hasPublisherDist = fs.existsSync(publisherDistDir);
+const publisherDir = path.resolve(__dirname, "../../publisher");
+const hasPublisherDist = fs.existsSync(path.join(publisherDir, "dist"));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { Publisher } = hasPublisherDist ? require("../../publisher/dist/publisher") : { Publisher: undefined };
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { createSustainabilityServer } = hasPublisherDist
-  ? require("../../publisher/dist/server")
-  : { createSustainabilityServer: undefined };
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { computedAdapter } = hasPublisherDist
-  ? require("../../publisher/dist/adapters/computed")
-  : { computedAdapter: undefined };
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { staticAdapter } = hasPublisherDist
-  ? require("../../publisher/dist/adapters/static")
-  : { staticAdapter: undefined };
+/* eslint-disable @typescript-eslint/no-var-requires */
+const pub = (name: string) => (hasPublisherDist ? require(`../../publisher/dist/${name}`) : {});
+const { Publisher } = pub("publisher");
+const { createSustainabilityServer } = pub("server");
+const { computedAdapter } = pub("adapters/computed");
+const { staticAdapter } = pub("adapters/static");
+const { generateSigningKey, importSigningKey, pemToX5c } = pub("jws");
+const { upgradeDocument, upgradedText } = pub("upgrade");
+/* eslint-enable @typescript-eslint/no-var-requires */
+
+const NOW = new Date("2026-10-25T00:00:00Z");
+const RFC8032_KEY = {
+  kty: "OKP",
+  crv: "Ed25519",
+  x: "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+  d: "nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A",
+};
+const CERTIFICATE = hasPublisherDist ? fs.readFileSync(path.join(publisherDir, "test", "fixtures", "rfc8032-test-key-1.cert.pem"), "utf8") : "";
 
 let server: Server | undefined;
 
@@ -55,257 +55,289 @@ afterEach(async () => {
   }
 });
 
-/** Start a publisher-backed server on an ephemeral port; returns its origin. */
-function startPublisherServer(publisher: unknown): Promise<string> {
+/** Serve `s` (a request listener) on an ephemeral port; returns its origin. */
+function listen(s: Server): Promise<string> {
+  server = s;
   return new Promise((resolve) => {
-    server = createSustainabilityServer(publisher);
-    server!.listen(0, "127.0.0.1", () => {
-      const { port } = server!.address() as AddressInfo;
-      resolve(`http://127.0.0.1:${port}`);
-    });
+    s.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(s.address() as AddressInfo).port}`));
   });
 }
 
-describe("interop: consumer <-> real publisher package", () => {
-  it("sanity: publisher/dist is built and importable", () => {
-    expect(hasPublisherDist).toBe(true);
+const startPublisherServer = (publisher: unknown): Promise<string> => listen(createSustainabilityServer(publisher));
+
+const month = (period: string, kwh: number) => ({
+  provider: "Interop Corp",
+  measurementMethod: "hardware-metered",
+  methodologyUri: "https://interop.example/methodology",
+  period,
+  updated: "2026-04-01T12:00:00Z",
+  target: "interop.example",
+  energy: { value: kwh, unit: "kWh" },
+  carbonIntensity: 350,
+  capabilities: "extended",
+});
+
+const single = (signing?: unknown) =>
+  new Publisher(
+    computedAdapter({
+      provider: "Interop Corp",
+      methodologyUri: "https://interop.example/methodology",
+      period: "2026-02",
+      energy: { value: 100, unit: "kWh" },
+      gridIntensity: 276,
+      capabilities: "extended",
+    }),
+    { normalize: { target: "interop.example", updated: "2026-03-01T12:00:00Z" }, ...(signing ? { signing } : {}) },
+  );
+
+const months = () => new Publisher(staticAdapter({ data: [month("2026-01", 100), month("2026-02", 110), month("2026-03", 90)], capabilities: "extended" }));
+
+describe.runIf(hasPublisherDist)("interop: consumer <-> publisher package", () => {
+  it("the pair agrees on the registered media type, nosniff, and a declaration that validates in strict mode", async () => {
+    const origin = await startPublisherServer(single());
+    const res = await fetch(`${origin}${WELL_KNOWN_PATH}`);
+    expect(res.headers.get("content-type")).toBe("application/sustainability-data+json");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    await res.arrayBuffer();
+
+    const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, legacyCompat: false });
+    expect(r.status).toBe("ok");
+    if (r.status !== "ok") return;
+    expect(r.mediaType).toBe("sustainability-data+json");
+    expect(r.warnings ?? []).toEqual([]);
+    const doc = (Array.isArray(r.document) ? r.document[0] : r.document) as SustainabilityMetrics;
+    expect(doc.provider).toBe("Interop Corp");
+    expect(doc.target).toBe("interop.example");
+    expect(doc.period).toEqual({ start: "2026-02-01T00:00:00Z", end: "2026-03-01T00:00:00Z" });
+    expect(doc["energy-consumption"]).toBe(100);
+    expect(r.converted ?? []).toEqual([]);
   });
 
-  it.runIf(hasPublisherDist)(
-    "(h) the publisher pair agrees on the registered media type and sends nosniff",
-    async () => {
-      // Draft -07 §Mandatory Minimum Supported Service: a successful response
-      // MUST carry the registered media type. `nosniff` is the publisher
-      // package's own hardening (-07 dropped the recommendation). This is the
-      // one place the two packages are checked against each other rather than
-      // against a hand-built fixture.
-      const publisher = new Publisher(
-        computedAdapter({
-          provider: "Interop Corp",
-          methodologyUri: "https://example.com/m",
-          reportingPeriod: "2026-02",
-          energy: { value: 100, unit: "kWh" },
-          gridIntensity: 276,
-        }),
-        { normalize: { target: "example.com" } },
-      );
-      const origin = await startPublisherServer(publisher);
-      const res = await fetch(`${origin}${WELL_KNOWN_PATH}`);
-      expect(res.headers.get("content-type")).toBe("application/sustainability-data+json");
-      expect(res.headers.get("x-content-type-options")).toBe("nosniff");
-      await res.arrayBuffer();
+  it("a request with no parameter returns every object held as an array in ascending period order; a client trend sees the same", async () => {
+    const origin = await startPublisherServer(months());
+    const r = await fetchSustainability(origin, ALLOW_INSECURE);
+    expect(r.status).toBe("ok");
+    if (r.status !== "ok") return;
+    expect(Array.isArray(r.document)).toBe(true);
+    const docs = r.document as SustainabilityMetrics[];
+    expect(docs.map((d) => d.period.start)).toEqual(["2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z", "2026-03-01T00:00:00Z"]);
+    expect(new Set(docs.map((d) => d.target))).toEqual(new Set(["interop.example"]));
+    expect(r.covers).toHaveLength(3);
 
-      const r = await fetchSustainability(origin, ALLOW_INSECURE);
+    const trend = await new SustainabilityClient(ALLOW_INSECURE).getTrend(origin, { granularity: "monthly" });
+    expect(trend).toHaveLength(3);
+  });
+
+  it("query selection round trip: start and end select the objects that overlap, and the result says the parameters were honored", async () => {
+    const origin = await startPublisherServer(months());
+    const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, start: "2026-02-01T00:00:00Z", end: "2026-03-01T00:00:00Z" });
+    expect(r.status).toBe("ok");
+    if (r.status !== "ok") return;
+    const docs = (Array.isArray(r.document) ? r.document : [r.document]) as SustainabilityMetrics[];
+    expect(docs.map((d) => d.period.start)).toEqual(["2026-02-01T00:00:00Z"]);
+    expect(r.honored).toMatchObject({ start: true, end: true });
+    expect(r.notAsRequested ?? []).toEqual([]);
+
+    const none = await fetchSustainability(origin, { ...ALLOW_INSECURE, start: "2030-01-01T00:00:00Z", end: "2031-01-01T00:00:00Z" });
+    expect(none.status).toBe("ok");
+    if (none.status === "ok") expect(none.document).toEqual([]);
+  });
+
+  it("a Basic publisher that honors no parameter is reported as not answering the request", async () => {
+    const publisher = new Publisher(staticAdapter({ data: [month("2026-01", 100), month("2026-02", 110)], capabilities: "basic" }));
+    const origin = await startPublisherServer(publisher);
+    const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, start: "2026-02-01T00:00:00Z", end: "2026-03-01T00:00:00Z" });
+    expect(r.status).toBe("ok");
+    if (r.status !== "ok") return;
+    expect(r.notAsRequested?.length ?? 0).toBeGreaterThan(0);
+    expect(r.honored).toMatchObject({ start: false });
+  });
+
+  it("the second request of a client gets a real 304 from the publisher", async () => {
+    const origin = await startPublisherServer(single());
+    const statuses: number[] = [];
+    const spy: typeof fetch = async (input, init) => {
+      const res = await fetch(input, init);
+      statuses.push(res.status);
+      return res;
+    };
+    const client = new SustainabilityClient({ ...ALLOW_INSECURE, fetchImpl: spy });
+    const first = await client.get(origin);
+    const second = await client.get(origin);
+    expect(first.status).toBe("ok");
+    expect(second.status).toBe("ok");
+    if (first.status === "ok" && second.status === "ok") expect(second.document).toEqual(first.document);
+    expect(statuses).toEqual([200, 304]);
+  });
+
+  it("POST to the well-known path returns 405 with an Allow header", async () => {
+    const origin = await startPublisherServer(single());
+    const res = await fetch(new URL(WELL_KNOWN_PATH, origin).toString(), { method: "POST" });
+    expect(res.status).toBe(405);
+    expect(res.headers.get("allow") ?? "").toContain("GET");
+  });
+
+  describe("signing", () => {
+    it("an Ed25519 key embedded as a jwk verifies as declaration-only, and the served members are the ones in use", async () => {
+      const key = await generateSigningKey("Ed25519");
+      const origin = await startPublisherServer(single({ key }));
+      const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, verifySignature: true });
       expect(r.status).toBe("ok");
-      if (r.status === "ok") expect(r.mediaType).toBe("sustainability-data+json");
-    },
-  );
-
-  it.runIf(hasPublisherDist)(
-    "(a) Basic fetch of a computedAdapter-backed publisher returns a single, valid object",
-    async () => {
-      // Since -03, `target` (the reporting subject) is mandatory: publisher's
-      // normalize() throws without one (raw.target ?? NormalizeOptions.target),
-      // so every Publisher here is constructed with { normalize: { target } }.
-      const publisher = new Publisher(
-        computedAdapter({
-          provider: "Interop Test Corp (sustain@interop.example)",
-          methodologyUri: "https://interop.example/methodology",
-          energy: { value: 500, unit: "kWh" },
-          gridIntensity: 420,
-          capabilities: "extended",
-        }),
-        { normalize: { target: "interop.example" } },
-      );
-      const origin = await startPublisherServer(publisher);
-
-      const result = await fetchSustainability(origin, ALLOW_INSECURE);
-      expect(result.status).toBe("ok");
-      if (result.status !== "ok") return;
-      expect(Array.isArray(result.document)).toBe(false);
-      const doc = result.document as SustainabilityMetrics;
-      expect(doc.provider).toBe("Interop Test Corp (sustain@interop.example)");
-      expect(doc.capabilities).toBe("extended");
-      expect(doc.target).toBe("interop.example");
-      // -07 closed the base object. Whatever revision the sibling publisher
-      // in this tree is on, a top-level member the consumer does not recognize
-      // (the pre-07 `version`, for one) must be IGNORED rather than rejected:
-      // the declaration stays valid and each such member is reported as an
-      // `unknown-member` warning.
-      for (const member of Object.keys(doc).filter((k) => !KNOWN_MEMBERS.includes(k))) {
-        expect(result.warnings?.some((w) => w.startsWith("unknown-member") && w.includes(member))).toBe(true);
-      }
-      // Basic-vs-extended shape is already enforced by validateDocument() inside
-      // fetchSustainability (result.status would be "invalid" otherwise), but
-      // assert a couple of extended-only fields made it through the real
-      // adapter -> normalize -> validate -> wire pipeline.
-      expect(doc["carbon-intensity-gCO2e-per-kWh"]).toBe(420);
-      expect(typeof doc["carbon-footprint"]).toBe("number");
-    },
-  );
-
-  it.runIf(hasPublisherDist)(
-    "(b) computedAdapter (a single-source adapter): a year sliced monthly is an array of the one month it reports; alone it is one object",
-    async () => {
-      // The publisher's selection rule (publisher/src/period.ts): an array only
-      // when a granularity finer than the period was requested and entries at
-      // that precision exist — here the single May entry, so a one-entry
-      // array. Without the finer granularity the answer is one object.
-      const publisher = new Publisher(
-        computedAdapter({
-          provider: "Interop Test Corp",
-          methodologyUri: "https://interop.example/methodology",
-          energy: { value: 500, unit: "kWh" },
-          gridIntensity: 420,
-          capabilities: "extended",
-          reportingPeriod: "2026-05",
-        }),
-        { normalize: { target: "interop.example" } },
-      );
-      const origin = await startPublisherServer(publisher);
-
-      const sliced = await fetchSustainability(origin, { ...ALLOW_INSECURE, period: "2026", granularity: "monthly" });
-      expect(sliced.status).toBe("ok");
-      if (sliced.status !== "ok") return;
-      expect(Array.isArray(sliced.document)).toBe(true);
-      expect((sliced.document as SustainabilityMetrics[]).map((e) => e["reporting-period"])).toEqual(["2026-05"]);
-
-      const alone = await fetchSustainability(origin, { ...ALLOW_INSECURE, granularity: "monthly" });
-      expect(alone.status === "ok" && Array.isArray(alone.document)).toBe(false);
-    },
-  );
-
-  it.runIf(hasPublisherDist)(
-    "(b, contrast) a multi-entry staticAdapter DOES return a real trend array when granularity is requested",
-    async () => {
-      // staticAdapter.fetch() returns whatever data array it was configured
-      // with (adapters/static.ts), so here wasArray === true and
-      // Publisher.build() takes the array branch when query.granularity is set.
-      const makeEntry = (period: string, kwh: number): Record<string, unknown> => ({
-        provider: "Trend Test Corp",
-        measurementMethod: "hardware-metered",
-        methodologyUri: "https://interop.example/methodology",
-        reportingPeriod: period,
-        target: "trend.example", // raw.target: the adapter itself sets the reporting subject
-        energy: { value: kwh, unit: "kWh" },
-        carbonIntensity: 350,
+      if (r.status !== "ok") return;
+      expect(r.signatures).toHaveLength(1);
+      expect(r.signatures![0]).toMatchObject({
+        status: "verified",
+        alg: "Ed25519",
+        keyTrust: "declaration-only",
+        precedence: "origin",
+        cty: "sustainability-data+json",
+        modifiedAfterSigning: false,
       });
-      const publisher = new Publisher(
-        staticAdapter({
-          data: [makeEntry("2026-01", 100), makeEntry("2026-02", 110), makeEntry("2026-03", 90)],
-          capabilities: "extended",
-        }),
-      );
-      const origin = await startPublisherServer(publisher);
+      expect(r.signatures![0]).not.toHaveProperty("deprecatedAlg");
+    });
 
-      const result = await fetchSustainability(origin, { ...ALLOW_INSECURE, period: "2026", granularity: "monthly" });
-      expect(result.status).toBe("ok");
-      if (result.status !== "ok") return;
-      expect(Array.isArray(result.document)).toBe(true);
-      const docs = result.document as SustainabilityMetrics[];
-      expect(docs.length).toBe(3);
-      expect(docs.map((d) => d["reporting-period"])).toEqual(["2026-01", "2026-02", "2026-03"]);
-      // Array entries MUST share the same target value (draft, Payload Format).
-      expect(new Set(docs.map((d) => d.target))).toEqual(new Set(["trend.example"]));
+    it("a kid-only header verifies with the key pinned or obtained out of band, and is not verified under a different key", async () => {
+      const key = await generateSigningKey("Ed25519");
+      const other = await generateSigningKey("Ed25519");
+      const origin = await startPublisherServer(single({ key, keyId: "interop-key-1" }));
 
-      // And getTrend() (client Tier 2) should also see it as a trend array.
-      const client = new SustainabilityClient(ALLOW_INSECURE);
-      const trend = await client.getTrend(origin, { period: "2026", granularity: "monthly" });
-      expect(trend.length).toBe(3);
-    },
-  );
+      const none = await fetchSustainability(origin, { ...ALLOW_INSECURE, verifySignature: true });
+      expect(none.status === "ok" && none.signatures![0]).toMatchObject({ status: "unverified", reason: "no-key" });
 
-  it.runIf(hasPublisherDist)(
-    "(c) SustainabilityClient.get() called twice: 2nd real HTTP round-trip actually receives a 304",
-    async () => {
-      const publisher = new Publisher(
-        computedAdapter({
-          provider: "Cache Test Corp",
-          methodologyUri: "https://interop.example/methodology",
-          energy: { value: 250, unit: "kWh" },
-          gridIntensity: 300,
-          capabilities: "extended",
-        }),
-        { normalize: { target: "cache.example" } },
-      );
-      const origin = await startPublisherServer(publisher);
+      const pinned = await fetchSustainability(origin, { ...ALLOW_INSECURE, verifySignature: true, signaturePolicy: { pinnedKeys: [key.publicJwk], now: NOW } });
+      expect(pinned.status === "ok" && pinned.signatures![0]).toMatchObject({ status: "verified", kid: "interop-key-1", keyTrust: "pinned", precedence: "payload" });
 
-      const statuses: number[] = [];
-      const spyFetch: typeof fetch = async (input, init) => {
-        const res = await fetch(input, init);
-        statuses.push(res.status);
-        return res;
-      };
+      const held = await fetchSustainability(origin, { ...ALLOW_INSECURE, verifySignature: true, signaturePolicy: { trustedKeys: [{ ...key.publicJwk, kid: "interop-key-1" }], now: NOW } });
+      expect(held.status === "ok" && held.signatures![0]).toMatchObject({ status: "verified", keyTrust: "out-of-band", precedence: "payload" });
 
-      const client = new SustainabilityClient({ ...ALLOW_INSECURE, fetchImpl: spyFetch });
-      const first = await client.get(origin);
-      const second = await client.get(origin);
+      const wrong = await fetchSustainability(origin, { ...ALLOW_INSECURE, verifySignature: true, signaturePolicy: { pinnedKeys: [other.publicJwk], now: NOW } });
+      expect(wrong.status === "ok" && wrong.signatures![0]).toMatchObject({ status: "unverified", reason: "invalid-signature" });
+    });
 
-      expect(first.status).toBe("ok");
-      expect(second.status).toBe("ok");
-      if (first.status === "ok" && second.status === "ok") {
-        expect(second.document).toEqual(first.document);
-      }
-      // The real, live 2nd HTTP request must have gotten 304 from the wire
-      // (proving the client actually sent If-None-Match with the cached ETag
-      // and the publisher server actually honored it) - not just a client-side
-      // cache short-circuit.
-      expect(statuses).toEqual([200, 304]);
-    },
-  );
+    it("an embedded key other than the pinned one is a pin-mismatch", async () => {
+      const key = await generateSigningKey("Ed25519");
+      const other = await generateSigningKey("Ed25519");
+      const origin = await startPublisherServer(single({ key }));
+      const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, verifySignature: true, signaturePolicy: { pinnedKeys: [other.publicJwk], now: NOW } });
+      expect(r.status === "ok" && r.signatures![0]).toMatchObject({ status: "unverified", reason: "pin-mismatch" });
+    });
 
-  it.runIf(hasPublisherDist)(
-    "(d) an unknown `target` is NOT 404'd by a computedAdapter-backed publisher (target is ignored, not filtered)",
-    async () => {
-      // Read from the actual code: Publisher.build() passes `query` straight
-      // to `adapter.fetch(query)`. computedAdapter's fetch() (adapters/computed.ts)
-      // takes no query argument at all and always returns the same RawMetrics,
-      // never setting `targetPath`. secureReports() (security.ts) also does no
-      // target-based filtering. So there is no code path that can 404 for an
-      // unrecognized target with this adapter - the publisher just returns its
-      // one document regardless of what `target` the client asks for.
-      const publisher = new Publisher(
-        computedAdapter({
-          provider: "Target Test Corp",
-          methodologyUri: "https://interop.example/methodology",
-          energy: { value: 60, unit: "kWh" },
-          gridIntensity: 500,
-          capabilities: "extended",
-        }),
-        { normalize: { target: "target.example" } },
-      );
-      const origin = await startPublisherServer(publisher);
+    it("an ES256 key verifies too", async () => {
+      const key = await generateSigningKey("ES256");
+      const origin = await startPublisherServer(single({ key }));
+      const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, verifySignature: true });
+      expect(r.status === "ok" && r.signatures![0]).toMatchObject({ status: "verified", alg: "ES256" });
+    });
 
-      const withoutTarget = await fetchSustainability(origin, ALLOW_INSECURE);
-      const withUnknownTarget = await fetchSustainability(origin, { ...ALLOW_INSECURE, target: "/does/not/exist" });
+    it("an x5c chain of the publisher's test certificate verifies; the certificate names no host, so the key is trusted no further than the declaration", async () => {
+      const key = await importSigningKey(RFC8032_KEY);
+      const origin = await startPublisherServer(single({ key, x5c: pemToX5c(CERTIFICATE) }));
+      const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, verifySignature: true, signaturePolicy: { trustAnchors: [CERTIFICATE], now: NOW } });
+      expect(r.status).toBe("ok");
+      if (r.status !== "ok") return;
+      expect(r.signatures![0]).toMatchObject({ status: "verified", alg: "Ed25519", keyTrust: "declaration-only", precedence: "origin" });
+      expect((r.signatures![0] as { thumbprint: string }).thumbprint).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    });
 
-      expect(withoutTarget.status).toBe("ok");
-      expect(withUnknownTarget.status).toBe("ok"); // observed real behavior: NOT "not-found"
-      if (withoutTarget.status === "ok" && withUnknownTarget.status === "ok") {
-        // Same underlying report either way - the adapter never scoped it.
-        expect(withUnknownTarget.document).toEqual(withoutTarget.document);
-      }
-    },
-  );
+    it("an EdDSA-labelled signature on input verifies and is marked deprecated", async () => {
+      const key = await generateSigningKey("Ed25519");
+      const signed = await signedBodyWithAlg(key, "EdDSA");
+      const origin = await listen(createServer((_req, res) => {
+        res.writeHead(200, { "Content-Type": "application/sustainability-data+json" });
+        res.end(signed);
+      }));
+      const r = await fetchSustainability(origin, { ...ALLOW_INSECURE, verifySignature: true });
+      expect(r.status === "ok" && r.signatures![0]).toMatchObject({ status: "verified", alg: "EdDSA", deprecatedAlg: true });
+    });
 
-  it.runIf(hasPublisherDist)(
-    "(e) POST to the well-known path returns 405 with an Allow header (publisher server behavior)",
-    async () => {
-      const publisher = new Publisher(
-        computedAdapter({
-          provider: "Method Test Corp",
-          methodologyUri: "https://interop.example/methodology",
-          energy: { value: 10, unit: "kWh" },
-          gridIntensity: 400,
-        }),
-        { normalize: { target: "method.example" } },
-      );
-      const origin = await startPublisherServer(publisher);
+    it("requireSigned passes for a signed publisher and fails for an unsigned one", async () => {
+      const key = await generateSigningKey("Ed25519");
+      const signed = await fetchSustainability(await startPublisherServer(single({ key })), { ...ALLOW_INSECURE, requireSigned: true });
+      expect(signed.status).toBe("ok");
+      await new Promise<void>((resolve) => server!.close(() => resolve()));
+      server = undefined;
+      const unsigned = await fetchSustainability(await startPublisherServer(single()), { ...ALLOW_INSECURE, requireSigned: true });
+      expect(unsigned.status).toBe("signature-required");
+    });
 
-      const res = await fetch(new URL(WELL_KNOWN_PATH, origin).toString(), { method: "POST" });
-      expect(res.status).toBe(405);
-      const allow = res.headers.get("allow") ?? "";
-      expect(allow).toContain("GET");
-    },
-  );
+    it("a signed array carries one signature per object and each verifies", async () => {
+      const key = await generateSigningKey("Ed25519");
+      const publisher = new Publisher(staticAdapter({ data: [month("2026-01", 100), month("2026-02", 110)], capabilities: "extended" }), { signing: { key } });
+      const r = await fetchSustainability(await startPublisherServer(publisher), { ...ALLOW_INSECURE, verifySignature: true });
+      expect(r.status === "ok" && r.signatures!.map((s) => s.status)).toEqual(["verified", "verified"]);
+    });
+  });
+
+  describe("upgrade", () => {
+    const earlier = [
+      {
+        updated: "2026-02-03T06:00:00Z",
+        capabilities: "extended",
+        provider: "Example Hosting Ltd (sustainability@hosting.example)",
+        "measurement-method": "hardware-metered",
+        "methodology-uri": "https://hosting.example/methods",
+        "reporting-period": "2026-01",
+        target: "hosting.example",
+        "energy-consumption": 100,
+        "energy-unit": "kWh",
+        "carbon-footprint": 40,
+        "carbon-unit": "kgCO2e",
+      },
+    ];
+    const serveText = (text: string) =>
+      listen(createServer((_req, res) => {
+        res.writeHead(200, { "Content-Type": "application/sustainability-data+json" });
+        res.end(text);
+      }));
+
+    it("the upgrade tool's output is read in strict mode with no conversion, where the earlier document is not", async () => {
+      const result = upgradeDocument(earlier);
+      expect(result.errors).toEqual([]);
+      const origin = await serveText(upgradedText(result.document));
+      const strict = await fetchSustainability(origin, { ...ALLOW_INSECURE, legacyCompat: false });
+      expect(strict.status).toBe("ok");
+      if (strict.status === "ok") expect(strict.converted ?? []).toEqual([]);
+      await new Promise<void>((resolve) => server!.close(() => resolve()));
+      server = undefined;
+
+      const raw = await serveText(JSON.stringify(earlier));
+      expect((await fetchSustainability(raw, { ...ALLOW_INSECURE, legacyCompat: false })).status).toBe("invalid");
+      const compat = await fetchSustainability(raw, ALLOW_INSECURE);
+      expect(compat.status).toBe("ok");
+      if (compat.status === "ok") expect(compat.converted?.length ?? 0).toBeGreaterThan(0);
+    });
+
+    it("the compatibility reading and the upgrade tool agree on the figures and the period", async () => {
+      const upgraded = upgradeDocument(earlier).document as SustainabilityMetrics[];
+      const origin = await serveText(JSON.stringify(earlier));
+      const compat = await fetchSustainability(origin, ALLOW_INSECURE);
+      expect(compat.status).toBe("ok");
+      if (compat.status !== "ok") return;
+      const read = (Array.isArray(compat.document) ? compat.document : [compat.document]) as SustainabilityMetrics[];
+      expect(read[0].period).toEqual(upgraded[0].period);
+      expect(read[0]["carbon-footprint"]).toBe(upgraded[0]["carbon-footprint"]);
+      expect(read[0]["carbon-unit"]).toBe(upgraded[0]["carbon-unit"]);
+    });
+  });
 });
+
+/** The body of a signed declaration whose JWS is labelled `alg`, signed with the publisher's own key. */
+async function signedBodyWithAlg(key: { privateKey: unknown; publicJwk: Record<string, unknown> }, alg: string): Promise<string> {
+  const jose = await import("jose");
+  const { kty, crv, x } = key.publicJwk as { kty: string; crv: string; x: string };
+  const object = {
+    updated: "2026-03-01T12:00:00Z",
+    capabilities: "basic",
+    provider: "Interop Corp",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://interop.example/methodology",
+    period: { start: "2026-02-01T00:00:00Z", end: "2026-03-01T00:00:00Z" },
+    target: "interop.example",
+    "energy-consumption": 100,
+    "energy-unit": "kWh",
+  };
+  const jws = await new jose.CompactSign(new TextEncoder().encode(JSON.stringify(object)))
+    .setProtectedHeader({ alg, cty: "sustainability-data+json", jwk: { kty, crv, x } })
+    .sign(key.privateKey as Parameters<jose.CompactSign["sign"]>[0]);
+  return JSON.stringify({ ...object, signed: jws });
+}

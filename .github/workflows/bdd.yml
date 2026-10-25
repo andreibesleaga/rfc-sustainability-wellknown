@@ -1,5 +1,10 @@
 name: bdd-and-fitness
 
+# The behaviour scenarios and the fitness functions run against the SOURCE builds of the publisher, the consumer
+# and the gateway (the gateway through scripts/overlay-source-libs.sh, which leaves its lockfile alone), and
+# against the schema validators (the Python jtd package and the cddl gem 0.12.14).
+# Node 22 and 24 must pass; Node 26 is reported but does not block.
+
 on:
   push:
     paths:
@@ -8,6 +13,11 @@ on:
       - "publisher/**"
       - "consumer/**"
       - "gateway/**"
+      - "tools/**"
+      - "schemas-validators/**"
+      - "example-responses/**"
+      - "scripts/overlay-source-*.sh"
+      - "README.md"
       - ".github/workflows/bdd.yml"
   pull_request:
     paths:
@@ -16,21 +26,47 @@ on:
       - "publisher/**"
       - "consumer/**"
       - "gateway/**"
+      - "tools/**"
+      - "schemas-validators/**"
+      - "example-responses/**"
+      - "scripts/overlay-source-*.sh"
+      - "README.md"
+
+permissions:
+  contents: read
 
 jobs:
   scenarios:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    continue-on-error: ${{ matrix.node == '26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24", "26"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
-        with: { node-version: "22" }
-      - name: Build publisher and consumer, then the gateway against those source builds
+        with: { node-version: "${{ matrix.node }}" }
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12" }
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.2" }
+      - name: Validators (jtd in a virtual environment, cddl gem 0.12.14 on the PATH)
         run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install -r schemas-validators/requirements.txt
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+          echo "PYTHON=$RUNNER_TEMP/venv/bin/python" >> "$GITHUB_ENV"
+          gem install cddl -v 0.12.14
+          echo "$(ruby -e 'print Gem.bindir')" >> "$GITHUB_PATH"
+      - name: Build publisher and consumer, then the gateway and the initializer against those source builds
+        run: |
+          cddl --version 2>&1 | grep -q '0.12.14'   # the gem prints its version on stderr
           (cd publisher && npm ci --no-audit --no-fund && npm run build)
           (cd consumer  && npm ci --no-audit --no-fund && npm run build)
-          (cd gateway   && npm ci --no-audit --no-fund)
           bash scripts/overlay-source-libs.sh
+          bash scripts/overlay-source-publisher.sh tools/create-sustainability-data
       - name: Traceability check (against the posted revision named in requirements.json)
         working-directory: bdd
         run: npm ci --no-audit --no-fund && npm run trace

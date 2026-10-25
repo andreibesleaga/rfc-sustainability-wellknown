@@ -2,12 +2,15 @@
   "updated": "2026-02-15T00:00:00Z",
   "capabilities": "basic",
   "provider": "Example Cloud Services, Inc. (sustainability@example.com)",
-  "measurement-method": "hardware-estimated",
+  "measurement-method": "third-party-modeled",
   "methodology-uri": "https://example.com/sustainability/2025-emissions-inventory.pdf",
-  "reporting-period": "2025",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
   "target": "Example Cloud Services, Inc.",
   "carbon-footprint": 105250,
-  "carbon-unit": "mtCO2e",
+  "carbon-unit": "tCO2e",
   "carbon-accounting": "location-based",
   "scope-1": 250,
   "scope-2": 60000,

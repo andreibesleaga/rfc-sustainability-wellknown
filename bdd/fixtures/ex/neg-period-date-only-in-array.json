@@ -1,0 +1,40 @@
+[
+  {
+    "updated": "2026-01-05T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "CloudProvider Ops (ops@example.com)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://example.com/methodology",
+    "period": {
+      "start": "2025-01-01",
+      "end": "2025-01-31"
+    },
+    "target": "example.com",
+    "target-type": "origin",
+    "energy-consumption": 1100,
+    "energy-unit": "kWh",
+    "carbon-footprint": 302,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "location-based",
+    "renewable-energy": 45
+  },
+  {
+    "updated": "2026-01-05T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "CloudProvider Ops (ops@example.com)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "https://example.com/methodology",
+    "period": {
+      "start": "2025-02-01T00:00:00Z",
+      "end": "2025-03-01T00:00:00Z"
+    },
+    "target": "example.com",
+    "target-type": "origin",
+    "energy-consumption": 1050,
+    "energy-unit": "kWh",
+    "carbon-footprint": 288,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "location-based",
+    "renewable-energy": 48
+  }
+]

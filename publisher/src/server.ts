@@ -5,7 +5,6 @@
  */
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";
 import {
-  badRequestResult,
   CarbonTxtServeOptions,
   CARBON_TXT_PATHS,
   carbonTxtResult,
@@ -13,6 +12,7 @@ import {
   HandlerOptions,
   parseQuery,
   queryFromSearchParams,
+  rateLimitGate,
   WELL_KNOWN_PATH,
 } from "./handler";
 import { Publisher } from "./publisher";
@@ -30,6 +30,7 @@ export function createSustainabilityServer(
 ): Server {
   const paths = new Set([WELL_KNOWN_PATH, ...(opts.extraPaths ?? [])]);
   const carbonPaths = new Set(opts.carbonTxt ? CARBON_TXT_PATHS : []);
+  const rateLimited = rateLimitGate(opts, publisher);
 
   // CORS header echoed on every response (incl. 404/405/500) so cross-origin
   // aggregators can read error statuses, not just 200s.
@@ -61,11 +62,16 @@ export function createSustainabilityServer(
         return;
       }
 
-      const parsed = parseQuery(queryFromSearchParams(url.searchParams));
+      const limited = rateLimited(req.socket.remoteAddress);
+      if (limited) {
+        res.writeHead(limited.status, limited.headers);
+        res.end(req.method === "HEAD" ? undefined : limited.body);
+        return;
+      }
+
+      const { query } = parseQuery(queryFromSearchParams(url.searchParams));
       const ifNoneMatch = req.headers["if-none-match"] as string | undefined;
-      const result = parsed.ok
-        ? await handleRequest(publisher, parsed.query, opts, ifNoneMatch)
-        : badRequestResult(parsed.error, opts);
+      const result = await handleRequest(publisher, query, opts, ifNoneMatch);
 
       res.writeHead(result.status, result.headers);
       if (req.method === "HEAD" || result.status === 304) res.end();

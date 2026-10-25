@@ -50,98 +50,186 @@ describe("gateway/examples fidelity", () => {
     const onDisk = readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith(".json")).sort();
     expect(caseFiles).toEqual(onDisk);
   });
+
+  it("no case note describes a free-text measurement-method (the token set is closed)", () => {
+    for (const c of WIRE_CASES) expect(c.note, c.file).not.toMatch(/free-text/i);
+  });
 });
 
+/** The parameterless answer of every served example (the matrix's table of served examples): one object with its period, or the whole array. */
+const Y2025 = ["2025-01-01T00:00:00Z", "2026-01-01T00:00:00Z"] as const;
+const BARE: Record<string, readonly [string, string] | number> = {
+  "basic.example": ["2026-02-01T00:00:00Z", "2026-03-01T00:00:00Z"],
+  "minimal.example": Y2025,
+  "extended.example": ["2026-03-20T00:00:00Z", "2026-03-21T00:00:00Z"],
+  "partial.example": ["2026-03-01T00:00:00Z", "2026-04-01T00:00:00Z"],
+  "origin-annual.example": Y2025,
+  "signed.example": Y2025,
+  "organization.example": Y2025,
+  "organization-trend.example": 4,
+  "comprehensive.example": Y2025,
+  "removals.example": Y2025,
+  "product.example": Y2025,
+  "service.example": Y2025,
+  "tenant.example": Y2025,
+  "device.example": Y2025,
+  "data-source.example": Y2025,
+  "upstream-organization.example": Y2025,
+  "upstream-tenant.example": Y2025,
+  "upstream-multiple.example": Y2025,
+  "yearly.example": ["2025-12-01T00:00:00Z", "2026-01-01T00:00:00Z"],
+  "yearly-monthly-target.example": ["2026-02-01T00:00:00Z", "2026-03-01T00:00:00Z"],
+  "daily-trend.example": ["2026-03-31T00:00:00Z", "2026-04-01T00:00:00Z"],
+  "two-targets.example": 2,
+  "accounting-pair.example": 2,
+  "functional-units.example": 12,
+  "unit-grid.example": ["2025-12-01T00:00:00Z", "2026-01-01T00:00:00Z"],
+  "dst-month.example": ["2025-03-01T00:00:00+01:00", "2025-04-01T00:00:00+02:00"],
+  "dst-days.example": ["2025-10-26T00:00:00+02:00", "2025-10-27T00:00:00+01:00"],
+  "local-days.example": ["2026-03-20T00:00:00+08:00", "2026-03-21T00:00:00+08:00"],
+  "mixed-offsets.example": 2,
+  "year-and-months.example": 13,
+  "target-types.example": 9,
+  "upstream-roles.example": Y2025,
+  "chain-org.example": Y2025,
+  "chain-tenant.example": Y2025,
+  "chain-host.example": Y2025,
+  "chain-colo.example": Y2025,
+  "chain-grid.example": Y2025,
+  "chain-inconsistent.example": Y2025,
+  "loop-a.example": Y2025,
+  "loop-b.example": Y2025,
+  "signed-array.example": ["2026-03-01T00:00:00Z", "2026-04-01T00:00:00Z"],
+  "signed-es256.example": Y2025,
+};
+
+interface QueryRow {
+  id: string;
+  dataset: string;
+  query: string;
+  expect: string[];
+  honored: boolean;
+}
+const QUERIES_FILE = resolve(__dirname, "..", "..", "schemas-validators", "examples", "queries.json");
+const QUERIES: QueryRow[] = existsSync(QUERIES_FILE) ? (JSON.parse(readFileSync(QUERIES_FILE, "utf8")) as QueryRow[]) : [];
+
+const WK = "/.well-known/sustainability-data";
+type Obj = { target: string; period: { start: string; end: string }; signed?: string; capabilities: string; [k: string]: unknown };
+const key = (o: Obj) => `${o.target}|${o.period.start}`;
+
 describe("wire-format example serving", () => {
-  it("serves every object case verbatim (modulo materialized default units)", async () => {
+  it("serves 42 examples, each as the matrix says when a request names no parameter", async () => {
+    expect(srv.gw.examples.size).toBe(42);
+    expect(Object.keys(BARE).sort()).toEqual([...srv.gw.examples.keys()].sort());
     for (const [domain, ex] of srv.gw.examples) {
-      const r = await fetch(url(`/${domain}/.well-known/sustainability-data`));
+      const r = await fetch(url(`/${domain}${WK}`));
       expect(r.status, domain).toBe(200);
+      expect(r.headers.get("content-type"), domain).toBe("application/sustainability-data+json");
       const doc = await r.json();
-      expect(Array.isArray(doc), `${domain}: this deployment answers a parameterless request with one object`).toBe(false);
-      expect(doc.target, domain).toBe(ex.subject.document.target);
+      const expected = BARE[domain];
+      if (typeof expected === "number") {
+        expect(Array.isArray(doc), domain).toBe(true);
+        expect(doc, domain).toHaveLength(expected);
+        expect(ex.serving, domain).toBe("all");
+      } else {
+        expect(Array.isArray(doc), `${domain}: one object`).toBe(false);
+        expect([doc.period.start, doc.period.end], domain).toEqual([...expected]);
+      }
       expect(validateDocument(doc).valid, domain).toBe(true);
+      expect(srv.gw.examples.get(domain)!.subject.document.target, domain).toBeTruthy();
     }
   });
 
-  it("collapses the Basic response of a trend file to its most recent entry", async () => {
-    const r = await fetch(url("/organization-trend.example/.well-known/sustainability-data"));
-    const doc = await r.json();
-    expect(Array.isArray(doc)).toBe(false);
-    expect(doc["reporting-period"]).toBe("2025");
+  it("serves a series as its latest object where the file declares it, and says so in the index", async () => {
+    for (const domain of ["yearly.example", "yearly-monthly-target.example", "daily-trend.example", "unit-grid.example", "dst-days.example", "local-days.example", "signed-array.example"]) {
+      expect(srv.gw.examples.get(domain)!.serving, domain).toBe("latest");
+    }
+    const idx = await (await fetch(url("/index.json"))).json();
+    const entries = idx["wire-format-examples"].entries as { domain: string; period: { start: string; end: string }; range?: { start: string; end: string }; granularity?: string }[];
+    expect(entries).toHaveLength(42);
+    for (const e of entries) {
+      expect(e.period.start, e.domain).toMatch(/T/);
+      expect(JSON.stringify(e), e.domain).not.toContain("reporting-period");
+    }
+    // 04 G13: the hints sit on exactly the examples that declare Extended (12 of 42); a Basic one ignores queries and has none.
+    const extendedDomains = entries.filter((e) => srv.gw.examples.get(e.domain)!.extended);
+    expect(extendedDomains).toHaveLength(12);
+    for (const e of entries) expect(e.range !== undefined, e.domain).toBe(srv.gw.examples.get(e.domain)!.extended);
+    for (const e of entries.filter((x) => x.granularity)) expect(srv.gw.examples.get(e.domain)!.extended, e.domain).toBe(true);
+    const yearly = entries.find((e) => e.domain === "yearly.example")!;
+    expect(yearly.range).toEqual({ start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" });
+    expect(yearly.granularity).toBe("monthly");
+    // A year beside its months is whole in no single unit; offsets are covered in UTC.
+    const mixed = entries.find((e) => e.domain === "year-and-months.example")!;
+    expect(mixed.range).toEqual({ start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" });
+    expect(mixed.granularity).toBeUndefined();
+    const offsets = entries.find((e) => e.domain === "two-targets.example")!;
+    expect(offsets.range).toEqual({ start: "2026-02-28T16:00:00Z", end: "2026-03-31T16:00:00Z" });
+    expect(offsets.granularity).toBe("monthly");
   });
 
-  it("returns the sorted array for a period sliced finer on declared-extended examples", async () => {
-    const r = await fetch(
-      url("/yearly.example/.well-known/sustainability-data?period=2025&granularity=monthly"),
-    );
+  it("returns the sorted array for a range on declared-extended examples", async () => {
+    const r = await fetch(url(`/yearly.example${WK}?start=2025-01-01T00:00:00Z&end=2026-01-01T00:00:00Z&granularity=monthly`));
     expect(r.status).toBe(200);
-    const arr = await r.json();
-    expect(Array.isArray(arr)).toBe(true);
+    const arr = (await r.json()) as Obj[];
     expect(arr).toHaveLength(12);
-    const periods = arr.map((e: { "reporting-period": string }) => e["reporting-period"]);
-    expect(periods).toEqual([...periods].sort());
+    const starts = arr.map((e) => e.period.start);
+    expect(starts).toEqual([...starts].sort());
     expect(validateDocument(arr).valid).toBe(true);
-
-    const short = await (
-      await fetch(
-        url("/yearly-monthly-target.example/.well-known/sustainability-data?period=2026&granularity=monthly"),
-      )
-    ).json();
-    expect(Array.isArray(short)).toBe(true);
+    // The range alone, with no granularity: the same twelve objects, nothing summed.
+    const alone = await (await fetch(url(`/yearly.example${WK}?start=2025-01-01T00:00:00Z&end=2026-01-01T00:00:00Z`))).json();
+    expect(alone).toEqual(arr);
+    const short = (await (await fetch(url(`/yearly-monthly-target.example${WK}?granularity=monthly`))).json()) as Obj[];
     expect(short).toHaveLength(2);
-    expect(srv.gw.examples.get("yearly.example")).toMatchObject({ period: "2025", granularity: "monthly" });
+    expect(srv.gw.examples.get("yearly.example")).toMatchObject({
+      granularity: "monthly",
+      range: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
+    });
   });
 
-  it("object-shaped examples declaring capabilities:extended enter the query procedure too", async () => {
-    for (const domain of ["extended.example", "aggregate.example", "upstream-tenant.example"]) {
-      const base = `/${domain}/.well-known/sustainability-data`;
+  it("object-shaped examples declaring capabilities:extended honor the parameters as an array of one", async () => {
+    for (const domain of ["extended.example", "upstream-tenant.example"]) {
+      const base = `/${domain}${WK}`;
       const doc = await (await fetch(url(base))).json();
       expect(doc.capabilities, domain).toBe("extended");
-      // Step 1: a repeated parameter is 400. Step 2: a malformed period is 400.
-      expect((await fetch(url(`${base}?period=2025&period=2024`))).status, domain).toBe(400);
-      expect((await fetch(url(`${base}?period=2026-02-31`))).status, domain).toBe(400);
-      // Step 4: no published prefix set, so every target is 404.
-      expect((await fetch(url(`${base}?target=/anything`))).status, domain).toBe(404);
-      // Step 5: the document's own period answers it; another period is no data.
-      const own = await fetch(url(`${base}?period=${doc["reporting-period"]}`));
-      expect(own.status, domain).toBe(200);
-      expect((await own.json())["reporting-period"], domain).toBe(doc["reporting-period"]);
-      expect((await fetch(url(`${base}?period=1999`))).status, domain).toBe(404);
+      // A repeated parameter and a value out of the profile are ignored: no 400, and the bare answer.
+      const bare = await (await fetch(url(base))).text();
+      for (const q of ["?start=2025-01-01T00:00:00Z&start=2024-01-01T00:00:00Z", "?start=2026-02-31T00:00:00Z", "?end=not-a-date"]) {
+        const r = await fetch(url(base + q));
+        expect(r.status, `${domain} ${q}`).toBe(200);
+        expect(await r.text(), `${domain} ${q}`).toBe(bare);
+      }
+      // A target the object does not name selects nothing: 200 and [].
+      const none = await fetch(url(`${base}?target=/anything`));
+      expect(none.status, domain).toBe(200);
+      expect(await none.json(), domain).toEqual([]);
+      // The object's own range selects it, as an array of one; a range before it selects nothing.
+      const own = await (await fetch(url(`${base}?start=${doc.period.start}&end=${doc.period.end}`))).json();
+      expect(own, domain).toEqual([doc]);
+      expect(await (await fetch(url(`${base}?start=1999-01-01T00:00:00Z&end=2000-01-01T00:00:00Z`))).json(), domain).toEqual([]);
     }
   });
 
-  it("granularity alone applies to the default period, which monthly is not finer than: one object", async () => {
-    const r = await fetch(url("/yearly.example/.well-known/sustainability-data?granularity=monthly"));
-    const doc = await r.json();
-    expect(Array.isArray(doc)).toBe(false);
-    expect(doc["reporting-period"]).toBe("2025-12");
-    // A whole year without a granularity: the months aggregated into one object.
-    const year = await (await fetch(url("/yearly.example/.well-known/sustainability-data?period=2025"))).json();
-    expect(year["reporting-period"]).toBe("2025");
-    expect(validateDocument(year).valid).toBe(true);
-    // A period the trend does not cover: no data.
-    expect((await fetch(url("/yearly.example/.well-known/sustainability-data?period=2024"))).status).toBe(404);
+  it("granularity alone selects the whole units held, not the default period", async () => {
+    const months = (await (await fetch(url(`/yearly.example${WK}?granularity=monthly`))).json()) as Obj[];
+    expect(months).toHaveLength(12);
+    expect(await (await fetch(url(`/yearly.example${WK}?granularity=yearly`))).json()).toEqual([]);
+    expect(await (await fetch(url(`/yearly.example${WK}?start=2024-01-01T00:00:00Z&end=2025-01-01T00:00:00Z`))).json()).toEqual([]);
   });
 
-  it("ignores granularity on a Basic-declaring trend and on unknown values", async () => {
-    // capabilities:basic trend — the parameter is not honored.
-    const basic = await (
-      await fetch(
-        url("/organization-trend.example/.well-known/sustainability-data?granularity=yearly"),
-      )
-    ).json();
-    expect(Array.isArray(basic)).toBe(false);
-    // Unknown granularity value on an extended example — ignored per the draft.
-    const unknown = await (
-      await fetch(url("/yearly.example/.well-known/sustainability-data?granularity=weekly"))
-    ).json();
-    expect(Array.isArray(unknown)).toBe(false);
+  it("ignores every parameter on a Basic-declaring example, whatever its shape", async () => {
+    for (const domain of ["organization-trend.example", "basic.example", "accounting-pair.example", "target-types.example", "functional-units.example"]) {
+      const bare = await fetch(url(`/${domain}${WK}`));
+      const asked = await fetch(url(`/${domain}${WK}?start=2023-01-01T00:00:00Z&granularity=monthly&target=/x`));
+      expect(asked.status, domain).toBe(200);
+      expect(asked.headers.get("etag"), domain).toBe(bare.headers.get("etag"));
+      expect(await asked.text(), domain).toBe(await bare.text());
+    }
   });
 
   it("serves the pre-signed example with its own signature, which verifies over exactly the served object", async () => {
     const file = JSON.parse(readFileSync(resolve(EXAMPLES_DIR, "example-response-signed.json"), "utf8"));
-    const doc = await (await fetch(url("/signed.example/.well-known/sustainability-data"))).json();
+    const doc = await (await fetch(url(`/signed.example${WK}`))).json();
     expect(doc.signed).toBe(file.signed);
     const outcome = await verifyEmbeddedSignature(doc);
     expect(outcome.result.status).toBe("verified");
@@ -150,43 +238,123 @@ describe("wire-format example serving", () => {
     expect(payload).toEqual(members);
     // The header carries a public key only; no private member is ever published.
     const header = JSON.parse(Buffer.from(signed.split(".")[0], "base64url").toString("utf8"));
-    expect(header).toMatchObject({ alg: "EdDSA", cty: "sustainability-data+json" });
+    expect(header).toMatchObject({ alg: "Ed25519", cty: "sustainability-data+json" });
     expect(header.jwk.d).toBeUndefined();
   });
 
-  it("the aggregate example is exactly what yearly.example serves for the whole year", async () => {
-    const served = await (await fetch(url("/yearly.example/.well-known/sustainability-data?period=2025"))).json();
-    const file = JSON.parse(readFileSync(resolve(EXAMPLES_DIR, "example-response-aggregate.json"), "utf8"));
-    expect(served).toEqual(file);
-    // A percentage is not summed, so it is omitted; the agreeing accounting basis is kept.
-    expect(served["renewable-energy"]).toBeUndefined();
-    expect(served["carbon-accounting"]).toBe("location-based");
+  it("serves the signed series with each object's own signature, also for a selection of them (G21 G23)", async () => {
+    const bare = (await (await fetch(url(`/signed-array.example${WK}`))).json()) as Obj;
+    expect(Array.isArray(bare)).toBe(false);
+    expect(bare.period.start).toBe("2026-03-01T00:00:00Z");
+    expect(typeof bare.signed).toBe("string");
+    const all = (await (await fetch(url(`/signed-array.example${WK}?granularity=monthly`))).json()) as Obj[];
+    expect(all).toHaveLength(3);
+    const feb = (await (await fetch(url(`/signed-array.example${WK}?start=2026-02-01T00:00:00Z&end=2026-03-01T00:00:00Z`))).json()) as Obj[];
+    expect(feb).toHaveLength(1);
+    expect(feb[0].period.start).toBe("2026-02-01T00:00:00Z");
+    for (const o of [...all, ...feb, bare]) {
+      const outcome = await verifyEmbeddedSignature(o);
+      expect(outcome.result.status, key(o)).toBe("verified");
+      expect(outcome.differences ?? [], key(o)).toEqual([]);
+    }
+    // Three different objects carry three different signatures; none is reused for another object.
+    expect(new Set(all.map((o) => o.signed)).size).toBe(3);
+    expect(feb[0].signed).toBe(all[1].signed);
   });
 
-  it("a daily series returns every held day, and three days are no aggregate for the month", async () => {
-    const arr = await (
-      await fetch(url("/daily-trend.example/.well-known/sustainability-data?period=2026-03&granularity=daily"))
-    ).json();
-    expect(Array.isArray(arr)).toBe(true);
-    expect(arr.map((e: { "reporting-period": string }) => e["reporting-period"])).toEqual([
-      "2026-03-29",
-      "2026-03-30",
-      "2026-03-31",
-    ]);
+  it("serves the ES256 example, which verifies", async () => {
+    const doc = await (await fetch(url(`/signed-es256.example${WK}`))).json();
+    const header = JSON.parse(Buffer.from(doc.signed.split(".")[0], "base64url").toString("utf8"));
+    expect(header.alg).toBe("ES256");
+    const outcome = await verifyEmbeddedSignature(doc);
+    expect(outcome.result.status).toBe("verified");
+  });
+
+  it("serves the upstream chain with relative references that resolve to declarations this gateway serves", async () => {
+    const chain = ["chain-org", "chain-tenant", "chain-host", "chain-colo"].map((d) => `${d}.example`);
+    for (let i = 0; i < chain.length; i++) {
+      const href = url(`/${chain[i]}${WK}`);
+      const doc = await (await fetch(href)).json();
+      const next = new URL(doc.upstream[0].declaration, href).href;
+      const expected = i + 1 < chain.length ? chain[i + 1] : "chain-grid.example";
+      expect(next, chain[i]).toBe(url(`/${expected}${WK}`));
+      expect((await fetch(next)).status, next).toBe(200);
+    }
+    const org = await (await fetch(url(`/chain-org.example${WK}`))).json();
+    expect(new URL(org["disclosure-uri"], url(`/chain-org.example${WK}`)).href).toBe(url("/index.json"));
+    const a = await (await fetch(url(`/loop-a.example${WK}`))).json();
+    expect(new URL(a.upstream[0].declaration, url(`/loop-a.example${WK}`)).href).toBe(url(`/loop-b.example${WK}`));
+  });
+
+  it("a series of days keeps its watts and grams, and no aggregate is made of three days", async () => {
+    const arr = (await (await fetch(url(`/daily-trend.example${WK}?start=2026-03-01T00:00:00Z&end=2026-04-01T00:00:00Z&granularity=daily`))).json()) as Obj[];
+    expect(arr.map((e) => e.period.start)).toEqual(["2026-03-29T00:00:00Z", "2026-03-30T00:00:00Z", "2026-03-31T00:00:00Z"]);
     expect(validateDocument(arr).valid).toBe(true);
-    expect((await fetch(url("/daily-trend.example/.well-known/sustainability-data?period=2026-03"))).status).toBe(404);
+    // The month asked for without a granularity: the same three objects, which are not March.
+    const month = (await (await fetch(url(`/daily-trend.example${WK}?start=2026-03-01T00:00:00Z&end=2026-04-01T00:00:00Z`))).json()) as Obj[];
+    expect(month).toEqual(arr);
   });
 
-  it("keeps ETags distinct between the Basic and array variants", async () => {
-    const basic = await fetch(url("/yearly.example/.well-known/sustainability-data"));
-    const arr = await fetch(
-      url("/yearly.example/.well-known/sustainability-data?period=2025&granularity=monthly"),
-    );
-    expect(basic.headers.get("etag")).toBeTruthy();
+  it("keeps ETags distinct between the bare and the array variants, and equal for equal values", async () => {
+    const bare = await fetch(url(`/yearly.example${WK}`));
+    const arr = await fetch(url(`/yearly.example${WK}?start=2025-01-01T00:00:00Z&end=2026-01-01T00:00:00Z&granularity=monthly`));
+    const twin = await fetch(url(`/yearly.example${WK}?start=2025-01-01T00:00:00.000Z&end=2026-01-01T00:00:00Z&granularity=monthly`));
+    expect(bare.headers.get("etag")).toBeTruthy();
     expect(arr.headers.get("etag")).toBeTruthy();
-    expect(basic.headers.get("etag")).not.toBe(arr.headers.get("etag"));
-    await basic.text();
-    await arr.text();
+    expect(bare.headers.get("etag")).not.toBe(arr.headers.get("etag"));
+    expect(twin.headers.get("etag")).toBe(arr.headers.get("etag"));
+    await Promise.all([bare.text(), arr.text(), twin.text()]);
+  });
+});
+
+describe("the query matrix, round-tripped through the gateway (Q01 to Q75)", () => {
+  const raw = (domain: string): Obj[] => {
+    const def = WIRE_CASES.find((c) => c.domain === domain)!;
+    const parsed = JSON.parse(readFileSync(resolve(EXAMPLES_DIR, def.file), "utf8")) as Obj | Obj[];
+    return Array.isArray(parsed) ? parsed : [parsed];
+  };
+  const withoutUnitDefaults = (o: Obj): string => JSON.stringify(Object.fromEntries(Object.entries(o).filter(([k]) => k !== "signed").sort(([a], [b]) => (a < b ? -1 : 1))));
+
+  it("has the 75 rows of the matrix", () => {
+    if (!existsSync(QUERIES_FILE)) return; // packaged deployment: repo not present
+    expect(QUERIES.map((q) => q.id)).toEqual(Array.from({ length: 75 }, (_, i) => `Q${String(i + 1).padStart(2, "0")}`));
+  });
+
+  it.each(QUERIES.map((q) => [q.id, q] as const))("%s selects what the oracle selects, and every object is one the file holds", async (_id, row) => {
+    const base = `/${row.dataset}${WK}`;
+    const r = await fetch(url(row.query ? `${base}?${row.query}` : base));
+    expect(r.status, row.id).toBe(200);
+    const body = await r.text();
+    const example = srv.gw.examples.get(row.dataset)!;
+    if (!row.honored || !example.extended) {
+      // Ignored by the request, or by a Basic document, which honors no parameter (the oracle selects
+      // whatever the capabilities): byte for byte the answer to no parameter, ETag included.
+      const bare = await fetch(url(base));
+      expect(body, row.id).toBe(await bare.text());
+      expect(r.headers.get("etag"), row.id).toBe(bare.headers.get("etag"));
+      const served = JSON.parse(body) as Obj | Obj[];
+      if (Array.isArray(served)) expect(served.map(key), row.id).toEqual(row.expect);
+      else expect(row.expect, row.id).toContain(key(served));
+      return;
+    }
+    const served = JSON.parse(body) as Obj[];
+    expect(Array.isArray(served), row.id).toBe(true);
+    expect(served.map(key), row.id).toEqual(row.expect);
+    // Each object is member for member an object of the raw file (the default units apart).
+    const held = new Set(raw(row.dataset).map(withoutUnitDefaults));
+    for (const o of served) {
+      const { signed: _s, ...plain } = o;
+      const match = [...held].some((h) => {
+        const heldObj = JSON.parse(h) as Obj;
+        return Object.entries(heldObj).every(([k, v]) => JSON.stringify((plain as Record<string, unknown>)[k]) === JSON.stringify(v));
+      });
+      expect(match, `${row.id}: ${key(o)}`).toBe(true);
+    }
+    // Last-Modified is the latest `updated` among the objects returned.
+    if (served.length > 0) {
+      const latest = Math.max(...served.map((o) => Date.parse(String(o.updated))));
+      expect(Date.parse(r.headers.get("last-modified")!), row.id).toBe(latest);
+    }
   });
 });
 
@@ -227,6 +395,14 @@ describe("adapter demonstrations", () => {
     }
   });
 
+  it("co2js-demo.example publishes a score per gigabyte, not a total for the month", () => {
+    const d = srv.gw.live.managed.get("co2js-demo.example")!.subject.document;
+    expect(d["sci-score"]).toBeGreaterThan(0);
+    expect(d["functional-unit"]).toBe("per-gigabyte");
+    expect(d["energy-consumption"]).toBeUndefined();
+    expect(d["carbon-footprint"]).toBeUndefined();
+  });
+
   it("passes consumer validation for every demonstration document", () => {
     for (const m of srv.gw.live.managed.values()) {
       expect(validateDocument(m.subject.document).valid, m.spec.domain).toBe(true);
@@ -235,7 +411,7 @@ describe("adapter demonstrations", () => {
 });
 
 describe("live mode with an injected upstream", () => {
-  const FIXED = new Date("2026-03-10T00:00:00Z");
+  const FIXED = new Date("2026-10-17T12:00:00Z");
 
   function nesoFetch(intensity: number): typeof fetch {
     return (async (input: RequestInfo | URL) => {
@@ -252,7 +428,6 @@ describe("live mode with an injected upstream", () => {
 
   it("goes live when the upstream responds, and carries the live value in band", async () => {
     const config = loadConfig({ port: 0, host: "127.0.0.1" });
-    config.self.period = "2025";
     const reg = new LiveRegistry({
       fetchImpl: nesoFetch(217),
       env: {},
@@ -267,12 +442,13 @@ describe("live mode with an injected upstream", () => {
     expect(m.subject.document.provider).toContain("LIVE");
     expect(m.subject.document.provider).toContain("217 gCO2/kWh");
     expect(m.subject.document["carbon-intensity-gCO2e-per-kWh"]).toBe(217);
+    // The figure changes with the reading, so `updated` is the retrieval instant.
+    expect(m.subject.document.updated).toBe("2026-10-17T12:00:00Z");
     expect(validateDocument(m.subject.document).valid).toBe(true);
   });
 
   it("falls back to the fixture at boot when the upstream fails, and records the error", async () => {
     const config = loadConfig({ port: 0, host: "127.0.0.1" });
-    config.self.period = "2025";
     const failing = (async () => {
       throw new Error("connect ECONNREFUSED");
     }) as unknown as typeof fetch;
@@ -286,11 +462,12 @@ describe("live mode with an injected upstream", () => {
     expect(m.upstreamError).toContain("ECONNREFUSED");
     expect(m.subject.document.provider).toContain("RECORDED");
     expect(m.subject.document["carbon-intensity-gCO2e-per-kWh"]).toBe(NESO_FIXTURE_INTENSITY);
+    // The recording predates the period, so the close of the period is the later instant.
+    expect(m.subject.document.updated).toBe("2026-10-01T00:00:00Z");
   });
 
   it("refreshes to new live data, and keeps the last good document on a failed refresh", async () => {
     const config = loadConfig({ port: 0, host: "127.0.0.1" });
-    config.self.period = "2025";
     let intensity = 150;
     let fail = false;
     const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {

@@ -10,18 +10,18 @@
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import {
-  badRequestResult,
   handleRequest,
   importSigningKey,
-  NotFoundError,
+  lastFullMonthPeriod,
   parseQuery,
   queryFromSearchParams,
+  type Period,
   type ServiceQuery,
   type SigningKey,
 } from "sustainability-wellknown-publisher";
 import { verifyEmbeddedSignature } from "sustainability-wellknown-consumer";
 import { demoSpecs } from "./adapters/demo-specs";
-import { lastCompletedMonth, selfReportAdapter } from "./adapters/self-report";
+import { HELD_MAX, dateTimeOf, selfReportAdapter, startOfDay } from "./adapters/self-report";
 import { LIMITS, PUBLIC_BASE_URL, type GatewayConfig, type MediaTypeSetting } from "./config";
 import { loadWireExamples, type WireExample } from "./examples";
 import { CORS_ORIGIN, corsHeaders, jsonError, methodNotAllowed, notModified, withBody, type Result } from "./http";
@@ -34,11 +34,11 @@ import {
 import { LiveRegistry, type LiveSpec } from "./live";
 import { loadMediaTypeOverrides, MEDIA_TYPE_FILE } from "./media-type";
 import { clientKey, createRateLimiter, type RateLimiter } from "./rate-limit";
-import { loadRegistry, subjectFromAdapter, type Subject } from "./registry";
+import { httpDate, loadRegistry, subjectFromAdapter, type Subject } from "./registry";
 import { LEGAL_PATH, LEGAL_TEXT } from "./legal";
 import { BADGE_ROUTE, VALIDATE_PATH, Validator, badgeSvg, checkHost, isBusy, noticeBadgeSvg, parseOrigin, type ValidatorDeps } from "./validate";
 import { crossValidate, type CrossValidation } from "./verify";
-import { loadSelfMeasured } from "./self-measured";
+import { loadSelfEnteredAt, loadSelfMeasured } from "./self-measured";
 
 /** `/{domain}/.well-known/sustainability-data` — the primary route. */
 const SUBJECT_ROUTE = new RegExp(`^/([^/]{1,${LIMITS.maxDomainLength}})/\\.well-known/sustainability-data$`);
@@ -69,7 +69,7 @@ export interface Gateway {
   /**
    * Returns the self subject for the CURRENT reporting period. This
    * deployment's parameterless report is the most recently completed month
-   * (-07 leaves the choice to the publisher), so when the month rolls over (and
+   * (the draft leaves the choice to the publisher), so when the month rolls over (and
    * no fixed SELF_PERIOD is pinned) the self report is regenerated instead of
    * freezing at whatever month the process booted in.
    */
@@ -122,13 +122,16 @@ export interface CreateGatewayOptions {
   validator?: ValidatorDeps | null;
 }
 
-/** `Last-Modified` for a served body: the `updated` of the object, or of an array's last entry. */
+/**
+ * `Last-Modified` for a served body: the latest `updated` of the objects it
+ * holds, as an HTTP-date. An empty array holds none, so it has no date of its own.
+ */
 function lastUpdatedIn(body: string): string | undefined {
   try {
     const parsed = JSON.parse(body) as { updated?: string } | { updated?: string }[];
-    const last = Array.isArray(parsed) ? parsed[parsed.length - 1] : parsed;
-    const d = new Date(String(last?.updated));
-    return Number.isNaN(d.getTime()) ? undefined : d.toUTCString();
+    const dates = (Array.isArray(parsed) ? parsed : [parsed]).map((o) => o?.updated).filter((u): u is string => typeof u === "string");
+    if (dates.length === 0) return undefined;
+    return dates.map(httpDate).sort((x, y) => Date.parse(x) - Date.parse(y))[dates.length - 1];
   } catch {
     return undefined;
   }
@@ -137,14 +140,13 @@ function lastUpdatedIn(body: string): string | undefined {
 /**
  * Serve one subject's document.
  *
- * The query is dropped for every subject except the wire-format examples that
- * themselves declare `capabilities: "extended"`: the draft requires a server
- * that does not support the Extended parameters to IGNORE them and return the
- * Basic response rather than fail, and dropping the query also collapses every
- * query string onto a single cache entry (the draft's Denial-of-Service
- * guidance — a bounded cache-key space). For the declared-extended examples
- * only `granularity` is passed through; the handler ignores unknown values,
- * so the key space stays bounded there too.
+ * The query goes to the publisher whatever the subject: a Basic publisher
+ * honors no parameter and answers the request as if none were sent, an
+ * Extended one honors the values that match the draft's ABNF and ignores the
+ * rest (draft §Query Parameters; never an error, never repaired). The
+ * publisher keys its cache on the honored values only, which keeps the number
+ * of entries bounded and gives `Z` and `.000Z` spellings of one instant one
+ * entry and one `ETag`.
  */
 async function serveDocument(
   subject: Subject,
@@ -170,23 +172,22 @@ async function serveDocument(
     headers["X-Robots-Tag"] = "noindex";
     headers["Link"] = `<${(config.baseUrl || PUBLIC_BASE_URL).replace(/\/+$/, "")}${LEGAL_PATH}>; rel="terms-of-service"`;
   }
-  // A query variant describes a different period than the subject's own
-  // document, so its `Last-Modified` comes from the variant's `updated` — on a
-  // 304 as on a 200, since a 304 must carry the validators the 200 would have
-  // (RFC 9110 §15.4.5). The 304 has no body, so the variant is read from the
-  // publisher's cache, which the request just populated.
-  if ((r.status === 200 || r.status === 304) && Object.values(query).some((v) => v !== undefined)) {
-    let variantUpdated: string | undefined;
+  // `Last-Modified` is the latest `updated` of the objects returned, on a 304 as
+  // on a 200, since a 304 must carry the validators the 200 would have (RFC 9110
+  // §15.4.5). The 304 has no body, so the document is read from the publisher's
+  // cache, which the request just populated.
+  if (r.status === 200 || r.status === 304) {
+    let updated: string | undefined;
     if (r.status === 200) {
-      variantUpdated = lastUpdatedIn(r.body);
+      updated = lastUpdatedIn(r.body);
     } else {
       try {
-        variantUpdated = lastUpdatedIn(JSON.stringify(await subject.publisher.getDocument(query)));
+        updated = lastUpdatedIn(JSON.stringify(await subject.publisher.getDocument(query)));
       } catch {
-        variantUpdated = undefined;
+        updated = undefined;
       }
     }
-    if (variantUpdated) headers["Last-Modified"] = variantUpdated;
+    if (updated) headers["Last-Modified"] = updated;
   }
   if (r.status === 200) {
     // RFC 9110 §13.1.3: If-Modified-Since applies to GET/HEAD only when
@@ -199,9 +200,9 @@ async function serveDocument(
         return notModified(headers);
       }
     }
-    // The `provider` member is human-readable text; the draft's
-    // Internationalization Considerations ask publishers to identify its
-    // language at the HTTP layer. No negotiation is offered, so no `Vary`.
+    // The `provider` member is human-readable text; the draft's `provider`
+    // definition has a publisher state its language. No negotiation is offered,
+    // so no `Vary`.
     headers["Content-Language"] = "en";
     return withBody(200, headers, r.body);
   }
@@ -341,22 +342,7 @@ export async function route(
 
   if (path === WELL_KNOWN_PATH) {
     const self = gw.refreshSelf ? await gw.refreshSelf() : gw.self;
-    // The self report is an Extended publisher, so the draft's numbered
-    // query procedure applies in full: a repeated defined parameter or a
-    // malformed `period` is 400, an unknown `granularity` value is ignored,
-    // and a `target` is matched against the published prefix set — which for
-    // one process with no path prefixes is empty, so any value is 404.
-    const parsed = extendedQuery(search, { maxAge: selfMaxAge(gw.config), lastModified: self.lastModified });
-    if (!parsed.ok) return parsed.result;
-    // Draft step 2: with no `period`, P is the Basic response's own
-    // `reporting-period`. The self adapter shapes its output to the query, so
-    // P is named explicitly here rather than inferred from that output — which
-    // for `?granularity=daily` alone would be the last day, not the month.
-    const query =
-      parsed.query.granularity !== undefined && parsed.query.period === undefined
-        ? { ...parsed.query, period: self.document["reporting-period"] }
-        : parsed.query;
-    return serveDocument(self, { ...gw.config, maxAge: selfMaxAge(gw.config) }, ifNoneMatch, ifModifiedSince, gw.config.mediaType, query);
+    return serveDocument(self, { ...gw.config, maxAge: selfMaxAge(gw.config) }, ifNoneMatch, ifModifiedSince, gw.config.mediaType, queryOf(search));
   }
 
   const m = SUBJECT_ROUTE.exec(path);
@@ -366,30 +352,14 @@ export async function route(
     const domain = m[1].toLowerCase();
     const subject = gw.subjects.get(domain);
     if (!subject) {
-      // Draft "no-data rule": nothing published for this subject -> 404.
+      // This gateway holds nothing for this subject -> 404.
       return jsonError(
         404,
         "no sustainability metadata is published here for that reporting subject",
       );
     }
-    // Extended parameters pass through only for the wire-format examples that
-    // declare `capabilities: "extended"`; the publisher's own selection rule
-    // then decides (an array only for a granularity finer than the period),
-    // and the draft's numbered procedure gives 400 for a repeated or
-    // malformed parameter and 404 for an unpublished `target`. Every other
-    // subject is Basic: it supports none of the parameters, so the draft says
-    // it MUST ignore them and return the Basic response, never an error.
     const mediaType = gw.mediaTypeOverrides.get(domain) ?? gw.config.mediaType;
-    let query: ServiceQuery = {};
-    // Gate on what the served document declares, not on its shape: an object
-    // example that says `capabilities: "extended"` honours the parameters too
-    // (a period other than its own is no data; any target is 404).
-    if (gw.examples?.get(domain)?.subject.document.capabilities === "extended") {
-      const parsed = extendedQuery(search, { maxAge: gw.config.maxAge, lastModified: subject.lastModified });
-      if (!parsed.ok) return parsed.result;
-      query = parsed.query;
-    }
-    return serveDocument(subject, gw.config, ifNoneMatch, ifModifiedSince, mediaType, query);
+    return serveDocument(subject, gw.config, ifNoneMatch, ifModifiedSince, mediaType, queryOf(search));
   }
 
   const inputMatch = INPUT_ROUTE.exec(path);
@@ -427,69 +397,18 @@ export function splitTarget(rawUrl: string): { path: string; search: URLSearchPa
 }
 
 /**
- * The draft's Extended query procedure for a subject this gateway does honour
- * the parameters on, applied with the published library's own `parseQuery`:
- *
- *  - a defined parameter given more than once, or a `period` that is not a
- *    real calendar year/month/day, is `400 Bad Request` (steps 1 and 2);
- *  - a `granularity` value that is not `monthly` or `daily` is ignored (step 3);
- *  - a `target` is compared with the publisher's PUBLISHED set of path
- *    prefixes (step 4). This gateway publishes an empty prefix set for every
- *    subject it serves — one process with no path prefixes, and relayed
- *    documents whose subjects are whole organizations — so a `target` matches
- *    nothing and the answer is the NO-DATA response of {@link noDataResult}.
- *    The value is never echoed, and the response is the one the publisher
- *    itself returns when it holds nothing, so an unmatched value cannot be
- *    told apart from a period the server has no figures for.
+ * The parameters of a request, as the draft's §Query Parameters reads them,
+ * applied with the published library's own `parseQuery`: a value that does not
+ * match the ABNF, a name given more than once and a name the draft does not
+ * define are IGNORED, never repaired and never answered with an error, so a
+ * request carrying only such values is the bare request.
  *
  * `queryFromSearchParams` is what preserves a repeated name; collapsing the
- * query into a plain object first would hide the very duplication step 1 is
+ * query into a plain object first would hide the very duplication the rule is
  * about.
  */
-type ExtendedQuery = { ok: true; query: ServiceQuery } | { ok: false; result: Result };
-
-function extendedQuery(
-  search: URLSearchParams,
-  opts: { maxAge: number; lastModified: string },
-): ExtendedQuery {
-  const parsed = parseQuery(queryFromSearchParams(search));
-  if (!parsed.ok) {
-    const r = badRequestResult(parsed.error, { maxAge: opts.maxAge, cors: CORS_ORIGIN });
-    return { ok: false, result: withBody(r.status, r.headers, r.body) };
-  }
-  if (parsed.query.target !== undefined) {
-    return { ok: false, result: noDataResult(opts.maxAge, opts.lastModified) };
-  }
-  return { ok: true, query: { period: parsed.query.period, granularity: parsed.query.granularity } };
-}
-
-/**
- * The no-data `404` for a declaration resource — status, header fields and body
- * exactly as {@link serveDocument} returns them when the publisher library holds
- * nothing for the request (`handleRequest`'s own 404, plus the `Last-Modified`
- * that `serveDocument` adds).
- *
- * Draft §Privacy Considerations: a server honoring `target` "answers every value
- * outside that set with the same `404 Not Found` it returns when it holds no
- * data. A server SHOULD make those two responses indistinguishable in body and
- * in timing as well." Two distinct bodies would tell a prober which of the two
- * it had hit, which is the path-disclosure the restriction exists to prevent, so
- * the unmatched-`target` answer is built here rather than as a `jsonError` of
- * its own. `NotFoundError`'s default message is the publisher library's own
- * no-data wording, taken from the library so the two cannot drift apart.
- */
-function noDataResult(maxAge: number, lastModified: string): Result {
-  return withBody(
-    404,
-    {
-      "Cache-Control": `public, max-age=${maxAge}`,
-      "Access-Control-Allow-Origin": CORS_ORIGIN,
-      "Access-Control-Expose-Headers": "ETag, Last-Modified",
-      "Content-Type": "application/json",
-      "Last-Modified": lastModified,
-    },
-    JSON.stringify({ error: new NotFoundError().message.toLowerCase() }),
-  );
+function queryOf(search: URLSearchParams): ServiceQuery {
+  return parseQuery(queryFromSearchParams(search)).query;
 }
 
 /**
@@ -523,7 +442,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
    */
   const selfClock = () => (opts.clock ? opts.clock() : opts.now ?? new Date());
 
-  // ---- The signing key for the gateway's OWN report (draft -07 §Signing).
+  // ---- The signing key for the gateway's OWN report (draft §The signed Member).
   // A key that cannot be imported stops the deploy, like a bad data file: a
   // gateway that claims to sign and cannot is worse than one that does not
   // sign. ----
@@ -539,7 +458,8 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   // ---- Worked adapter example #1: the gateway's own report, produced by the
   // published `computedAdapter` rather than hand-written. ----
   const selfMeasured = config.self.measured ? loadSelfMeasured(config.dataDir) : {};
-  const selfAdapter = (period: string | undefined) =>
+  const selfEnteredAt = config.self.measured ? loadSelfEnteredAt(config.dataDir) : {};
+  const selfAdapter = (period: Period | undefined) =>
     selfReportAdapter({
       target: config.self.target,
       provider: config.self.provider,
@@ -548,12 +468,14 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       period,
       watts: config.self.watts,
       wattsByMonth: selfMeasured,
+      enteredAtByMonth: selfEnteredAt,
       gridIntensity: config.self.gridIntensity,
       liveSince: config.self.liveSince,
+      modelChangedAt: config.self.modelChangedAt,
       verifiableAttestationUri: config.self.verifiableAttestationUri,
       clock: selfClock,
     });
-  const selfSubject = (period: string | undefined) =>
+  const selfSubject = (period: Period | undefined) =>
     subjectFromAdapter({
       domain: "gateway.invalid", // never routed: served at the bare well-known path
       adapter: selfAdapter(period),
@@ -562,7 +484,15 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       label: "adapter:computed (gateway self-report)",
       cacheTtlMs: SELF_CACHE_TTL_MS,
       maxCacheEntries: SELF_CACHE_ENTRIES,
-      // Draft -07 §Signing: the publisher inserts the `signed` member into
+      // The parameterless request is one object, the current report; a request
+      // that names a parameter is answered with the objects held. The bound of
+      // the held set is the publisher's own, so a selection is never cut.
+      representation: "single",
+      security: { maxObjects: HELD_MAX },
+      // On the day it went live the gateway holds no whole day yet: it still starts, the
+      // parameterless request is "no data" and a query is the empty array.
+      emptyAt: dateTimeOf(startOfDay(selfClock().getTime())),
+      // Draft §The signed Member: the publisher inserts the `signed` member into
       // every object it builds — the parameterless declaration and each
       // object of an Extended trend alike. The gateway implements no signing
       // of its own; it only hands the library the key. The public key travels
@@ -617,7 +547,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   // ---- Consumer cross-validation: every served document must satisfy the
   // published consumer library, or the gateway refuses to start. ----
   const crossValidation = await crossValidate(
-    [self, ...subjects.values()],
+    [self, ...subjects.values()].filter((s) => !s.empty),
     examples.values(),
   );
 
@@ -625,7 +555,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   // as it will be served and verify its embedded `signed` member with the
   // consumer library, in-process. A signature the ecosystem's own verifier
   // rejects must not go live. ----
-  if (signingKey) {
+  if (signingKey && !self.empty) {
     const served = await handleRequest(self.publisher, {}, { cors: CORS_ORIGIN });
     const outcome = await verifyEmbeddedSignature(JSON.parse(served.body));
     if (outcome.result.status !== "verified") {
@@ -670,12 +600,14 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   // (The index is period-independent — it carries only the self path/target —
   // so only the subject itself is rebuilt.)
   let currentSelf = self;
-  let currentMonth = config.self.period ?? lastCompletedMonth(opts.now ?? clock());
+  let currentMonth = lastFullMonthPeriod(opts.now ?? clock()).start;
   const refreshSelf = async (): Promise<Subject> => {
     if (config.self.period) return currentSelf;
-    const month = lastCompletedMonth(clock());
+    // Still holding nothing: look again (a day may have passed) until the first object exists.
+    if (currentSelf.empty) currentSelf = await selfSubject(undefined);
+    const month = lastFullMonthPeriod(clock()).start;
     if (month !== currentMonth) {
-      currentSelf = await selfSubject(month);
+      currentSelf = await selfSubject(undefined);
       currentMonth = month;
     }
     return currentSelf;
@@ -750,7 +682,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       });
     };
 
-    // Draft Security Considerations §Denial of Service: rate-limit the well-known URI. Applied
+    // Draft Security Considerations: a server that computes answers SHOULD rate-limit; this deployment limits every path. Applied
     // before routing so every path but the health check counts; the platform
     // health checker must never be throttled.
     const limited = async (): Promise<Result | undefined> => {
@@ -762,21 +694,28 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       const badge = BADGE_ROUTE.exec(pathname);
       const validatorRoute = pathname === VALIDATE_PATH || badge !== null;
       let limiter = gw.rateLimiter;
+      let strict = false;
       if (validatorRoute && gw.validator?.limiter) {
         const host = badge ? badge[1].toLowerCase() : (new URLSearchParams(search).get("origin") ?? "").replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
         // Chosen before the "no general limiter" exit, so the validator keeps its own limit even when
         // the deployment turns the general one off.
-        if (host && !gw.validator.isFresh(host)) limiter = gw.validator.limiter;
+        if (host && !gw.validator.isFresh(host)) {
+          limiter = gw.validator.limiter;
+          strict = true;
+        }
       }
       if (!limiter) return undefined;
       const decision = await limiter.check(clientKey(req, gw.config.rateLimit.trustProxy));
       if (decision.allowed) return undefined;
+      // The per-client validator budget is the same kind of limit as the global one: this service did not
+      // try, so it answers 503 with Retry-After and says nothing about the origin. The general limit is 429.
+      const status = strict ? 503 : 429;
       if (badge) {
         // Never JSON on a badge URL: a README shows an image or nothing.
-        return withBody(429, { ...corsHeaders(), "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store", "Retry-After": String(decision.retryAfterSec) },
+        return withBody(status, { ...corsHeaders(), "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store", "Retry-After": String(decision.retryAfterSec) },
           noticeBadgeSvg("try later", "Too many checks from this client; the origin was not checked."));
       }
-      return jsonError(429, "rate limit exceeded; retry after the indicated delay", {
+      return jsonError(status, strict ? "this client's check budget is spent; retry after the indicated delay" : "rate limit exceeded; retry after the indicated delay", {
         "Retry-After": String(decision.retryAfterSec),
         "Cache-Control": "no-store",
       });

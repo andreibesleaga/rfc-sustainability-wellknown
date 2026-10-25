@@ -4,7 +4,7 @@ Tags: sustainability, carbon, energy, well-known, esg
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Publishes your site's energy and carbon figures at /.well-known/sustainability-d
 The Internet-Draft draft-besleaga-sustainability-wellknown (under review at the IETF Independent Submissions Editor;
 not yet an RFC) defines one place, `/.well-known/sustainability-data`, where a site publishes its sustainability
 figures in a machine-readable form. This plugin serves that file from your own domain, from figures you type in once (and update
-when you have new ones): provider, methodology page, reporting period, energy, carbon, scopes, a disclosure link.
+when you have new ones): provider, methodology page, period (start and end), energy, carbon, scopes, a disclosure link.
 
 * Serves the draft's media type with the right caching and CORS headers; answers HEAD and 405 correctly.
 * Signs the declaration with an Ed25519 key generated on your site at activation (the public key travels inside
@@ -31,7 +31,7 @@ Check your file with the reference consumer: `npx -y -p sustainability-wellknown
 == Installation ==
 
 1. Install and activate. (Permalinks must be enabled: Settings → Permalinks, anything but "Plain".)
-2. Settings → Sustainability data: fill in provider, methodology page, reporting period and measurement method
+2. Settings → Sustainability data: fill in provider, methodology page, period start and end, and measurement method
    (all required), then at least one of energy, carbon or a disclosure page. Save.
 3. Open https://your-site/.well-known/sustainability-data. Until the required fields are valid it answers 404
    and the settings page lists what to fix.
@@ -44,7 +44,7 @@ The easiest real sources, best first:
 
 * Your cloud's or host's own carbon report (AWS Sustainability console, Google Cloud Carbon Footprint, Azure
   Carbon optimization, OVHcloud, Infomaniak): enter one month's total as Carbon, converted to kg (the consoles show
-  tonnes: × 1000), set the period to that month and Carbon accounting to the report's method; measurement method
+  tonnes: × 1000), set the period to that month (start: the first moment of the month, end: the first moment of the next, both as UTC date-times such as `2026-09-01T00:00:00Z` and `2026-10-01T00:00:00Z`) and Carbon accounting to the report's method; measurement method
   `cloud-billing`. Leave the scope fields empty: your provider's emissions are your Scope 3.
 * A meter or a smart plug that reports kWh, on your own server: Energy, `hardware-metered`.
 * Otherwise, an estimate from data transfer with the Sustainable Web Design Model: GB sent in the month × 0.148 =
@@ -59,6 +59,13 @@ How the figures were obtained: `hardware-metered` only for a meter reading; `har
 sensors that estimate; `cloud-billing` for a provider's own footprint report; `third-party-modeled` for a model or
 a calculator. Nothing is preselected, because the choice is a claim you make.
 
+= How do I write the period? =
+As two RFC 3339 date-times with upper-case T and Z. The end is not part of the period, so the year 2026 is
+`2026-01-01T00:00:00Z` to `2027-01-01T00:00:00Z`. A period saved by version 0.1 (such as `2026-09`) is converted to its start and end when it is read.
+
+= Do query parameters change the answer? =
+No. The plugin publishes one declaration; a request with `start`, `end`, `target` or `granularity`, valid or not, gets the same answer.
+
 = Is a hosting provider's "green" badge a figure? =
 No. Enter energy or carbon numbers you have, or only a disclosure link to your report.
 
@@ -66,6 +73,10 @@ No. Enter energy or carbon numbers you have, or only a disclosure link to your r
 That the file was not altered since this site produced it. Nothing about accuracy.
 
 == Changelog ==
+
+= 0.2.0 =
+* Follows revision -10 of the draft: the period is an object with start and end (two RFC 3339 date-times) instead of a label; target type `facility` added; the signature algorithm is written `Ed25519`.
+* A period saved by 0.1 is converted when read; query parameters are ignored.
 
 = 0.1.0 =
 * First release.

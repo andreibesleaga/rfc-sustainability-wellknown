@@ -6,7 +6,7 @@ figures, and choose `measurement-method` to match. Sources checked 2026-10-03.
 
 | Your situation | Easiest source | `measurement-method` |
 |---|---|---|
-| Your organisation already publishes a sustainability report | Copy the report's figures, or publish only `disclosure-uri` (an https link to the page listing your reports). [tools/report-to-declaration](../tools/report-to-declaration/) drafts a declaration from a report, with a verbatim quote for every figure. | `third-party-modeled` for an inventory built from activity data × emission factors (nearly every report) |
+| Your organisation already publishes a sustainability report | Copy the report's figures, or publish only `disclosure-uri` (an https link to the page listing your reports). [tools/report-to-declaration](../tools/report-to-declaration/) drafts a declaration from a report, with a verbatim quote for every figure. | `third-party-modeled` for an inventory built from activity data × emission factors, also when it combines metered energy with modeled categories (nearly every report) |
 | You run on AWS, Google Cloud or Azure | The provider's own monthly report: the [AWS Sustainability console](https://docs.aws.amazon.com/sustainability/latest/userguide/key-concepts.html) (it replaced the Customer Carbon Footprint Tool on 30 June 2026), [Google Cloud Carbon Footprint](https://docs.cloud.google.com/carbon-footprint/docs), or [Azure Carbon optimization](https://learn.microsoft.com/en-us/azure/carbon-optimization/overview). See "Copying a provider's report" below. | `cloud-billing` |
 | Your host reports per account | For example [OVHcloud "My carbon footprint"](https://docs.ovhcloud.com/en/guides/account-and-service-management/managing-billing-payments-and-services/carbon-footprint) (monthly) or [Infomaniak](https://www.infomaniak.com/en/support/faq/1160/discover-eco-design-to-reduce-your-carbon-footprint) (yearly, on the invoice). See "Copying a provider's report" below. | `cloud-billing` |
 | Your own server or device | A metered PDU (a rack power strip that measures energy) or a smart plug that reports kWh, not only watts. The [Home Assistant add-on](home-assistant/) publishes it for you. | `hardware-metered` |
@@ -16,9 +16,9 @@ figures, and choose `measurement-method` to match. Sources checked 2026-10-03.
 
 ## Copying a provider's report
 
-- Copy the **period's total** into `carbon-footprint`, and set `reporting-period` to that period (a month is `YYYY-MM`).
-- Mind the unit. AWS reports MTCO2e and the Google console tCO2e: use `carbon-unit` `mtCO2e`, or multiply by 1,000
-  for kgCO2e (the WordPress plugin takes kg).
+- Copy the **period's total** into `carbon-footprint`, and set `period` to that period: `start` is its first instant and `end` the first instant after it, both date-times with upper-case `T` and `Z` (September 2026 is `2026-09-01T00:00:00Z` to `2026-10-01T00:00:00Z`).
+- Mind the unit. AWS reports MTCO2e (metric tons) and the Google console tCO2e: both are `carbon-unit` `tCO2e`, or multiply
+  by 1,000 for `kgCO2e` (the WordPress plugin takes kg). The units are `gCO2e`, `kgCO2e` and `tCO2e`; energy is `Wh`, `kWh`, `MWh` or `GWh`.
 - Set `carbon-accounting` to the method of the figure you copied. AWS and Google give both `location-based` and
   `market-based`; Azure gives `market-based` only.
 - Do not copy the provider's Scope 1 or 2 into your `scope-1` or `scope-2`: emissions a provider delivers to you are
@@ -79,11 +79,11 @@ Prefer a source that gives CO2e.
 
 ## Say how, then check
 
-- **On your methodology page:** the source, the period, the formula, what the figure covers and what it leaves out,
+- **On your methodology page** ([template](METHODOLOGY-TEMPLATE.md): what is measured and estimated, allocation to a part of the target, what counts as one unit, extension names, perturbation): the source, the period, the formula, what the figure covers and what it leaves out,
   and the grid intensity with its source and year. The file links to that page in `methodology-uri`.
-- **`measurement-method`:** `hardware-metered` only for a meter reading; `hardware-estimated` for counters or sensors
-  that estimate; `cloud-billing` for a provider's own footprint report; `third-party-modeled` for a model or a
-  calculator. Any other value is read as a short description.
+- **`measurement-method`:** one of four values, no other: `hardware-metered` only for a meter reading;
+  `hardware-estimated` for counters or sensors that estimate; `cloud-billing` for a provider's own footprint report;
+  `third-party-modeled` for a model or a calculator. Say in the methodology page what the figure actually rests on.
 - **A green-hosting badge is not a figure.** If you have no number yet, publish only `disclosure-uri`.
 - **Check the live file** with [the public validator](https://sustainability.up.railway.app/validate?origin=https://example.com)
   (change `example.com` to your host), with `npx -y -p sustainability-wellknown-consumer sustainability-fetch https://your-site --strict`,

@@ -19,8 +19,10 @@
  * Docs: https://developers.thegreenwebfoundation.org/api/carbon-txt/overview
  */
 import { CarbonTxtDisclosure } from "../carbontxt";
-import { CarbonUnit, EnergyUnit, RawMetrics, SourceAdapter } from "../types";
-import { fetchJson, lastFullMonth } from "../util";
+import { CarbonUnit, EnergyUnit, MeasurementMethod } from "../tokens";
+import { RawMetrics, SourceAdapter } from "../types";
+import { PeriodInput } from "../period";
+import { fetchJson, lastFullMonthPeriod } from "../util";
 import { Co2jsConfig, co2jsAdapter } from "./co2js";
 
 export interface CarbonTxtApiResponse {
@@ -43,7 +45,8 @@ export interface CarbonTxtApiConfig {
   provider: string;
   /** Methodology link; if omitted, derived from disclosures or the carbon.txt URL. */
   methodologyUri?: string;
-  reportingPeriod?: string;
+  /** A `{ start, end }` object, or "YYYY", "YYYY-MM" or "YYYY-MM-DD" for the whole calendar unit in UTC; defaults to the last full month. */
+  period?: PeriodInput;
 
   /** Lookup target — exactly one of domain / url / text. */
   domain?: string;
@@ -60,9 +63,9 @@ export interface CarbonTxtApiConfig {
   carbon?: { value: number; unit: CarbonUnit };
   gridIntensity?: number;
   /** Optional CO2.js sub-computation (bytes → carbon) to supply the metrics. */
-  compute?: Omit<Co2jsConfig, "provider" | "methodologyUri" | "reportingPeriod" | "disclosureUri">;
+  compute?: Omit<Co2jsConfig, "provider" | "methodologyUri" | "period" | "disclosureUri">;
 
-  measurementMethod?: string;
+  measurementMethod?: MeasurementMethod;
   capabilities?: "basic" | "extended";
 }
 
@@ -155,7 +158,7 @@ export function carbonTxtApiAdapter(config: CarbonTxtApiConfig): SourceAdapter {
           provider: config.provider,
           measurementMethod: config.measurementMethod ?? "third-party-modeled",
           methodologyUri,
-          reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
+          period: config.period ?? lastFullMonthPeriod(),
           energy: config.energy,
           ...(config.carbon ? { carbon: config.carbon } : {}),
           ...(typeof config.gridIntensity === "number" ? { carbonIntensity: config.gridIntensity } : {}),
@@ -166,7 +169,7 @@ export function carbonTxtApiAdapter(config: CarbonTxtApiConfig): SourceAdapter {
           provider: config.provider,
           measurementMethod: config.measurementMethod ?? "third-party-modeled",
           methodologyUri,
-          reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
+          period: config.period ?? lastFullMonthPeriod(),
           energy: extracted.energy,
           carbon: extracted.carbon,
           capabilities: config.capabilities ?? "basic",
@@ -176,7 +179,7 @@ export function carbonTxtApiAdapter(config: CarbonTxtApiConfig): SourceAdapter {
           ...config.compute,
           provider: config.provider,
           methodologyUri,
-          reportingPeriod: config.reportingPeriod,
+          period: config.period,
         }).fetch({})) as RawMetrics;
       } else {
         throw new Error(

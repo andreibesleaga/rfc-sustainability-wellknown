@@ -9,6 +9,7 @@ import * as jose from "jose";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   checkBinding,
+  checkCoverage,
   checkCredentialShape,
   declarationCopyOf,
   verifyAttestation,
@@ -101,6 +102,11 @@ describe("checkCredentialShape (VC Data Model 2.0)", () => {
       expect(r.ok, reason).toBe(false);
       expect(!r.ok && r.reason).toBe(reason);
     }
+    // Date-time values are instants: an offset counts, a bare date is not a date-time.
+    expect(checkCredentialShape(credential({ validFrom: "2026-09-15T14:00:01+02:00" }), NOW)).toMatchObject({ ok: false, reason: "not-yet-valid" });
+    expect(checkCredentialShape(credential({ validFrom: "2026-09-15T13:59:59+02:00" }), NOW)).toMatchObject({ ok: true });
+    expect(checkCredentialShape(credential({ validFrom: "2026-09-14" }), NOW)).toMatchObject({ ok: false, reason: "validFrom" });
+    expect(checkCredentialShape(credential({ validUntil: "2026-09-15T14:00:00+02:00" }), NOW)).toMatchObject({ ok: false, reason: "expired" });
     expect(checkCredentialShape("nope", NOW)).toMatchObject({ ok: false, reason: "not-a-credential" });
   });
 });
@@ -130,7 +136,7 @@ describe("verifyCredentialJwt / verifyAttestation", () => {
     expect(await verifyCredentialJwt(jwt, { now: NOW })).toMatchObject({ valid: true, assurance: "self-asserted-key" });
     expect(await verifyCredentialJwt(jwt, { now: NOW, trustedIssuerKeys: [issuerPub] })).toMatchObject({
       valid: false,
-      reason: "invalid-signature",
+      reason: "pin-mismatch",
     });
   });
 
@@ -170,14 +176,14 @@ describe("verifyCredentialJwt / verifyAttestation", () => {
   });
 });
 
-describe("-07: the credential binds by carrying a copy of the declaration", () => {
+describe("-10: the credential binds by carrying a copy of the declaration", () => {
   const DECLARATION: SustainabilityMetrics = {
     updated: "2026-03-01T12:00:00Z",
     capabilities: "basic",
     provider: "Example Corp (sustain@example.org)",
     "measurement-method": "cloud-billing",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025",
+    period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
     target: "example.com",
     "energy-consumption": 15000,
     "energy-unit": "kWh",
@@ -232,5 +238,88 @@ describe("-07: the credential binds by carrying a copy of the declaration", () =
     const uri = await serve(await issue(binding(DECLARATION)));
     const r = await verifyAttestation(uri, { now: NOW, allowInsecure: true, declaration: DECLARATION });
     expect(r).toMatchObject({ valid: true, binding: { status: "match" } });
+  });
+});
+
+describe("a relative verifiable-attestation-uri resolves against the retrieval URI", () => {
+  it("fetches the credential at the resolved address", async () => {
+    const uri = await serve(await issue(credential()));
+    const { origin } = new URL(uri);
+    const r = await verifyAttestation("/a.vc.jwt", { now: NOW, allowInsecure: true, base: `${origin}/.well-known/sustainability-data` });
+    expect(r).toMatchObject({ valid: true, url: uri });
+  });
+
+  it("a reference that does not resolve is reported and nothing is requested", async () => {
+    expect(await verifyAttestation("/a.vc.jwt", { now: NOW, allowInsecure: true })).toMatchObject({ valid: false, reason: "not-absolute-uri" });
+    expect(await verifyAttestation("//", { now: NOW, allowInsecure: true, base: "https://example.com/x" })).toMatchObject({
+      valid: false,
+      reason: "not-absolute-uri",
+    });
+  });
+
+  it("an http reference resolved against an https base is still refused without allowInsecure", async () => {
+    expect(await verifyAttestation("http://example.com/vc", { now: NOW, base: "https://example.com/x" })).toMatchObject({
+      valid: false,
+      reason: "not-https-uri",
+    });
+  });
+});
+
+describe("a credential covers the object's target and period (draft Section 5.5)", () => {
+  const OBJECT = {
+    target: "example.com",
+    period: { start: "2025-03-01T00:00:00+01:00", end: "2025-04-01T00:00:00+02:00" },
+  };
+  const about = (subject: Record<string, unknown>) => credential({ credentialSubject: { id: "https://example.com/", ...subject } });
+
+  it("covers when the target is equal and the attested period includes the object's, compared as instants", () => {
+    const wide = about({ target: "example.com", period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" } });
+    expect(checkCoverage(wide, OBJECT)).toEqual({ status: "covers" });
+    const same = about({ target: "example.com", period: { start: "2025-02-28T23:00:00Z", end: "2025-03-31T22:00:00Z" } });
+    expect(checkCoverage(same, OBJECT)).toEqual({ status: "covers" });
+  });
+
+  it("compares a host-name target case-insensitively, as the draft says, and a name that is not a host exactly", () => {
+    const host = about({ target: "EXAMPLE.COM", period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" } });
+    expect(checkCoverage(host, OBJECT)).toEqual({ status: "covers" });
+    const name = about({ target: "ACME CORP", period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" } });
+    expect(checkCoverage(name, { ...OBJECT, target: "Acme Corp" })).toMatchObject({ status: "does-not-cover" });
+  });
+
+  it("does not cover another target or a period that falls short, by an instant", () => {
+    const other = about({ target: "other.example", period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" } });
+    expect(checkCoverage(other, OBJECT)).toMatchObject({ status: "does-not-cover" });
+    const shortEnd = about({ target: "example.com", period: { start: "2025-01-01T00:00:00Z", end: "2025-03-31T21:59:59Z" } });
+    expect(checkCoverage(shortEnd, OBJECT)).toMatchObject({ status: "does-not-cover" });
+    const lateStart = about({ target: "example.com", period: { start: "2025-02-28T23:00:01Z", end: "2026-01-01T00:00:00Z" } });
+    expect(checkCoverage(lateStart, OBJECT)).toMatchObject({ status: "does-not-cover" });
+  });
+
+  it("reads the target and period from a declaration copy as well", () => {
+    const copy = about({ declaration: { ...OBJECT, provider: "x" } });
+    expect(checkCoverage(copy, OBJECT)).toEqual({ status: "covers" });
+  });
+
+  it("a credential that names no target or period covers nothing in particular; without an object nothing is checked", () => {
+    expect(checkCoverage(credential(), OBJECT)).toEqual({ status: "not-stated" });
+    expect(checkCoverage(about({ target: "example.com" }), OBJECT)).toEqual({ status: "not-stated" });
+    expect(checkCoverage(about({ target: "example.com", period: OBJECT.period }))).toEqual({ status: "not-checked" });
+  });
+
+  const subject = about({ target: "example.com", period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" } });
+
+  it("is attested only with an issuer key the caller trusts and a credential that covers the object", async () => {
+    const jwt = await issue(subject);
+    const pinned = await verifyCredentialJwt(jwt, { now: NOW, trustedIssuerKeys: [issuerPub], declaration: OBJECT });
+    expect(pinned).toMatchObject({ valid: true, coverage: { status: "covers" }, attested: true });
+    // The key came from the credential's own header: no issuer is trusted.
+    const selfAsserted = await verifyCredentialJwt(jwt, { now: NOW, declaration: OBJECT });
+    expect(selfAsserted).toMatchObject({ valid: true, coverage: { status: "covers" }, attested: false });
+    // A trusted issuer, a credential about something else.
+    const elsewhere = await verifyCredentialJwt(jwt, { now: NOW, trustedIssuerKeys: [issuerPub], declaration: { ...OBJECT, target: "other.example" } });
+    expect(elsewhere).toMatchObject({ valid: true, coverage: { status: "does-not-cover" }, attested: false });
+    // No object to compare with.
+    const unchecked = await verifyCredentialJwt(jwt, { now: NOW, trustedIssuerKeys: [issuerPub] });
+    expect(unchecked).toMatchObject({ valid: true, coverage: { status: "not-checked" }, attested: false });
   });
 });

@@ -5,12 +5,12 @@
  */
 import { emitCarbonTxt, EmitCarbonTxtOptions } from "./carbontxt";
 import { LEGACY_MEDIA_TYPE, MEDIA_TYPE } from "./media-type";
-import { isCalendarPeriod, UnservableAggregateError } from "./period";
 import { Publisher, NotFoundError } from "./publisher";
+import { honoredQuery, QUERY_PARAMETERS } from "./selection";
 import { ServiceQuery } from "./types";
 
 export interface HandlerOptions {
-  /** Cache-Control max-age in seconds. Default 86400 (draft RECOMMENDED). */
+  /** Cache-Control max-age in seconds. Default 86400 (this package's default). */
   maxAge?: number;
   /** Set Access-Control-Allow-Origin (aggregators). Default "*". */
   cors?: string | false;
@@ -23,15 +23,11 @@ export interface HandlerOptions {
    *    and the request is answered `503`. Without a hook this falls back to
    *    `console.error`, so a deployment that cannot publish at all never fails
    *    silently.
-   *  - a DIAGNOSTIC — an {@link UnservableAggregateError}: the held entries
-   *    disagree, overlap, or leave a gap in the coverage, so there is no
-   *    aggregate the server may honestly serve and the requester is answered as
-   *    no data (`404`), the draft's outcome. Without a hook this writes
-   *    NOTHING, to the console or anywhere: the server is not broken, the
-   *    request is not at fault, it recurs on every request that touches the
-   *    period, and the message names the periods held and the members that
-   *    disagree — the coverage information Privacy Considerations keeps out of
-   *    the response. Configure a hook to receive it.
+   *  - a DIAGNOSTIC — an adapter reported a reason with its "no data" answer.
+   *    The requester gets the ordinary `404`; the reason would tell a client
+   *    which kind of nothing it hit. Without a hook this writes NOTHING, to the
+   *    console or anywhere: the server is not broken and the request is not at
+   *    fault. Configure a hook to receive it.
    *
    * Pass a no-op to suppress the fault fallback too.
    */
@@ -39,17 +35,113 @@ export interface HandlerOptions {
   /**
    * Media type for the 200 document response. Defaults to
    * `"sustainability-data+json"`, which serves `Content-Type:
-   * application/sustainability-data+json` — draft §Mandatory Minimum Supported
-   * Service requires this for a successful response and forbids any other media
-   * type there. Pass `"json"` to instead serve `Content-Type:
+   * application/sustainability-data+json`, the type the draft registers (Location
+   * and Transport). Pass `"json"` to instead serve `Content-Type:
    * application/json`, which the draft says a consumer MAY process as a
    * declaration, for a deployment whose consumers predate the registration;
    * that is not conformant publishing. Both settings send
-   * `X-Content-Type-Options: nosniff`. Error responses (400/404/405/503) always
+   * `X-Content-Type-Options: nosniff`. Error responses (404/405/503) always
    * use `application/json`, and the 304 response carries no Content-Type,
    * regardless of this option.
    */
   mediaType?: "sustainability-data+json" | "json";
+  /**
+   * The language of the response, sent as the `Content-Language` header field of
+   * the 200 response (draft §Mandatory Members, `provider`; RFC 9110, Section
+   * 8.5), for example `"en"`. Unset or empty, none is sent. It is never a member
+   * of the object.
+   */
+  contentLanguage?: string;
+  /**
+   * Opt-in rate limit on the well-known URI (draft §Security Considerations: a
+   * server that computes responses to query parameters on demand SHOULD
+   * rate-limit requests to the URI). Unset, requests are not limited. The count
+   * is kept per client address, in memory, per process; behind a reverse proxy
+   * configure the framework to report the client's address, not the proxy's.
+   */
+  rateLimit?: RateLimitOptions;
+}
+
+/** A fixed window of `windowMs` in which one client may make `requests` requests. */
+export interface RateLimitOptions {
+  /** Requests allowed per client address in one window. */
+  requests: number;
+  /** Length of the window in ms. Default 60_000. */
+  windowMs?: number;
+  /** Most client addresses tracked at once; the oldest are dropped past it. Default 10_000. */
+  maxClients?: number;
+  /** Milliseconds since an epoch; replaced in tests. Default `Date.now`. */
+  clock?: () => number;
+}
+
+/** The answer of {@link RateLimiter.hit}: whether the request may proceed, and the seconds to wait when it may not. */
+export interface RateLimitDecision {
+  allowed: boolean;
+  retryAfterSeconds: number;
+}
+
+/** Counts requests per client address in fixed windows. */
+export class RateLimiter {
+  private readonly windows = new Map<string, { resetAt: number; count: number }>();
+  private readonly requests: number;
+  private readonly windowMs: number;
+  private readonly maxClients: number;
+  private readonly clock: () => number;
+
+  constructor(opts: RateLimitOptions) {
+    if (!Number.isInteger(opts.requests) || opts.requests < 1) throw new Error("rateLimit.requests must be a positive integer");
+    this.requests = opts.requests;
+    this.windowMs = opts.windowMs ?? 60_000;
+    if (!Number.isFinite(this.windowMs) || this.windowMs <= 0) throw new Error("rateLimit.windowMs must be a positive number");
+    this.maxClients = opts.maxClients ?? 10_000;
+    this.clock = opts.clock ?? Date.now;
+  }
+
+  /** Count one request from `client`. */
+  hit(client: string): RateLimitDecision {
+    const now = this.clock();
+    let entry = this.windows.get(client);
+    if (!entry || entry.resetAt <= now) {
+      // The client address is chosen by the requester, so the table is bounded:
+      // expired windows go first, then the oldest.
+      if (this.windows.size >= this.maxClients) {
+        for (const [key, e] of this.windows) if (e.resetAt <= now) this.windows.delete(key);
+        while (this.windows.size >= this.maxClients) this.windows.delete(this.windows.keys().next().value as string);
+      }
+      this.windows.delete(client);
+      entry = { resetAt: now + this.windowMs, count: 0 };
+      this.windows.set(client, entry);
+    }
+    entry.count += 1;
+    return { allowed: entry.count <= this.requests, retryAfterSeconds: Math.max(1, Math.ceil((entry.resetAt - now) / 1000)) };
+  }
+}
+
+/**
+ * The limiter for `opts`, or a function that never limits when `opts.rateLimit`
+ * is unset. It returns the `429` response for a request from `client` that is
+ * over the limit, else `undefined`; a client of unknown address is not counted.
+ */
+export function rateLimitGate(opts: HandlerOptions, publisher?: Publisher): (client: string | undefined) => HandlerResult | undefined {
+  publisher?.warnIfUnlimited(opts.rateLimit !== undefined);
+  if (!opts.rateLimit) return () => undefined;
+  const limiter = new RateLimiter(opts.rateLimit);
+  return (client) => {
+    if (client === undefined) return undefined;
+    const decision = limiter.hit(client);
+    if (decision.allowed) return undefined;
+    return {
+      status: 429,
+      headers: {
+        ...baseHeaders(opts),
+        "Cache-Control": "no-store",
+        "Content-Type": "application/json",
+        "Content-Language": "en",
+        "Retry-After": String(decision.retryAfterSeconds),
+      },
+      body: JSON.stringify({ error: "too many requests" }),
+    };
+  };
 }
 
 // Signing is a property of the DOCUMENT, not of the transport: the `signed`
@@ -123,24 +215,28 @@ export interface HandlerResult {
 }
 
 /**
- * The `granularity-value`s this document defines (draft §Extended Query
- * Parameters). The ABNF spells them with RFC 7405's case-sensitive string
- * notation (`%s"monthly" / %s"daily"`), so the comparison is exact: `MONTHLY`
- * is not one of them and the parameter carrying it is ignored (step 3).
- */
-const KNOWN_GRANULARITIES: ReadonlySet<string> = new Set(["monthly", "daily"]);
-const isGranularity = (v: string): v is "monthly" | "daily" => KNOWN_GRANULARITIES.has(v);
-
-/**
  * A query bag as a framework hands it over: one value per name, or an array
  * when the name appeared more than once.
  */
 export type RawQuery = Record<string, unknown>;
 
-/** The outcome of {@link parseQuery}: a query to serve, or a 400. */
-export type ParsedQuery = { ok: true; query: ServiceQuery } | { ok: false; error: string };
+/** A query parameter that was not honored, and why. */
+export interface IgnoredParameter {
+  name: string;
+  reason: string;
+}
 
-/** Preserve repeated names when the query comes from a URL (server.ts). */
+/** The outcome of {@link parseQuery}: the query to serve, and what was left out of it. */
+export interface ParsedQuery {
+  query: ServiceQuery;
+  ignored: IgnoredParameter[];
+}
+
+/**
+ * Preserve repeated names when the query comes from a URL (server.ts).
+ * `URLSearchParams` decodes "+" to a space, which a `utc-date-time` does not
+ * contain, so a raw "+" never reaches a value that matches the ABNF.
+ */
 export function queryFromSearchParams(params: URLSearchParams): RawQuery {
   const out: RawQuery = {};
   for (const [name, value] of params) {
@@ -153,69 +249,39 @@ export function queryFromSearchParams(params: URLSearchParams): RawQuery {
 }
 
 /**
- * The draft's numbered procedure for the Extended query parameters
- * (§Extended Query Parameters), applied identically by every entry point:
+ * The query parameters of the draft (§Query Parameters), applied identically by
+ * every entry point. Names and values are compared AFTER percent-decoding, which
+ * is what the framework (or `queryFromSearchParams`) hands over, and a name or a
+ * value that does not match is IGNORED, never repaired and never answered with
+ * an error:
  *
- *  1. a defined name that appears more than once is `400 Bad Request`
- *     (a repeated name this document does not define is ignored, like the
- *     name itself); names other than the three defined here are ignored;
- *  2. a `period` that does not match the `period-value` rule or does not name
- *     a real calendar date is `400 Bad Request`;
- *  3. a `granularity` whose value is neither `monthly` nor `daily` is IGNORED
- *     (so is one whose precision is not finer than the period's —
- *     `Publisher.honor` and `selectPeriod` apply that half, since it needs the
- *     period in effect).
+ *  - the ABNF is case-sensitive (RFC 7405 `%s` notation), so `Start=`, `TARGET=`
+ *    and `Monthly` name nothing the draft defines;
+ *  - a `start` or `end` that is not a `utc-date-time` of a real date and time
+ *    (second 60 included, which would be read as another value) and a
+ *    `granularity` that is not `yearly`, `monthly` or `daily` are left out;
+ *  - a parameter that appears more than once is left out, since the request is
+ *    ambiguous; a repeated name the draft does not define is not looked at;
+ *  - an empty `target` is not a `target` member value, and is left out.
  *
- * The ABNF of -07 is case-sensitive throughout (RFC 7405 `%s` notation): the
- * parameter names and the `granularity-value`s are matched exactly, so
- * `Period=`, `TARGET=` and `MONTHLY` name none of them and are ignored as
- * undefined names and values. Names and values are compared AFTER
- * percent-decoding, which is what the framework (or `queryFromSearchParams`)
- * hands over; a `target` value therefore carries any "&" or "=" of its own
- * percent-encoded on the wire and arrives here decoded.
- *
- * Step 4 of the procedure (an unmatched `target` is `404`) needs the publisher's
- * published prefix set and is applied in `Publisher.build`; the cache-key rule (§Operational Considerations in -08, step 7 of §Extended Query Parameters in -07; the cache
- * key is computed from the honored parameters, in a canonical order) is
- * `Publisher.cacheKeyFor`.
+ * What is left out is returned in `ignored`, for the operator. The cache-key
+ * rule is `Publisher.cacheKeyFor`.
  */
-/**
- * The query parameter names this specification defines (Extended Query
- * Parameters). Matched case-sensitively, per the `%s` notation of the ABNF.
- */
-const DEFINED_PARAMETERS = ["target", "period", "granularity"] as const;
-
 export function parseQuery(q: RawQuery): ParsedQuery {
-  // Step 1: names other than the three defined ones are ignored, so a repeated
-  // undefined name (an analytics parameter, say) is not an error; a repeat of a
-  // defined name is, because the request would otherwise be ambiguous.
-  for (const name of DEFINED_PARAMETERS) {
+  const query: ServiceQuery = {};
+  const ignored: IgnoredParameter[] = [];
+  for (const name of QUERY_PARAMETERS) {
     const value = q[name];
-    if (Array.isArray(value) && value.length > 1) {
-      return { ok: false, error: `the query parameter "${name}" appears more than once` };
+    if (value === undefined) continue;
+    if (typeof value !== "string") {
+      ignored.push({ name, reason: Array.isArray(value) ? "the name appears more than once" : "the value is not a string" });
+      continue;
     }
+    const honored = honoredQuery({ [name]: value });
+    if (name in honored) Object.assign(query, honored);
+    else ignored.push({ name, reason: `the value does not match the draft's rule for ${name}` });
   }
-  const str = (v: unknown): string | undefined =>
-    typeof v === "string" ? v : Array.isArray(v) && typeof v[0] === "string" ? v[0] : undefined;
-
-  // Step 2: the value must match the ABNF's `period-value` rule AND name a
-  // real calendar date.
-  const period = str(q.period);
-  if (period !== undefined && !isCalendarPeriod(period)) {
-    return {
-      ok: false,
-      error: `the period "${period}" is not a calendar year, month or day (YYYY, YYYY-MM, YYYY-MM-DD)`,
-    };
-  }
-  const granularity = str(q.granularity);
-  return {
-    ok: true,
-    query: {
-      target: str(q.target),
-      period,
-      granularity: granularity !== undefined && isGranularity(granularity) ? granularity : undefined,
-    },
-  };
+  return { query, ignored };
 }
 
 /**
@@ -249,22 +315,8 @@ function baseHeaders(opts: HandlerOptions): Record<string, string> {
 }
 
 /**
- * `400 Bad Request` for a rejected query (draft §Extended Query Parameters,
- * steps 1 and 2). Never cached: the request was malformed, not the data.
- */
-export function badRequestResult(detail: string, opts: HandlerOptions = {}): HandlerResult {
-  return {
-    status: 400,
-    headers: { ...baseHeaders(opts), "Cache-Control": "no-store", "Content-Type": "application/json", "Content-Language": "en" },
-    body: JSON.stringify({ error: `bad request: ${detail}` }),
-  };
-}
-
-/**
- * The no-data response for this resource: `404` with the reason as the body.
- * One function, so every no-data outcome — nothing published, no entry within
- * the requested period, and an aggregate the server MUST NOT serve — is the
- * same response.
+ * The no-data response for this resource: `404`, the same body whatever the
+ * source said, so that a client cannot tell one kind of nothing from another.
  */
 function noDataResult(headers: Record<string, string>, message: string): HandlerResult {
   return {
@@ -285,21 +337,13 @@ function reportError(opts: HandlerOptions, err: unknown): void {
 }
 
 /**
- * A DIAGNOSTIC about the published data set — an {@link UnservableAggregateError}:
- * the held entries disagree, overlap, or leave a gap, so there is no aggregate
- * the server may honestly serve and the requester is answered as it is when
- * there is no data.
- *
+ * A DIAGNOSTIC from the source: the reason it gave with its "no data" answer.
  * Unlike a fault, this is handed to the operator's hook and NOWHERE ELSE: with
- * no hook configured nothing is written, to the console or anywhere. Three
- * reasons. The server is not broken and the request is not at fault, so there is
- * no failure to be silent about. It is per-request and cacheable-miss shaped, so
- * a console default turns one misconfigured period into a line of log for every
- * request that touches it. And the message names the periods the publisher holds
- * and the members that disagree, which is exactly the path and coverage
- * information Privacy Considerations keeps out of the response — it belongs in
- * the operator's own channel, chosen deliberately, not on whatever stream the
- * process happens to inherit.
+ * no hook configured nothing is written, to the console or anywhere. The server
+ * is not broken and the request is not at fault, so there is no failure to be
+ * silent about; and the reason can name what the source holds, which Privacy
+ * Considerations keeps out of the response, so it belongs in the operator's own
+ * channel, chosen deliberately, not on whatever stream the process inherits.
  */
 function reportDiagnostic(opts: HandlerOptions, err: unknown): void {
   opts.onError?.(err);
@@ -330,8 +374,9 @@ export async function handleRequest(
       headers: {
         ...headers,
         "Content-Type": contentType,
-        // Fixed here so GET and HEAD carry the same header fields (draft:
-        // HEAD "MUST receive the same status and header fields").
+        ...(opts.contentLanguage ? { "Content-Language": opts.contentLanguage } : {}),
+        // Fixed here so GET and HEAD carry the same header fields (RFC 9110,
+        // Section 9.3.2).
         "Content-Length": String(Buffer.byteLength(body)),
         "X-Content-Type-Options": "nosniff",
         ETag: etag,
@@ -339,27 +384,10 @@ export async function handleRequest(
       body,
     };
   } catch (err) {
-    if (err instanceof UnservableAggregateError) {
-      // Draft §Extended Query Parameters, step 5: the contributing entries of
-      // an aggregate MUST agree on `provider`, `measurement-method`,
-      // `methodology-uri`, `target` and `target-type`, MUST NOT overlap, and
-      // MUST cover P (or, where P has not yet completed, its completed
-      // portion). "A server whose held data cannot meet these conditions has no
-      // aggregate it can honestly serve and responds as it does when it has no
-      // data." The requester therefore gets the ordinary no-data response —
-      // byte for byte the 404 a period with nothing inside it gets, so the
-      // defect discloses nothing and is not a fault of the request. The
-      // operator is a different audience: the data set is misconfigured or
-      // incomplete, so `onError` still fires with the error naming the member
-      // that disagreed, the period held twice or the sub-periods missing,
-      // rather than the aggregate silently disappearing.
-      reportDiagnostic(opts, err);
-      return noDataResult(headers, new NotFoundError().message);
-    }
     if (err instanceof NotFoundError) {
       // Every "no data" answer has the same body, whatever an adapter said: a reason in the body would
-      // let a client tell "nothing for that period" from "nothing at all" or from an unpublished target
-      // (draft -07 Privacy Considerations). The adapter's reason goes to the operator instead.
+      // tell a client which kind of nothing it hit (draft §Privacy Considerations). The adapter's
+      // reason goes to the operator instead.
       if (err.message !== new NotFoundError().message) reportDiagnostic(opts, err);
       return noDataResult(headers, new NotFoundError().message);
     }

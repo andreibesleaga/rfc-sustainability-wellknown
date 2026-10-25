@@ -1,35 +1,53 @@
 {
-  "comment": "Requirements the draft states without a BCP 14 keyword (procedure steps, tolerance rules). Each must still occur verbatim in the draft; check.mjs fails otherwise.",
+  "comment": "Requirements the draft states without a BCP 14 keyword. Each must still occur verbatim in the draft; check.mjs fails otherwise.",
   "requirements": [
     {
-      "id": "req-8fe518ba",
+      "id": "req-ee318dc3",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "If one of the three appears more than once, respond `400 Bad Request`; this applies whether or not the server supports the repeated parameter."
+      "text": "A server that honors `start`, `end`, or `granularity` and receives a value not matching the ABNF ignores the parameter and never reads it as another value."
     },
     {
-      "id": "req-8ee496d1",
+      "id": "req-969238cd",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "If `period` is present and its value does not match the `period-value` rule above or does not name a real calendar date, respond `400 Bad Request`."
+      "text": "A server that does not support a parameter ignores it and answers the rest of the request; a static file therefore satisfies every request."
     },
     {
-      "id": "req-d5507448",
+      "id": "req-6c3122f6",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "The tolerance rules above are exhaustive. A defect they do not name leaves the object non-conformant, and a consumer that validates reports it as such rather than disregarding the member."
+      "text": "A server that supports these parameters returns the objects it holds that satisfy every parameter it honors, as a JSON array in ascending order of `period.start`, compared as instants; when none does, the array is empty. An object satisfies `start` and `end` when its period overlaps the range they bound: its `period.start` is before `end` and its `period.end` after `start`, as instants; an absent bound is unbounded."
     },
     {
-      "id": "req-86e23e83",
+      "id": "req-e6268aef",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "A defective value of a mandatory member cannot be disregarded, since that would leave the object without a required member."
+      "text": "It satisfies `target` when its `target` member equals the value, compared as {{mandatory-members}} says, and `granularity` when its period is a whole calendar year, month, or day, for `yearly`, `monthly`, or `daily` respectively ({{mandatory-members}})."
     },
     {
-      "id": "req-61a943cf",
+      "id": "req-233a411a",
       "section": "keyword-less requirement",
       "keywords": [],
-      "text": "figures covering part of the declared subject are not presented as though they covered the whole of it."
+      "text": "Human-readable identification of the publisher in any script, such as a name and a role contact address; a publisher that states its language does so with the `Content-Language` header field ({{RFC9110}}, Section 8.5), which applies to the whole response."
+    },
+    {
+      "id": "req-22b478b8",
+      "section": "keyword-less requirement",
+      "keywords": [],
+      "text": "Where `target-type` is `origin` or the value is otherwise a host name, an internationalized host is written in A-label form ({{RFC5890}}, Section 2.3.2.1), and the host is compared case-insensitively ({{RFC3986}}, Section 3.2.2)."
+    },
+    {
+      "id": "req-7146a36d",
+      "section": "keyword-less requirement",
+      "keywords": [],
+      "text": "An object carries at most one; an index of further attestations is linked from `disclosure-uri`."
+    },
+    {
+      "id": "req-8b68868e",
+      "section": "keyword-less requirement",
+      "keywords": [],
+      "text": "A consumer that wants a total adds `energy-consumption`, `carbon-footprint`, and the scope members, after conversion to one unit, across objects for one `target` whose periods do not overlap and that declare the same `carbon-accounting` value or none; two periods that meet, one's `end` being the next one's `start`, do not overlap."
     }
   ]
 }

@@ -1,6 +1,6 @@
 # Legal notice and terms — Sustainability Data Reference Gateway
 
-Version of 2026-10-03.
+Version of 2026-10-24.
 
 ## 1. Who runs this service, and why
 
@@ -14,7 +14,8 @@ route listed at https://andreibesleaga.com/contact/.
 
 Some documents served here describe real organizations. Each of them is an
 ILLUSTRATIVE MAPPING prepared by the operator from figures the organization has
-itself published. These documents:
+itself published. The figures in them are therefore claims of the operator, who
+made each mapping, and not claims of the organization. These documents:
 
 - are NOT published, reviewed, authorized or endorsed by the organizations they
   describe;
@@ -111,7 +112,7 @@ the published consumer library. A result describes the bytes that origin served
 at that moment and nothing else: it is not an endorsement, says nothing about
 the accuracy of any figure, and creates no listing. Results are kept in memory
 for one hour so that an origin is fetched at most hourly, and are then
-discarded. Only public `https` host names are fetched; addresses on private
+discarded. Only public `https` host names are fetched, on port 443, reading at most 64 KiB; addresses on private
 networks are never contacted. An origin's operator who does not want it
 fetched by this service can say so through any route in section 6; the operator
 of this service then adds the name to its exclusion list at the next deployment,

@@ -1,12 +1,12 @@
 /**
  * HTTP conformance battery. Every assertion here maps to a normative statement
- * in draft-besleaga-sustainability-wellknown-07 (Mandatory Minimum Supported
- * Service, Operational Considerations, Security Considerations), or to the
- * gateway's own route contract, which the comment beside it says.
+ * maps to a sentence of draft -10 or to the gateway's own route contract, which the comment beside it says.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { MEDIA_TYPE } from "sustainability-wellknown-publisher";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { startGateway, type TestServer } from "./helpers";
+import { DATA_DIR, startGateway, type TestServer } from "./helpers";
 
 let srv: TestServer;
 const DOC = "/wikimedia.org/.well-known/sustainability-data";
@@ -25,16 +25,16 @@ describe("GET /{domain}/.well-known/sustainability-data", () => {
   it("returns 200 with the dedicated media type and the full required header set", async () => {
     const r = await fetch(url(DOC));
     expect(r.status).toBe(200);
-    // MUST use the dedicated media type (draft -07 §Mandatory Minimum Supported Service).
+    // The dedicated media type the draft registers (Location and Transport).
     expect(r.headers.get("content-type")).toBe(MEDIA_TYPE);
-    // nosniff is this gateway's contract: -07 withdrew the recommendation, and
-    // the gateway keeps sending it because it costs nothing and does no harm.
+    // nosniff is this gateway's contract: the draft does not mention it, and
+    // the gateway sends it because it costs nothing and does no harm.
     expect(r.headers.get("x-content-type-options")).toBe("nosniff");
-    // SHOULD include appropriate caching directives.
+    // Caching directives: this deployment's default.
     expect(r.headers.get("cache-control")).toBe("public, max-age=86400");
-    // SHOULD include Access-Control-Allow-Origin: * (browser clients).
+    // CORS for browser clients: this deployment's choice.
     expect(r.headers.get("access-control-allow-origin")).toBe("*");
-    // ETag + Last-Modified are RECOMMENDED (Operational Considerations).
+    // ETag + Last-Modified: HTTP practice, this deployment's choice.
     const etag = r.headers.get("etag");
     expect(etag).toBeTruthy();
     expect(etag!.startsWith("W/")).toBe(false); // strong validator
@@ -53,14 +53,14 @@ describe("GET /{domain}/.well-known/sustainability-data", () => {
       "provider",
       "measurement-method",
       "methodology-uri",
-      "reporting-period",
+      "period",
       "target",
     ]) {
       expect(body[m], `missing mandatory member ${m}`).toBeDefined();
     }
     expect(body.capabilities).toBe("basic");
     expect(body.target).toBe("Wikimedia Foundation");
-    expect(body["reporting-period"]).toBe("2024");
+    expect(body.period).toEqual({ start: "2024-01-01T00:00:00Z", end: "2025-01-01T00:00:00Z" });
   });
 
   it("honours If-None-Match with a 304 that carries no body", async () => {
@@ -131,14 +131,42 @@ describe("GET /{domain}/.well-known/sustainability-data", () => {
   });
 });
 
+describe("a registry subject (G34, G15)", () => {
+  it("is the data file, noindex, with the legal notice as its terms, and carries no signature of the gateway", async () => {
+    const r = await fetch(url("/automattic.com/.well-known/sustainability-data"));
+    expect(r.status).toBe(200);
+    expect(r.headers.get("x-robots-tag")).toBe("noindex");
+    expect(r.headers.get("link")).toMatch(/\/legal>; rel="terms-of-service"$/);
+    const body = await r.json();
+    expect(body).toEqual(JSON.parse(readFileSync(resolve(DATA_DIR, "automattic.com.json"), "utf8")));
+    expect(body.signed).toBeUndefined();
+    const again = await fetch(url("/automattic.com/.well-known/sustainability-data"), { headers: { "If-None-Match": r.headers.get("etag")! } });
+    expect(again.status).toBe(304);
+    expect(again.headers.get("x-robots-tag")).toBe("noindex");
+    expect(again.headers.get("link")).toMatch(/rel="terms-of-service"$/);
+  });
+
+  it("answers an unknown domain and each of the seven withheld domains with a 404 that is a JSON error, never a declaration", async () => {
+    for (const d of ["unknown.example", "akamai.com", "cloudflare.com", "fastly.com", "microsoft.com", "ovhcloud.com", "scaleway.com", "torchbox.com"]) {
+      const r = await fetch(url(`/${d}/.well-known/sustainability-data`));
+      expect(r.status, d).toBe(404);
+      expect(r.headers.get("content-type"), d).toBe("application/json");
+      const body = await r.json();
+      expect(body.error, d).toBeTruthy();
+      expect(body.period, d).toBeUndefined();
+    }
+  });
+});
+
 describe("Basic service: query parameters are IGNORED, never an error", () => {
   const cases = [
-    "?period=2023",
-    "?period=not-a-date",
+    "?start=2023-01-01T00:00:00Z",
+    "?start=not-a-date",
     "?granularity=monthly",
+    "?granularity=yearly",
     "?granularity=hourly",
     "?target=/api/v1",
-    "?period=2024&granularity=daily&target=/x",
+    "?start=2024-01-01T00:00:00Z&end=2025-01-01T00:00:00Z&granularity=daily&target=/x",
     "?unknown=1&another=2",
     "?" + "a=1&".repeat(50),
   ];
@@ -157,7 +185,7 @@ describe("Basic service: query parameters are IGNORED, never an error", () => {
   });
 
   it("never returns an array, whatever the granularity asked for", async () => {
-    const r = await fetch(url(DOC + "?period=2024&granularity=monthly"));
+    const r = await fetch(url(DOC + "?start=2024-01-01T00:00:00Z&granularity=monthly"));
     expect(Array.isArray(await r.json())).toBe(false);
   });
 });
@@ -219,12 +247,16 @@ describe("index routes", () => {
     expect(html).toContain("<header class=\"top\">");
     expect(html).toContain("<main id=\"main\">");
     expect(html).toContain('<a class="skip" href="#main">');
+    expect(html).toContain('<link rel="icon" href="data:,">'); // no /favicon.ico request
     const tables = html.match(/<table>/g) ?? [];
     expect(html.match(/<caption class="visually-hidden">/g) ?? []).toHaveLength(tables.length);
-    expect(html.match(/role="region" tabindex="0" aria-label="[^"]+, scrollable"/g) ?? []).toHaveLength(tables.length);
+    const scrollers = (html.match(/<table>/g) ?? []).length + (html.match(/<pre class="cmd"/g) ?? []).length;
+    expect(html.match(/role="region" tabindex="0" aria-label="[^"]+, scrollable"/g) ?? []).toHaveLength(scrollers);
+    expect(html).toContain('<pre id="check-out" class="cmd" tabindex="0"');
+    expect(html).toContain("p code { overflow-wrap:anywhere; }"); // inline code wraps at 320 px
     expect(html).not.toMatch(/<th>(?!<)/); // every header cell carries scope="col"
     expect(html).toContain(`Adapter demonstrations (${srv.gw.live.managed.size})`);
-    expect(html).toContain("Wire-format examples (22)");
+    expect(html).toContain("Wire-format examples (42)");
     expect(html).toContain("Consumer cross-validation");
   });
 
@@ -257,8 +289,10 @@ describe("index routes", () => {
     expect(idx["consumer-cross-validation"].validator).toMatch(
       /^sustainability-wellknown-consumer@\d/,
     );
+    const extendedArrays = [...srv.gw.examples.values()].filter((x) => x.extended && x.range).length;
     expect(idx["consumer-cross-validation"]["documents-validated"]).toBe(
-      srv.gw.subjects.size + 1 + 3, // every subject + self + the three Extended arrays
+      // every subject, the self report, each wire example as served without parameters, and each Extended array as a range selects it
+      srv.gw.subjects.size + 1 + srv.gw.examples.size + extendedArrays,
     );
     // Every demonstration runs from its fixture in tests (fetchImpl: null).
     for (const e of idx["adapter-demonstrations"].entries) {
@@ -374,6 +408,82 @@ describe("If-Modified-Since (RFC 9110 §13.1.3)", () => {
   });
 });
 
+describe("a query route (an Extended subject with a range)", () => {
+  const YEARLY = "/yearly.example/.well-known/sustainability-data";
+  const RANGE = "?start=2025-01-01T00:00:00Z&end=2026-01-01T00:00:00Z&granularity=monthly";
+
+  it("answers an array, and HEAD with the headers of GET and no body", async () => {
+    const get = await fetch(url(YEARLY + RANGE));
+    expect(get.status).toBe(200);
+    expect(get.headers.get("content-type")).toBe(MEDIA_TYPE);
+    expect(get.headers.get("last-modified")).toBeTruthy();
+    const body = await get.json();
+    expect(body).toHaveLength(12);
+    const head = await fetch(url(YEARLY + RANGE), { method: "HEAD" });
+    expect(head.status).toBe(200);
+    for (const h of ["content-type", "cache-control", "etag", "last-modified", "content-length"]) {
+      expect(head.headers.get(h), h).toBe(get.headers.get(h));
+    }
+    expect(await head.text()).toBe("");
+  });
+
+  it("answers 304 to the current ETag, for the Z and the .000Z spelling alike, with the same validators", async () => {
+    const first = await fetch(url(YEARLY + RANGE));
+    const etag = first.headers.get("etag")!;
+    await first.text();
+    const twin = RANGE.replace("T00:00:00Z", "T00:00:00.000Z");
+    for (const q of [RANGE, twin]) {
+      const r = await fetch(url(YEARLY + q), { headers: { "If-None-Match": etag } });
+      expect(r.status, q).toBe(304);
+      expect(r.headers.get("etag"), q).toBe(etag);
+      expect(r.headers.get("cache-control"), q).toBe(first.headers.get("cache-control"));
+      expect(r.headers.get("last-modified"), q).toBe(first.headers.get("last-modified"));
+      expect(await r.text()).toBe("");
+    }
+  });
+
+  it("keeps one cache entry for equal values, however they are spelled", async () => {
+    const subject = srv.gw.subjects.get("yearly.example")!;
+    const before = subject.publisher.cacheSize;
+    const spellings = [
+      "?start=2025-03-01T00:00:00Z&end=2025-04-01T00:00:00Z",
+      "?start=2025-03-01T00:00:00.000Z&end=2025-04-01T00:00:00.000Z",
+      "?start=2025-03-01T00%3A00%3A00Z&end=2025-04-01T00%3a00%3a00Z",
+      "?end=2025-04-01T00:00:00Z&start=2025-03-01T00:00:00Z",
+    ];
+    const etags = new Set<string>();
+    for (const q of spellings) {
+      const r = await fetch(url(YEARLY + q));
+      expect(r.status, q).toBe(200);
+      etags.add(r.headers.get("etag")!);
+      await r.text();
+    }
+    expect(etags.size).toBe(1);
+    expect(subject.publisher.cacheSize).toBeLessThanOrEqual(before + 1);
+  });
+
+  it("answers 405 with Allow: GET, HEAD to any other method", async () => {
+    for (const method of ["POST", "PUT", "DELETE"]) {
+      const r = await fetch(url(YEARLY + RANGE), { method });
+      expect(r.status, method).toBe(405);
+      expect(r.headers.get("allow"), method).toBe("GET, HEAD");
+      await r.text();
+    }
+  });
+
+  it("answers 200 and [] when nothing is selected, and ignores a value that does not match instead of answering 400", async () => {
+    const none = await fetch(url(YEARLY + "?start=2030-01-01T00:00:00Z"));
+    expect(none.status).toBe(200);
+    expect(await none.json()).toEqual([]);
+    const bare = await (await fetch(url(YEARLY))).text();
+    for (const q of ["?start=2025-03-01", "?granularity=Monthly", "?start=x&start=y", "?end=2025-04-01T00:00:00Zx"]) {
+      const r = await fetch(url(YEARLY + q));
+      expect(r.status, q).toBe(200);
+      expect(await r.text(), q).toBe(bare);
+    }
+  });
+});
+
 describe("self-report month rollover (this deployment: most recently completed month)", () => {
   it("regenerates the unpinned self report when the month rolls over", async () => {
     const { loadConfig } = await import("../src/config");
@@ -384,15 +494,19 @@ describe("self-report month rollover (this deployment: most recently completed m
     const config = loadConfig({ port: 0, host: "127.0.0.1", dataDir: DATA_DIR, maxAge: 86_400 });
     config.self.liveSince = "2026-01-01T00:00:00Z";
     // NOT pinning config.self.period: this test is about the default path.
+    config.self.measured = false;
     const gw = await createGateway({
       config,
       log: () => undefined,
       now: new Date(nowMs),
       clock: () => new Date(nowMs),
+      fetchImpl: null,
+      env: {},
+      validator: null,
     });
 
     const r1 = await route(gw, "GET", "/.well-known/sustainability-data");
-    expect(JSON.parse(r1.body)["reporting-period"]).toBe("2026-05");
+    expect(JSON.parse(r1.body).period).toEqual({ start: "2026-05-01T00:00:00Z", end: "2026-06-01T00:00:00Z" });
 
     // Same month: byte-stable (same ETag), no regeneration.
     nowMs = Date.parse("2026-06-28T09:00:00Z");
@@ -402,7 +516,7 @@ describe("self-report month rollover (this deployment: most recently completed m
     // Month rolls over: the served period advances to the newly completed month.
     nowMs = Date.parse("2026-08-02T00:30:00Z");
     const r3 = await route(gw, "GET", "/.well-known/sustainability-data");
-    expect(JSON.parse(r3.body)["reporting-period"]).toBe("2026-07");
+    expect(JSON.parse(r3.body).period).toEqual({ start: "2026-07-01T00:00:00Z", end: "2026-08-01T00:00:00Z" });
     expect(r3.headers.ETag ?? r3.headers.etag).not.toBe(r1.headers.ETag ?? r1.headers.etag);
 
     gw.server.close();

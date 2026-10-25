@@ -28,7 +28,7 @@
 # Not run here: the nginx and Apache configuration checks. They need both web servers
 # installed system-wide and run in CI (full-verify.yml, example-scripts.yml).
 #
-# Needs: Node.js 22.12 or newer with npm, Python 3 with the `jtd` package, Ruby with the
+# Needs: Node.js 22.13 or newer with npm, Python 3 with the `jtd` package, Ruby with the
 # `cddl` gem, PHP 8 (CLI), network access to the npm registry; for step 7 also
 # kramdown-rfc and xml2rfc. See CONTRIBUTING.md "Requirements". The Python packages and
 # the gem can be installed with:  python3 schemas-validators/install.py
@@ -63,11 +63,11 @@ fi
 # ---- prerequisites -------------------------------------------------------------
 missing=()
 if command -v node >/dev/null 2>&1; then
-  if ! node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=12)?0:1)'; then
-    missing+=("Node.js 22.12 or newer (found $(node -v))")
+  if ! node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=13)?0:1)'; then
+    missing+=("Node.js 22.13 or newer (found $(node -v))")
   fi
 else
-  missing+=("Node.js 22.12 or newer")
+  missing+=("Node.js 22.13 or newer")
 fi
 command -v npm     >/dev/null 2>&1 || missing+=("npm")
 command -v python3 >/dev/null 2>&1 || missing+=("python3")

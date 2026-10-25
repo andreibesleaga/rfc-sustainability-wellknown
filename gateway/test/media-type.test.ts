@@ -91,8 +91,6 @@ describe("service-wide legacy default actually served", () => {
       maxAge: 86_400,
       mediaType: "json",
     });
-    config.self.period = "2025";
-    config.self.liveSince = "2025-01-01T00:00:00Z";
     legacyGw = await createGateway({
       config,
       log: () => undefined,
@@ -168,8 +166,6 @@ describe("per-subject override served end to end", () => {
     writeFileSync(join(dir, "_media-type.json"), JSON.stringify({ "wikimedia.org": "json" }));
 
     const config = loadConfig({ port: 0, host: "127.0.0.1", dataDir: dir, maxAge: 86_400 });
-    config.self.period = "2025";
-    config.self.liveSince = "2025-01-01T00:00:00Z";
     overrideGw = await createGateway({
       config,
       log: () => undefined,
@@ -202,8 +198,6 @@ describe("a _media-type.json entry for a domain that is not a served subject", (
     writeFileSync(join(dir, "_media-type.json"), JSON.stringify({ "nobody-serves-this.example": "json" }));
 
     const config = loadConfig({ port: 0, host: "127.0.0.1", dataDir: dir, maxAge: 86_400 });
-    config.self.period = "2025";
-    config.self.liveSince = "2025-01-01T00:00:00Z";
     await expect(
       createGateway({ config, log: () => undefined, now: FIXED_NOW, fetchImpl: null, env: {} }),
     ).rejects.toThrow(/nobody-serves-this\.example.*not a served subject/);

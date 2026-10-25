@@ -1,0 +1,36 @@
+[
+  {
+    "updated": "2026-04-02T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Americas Hosting Inc (sustainability@mixed.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://mixed.example/sustainability/methodology",
+    "period": {
+      "start": "2026-03-01T00:00:00-05:00",
+      "end": "2026-04-01T00:00:00-05:00"
+    },
+    "target": "/americas",
+    "target-type": "path",
+    "energy-unit": "kWh",
+    "carbon-unit": "kgCO2e",
+    "energy-consumption": 310,
+    "carbon-footprint": 98
+  },
+  {
+    "updated": "2026-04-02T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Americas Hosting Inc (sustainability@mixed.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://mixed.example/sustainability/methodology",
+    "period": {
+      "start": "2026-03-01T00:00:00Z",
+      "end": "2026-04-01T00:00:00Z"
+    },
+    "target": "mixed.example",
+    "target-type": "origin",
+    "energy-unit": "kWh",
+    "carbon-unit": "kgCO2e",
+    "energy-consumption": 900,
+    "carbon-footprint": 300
+  }
+]

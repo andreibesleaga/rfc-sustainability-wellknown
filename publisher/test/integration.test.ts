@@ -1,6 +1,8 @@
 import { createServer as httpCreateServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { resolve } from "node:path";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import express from "express";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decodeProtectedHeader } from "jose";
@@ -23,12 +25,12 @@ function demoPublisher() {
     computedAdapter({
       provider: "Example Corp",
       methodologyUri: "https://example.com/m",
-      reportingPeriod: "2026-02",
+      period: "2026-02",
       energy: { value: 1250, unit: "kWh" },
       gridIntensity: 276,
       capabilities: "extended",
     }),
-    { cacheTtlMs: 60_000, normalize: { target: "example.com" } },
+    { cacheTtlMs: 60_000, representation: "single", normalize: { target: "example.com" } },
   );
 }
 
@@ -137,21 +139,24 @@ describe("Express middleware", () => {
     }
   });
 
-  // Draft §Extended Query Parameters, step 1: a repeated parameter name is a
-  // 400 at every entry point, not only on the standalone server.
-  it("400 Bad Request on a repeated query parameter and on a malformed period", async () => {
+  // A repeated or malformed parameter is ignored at every entry point, not only on
+  // the standalone server: the response is the one to the bare request.
+  it("ignores a repeated query parameter and a malformed bound: 200 with the bare request's ETag", async () => {
     const app = express();
     app.use(expressSustainability(demoPublisher()));
     const server = httpCreateServer(app);
     const { base, close } = await listen(server);
     try {
-      const dup = await fetch(`${base}/.well-known/sustainability-data?period=2026&period=2025`);
-      expect(dup.status).toBe(400);
-      expect((await dup.json()).error).toMatch(/more than once/);
-      const bad = await fetch(`${base}/.well-known/sustainability-data?period=2026-02-30`);
-      expect(bad.status).toBe(400);
-      expect(bad.headers.get("cache-control")).toBe("no-store");
-      expect(bad.headers.get("access-control-allow-origin")).toBe("*");
+      const url = `${base}/.well-known/sustainability-data`;
+      const bare = await fetch(url);
+      for (const q of ["?granularity=monthly&granularity=daily", "?start=2026-02-30T00:00:00Z", "?end=2026-02-01"]) {
+        const r = await fetch(`${url}${q}`);
+        expect(r.status, q).toBe(200);
+        expect(r.headers.get("etag"), q).toBe(bare.headers.get("etag"));
+        expect(r.headers.get("cache-control"), q).toBe("public, max-age=86400");
+        await r.text();
+      }
+      await bare.text();
     } finally {
       await close();
     }
@@ -226,7 +231,7 @@ describe("Fastify plugin (mock runtime)", () => {
     expect(parseCarbonTxt(cReply.sentBody).org.disclosures).toHaveLength(1);
   });
 
-  it("answers 400 on a repeated parameter (route seam)", async () => {
+  it("ignores a repeated parameter (route seam)", async () => {
     const routes = new Map<string, (req: any, reply: any) => Promise<unknown>>();
     await fastifySustainability(
       {
@@ -255,8 +260,8 @@ describe("Fastify plugin (mock runtime)", () => {
       { method: "GET", headers: {}, query: { granularity: ["monthly", "daily"] } },
       reply,
     );
-    expect(reply.statusCode).toBe(400);
-    expect(JSON.parse(reply.sentBody).error).toMatch(/more than once/);
+    expect(reply.statusCode).toBe(200);
+    expect(JSON.parse(reply.sentBody)["carbon-footprint"]).toBe(345000);
   });
 
   // Fix 4 (MAJOR): a real Fastify instance exposes `route`, so the plugin
@@ -330,7 +335,7 @@ describe("CLI / config loader", () => {
     const config = readJson<PublisherConfig>(EX("config.computed.json"));
     const doc = (await buildPublisher(config, key).getDocument()) as any;
     const header = decodeProtectedHeader(doc.signed);
-    expect(header).toMatchObject({ alg: "EdDSA", cty: "sustainability-data+json" });
+    expect(header).toMatchObject({ alg: "Ed25519", cty: "sustainability-data+json" });
     expect(validateDocument(doc).valid).toBe(true);
 
     const withKid = await buildPublisher({ ...config, signing: { keyId: "https://example.com/k#1" } }, key)
@@ -338,6 +343,26 @@ describe("CLI / config loader", () => {
     expect(decodeProtectedHeader((withKid as any).signed).kid).toBe("https://example.com/k#1");
     // Without a key, no signature.
     expect(await buildPublisher(config).getDocument()).not.toHaveProperty("signed");
+  });
+
+  it("applies noise only with the operator's confirmation, from the config or --noise-disclosed", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "sust-noise-"));
+    try {
+      const config = readJson<PublisherConfig>(EX("config.computed.json"));
+      const file = join(dir, "config.json");
+      writeFileSync(file, JSON.stringify({ ...config, publisher: { ...config.publisher, security: { applyNoise: true } } }));
+      const written: string[] = [];
+      vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+        written.push(String(chunk));
+        return true;
+      });
+      await expect(runCli(["--config", file, "--once"])).rejects.toThrow(/noiseDisclosed/);
+      expect(written).toEqual([]);
+      await runCli(["--config", file, "--once", "--noise-disclosed"]);
+      expect(JSON.parse(written.join(""))["energy-consumption"]).not.toBe(1250);
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
   });
 
   it("rejects an unknown adapter type", () => {
@@ -378,7 +403,7 @@ describe("Publisher caching", () => {
           provider: "p",
           measurementMethod: "cloud-billing",
           methodologyUri: "https://x/y",
-          reportingPeriod: "2026-01",
+          period: "2026-01",
           target: "example.com",
           energy: { value: 10, unit: "kWh" },
           carbon: { value: 2, unit: "kgCO2e" },
@@ -402,7 +427,7 @@ describe("co2js adapter end-to-end through a server", () => {
       co2jsAdapter({
         provider: "Edge Co",
         methodologyUri: "https://edge.example/methods",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         bytes: 10_000_000_000,
         green: true,
         gridZone: "GBR",

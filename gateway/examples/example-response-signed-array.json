@@ -1,0 +1,56 @@
+[
+  {
+    "updated": "2026-04-02T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Signed Array Ltd (sustainability@signed-array.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://signed-array.example/sustainability/methodology",
+    "period": {
+      "start": "2026-01-01T00:00:00Z",
+      "end": "2026-02-01T00:00:00Z"
+    },
+    "target": "signed.example",
+    "target-type": "origin",
+    "energy-consumption": 410,
+    "energy-unit": "kWh",
+    "carbon-footprint": 120,
+    "carbon-unit": "kgCO2e",
+    "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIiwiandrIjp7Imt0eSI6Ik9LUCIsImNydiI6IkVkMjU1MTkiLCJ4IjoiMTFxWUFZS3hDcmZWU183VHlXUUhPZzdoY3ZQYXBpTWxyd0lhYVBjSFVSbyJ9fQ.eyJ1cGRhdGVkIjoiMjAyNi0wNC0wMlQwOTowMDowMFoiLCJjYXBhYmlsaXRpZXMiOiJleHRlbmRlZCIsInByb3ZpZGVyIjoiU2lnbmVkIEFycmF5IEx0ZCAoc3VzdGFpbmFiaWxpdHlAc2lnbmVkLWFycmF5LmV4YW1wbGUpIiwibWVhc3VyZW1lbnQtbWV0aG9kIjoiY2xvdWQtYmlsbGluZyIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vc2lnbmVkLWFycmF5LmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvbWV0aG9kb2xvZ3kiLCJwZXJpb2QiOnsic3RhcnQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsImVuZCI6IjIwMjYtMDItMDFUMDA6MDA6MDBaIn0sInRhcmdldCI6InNpZ25lZC5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJvcmlnaW4iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjQxMCwiZW5lcmd5LXVuaXQiOiJrV2giLCJjYXJib24tZm9vdHByaW50IjoxMjAsImNhcmJvbi11bml0Ijoia2dDTzJlIn0.X7cbG7k6jIfcOy2xyXQtNTMrwKdSYbbAugUB9_Ov_jUaXy9joqILY-x8Cl9sVhX3TVd7KdpzsOM7R_HlwtI-Dw"
+  },
+  {
+    "updated": "2026-04-02T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Signed Array Ltd (sustainability@signed-array.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://signed-array.example/sustainability/methodology",
+    "period": {
+      "start": "2026-02-01T00:00:00Z",
+      "end": "2026-03-01T00:00:00Z"
+    },
+    "target": "signed.example",
+    "target-type": "origin",
+    "energy-consumption": 380,
+    "energy-unit": "kWh",
+    "carbon-footprint": 110,
+    "carbon-unit": "kgCO2e",
+    "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIiwiandrIjp7Imt0eSI6Ik9LUCIsImNydiI6IkVkMjU1MTkiLCJ4IjoiMTFxWUFZS3hDcmZWU183VHlXUUhPZzdoY3ZQYXBpTWxyd0lhYVBjSFVSbyJ9fQ.eyJ1cGRhdGVkIjoiMjAyNi0wNC0wMlQwOTowMDowMFoiLCJjYXBhYmlsaXRpZXMiOiJleHRlbmRlZCIsInByb3ZpZGVyIjoiU2lnbmVkIEFycmF5IEx0ZCAoc3VzdGFpbmFiaWxpdHlAc2lnbmVkLWFycmF5LmV4YW1wbGUpIiwibWVhc3VyZW1lbnQtbWV0aG9kIjoiY2xvdWQtYmlsbGluZyIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vc2lnbmVkLWFycmF5LmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvbWV0aG9kb2xvZ3kiLCJwZXJpb2QiOnsic3RhcnQiOiIyMDI2LTAyLTAxVDAwOjAwOjAwWiIsImVuZCI6IjIwMjYtMDMtMDFUMDA6MDA6MDBaIn0sInRhcmdldCI6InNpZ25lZC5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJvcmlnaW4iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjM4MCwiZW5lcmd5LXVuaXQiOiJrV2giLCJjYXJib24tZm9vdHByaW50IjoxMTAsImNhcmJvbi11bml0Ijoia2dDTzJlIn0.GbVDiFbFQeYGIsdHA1Fi83tIz50FYJGpbIPD24aOxwlfKaFK261E2K5G6Y3VmZR9kOSPfOAHmrMS-DvxyP-4DQ"
+  },
+  {
+    "updated": "2026-04-02T09:00:00Z",
+    "capabilities": "extended",
+    "provider": "Signed Array Ltd (sustainability@signed-array.example)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://signed-array.example/sustainability/methodology",
+    "period": {
+      "start": "2026-03-01T00:00:00Z",
+      "end": "2026-04-01T00:00:00Z"
+    },
+    "target": "signed.example",
+    "target-type": "origin",
+    "energy-consumption": 430,
+    "energy-unit": "kWh",
+    "carbon-footprint": 125,
+    "carbon-unit": "kgCO2e",
+    "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIiwiandrIjp7Imt0eSI6Ik9LUCIsImNydiI6IkVkMjU1MTkiLCJ4IjoiMTFxWUFZS3hDcmZWU183VHlXUUhPZzdoY3ZQYXBpTWxyd0lhYVBjSFVSbyJ9fQ.eyJ1cGRhdGVkIjoiMjAyNi0wNC0wMlQwOTowMDowMFoiLCJjYXBhYmlsaXRpZXMiOiJleHRlbmRlZCIsInByb3ZpZGVyIjoiU2lnbmVkIEFycmF5IEx0ZCAoc3VzdGFpbmFiaWxpdHlAc2lnbmVkLWFycmF5LmV4YW1wbGUpIiwibWVhc3VyZW1lbnQtbWV0aG9kIjoiY2xvdWQtYmlsbGluZyIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vc2lnbmVkLWFycmF5LmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvbWV0aG9kb2xvZ3kiLCJwZXJpb2QiOnsic3RhcnQiOiIyMDI2LTAzLTAxVDAwOjAwOjAwWiIsImVuZCI6IjIwMjYtMDQtMDFUMDA6MDA6MDBaIn0sInRhcmdldCI6InNpZ25lZC5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJvcmlnaW4iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjQzMCwiZW5lcmd5LXVuaXQiOiJrV2giLCJjYXJib24tZm9vdHByaW50IjoxMjUsImNhcmJvbi11bml0Ijoia2dDTzJlIn0.yW1Ue6n9Gaq4FIkkgjR4NF7IxeyIILg2RhcJKemXK-bSuxOp9f3pX5wDwZL4hBdUJQ_vZW2-h13bgVlQmqxJDg"
+  }
+]

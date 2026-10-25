@@ -5,9 +5,9 @@
  * 2.0) secured with JOSE as `vc+jwt` (VC-JOSE-COSE: the credential JSON is
  * the payload of a compact JWS, `typ: "vc+jwt"`, `cty: "vc"`).
  *
- * Explicit, caller-invoked only — never automatic. Draft -07 §Optional Members:
- * clients MUST NOT automatically dereference a URI member, and the presence of
- * the member is not verification of anything (§Optional Members).
+ * Explicit, caller-invoked only — never automatic: the presence of the member
+ * is not verification of anything, and a consumer follows a link only on
+ * request (draft -10, Section 5.1).
  * No JSON-LD processing is performed: the enveloping proof secures the
  * credential's bytes, and the checks below are on the decoded JSON.
  *
@@ -21,15 +21,17 @@
 import { AddressLookup, BodyTooLargeError, discardBody, isAbortOrTimeout, readBodyCapped, secureGet } from "./transport";
 import { PublicJwk, SigningAlg, VC_JWT_MEDIA_TYPE, verifyJws, VerifyPolicy } from "./jws";
 import { deepEqual, differingMembers, withoutSigned } from "./compare";
+import { compareDateTimes, dateTimeError } from "./period";
 import { RESPONSE_JTD_SCHEMA } from "./schema";
+import { targetsEqual } from "./target";
 
 export const VC_V2_CONTEXT = "https://www.w3.org/ns/credentials/v2";
 
 /**
- * How the credential binds to the declaration (draft -07, Appendix A step 5:
- * the issuer "issues a verifiable credential whose subject contains a copy of
- * the declaration object (without `signed`)", and the consumer "compares the
- * credential's copy with the verified payload").
+ * How the credential binds to the declaration (draft -10, Appendix A step 5:
+ * the credential's `credentialSubject` carries the derivation model, its
+ * constants and formulas, and the entered months). Carrying a copy of the
+ * declaration object is this package's binding profile, not the draft's.
  *
  *  - `match` — the copy is structurally identical to the declaration the
  *    caller supplied. The issuer signed THAT object, not merely its URL.
@@ -44,6 +46,49 @@ export type AttestationBinding =
   | { status: "mismatch"; differences: string[] }
   | { status: "no-copy" }
   | { status: "not-checked" };
+
+/**
+ * Whether the credential covers the object's target and period (draft -10,
+ * Section 5.5): the target equal as a string, the attested period including the
+ * object's period as instants.
+ *
+ *  - `covers` — both are stated by the credential and the object lies within them;
+ *  - `does-not-cover` — a stated target or period differs; `detail` says which;
+ *  - `not-stated` — the credential names no target or no period, so it covers nothing in particular;
+ *  - `not-checked` — the caller supplied no declaration to compare with.
+ */
+export type AttestationCoverage =
+  | { status: "covers" }
+  | { status: "does-not-cover"; detail: string }
+  | { status: "not-stated" }
+  | { status: "not-checked" };
+
+/** The target and period a credential states, from its declaration copy or else from its subject directly. */
+function statedSubject(credential: unknown): { target?: unknown; period?: unknown } {
+  const copy = declarationCopyOf(credential);
+  if (copy !== undefined) return { target: copy.target, period: copy.period };
+  const subject = isObject(credential) ? credential.credentialSubject : undefined;
+  return isObject(subject) ? { target: subject.target, period: subject.period } : {};
+}
+
+/** Does the credential cover the target and period of `declaration`? */
+export function checkCoverage(credential: unknown, declaration?: unknown): AttestationCoverage {
+  if (!isObject(declaration)) return { status: "not-checked" };
+  const stated = statedSubject(credential);
+  const period = stated.period;
+  if (typeof stated.target !== "string" || !isObject(period) || dateTimeError(period.start) || dateTimeError(period.end)) {
+    return { status: "not-stated" };
+  }
+  if (!targetsEqual(stated.target, declaration.target, declaration["target-type"])) {
+    return { status: "does-not-cover", detail: `the credential is about "${stated.target}", not "${String(declaration.target)}"` };
+  }
+  const own = declaration.period;
+  if (!isObject(own) || dateTimeError(own.start) || dateTimeError(own.end)) return { status: "not-checked" };
+  if (compareDateTimes(period.start as string, own.start as string) > 0 || compareDateTimes(period.end as string, own.end as string) < 0) {
+    return { status: "does-not-cover", detail: `the attested period ${period.start}/${period.end} does not include ${own.start}/${own.end}` };
+  }
+  return { status: "covers" };
+}
 
 const MANDATORY_MEMBERS = Object.keys(RESPONSE_JTD_SCHEMA.properties);
 
@@ -78,6 +123,12 @@ export function checkBinding(credential: unknown, declaration?: unknown): Attest
 }
 
 export interface AttestationOptions {
+  /**
+   * The retrieval URI of the declaration that names the credential, which a
+   * relative `verifiable-attestation-uri` is resolved against (RFC 3986,
+   * Section 5.1.3). Without it the value must be absolute.
+   */
+  base?: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   /** Byte cap for the credential (default 65536). */
@@ -91,8 +142,8 @@ export interface AttestationOptions {
   allowInsecure?: boolean;
   /**
    * Opt out of refusing a credential URI that resolves to a loopback, private,
-   * link-local, unique-local or unspecified address (default: the value of
-   * `allowInsecure`). A `verifiable-attestation-uri` is written by the origin
+   * link-local, unique-local or unspecified address (default false;
+   * `allowInsecure` lifts the check for loopback only). A `verifiable-attestation-uri` is written by the origin
    * being checked, so the address check applies to it like any other.
    */
   allowPrivateAddresses?: boolean;
@@ -125,6 +176,15 @@ export type AttestationResult =
       typOk: boolean;
       /** How the credential binds to the declaration (see {@link AttestationBinding}). */
       binding: AttestationBinding;
+      /** Whether the credential covers the object's target and period. */
+      coverage: AttestationCoverage;
+      /**
+       * True only when all three conditions of draft -10, Section 5.5 hold: the
+       * credential was retrieved, its signature verified under an issuer key
+       * the caller trusts (`assurance: "issuer-key-pinned"`), and it covers the
+       * object's target and period. Anything less is not "attested".
+       */
+      attested: boolean;
       url: string;
     }
   | { valid: false; reason: string; detail?: string; mediaType?: string | null; credential?: unknown };
@@ -166,20 +226,23 @@ export function checkCredentialShape(
   } catch {
     return { ok: false, reason: "issuer", detail: `issuer "${issuer}" is not a URL` };
   }
+  // validFrom and validUntil are compared as instants, whatever offset they are written in.
+  const at = now.toISOString();
   const validFrom = credential.validFrom;
-  if (typeof validFrom !== "string" || Number.isNaN(Date.parse(validFrom))) {
+  const fromError = dateTimeError(validFrom);
+  if (typeof validFrom !== "string" || fromError !== undefined) {
     return { ok: false, reason: "validFrom", detail: "validFrom is missing or not an RFC 3339 date-time" };
   }
-  if (Date.parse(validFrom) > now.getTime()) {
-    return { ok: false, reason: "not-yet-valid", detail: `validFrom ${validFrom} is after ${now.toISOString()}` };
+  if (compareDateTimes(validFrom, at) > 0) {
+    return { ok: false, reason: "not-yet-valid", detail: `validFrom ${validFrom} is after ${at}` };
   }
   const validUntil = credential.validUntil;
   if (validUntil !== undefined) {
-    if (typeof validUntil !== "string" || Number.isNaN(Date.parse(validUntil))) {
+    if (typeof validUntil !== "string" || dateTimeError(validUntil) !== undefined) {
       return { ok: false, reason: "validUntil", detail: "validUntil is not an RFC 3339 date-time" };
     }
-    if (Date.parse(validUntil) <= now.getTime()) {
-      return { ok: false, reason: "expired", detail: `validUntil ${validUntil} is not after ${now.toISOString()}` };
+    if (compareDateTimes(validUntil, at) <= 0) {
+      return { ok: false, reason: "expired", detail: `validUntil ${validUntil} is not after ${at}` };
     }
   }
   return { ok: true, issuer, validFrom, ...(typeof validUntil === "string" ? { validUntil } : {}) };
@@ -200,6 +263,7 @@ export async function verifyCredentialJwt(
   if (!v.valid) return { valid: false, reason: v.reason ?? "invalid-signature" };
   const shape = checkCredentialShape(v.payload, options.now);
   if (!shape.ok) return { valid: false, reason: shape.reason, detail: shape.detail, credential: v.payload };
+  const coverage = checkCoverage(v.payload, options.declaration);
   return {
     valid: true,
     credential: v.payload as Record<string, unknown>,
@@ -208,29 +272,38 @@ export async function verifyCredentialJwt(
     ...(shape.validUntil ? { validUntil: shape.validUntil } : {}),
     alg: v.alg!,
     kid: v.kid,
-    keySource: v.keySource!,
-    assurance: v.keySource === "trusted" ? "issuer-key-pinned" : "self-asserted-key",
+    keySource: v.keyTrust === "declaration-only" ? "header" : "trusted",
+    assurance: v.keyTrust !== "declaration-only" ? "issuer-key-pinned" : "self-asserted-key",
     typOk: v.header?.typ === "vc+jwt",
     binding: checkBinding(v.payload, options.declaration),
+    coverage,
+    attested: v.keyTrust !== "declaration-only" && coverage.status === "covers",
   };
 }
 
 /**
- * Fetch and verify the credential at `uri`. HTTPS only (the draft restricts
- * the URI members to the https scheme); the final URL after any redirect must
- * be HTTPS too. Any media type is accepted but recorded (`application/vc+jwt`
+ * Fetch and verify the credential at `uri`, a URI reference resolved against
+ * `options.base`. HTTPS only; the final URL after any redirect must be HTTPS
+ * too. Any media type is accepted but recorded (`application/vc+jwt`
  * expected). Never throws for a bad credential; only a missing fetch
  * implementation throws.
  */
 export async function verifyAttestation(uri: string, options: AttestationOptions = {}): Promise<AttestationResult> {
   let url: URL;
   try {
-    url = new URL(uri);
+    url = new URL(uri, options.base);
   } catch {
-    return { valid: false, reason: "not-absolute-uri", detail: `"${uri}" is not an absolute URI` };
+    return {
+      valid: false,
+      reason: "not-absolute-uri",
+      detail:
+        options.base === undefined
+          ? `"${uri}" is not a URI reference that resolves without a retrieval URI`
+          : `"${uri}" is not a URI reference that resolves against ${options.base}`,
+    };
   }
   if (!options.allowInsecure && url.protocol !== "https:") {
-    return { valid: false, reason: "not-https-uri", detail: `refusing to dereference "${uri}": scheme is not https` };
+    return { valid: false, reason: "not-https-uri", detail: `refusing to dereference "${url}": this consumer dereferences only https URIs` };
   }
 
   // Same transport rules as the document: HTTPS on every hop, checked before

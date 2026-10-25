@@ -2,7 +2,7 @@
 "use strict";
 // Offline signing tool for static hosts: signs a declaration file in place of
 // a served publisher (draft, Appendix A, step 7).
-//   sustainability-sign <in.json> <out.json> --key <private.jwk> [--kid <id>]
+//   sustainability-sign <in.json> <out.json> --key <private.jwk> [--kid <id>] [--x5c <chain.pem>]
 const { runSign } = require("../dist/cli");
 
 runSign(process.argv.slice(2)).catch((err) => {

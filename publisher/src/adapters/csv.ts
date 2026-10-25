@@ -8,11 +8,13 @@
  * case-insensitively, spaces and underscores ignored; unknown columns are
  * ignored; a missing optional column is "not reported"):
  *
- *   period            YYYY | YYYY-MM | YYYY-MM-DD        (required)
+ *   period            YYYY | YYYY-MM | YYYY-MM-DD        (the whole calendar unit, in UTC)
+ *   period_start, period_end   RFC 3339 date-times       (instead of period; start before end,
+ *                                                        any offset, kept as written)
  *   energy            number                             (optional)
  *   energy_unit       Wh | kWh | MWh | GWh               (default kWh)
  *   carbon            number                             (optional)
- *   carbon_unit       gCO2e | kgCO2e | mtCO2e            (default kgCO2e)
+ *   carbon_unit       gCO2e | kgCO2e | tCO2e             (default kgCO2e)
  *   scope_1 scope_2 scope_3   numbers in carbon_unit     (optional)
  *   carbon_accounting location-based | market-based      (optional)
  *   renewable_percent 0..100                             (optional)
@@ -23,19 +25,35 @@
  * Nothing is converted, estimated or apportioned: a cell is the figure. Each row is
  * checked before it is used, and a row that fails a check is skipped and reported
  * through `onSkip` with the column and the value, never published and never allowed
- * to take the whole endpoint down: a period that is not YYYY / YYYY-MM / YYYY-MM-DD;
+ * to take the whole endpoint down: a period that is neither YYYY / YYYY-MM / YYYY-MM-DD nor a
+ * period_start / period_end pair of date-times with the start before the end;
  * a numeric cell that is not a number in the export's locale (`decimalComma`); a
  * negative energy or carbon total (scopes may be negative, for removals); a
  * renewable share outside 0..100; a unit, accounting basis or target type the draft
- * does not define; a methodology or disclosure link that is not https; an `updated`
+ * does not define; a methodology or disclosure link that is not a URI reference; an `updated`
  * that is not an RFC 3339 date-time; no measurement method (it is a claim, never
  * defaulted); and neither a figure nor a disclosure link.
  */
 import { readFileSync } from "node:fs";
-import { CarbonAccounting, CarbonUnit, EnergyUnit, RawMetrics, ServiceQuery, SourceAdapter, TARGET_TYPES, TargetType } from "../types";
-import { UPDATED_RE } from "../validate";
-import { PERIOD_RE } from "../normalize";
-import { NotFoundError } from "../publisher";
+import { comparePeriodStart, isDateTime, Period, periodFromReportingPeriod, toPeriod } from "../period";
+import {
+  CARBON_UNITS,
+  CarbonAccounting,
+  CarbonUnit,
+  EnergyUnit,
+  ENERGY_UNITS,
+  CARBON_ACCOUNTING,
+  isCarbonAccounting,
+  isCarbonUnit,
+  isEnergyUnit,
+  isMeasurementMethod,
+  isTargetType,
+  MEASUREMENT_METHODS,
+  MeasurementMethod,
+  TARGET_TYPES,
+  TargetType,
+} from "../tokens";
+import { isUriReference, RawMetrics, ServiceQuery, SourceAdapter } from "../types";
 
 export interface CsvAdapterConfig {
   /** CSV text, or a path to a file when `file` is used instead. */
@@ -45,7 +63,7 @@ export interface CsvAdapterConfig {
   provider: string;
   methodologyUri: string;
   /** How the figures were obtained, unless a measurement_method column says so per row. Never defaulted: it is a claim. */
-  measurementMethod?: string;
+  measurementMethod?: MeasurementMethod;
   target?: string;
   targetType?: TargetType;
   disclosureUri?: string;
@@ -57,10 +75,6 @@ export interface CsvAdapterConfig {
   /** Called for every row left out, with the reason. */
   onSkip?: (line: number, reason: string) => void;
 }
-
-const ENERGY_UNITS: EnergyUnit[] = ["Wh", "kWh", "MWh", "GWh"];
-const CARBON_UNITS: CarbonUnit[] = ["gCO2e", "kgCO2e", "mtCO2e"];
-const ACCOUNTING: CarbonAccounting[] = ["location-based", "market-based"];
 
 /** RFC 4180 fields: quotes, doubled quotes, separators inside quotes, CRLF. */
 export function parseCsv(text: string, separator = ","): string[][] {
@@ -94,9 +108,10 @@ const norm = (h: string) => h.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 const ALIASES: Record<string, string> = {
   period: "period", reportingperiod: "period", year: "period", month: "period",
+  periodstart: "periodStart", start: "periodStart", periodend: "periodEnd", end: "periodEnd",
   energy: "energy", energyconsumption: "energy", energykwh: "energy", electricity: "energy",
   energyunit: "energyUnit", unit: "energyUnit",
-  carbon: "carbon", carbonfootprint: "carbon", emissions: "carbon", totalemissions: "carbon", co2e: "carbon", tco2e: "carbon",
+  carbon: "carbon", carbonfootprint: "carbon", emissions: "carbon", totalemissions: "carbon", co2e: "carbon",
   carbonunit: "carbonUnit", emissionsunit: "carbonUnit",
   scope1: "scope1", scope2: "scope2", scope3: "scope3",
   carbonaccounting: "carbonAccounting", accounting: "carbonAccounting", basis: "carbonAccounting",
@@ -106,6 +121,9 @@ const ALIASES: Record<string, string> = {
   target: "target", targettype: "targetType", disclosureuri: "disclosureUri", disclosure: "disclosureUri",
   updated: "updated",
 };
+
+/** A header that names the unit of the carbon figure: the column is the footprint, in that unit. */
+const UNIT_HEADERS: Record<string, CarbonUnit> = { tco2e: "tCO2e", kgco2e: "kgCO2e", gco2e: "gCO2e" };
 
 type Cell = { kind: "empty" } | { kind: "number"; value: number } | { kind: "invalid"; text: string };
 
@@ -124,13 +142,13 @@ function readNumber(cell: string | undefined, decimalComma: boolean): Cell {
   return Number.isFinite(n) ? { kind: "number", value: n } : { kind: "invalid", text: s };
 }
 
-const HTTPS_RE = /^https:\/\/[^\s/?#]+/;
-
 /** The rows of a CSV as RawMetrics, in ascending period order; every row left out is reported through `onSkip`. */
 export function rowsToMetrics(text: string, cfg: CsvAdapterConfig): RawMetrics[] {
   const rows = parseCsv(text.replace(/^\uFEFF/, ""), cfg.separator ?? ",");
   if (rows.length < 2) return [];
-  const header = rows[0].map((h) => ALIASES[norm(h)] ?? norm(h));
+  const header = rows[0].map((h) => (norm(h) in UNIT_HEADERS ? "carbon" : ALIASES[norm(h)] ?? norm(h)));
+  const carbonColumn = header.indexOf("carbon");
+  const headerUnit: CarbonUnit | undefined = carbonColumn >= 0 ? UNIT_HEADERS[norm(rows[0][carbonColumn])] : undefined;
   const col = (row: string[], name: string): string | undefined => {
     const i = header.indexOf(name);
     return i >= 0 ? row[i]?.trim() : undefined;
@@ -141,8 +159,16 @@ export function rowsToMetrics(text: string, cfg: CsvAdapterConfig): RawMetrics[]
   rows.slice(1).forEach((row, idx) => {
     const line = idx + 2;
     const skip = (reason: string) => cfg.onSkip?.(line, reason);
-    const period = col(row, "period") ?? "";
-    if (!PERIOD_RE.test(period)) return skip(`period ${JSON.stringify(period)} is not YYYY, YYYY-MM or YYYY-MM-DD`);
+    let periodOfRow: Period;
+    const periodStart = col(row, "periodStart");
+    const periodEnd = col(row, "periodEnd");
+    const label = col(row, "period") ?? "";
+    try {
+      periodOfRow = periodStart || periodEnd ? toPeriod({ start: periodStart ?? "", end: periodEnd ?? "" }) : periodFromReportingPeriod(label);
+    } catch {
+      if (periodStart || periodEnd) return skip(`period_start ${JSON.stringify(periodStart ?? "")} and period_end ${JSON.stringify(periodEnd ?? "")} are not two RFC 3339 date-times with the start before the end`);
+      return skip(`period ${JSON.stringify(label)} is not YYYY, YYYY-MM or YYYY-MM-DD, and there is no period_start / period_end pair`);
+    }
 
     const numbers: Record<string, number | undefined> = {};
     for (const c of ["energy", "carbon", "scope1", "scope2", "scope3", "renewable"]) {
@@ -155,29 +181,33 @@ export function rowsToMetrics(text: string, cfg: CsvAdapterConfig): RawMetrics[]
     if (renewable !== undefined && (renewable < 0 || renewable > 100)) return skip(`renewable_percent ${renewable} is outside 0 to 100`);
 
     const eu = col(row, "energyUnit") || "kWh";
-    const cu = col(row, "carbonUnit") || "kgCO2e";
-    if (!ENERGY_UNITS.includes(eu as EnergyUnit)) return skip(`energy unit ${JSON.stringify(eu)} is not Wh, kWh, MWh or GWh`);
-    if (!CARBON_UNITS.includes(cu as CarbonUnit)) return skip(`carbon unit ${JSON.stringify(cu)} is not gCO2e, kgCO2e or mtCO2e`);
+    const unitCell = col(row, "carbonUnit");
+    if (headerUnit && unitCell && unitCell !== headerUnit) return skip(`column ${headerUnit} and carbon_unit ${unitCell} disagree`);
+    const cu = unitCell || headerUnit || "kgCO2e";
+    if (!isEnergyUnit(eu)) return skip(`energy unit ${JSON.stringify(eu)} is not ${ENERGY_UNITS.join(", ")}`);
+    if (!isCarbonUnit(cu)) return skip(`carbon unit ${JSON.stringify(cu)} is not ${CARBON_UNITS.join(", ")}`);
 
     const accounting = col(row, "carbonAccounting");
-    if (accounting && !ACCOUNTING.includes(accounting as CarbonAccounting)) return skip(`carbon_accounting ${JSON.stringify(accounting)} is not location-based or market-based`);
+    if (accounting && !isCarbonAccounting(accounting)) return skip(`carbon_accounting ${JSON.stringify(accounting)} is not ${CARBON_ACCOUNTING.join(" or ")}`);
     const targetType = col(row, "targetType") || cfg.targetType;
-    if (targetType && !TARGET_TYPES.includes(targetType as TargetType)) return skip(`target type ${JSON.stringify(targetType)} is not one of ${TARGET_TYPES.join(", ")}`);
+    if (targetType && !isTargetType(targetType)) return skip(`target-type ${JSON.stringify(targetType)} is not one of ${TARGET_TYPES.join(", ")}`);
     const methodologyUri = col(row, "methodologyUri") || cfg.methodologyUri;
-    if (!HTTPS_RE.test(methodologyUri)) return skip(`methodology_uri ${JSON.stringify(methodologyUri)} is not an absolute https URI`);
+    if (!isUriReference(methodologyUri)) return skip(`methodology_uri ${JSON.stringify(methodologyUri)} is not a URI reference`);
     const disclosureUri = col(row, "disclosureUri") || cfg.disclosureUri;
-    if (disclosureUri && !HTTPS_RE.test(disclosureUri)) return skip(`disclosure_uri ${JSON.stringify(disclosureUri)} is not an absolute https URI`);
+    if (disclosureUri && !isUriReference(disclosureUri)) return skip(`disclosure_uri ${JSON.stringify(disclosureUri)} is not a URI reference`);
     const updated = col(row, "updated");
-    if (updated && !UPDATED_RE.test(updated)) return skip(`updated ${JSON.stringify(updated)} is not an RFC 3339 date-time`);
+    if (updated && !isDateTime(updated)) return skip(`updated ${JSON.stringify(updated)} is not an RFC 3339 date-time`);
     const measurementMethod = col(row, "measurementMethod") || cfg.measurementMethod;
     if (!measurementMethod) return skip("no measurement method: give the measurement_method column or the adapter's measurementMethod");
-    if (energy === undefined && carbon === undefined && !disclosureUri) return skip("no figure and no disclosure link: not a declaration");
+    if (!isMeasurementMethod(measurementMethod)) return skip(`measurement-method ${JSON.stringify(measurementMethod)} is not one of ${MEASUREMENT_METHODS.join(", ")}`);
+    const figures = [energy, carbon, numbers.scope1, numbers.scope2, numbers.scope3, renewable];
+    if (figures.every((v) => v === undefined) && !disclosureUri) return skip("no figure and no disclosure link: not a declaration");
 
     const m: RawMetrics = {
       provider: col(row, "provider") || cfg.provider,
       measurementMethod,
       methodologyUri,
-      reportingPeriod: period,
+      period: periodOfRow,
       capabilities: cfg.capabilities ?? "basic",
       ...(updated ? { updated } : {}),
       ...(col(row, "target") || cfg.target ? { target: col(row, "target") || cfg.target } : {}),
@@ -194,24 +224,19 @@ export function rowsToMetrics(text: string, cfg: CsvAdapterConfig): RawMetrics[]
     };
     out.push(m);
   });
-  out.sort((a, b) => (a.reportingPeriod < b.reportingPeriod ? -1 : a.reportingPeriod > b.reportingPeriod ? 1 : 0));
+  out.sort((a, b) => comparePeriodStart(a.period as Period, b.period as Period));
   return out;
 }
 
-/** Serve the rows of a CSV export; the newest period for a Basic request, the matching rows for an Extended one. */
+/** Serve every usable row of a CSV export; the publisher selects among them. */
 export function csvAdapter(cfg: CsvAdapterConfig): SourceAdapter {
   const capabilities = cfg.capabilities ?? "basic";
   const load = () => rowsToMetrics(cfg.text ?? readFileSync(cfg.file as string, "utf8"), cfg);
   return {
     name: "csv",
     capabilities,
-    async fetch(query: ServiceQuery): Promise<RawMetrics | RawMetrics[]> {
-      const rows = load();
-      if (rows.length === 0) throw new NotFoundError("csv: no usable row (see onSkip)");
-      if (capabilities === "basic" || !query.period) return rows[rows.length - 1];
-      const inside = rows.filter((r) => r.reportingPeriod.startsWith(query.period as string));
-      if (inside.length === 0) throw new NotFoundError();
-      return inside;
+    async fetch(_query: ServiceQuery): Promise<RawMetrics[]> {
+      return load();
     },
   };
 }

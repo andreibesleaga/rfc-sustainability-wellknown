@@ -4,7 +4,10 @@
   "provider": "Example Edge Networks (ops@edge.example)",
   "measurement-method": "hardware-metered",
   "methodology-uri": "https://edge.example/device-metering-methodology",
-  "reporting-period": "2025",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
   "target": "edge-node-014.edge.example",
   "energy-consumption": 184,
   "energy-unit": "kWh",

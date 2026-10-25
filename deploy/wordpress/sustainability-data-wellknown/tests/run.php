@@ -57,7 +57,8 @@ function serve_as(string $method, string $uri = '/.well-known/sustainability-dat
 $valid = [
     'provider' => 'WP Example (https://wp.example/contact)',
     'methodology_uri' => 'https://wp.example/methodology',
-    'period' => '2026-09',
+    'period_start' => '2026-09-01T00:00:00Z',
+    'period_end' => '2026-10-01T00:00:00Z',
     'energy_kwh' => '12.5',
     'carbon_kgco2e' => '3.06',
     'scope_2' => '3.06',
@@ -84,11 +85,50 @@ foreach (['' => 'empty', 'guessed' => 'unknown'] as $m => $what) {
     update_option(Sustainability_Data_Wellknown::OPTION, Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['measurement_method' => $m])));
     check(Sustainability_Data_Wellknown::declaration() === null, "an $what measurement method publishes nothing (never a silent default)");
 }
-foreach (['period' => '2026-02-30', 'renewable_percent' => '140', 'energy_kwh' => '-1'] as $field => $bad) {
+foreach ([['renewable_percent', '140'], ['energy_kwh', '-1']] as [$field, $bad]) {
     $GLOBALS['settings_errors'] = [];
     Sustainability_Data_Wellknown::sanitize(array_merge($valid, [$field => $bad]));
     check(count($GLOBALS['settings_errors']) === 1 && $GLOBALS['settings_errors'][0]['code'] === "sdwk_$field", "$field=$bad is reported");
 }
+// a period shorter than a day or off midnight is a warning (the draft recommends); a path target needs its "/"
+foreach ([['2026-09-01T06:00:00Z', '2026-10-01T00:00:00Z'], ['2026-09-01T00:00:00Z', '2026-09-01T12:00:00Z']] as [$a, $b]) {
+    $GLOBALS['settings_errors'] = [];
+    Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['period_start' => $a, 'period_end' => $b]));
+    $codes = array_column($GLOBALS['settings_errors'], 'type', 'code');
+    check(($codes['sdwk_period_floor'] ?? '') === 'warning' && count($codes) === 1, "period $a/$b is a warning, not an error");
+}
+$GLOBALS['settings_errors'] = [];
+Sustainability_Data_Wellknown::sanitize($valid);
+check($GLOBALS['settings_errors'] === [], 'a whole-month period raises nothing');
+$GLOBALS['settings_errors'] = [];
+Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['target_type' => 'path', 'target' => 'api/v1']));
+check(count($GLOBALS['settings_errors']) === 1 && $GLOBALS['settings_errors'][0]['code'] === 'sdwk_target', 'a path target without a leading slash is an error');
+$GLOBALS['settings_errors'] = [];
+Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['target_type' => 'path', 'target' => '/api/v1']));
+check($GLOBALS['settings_errors'] === [], 'a path target with its slash is accepted');
+// the period: two RFC 3339 date-times, upper-case T and Z, a real moment, start before end as instants
+$badPeriods = [
+    'a date without a time' => ['2026-09-01', '2026-10-01'],
+    'a lower-case t and z' => ['2026-09-01t00:00:00z', '2026-10-01T00:00:00Z'],
+    'a space for the T' => ['2026-09-01 00:00:00Z', '2026-10-01T00:00:00Z'],
+    'an impossible day' => ['2026-02-30T00:00:00Z', '2026-03-01T00:00:00Z'],
+    'hour 24' => ['2026-09-01T24:00:00Z', '2026-10-01T00:00:00Z'],
+    'an offset of 24 hours' => ['2026-09-01T00:00:00+24:00', '2026-10-01T00:00:00Z'],
+    'end equal to start' => ['2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z'],
+    'end before start as instants' => ['2026-09-01T00:00:00Z', '2026-09-01T01:00:00+02:00'],
+    'no end' => ['2026-09-01T00:00:00Z', ''],
+];
+foreach ($badPeriods as $what => [$start, $end]) {
+    $GLOBALS['settings_errors'] = [];
+    Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['period_start' => $start, 'period_end' => $end]));
+    check(count($GLOBALS['settings_errors']) === 1 && $GLOBALS['settings_errors'][0]['code'] === 'sdwk_period', "a period with $what is reported");
+}
+$GLOBALS['settings_errors'] = [];
+Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['period_start' => '2026-03-01T00:00:00+01:00', 'period_end' => '2026-04-01T00:00:00+02:00']));
+check($GLOBALS['settings_errors'] === [], 'bounds with their own offsets and a month across the clock change are accepted');
+$GLOBALS['settings_errors'] = [];
+Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['target_type' => 'facility']));
+check(in_array('facility', Sustainability_Data_Wellknown::TARGET_TYPES, true) && count(Sustainability_Data_Wellknown::TARGET_TYPES) === 9, 'the nine target types of the draft, facility included');
 $GLOBALS['settings_errors'] = [];
 Sustainability_Data_Wellknown::sanitize(array_merge($valid, ['energy_kwh' => '', 'carbon_kgco2e' => '', 'disclosure_uri' => '']));
 check(count($GLOBALS['settings_errors']) === 1 && $GLOBALS['settings_errors'][0]['code'] === 'sdwk_figures', 'no figure and no link is reported');
@@ -100,7 +140,9 @@ check($GLOBALS['settings_errors'] === [], 'a valid form, including a negative sc
 $doc = Sustainability_Data_Wellknown::declaration();
 check(is_array($doc), 'settings make a declaration');
 check(($doc['target'] ?? '') === 'wp.example', 'target defaults to the site host');
-check(count(array_intersect_key($doc, array_flip(['updated', 'capabilities', 'provider', 'measurement-method', 'methodology-uri', 'reporting-period', 'target']))) === 7, 'the seven mandatory members are present');
+check(count(array_intersect_key($doc, array_flip(['updated', 'capabilities', 'provider', 'measurement-method', 'methodology-uri', 'period', 'target']))) === 7, 'the seven mandatory members are present');
+check(($doc['period'] ?? null) === ['start' => '2026-09-01T00:00:00Z', 'end' => '2026-10-01T00:00:00Z'] && !isset($doc['reporting-period']), 'the period is an object with start and end, no reporting-period');
+check(($doc['capabilities'] ?? '') === 'basic', 'a basic declaration');
 check(($doc['energy-unit'] ?? '') === 'kWh' && ($doc['carbon-unit'] ?? '') === 'kgCO2e', 'units are declared');
 check(($doc['scope-1'] ?? null) === -4.0, 'a negative scope is kept');
 
@@ -110,10 +152,11 @@ check(isset($signed['signed']) && substr_count($signed['signed'], '.') === 2, 'a
 [$h, $p, $s] = explode('.', $signed['signed']);
 $b64d = static fn(string $x) => base64_decode(strtr($x, '-_', '+/') . str_repeat('=', (4 - strlen($x) % 4) % 4), true);
 $header = json_decode($b64d($h), true);
-check(($header['alg'] ?? '') === 'EdDSA' && ($header['cty'] ?? '') === 'sustainability-data+json' && isset($header['jwk']['x']), 'JOSE header carries alg, cty and the public key');
+check(($header['alg'] ?? '') === 'Ed25519' && ($header['cty'] ?? '') === 'sustainability-data+json' && isset($header['jwk']['x']), 'JOSE header carries alg Ed25519, cty and the public key');
+check(array_keys($header['jwk']) === ['kty', 'crv', 'x'], 'the embedded key has kty, crv and x only');
 check(sodium_crypto_sign_verify_detached($b64d($s), $h . '.' . $p, $b64d($header['jwk']['x'])), 'the signature verifies with the key in the header');
 $payload = json_decode($b64d($p), true);
-check(!isset($payload['signed']) && $payload['reporting-period'] === '2026-09', 'the payload is the object without signed');
+check(!isset($payload['signed']) && $payload['period']['start'] === '2026-09-01T00:00:00Z', 'the payload is the object without signed');
 
 // the endpoint
 $body = serve_as('GET');
@@ -138,11 +181,29 @@ check($GLOBALS['status'] === 405 && str_contains($hs, 'Allow: GET, HEAD') && str
 $out = serve_as('GET', '/some/page?sdwk_declaration=1');
 check($GLOBALS['status'] === 0 && $out === '', 'the query variable alone does not serve the document at another path');
 
+// query parameters: a basic server ignores every one, whatever the value, and never answers 400 or 404
+$plain = serve_as('GET');
+foreach (['?start=2026-09-01T00:00:00Z&end=2026-10-01T00:00:00Z', '?start=yesterday', '?start=2026-09-01T00:00:00%2B02:00', '?target=other.example&granularity=month', '?foo=1', '?start='] as $q) {
+    $got = serve_as('GET', '/.well-known/sustainability-data' . $q);
+    check($GLOBALS['status'] === 200 && $got === $plain, "the query $q is ignored: 200 and the same body");
+}
+
+// a 0.1 install: the saved one-label period becomes start and end, once read
+$legacy = $valid;
+unset($legacy['period_start'], $legacy['period_end']);
+foreach (['2026' => ['2026-01-01T00:00:00Z', '2027-01-01T00:00:00Z'], '2026-09' => ['2026-09-01T00:00:00Z', '2026-10-01T00:00:00Z'], '2026-12' => ['2026-12-01T00:00:00Z', '2027-01-01T00:00:00Z'], '2026-02-28' => ['2026-02-28T00:00:00Z', '2026-03-01T00:00:00Z']] as $label => [$from, $to]) {
+    update_option(Sustainability_Data_Wellknown::OPTION, array_merge($legacy, ['period' => $label]));
+    check((Sustainability_Data_Wellknown::declaration()['period'] ?? null) === ['start' => $from, 'end' => $to], "a saved period $label is converted to $from / $to");
+}
+update_option(Sustainability_Data_Wellknown::OPTION, array_merge($legacy, ['period' => '2026-02-30']));
+check(Sustainability_Data_Wellknown::declaration() === null, 'a saved impossible label publishes nothing');
+update_option(Sustainability_Data_Wellknown::OPTION, Sustainability_Data_Wellknown::sanitize($valid));
+
 // the settings page
 ob_start();
 Sustainability_Data_Wellknown::page();
 $page = (string) ob_get_clean();
-check(str_contains($page, 'name="sdwk_declaration[provider]"') && str_contains($page, 'name="sdwk_declaration[measurement_method]"'), 'the settings page renders the form fields');
+check(str_contains($page, 'name="sdwk_declaration[provider]"') && str_contains($page, 'name="sdwk_declaration[measurement_method]"') && str_contains($page, 'name="sdwk_declaration[period_start]"') && str_contains($page, 'name="sdwk_declaration[period_end]"'), 'the settings page renders the form fields, the period as start and end');
 check(str_contains($page, 'Published at'), 'the settings page says the declaration is published');
 check(str_contains($page, '<option value="">choose</option>'), 'the measurement method must be chosen, nothing is preselected for it');
 check(str_contains($page, 'href="https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/deploy/FIGURES.md"'), 'the settings page links the guide to getting real figures');

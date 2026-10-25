@@ -1,0 +1,314 @@
+[
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2025-02-01T00:00:00Z"
+    },
+    "target": "Example Holdings Ltd",
+    "target-type": "organization",
+    "energy-consumption": 12.5,
+    "energy-unit": "Wh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "gCO2e",
+    "carbon-accounting": "location-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-request",
+    "upstream": [
+      {
+        "declaration": "https://upstream1.example/.well-known/sustainability-data",
+        "role": "hosting"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "hardware-estimated",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-02-01T00:00:00Z",
+      "end": "2025-03-01T00:00:00Z"
+    },
+    "target": "Example data center 1",
+    "target-type": "facility",
+    "energy-consumption": 12.5,
+    "energy-unit": "kWh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-transaction",
+    "upstream": [
+      {
+        "declaration": "https://upstream2.example/.well-known/sustainability-data",
+        "role": "colocation"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-03-01T00:00:00Z",
+      "end": "2025-04-01T00:00:00Z"
+    },
+    "target": "example.com",
+    "target-type": "origin",
+    "energy-consumption": 12.5,
+    "energy-unit": "MWh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "location-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-page-view",
+    "upstream": [
+      {
+        "declaration": "https://upstream3.example/.well-known/sustainability-data",
+        "role": "cloud"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-04-01T00:00:00Z",
+      "end": "2025-05-01T00:00:00Z"
+    },
+    "target": "/api/v1",
+    "target-type": "path",
+    "energy-consumption": 12.5,
+    "energy-unit": "GWh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "gCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-session",
+    "upstream": [
+      {
+        "declaration": "https://upstream4.example/.well-known/sustainability-data",
+        "role": "cdn"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-05-01T00:00:00Z",
+      "end": "2025-06-01T00:00:00Z"
+    },
+    "target": "Example Search",
+    "target-type": "service",
+    "energy-consumption": 12.5,
+    "energy-unit": "Wh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "location-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-user",
+    "upstream": [
+      {
+        "declaration": "https://upstream5.example/.well-known/sustainability-data",
+        "role": "network"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "hardware-estimated",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-06-01T00:00:00Z",
+      "end": "2025-07-01T00:00:00Z"
+    },
+    "target": "Example Router X1",
+    "target-type": "product",
+    "energy-consumption": 12.5,
+    "energy-unit": "kWh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-job",
+    "upstream": [
+      {
+        "declaration": "https://upstream6.example/.well-known/sustainability-data",
+        "role": "electricity"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-07-01T00:00:00Z",
+      "end": "2025-08-01T00:00:00Z"
+    },
+    "target": "sensor-0001",
+    "target-type": "device",
+    "energy-consumption": 12.5,
+    "energy-unit": "MWh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "gCO2e",
+    "carbon-accounting": "location-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-token",
+    "upstream": [
+      {
+        "declaration": "https://upstream1.example/.well-known/sustainability-data",
+        "role": "hosting"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-08-01T00:00:00Z",
+      "end": "2025-09-01T00:00:00Z"
+    },
+    "target": "tenant-0001",
+    "target-type": "tenant",
+    "energy-consumption": 12.5,
+    "energy-unit": "GWh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-inference",
+    "upstream": [
+      {
+        "declaration": "https://upstream2.example/.well-known/sustainability-data",
+        "role": "colocation"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "hardware-metered",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-09-01T00:00:00Z",
+      "end": "2025-10-01T00:00:00Z"
+    },
+    "target": "example-grid-feed",
+    "target-type": "data-source",
+    "energy-consumption": 12.5,
+    "energy-unit": "Wh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "location-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-gigabyte",
+    "upstream": [
+      {
+        "declaration": "https://upstream3.example/.well-known/sustainability-data",
+        "role": "cloud"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "hardware-estimated",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-10-01T00:00:00Z",
+      "end": "2025-11-01T00:00:00Z"
+    },
+    "target": "Example Holdings Ltd",
+    "target-type": "organization",
+    "energy-consumption": 12.5,
+    "energy-unit": "kWh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "gCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-gigabyte-hour",
+    "upstream": [
+      {
+        "declaration": "https://upstream4.example/.well-known/sustainability-data",
+        "role": "cdn"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-11-01T00:00:00Z",
+      "end": "2025-12-01T00:00:00Z"
+    },
+    "target": "Example data center 1",
+    "target-type": "facility",
+    "energy-consumption": 12.5,
+    "energy-unit": "MWh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "location-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-vcpu-hour",
+    "upstream": [
+      {
+        "declaration": "https://upstream5.example/.well-known/sustainability-data",
+        "role": "network"
+      }
+    ]
+  },
+  {
+    "updated": "2026-01-10T00:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Holdings Ltd (sustainability@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-12-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "example.com",
+    "target-type": "origin",
+    "energy-consumption": 12.5,
+    "energy-unit": "GWh",
+    "carbon-footprint": 4.2,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "sci-score": 0.25,
+    "functional-unit": "per-device",
+    "upstream": [
+      {
+        "declaration": "https://upstream6.example/.well-known/sustainability-data",
+        "role": "electricity"
+      }
+    ]
+  }
+]

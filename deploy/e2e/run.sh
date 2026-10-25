@@ -7,6 +7,14 @@
 # free before a recipe starts and free again after it stops: a recipe can never be validated against a
 # server left over from another one.
 #
+# Query rules of the draft (Section 2.2), checked on every recipe: a recipe serves a static file, so it must ignore
+# every query parameter, whatever the value, and answer exactly what it answers without one. A recipe that answers
+# 400 or 404 to a malformed or unsupported value fails. A redirect, if a recipe sends one, must lead to https.
+#
+# The reference consumer is the published package at the version this tree implements. To test a local build
+# instead, install its `npm pack` tarball into a scratch folder and point SUSTAINABILITY_FETCH at the program:
+#   SUSTAINABILITY_FETCH=/scratch/node_modules/.bin/sustainability-fetch bash deploy/e2e/run.sh
+#
 # Usage: bash deploy/e2e/run.sh [recipe ...]   (default: every recipe whose tool is installed)
 # Recipes: express fastify koa flask fastapi php go caddy nginx apache haproxy-config terraform-config
 set -euo pipefail
@@ -15,7 +23,18 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 KIT="$(cd "$HERE/.." && pwd)"
 PORT="${PORT:-18090}"
 DOC="$KIT/www/.well-known/sustainability-data"
-CHECK=(npx -y -p sustainability-wellknown-consumer sustainability-fetch)
+CHECK=(npx -y -p sustainability-wellknown-consumer@^0.8.0 sustainability-fetch)
+[ -z "${SUSTAINABILITY_FETCH:-}" ] || CHECK=("$SUSTAINABILITY_FETCH")
+# Query strings a recipe must ignore: valid, offset (not UTC), date only, second 60, unknown value, unknown name, empty.
+QUERIES=(
+  "start=2026-09-01T00:00:00Z&end=2026-10-01T00:00:00Z&target=kit.example&granularity=monthly"
+  "start=2026-09-01T00:00:00%2B02:00"
+  "start=2026-09-01&end=yesterday"
+  "end=2026-12-31T23:59:60Z"
+  "granularity=weekly&target="
+  "foo=1&Start=2026-09-01T00:00:00Z"
+  "start="
+)
 URL="http://127.0.0.1:$PORT/.well-known/sustainability-data"
 fail=0
 
@@ -43,10 +62,35 @@ stop() { # pid: kill the recipe's whole process group, then wait for the port to
   return 1
 }
 
+query_checks() { # name: every QUERIES entry answers 200, the same body and type as the plain request
+  local name="$1" plain q code body type ok=0
+  plain=$(curl -s "$URL")
+  for q in "${QUERIES[@]}"; do
+    code=$(curl -s -o /dev/null -w '%{http_code}' "$URL?$q")
+    body=$(curl -s "$URL?$q")
+    type=$(curl -s -I "$URL?$q" | tr -d '\r' | grep -i '^content-type:' || true)
+    if [ "$code" != 200 ]; then echo "$name: ?$q answered $code, a query value is ignored, never refused"; ok=1
+    elif [ "$body" != "$plain" ]; then echo "$name: ?$q answered another body than the request without a query"; ok=1
+    else case "$type" in *sustainability-data+json*) ;; *) echo "$name: ?$q content-type: $type"; ok=1 ;; esac; fi
+  done
+  return $ok
+}
+
+plain_http_check() { # name: a redirect from the plain-HTTP request must lead to https
+  local name="$1" code loc
+  code=$(curl -s -o /dev/null -w '%{http_code}' "$URL")
+  case "$code" in
+    3??) loc=$(curl -s -o /dev/null -w '%{redirect_url}' "$URL")
+         case "$loc" in https://*) ;; *) echo "$name: redirects to $loc, not to https"; return 1 ;; esac ;;
+  esac
+}
+
 check() { # name pid
   local name="$1" pid="$2" ok=1 post code g h head
   if wait_up; then
     "${CHECK[@]}" "http://127.0.0.1:$PORT" --strict --allow-http || ok=0
+    query_checks "$name" || ok=0
+    plain_http_check "$name" || ok=0
     post=$(curl -s -i -X POST "$URL" | tr -d '\r')
     code=$(printf '%s\n' "$post" | head -1 | awk '{print $2}')
     case "$code" in

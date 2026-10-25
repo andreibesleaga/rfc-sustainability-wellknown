@@ -16,6 +16,7 @@
  * Spec: https://carbontxt.org/  ·  v0.5 syntax.
  */
 import { parse as parseToml } from "@iarna/toml";
+import { readBodyCapped } from "./util";
 
 export interface CarbonTxtDisclosure {
   doc_type: string;
@@ -149,13 +150,18 @@ export interface DiscoverResult {
 
 type FetchLike = (
   url: string,
-  init?: { method?: string; headers?: Record<string, string> },
+  init?: { method?: string; headers?: Record<string, string>; signal?: AbortSignal },
 ) => Promise<{
   ok: boolean;
   status: number;
   headers: { get(name: string): string | null };
+  body?: ReadableStream<Uint8Array> | null;
   text(): Promise<string>;
 }>;
+
+/** One request's time limit, and the most carbon.txt text read (the file is a few kilobytes). */
+const FETCH_TIMEOUT_MS = 10_000;
+const MAX_CARBON_TXT_BYTES = 64 * 1024;
 
 const CARBON_TXT_ROOT = "/carbon.txt";
 const CARBON_TXT_WELL_KNOWN = "/.well-known/carbon.txt";
@@ -174,8 +180,10 @@ export async function discoverCarbonTxt(
   origin: string,
   deps: { fetch?: FetchLike } = {},
 ): Promise<DiscoverResult | null> {
-  const doFetch = (deps.fetch ?? (globalThis.fetch as unknown as FetchLike));
-  if (!doFetch) throw new Error("discoverCarbonTxt: no fetch implementation available");
+  const fetchImpl = deps.fetch ?? (globalThis.fetch as unknown as FetchLike);
+  if (!fetchImpl) throw new Error("discoverCarbonTxt: no fetch implementation available");
+  const doFetch: FetchLike = (url, init) => fetchImpl(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  const textOf = (res: Awaited<ReturnType<FetchLike>>, url: string) => readBodyCapped(res, MAX_CARBON_TXT_BYTES, `carbon.txt from ${url}`);
   const base = origin.replace(/\/$/, "");
 
   const tryOrigin = async (o: string): Promise<DiscoverResult | null> => {
@@ -183,24 +191,26 @@ export async function discoverCarbonTxt(
     const rootUrl = `${o}${CARBON_TXT_ROOT}`;
     const rootRes = await doFetch(rootUrl);
     if (rootRes.ok) {
-      const text = await rootRes.text();
+      const text = await textOf(rootRes, rootUrl);
       return { url: rootUrl, text, document: parseCarbonTxt(text), via: "root" };
     }
     // 2. well-known
     const wkUrl = `${o}${CARBON_TXT_WELL_KNOWN}`;
     const wkRes = await doFetch(wkUrl);
     if (wkRes.ok) {
-      const text = await wkRes.text();
+      const text = await textOf(wkRes, wkUrl);
       return { url: wkUrl, text, document: parseCarbonTxt(text), via: "well-known" };
     }
     // 3. delegation header on the home page
     const home = await doFetch(`${o}/`, { method: "HEAD" });
     const header = home.headers.get("CarbonTxt-Location") ?? home.headers.get("carbontxt-location");
     const delegated = header ? new URL(header, `${o}/`).href : null;
-    if (delegated) {
+    // A delegation is followed over https only: the header is the origin's to set, and a
+    // plain-http or loopback target would turn this lookup into a request the origin chose.
+    if (delegated && new URL(delegated).protocol === "https:") {
       const res = await doFetch(delegated);
       if (res.ok) {
-        const text = await res.text();
+        const text = await textOf(res, delegated);
         return { url: delegated, text, document: parseCarbonTxt(text), via: "header" };
       }
     }

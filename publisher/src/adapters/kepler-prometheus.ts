@@ -12,21 +12,36 @@
  * counters. Point `query` at whichever metric set your Kepler deployment
  * exports; this adapter only sums whatever the query returns.
  */
-import { RawMetrics, SourceAdapter } from "../types";
-import { fetchJson, lastFullMonth } from "../util";
+import { monthPeriod, PeriodInput, toPeriod } from "../period";
+import { FunctionalUnit, MeasurementMethod } from "../tokens";
+import { Extensions, RawMetrics, SourceAdapter } from "../types";
+import { fetchJson, lastFullMonthPeriod } from "../util";
 
 export interface KeplerPrometheusConfig {
   provider: string;
   methodologyUri: string;
-  reportingPeriod?: string;
+  /**
+   * A `{ start, end }` object, or "YYYY", "YYYY-MM" or "YYYY-MM-DD" for the whole calendar unit (in `zone`).
+   * Defaults to the last full month.
+   */
+  period?: PeriodInput;
+  /**
+   * The time zone of the machines, "Z" (the default), a fixed offset such as "+01:00", or an IANA name such
+   * as "Europe/Berlin". A calendar label, and the default month, then start and end at midnight there, each
+   * bound written in the offset in force at that instant (a March month in Berlin runs from +01:00 to +02:00).
+   */
+  zone?: string;
   /** gCO2e per kWh used to convert energy to carbon. */
   gridIntensity: number;
   /** Base URL of the Prometheus server, e.g. http://localhost:9090 */
   prometheusUrl?: string;
   /** PromQL returning a joules counter/value. Default sums node platform joules. */
   query?: string;
-  measurementMethod?: string;
-  functionalUnit?: string;
+  measurementMethod?: MeasurementMethod;
+  /** One of the twelve functional units of the draft. */
+  functionalUnit?: FunctionalUnit;
+  /** Data of the operator's own, keyed by extension name (a URI); see the draft, Extensions. */
+  extensions?: Extensions;
   capabilities?: "basic" | "extended";
   /**
    * Replay mode: a recorded Prometheus `/api/v1/query` JSON response. When set,
@@ -63,6 +78,14 @@ export function sumPromValues(resp: PromQueryResponse, query?: string): number {
   return resp.data.result.reduce((acc, r) => acc + Number(r.value[1]), 0);
 }
 
+// The configured period, or the last full month; a label or the default month is read in `zone`.
+function resolvePeriod(config: KeplerPrometheusConfig): PeriodInput {
+  const zone = config.zone ?? "Z";
+  if (config.period !== undefined) return toPeriod(config.period, zone);
+  const { start } = lastFullMonthPeriod();
+  return monthPeriod(Number(start.slice(0, 4)), Number(start.slice(5, 7)), zone);
+}
+
 export function keplerPrometheusAdapter(config: KeplerPrometheusConfig): SourceAdapter {
   const query = config.query ?? "sum(kepler_node_platform_joules_total)";
   return {
@@ -88,10 +111,11 @@ export function keplerPrometheusAdapter(config: KeplerPrometheusConfig): SourceA
         // of a meter in the power path, so `hardware-estimated` is the honest default.
         measurementMethod: config.measurementMethod ?? "hardware-estimated",
         methodologyUri: config.methodologyUri,
-        reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
+        period: resolvePeriod(config),
         energyJoules: joules,
         carbonIntensity: config.gridIntensity,
         functionalUnit: config.functionalUnit,
+        extensions: config.extensions,
         capabilities: config.capabilities ?? "basic",
       };
     },

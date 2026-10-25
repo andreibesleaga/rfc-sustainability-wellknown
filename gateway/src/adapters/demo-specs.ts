@@ -44,7 +44,7 @@ import {
   watershedAdapter,
   type SourceAdapter,
 } from "sustainability-wellknown-publisher";
-import type { RawMetrics } from "sustainability-wellknown-publisher";
+import { compareDateTimes, lastFullMonthPeriod, yearPeriod, type Period, type RawMetrics } from "sustainability-wellknown-publisher";
 import { PUBLIC_BASE_URL, type GatewayConfig } from "../config";
 import type { LiveDeps, LiveSpec } from "../live";
 import { SFC_LEDGER_DEMO_DOMAIN, deepCheck, sfcLedgerBridgeAdapter, shallowCheck } from "./sfc-ledger-bridge";
@@ -57,7 +57,7 @@ import {
   YANG_FIXTURE_START,
   yangPowerEnergyReplayAdapter,
 } from "./yang-power-energy";
-import { lastCompletedMonth, periodClose, periodHours } from "./self-report";
+import { dateTimeOf, monthKey, periodHours, startOfDay } from "./self-report";
 
 /**
  * Stamp a deterministic `updated` on whatever the adapter produces (the close
@@ -76,19 +76,25 @@ function withUpdated(adapter: SourceAdapter, updatedIso: string): SourceAdapter 
   };
 }
 
+/** One gigabyte (10^9 octets), the quantity of the `per-gigabyte` functional unit. */
+const GIGABYTE = 1e9;
+
 /**
- * Re-express a kWh energy figure in Wh before the publisher normalizes it. The
- * library rounds every member to four decimal places, which turns the energy of
- * one crawl (a fraction of a watt-hour) into 0 kWh beside a non-zero carbon.
+ * Publish an adapter's carbon (gCO2e for the bytes it was given) as a software
+ * carbon intensity score for that quantity, and drop the energy and carbon
+ * members: they would read as the totals of the period, which a figure for a
+ * fixed quantity of traffic is not.
  */
-function energyInWh(adapter: SourceAdapter): SourceAdapter {
+function carbonAsScorePerGigabyte(adapter: SourceAdapter): SourceAdapter {
   return {
     ...adapter,
     async fetch(query) {
       const raw = await adapter.fetch(query);
-      const toWh = (r: RawMetrics): RawMetrics =>
-        r.energy && r.energy.unit === "kWh" ? { ...r, energy: { value: r.energy.value * 1000, unit: "Wh" } } : r;
-      return Array.isArray(raw) ? raw.map(toWh) : toWh(raw);
+      const toScore = (r: RawMetrics): RawMetrics => {
+        const { energy, carbon, ...rest } = r;
+        return carbon ? { ...rest, sciScore: carbon.value, functionalUnit: "per-gigabyte" } : rest;
+      };
+      return Array.isArray(raw) ? raw.map(toScore) : toScore(raw);
     },
   };
 }
@@ -131,9 +137,11 @@ function gridDemoAdapter(
   deps: LiveDeps,
   intensity: number,
   sourceNote: string,
+  /** The instant the intensity was read (RFC 3339): the figure changes with it, so `updated` is not before it. */
+  retrievedAt: string,
   wattsByMonth: Record<string, number> = {},
 ): SourceAdapter {
-  const period = lastCompletedMonth(deps.now());
+  const period = lastFullMonthPeriod(deps.now());
   const kwh = gatewayMonthKwh(config, wattsByMonth, period);
   return withUpdated(
     computedAdapter({
@@ -147,12 +155,12 @@ function gridDemoAdapter(
       "claim a real location-accurate footprint.",
     methodologyUri: config.self.methodologyUri,
     measurementMethod: "third-party-modeled",
-    reportingPeriod: period,
+    period,
       energy: { value: kwh, unit: "kWh" },
       gridIntensity: intensity,
       carbonAccounting: "location-based",
     }),
-    periodClose(period),
+    compareDateTimes(retrievedAt, period.end) > 0 ? retrievedAt : period.end,
   );
 }
 
@@ -165,32 +173,33 @@ function co2jsDemoAdapter(
   crawlBytes: number,
   greencheck: { domain?: string; green?: boolean },
 ): SourceAdapter {
-  const period = lastCompletedMonth(deps.now());
+  const period = lastFullMonthPeriod(deps.now());
   return withUpdated(
-    energyInWh(co2jsAdapter({
+    carbonAsScorePerGigabyte(co2jsAdapter({
     provider:
       "Demonstration by the gateway operator of the publisher package's `co2js` adapter " +
-      "(Green Web Foundation CO2.js, Apache-2.0, Sustainable Web Design model). The byte " +
-      `count is REAL: ${crawlBytes} bytes, the measured size of one full crawl of every ` +
-      "document this gateway serves. Grid intensity: CO2.js bundled Ember annual world " +
-      "average (CC BY 4.0, cite Ember). Green-hosting status via GWF Greencheck (Green " +
-      "Domains dataset, ODbL). The result estimates the transfer footprint of ONE full " +
-      "crawl — a functional unit, not this service's total footprint (see the gateway's " +
-      "own report at the root well-known path for that). " +
+      "(Green Web Foundation CO2.js, Apache-2.0, Sustainable Web Design model). The " +
+      "score is the model's grams CO2e for one gigabyte (10^9 octets) transferred " +
+      "(functional unit per-gigabyte): a rate, not this service's total footprint (see " +
+      "the gateway's own report at the root well-known path for that). For scale, one " +
+      `full crawl of every document this gateway serves is ${crawlBytes} bytes. ` +
+      "Grid intensity: CO2.js bundled Ember annual " +
+      "world average (CC BY 4.0, cite Ember). Green-hosting status via GWF Greencheck " +
+      "(Green Domains dataset, ODbL). " +
       (greencheck.domain
         ? "Green-hosting status is checked LIVE against Greencheck daily."
         : "Green-hosting status: not claimed (no live Greencheck lookup in this mode; " +
           "recorded default false)."),
       methodologyUri: "https://developers.thegreenwebfoundation.org/co2js/overview/",
-      reportingPeriod: period,
-      bytes: crawlBytes,
+      period,
+      bytes: GIGABYTE,
       model: "swd",
       ...(greencheck.domain
         ? { greencheckDomain: greencheck.domain }
         : { green: greencheck.green ?? false }),
       measurementMethod: "third-party-modeled",
     })),
-    periodClose(period),
+    period.end,
   );
 }
 
@@ -241,7 +250,7 @@ function carbontxtDemoAdapter(deps: LiveDeps, apiKey?: string): SourceAdapter {
       "not metrics — and describe nothing real. Not published, reviewed, or endorsed by " +
       "The Green Web Foundation.",
       domain: "thegreenwebfoundation.org",
-      reportingPeriod: "2025",
+      period: yearPeriod(2025),
       ...(apiKey !== undefined ? { apiKey } : { fixture: CARBONTXT_FIXTURE }),
       // carbon.txt has no numbers; the demo supplies clearly-labelled synthetic
       // metrics so the document exercises the full field mapping.
@@ -249,7 +258,7 @@ function carbontxtDemoAdapter(deps: LiveDeps, apiKey?: string): SourceAdapter {
       gridIntensity: 442,
       measurementMethod: "third-party-modeled",
     }),
-    periodClose("2025"),
+    yearPeriod(2025).end,
   );
 }
 
@@ -271,7 +280,7 @@ export const CLIMATIQ_FIXTURE = {
 };
 
 function climatiqDemoAdapter(config: GatewayConfig, deps: LiveDeps, apiKey?: string): SourceAdapter {
-  const period = lastCompletedMonth(deps.now());
+  const period = lastFullMonthPeriod(deps.now());
   const kwh = (config.self.watts * periodHours(period)) / 1000;
   const live = apiKey !== undefined;
   return withUpdated(
@@ -288,7 +297,7 @@ function climatiqDemoAdapter(config: GatewayConfig, deps: LiveDeps, apiKey?: str
         "tier does not include general API access and its terms restrict redistribution; " +
         "operators with a licensed key can set CLIMATIQ_API_KEY to run this live.",
       methodologyUri: "https://www.climatiq.io/docs/api-reference/estimate",
-      reportingPeriod: period,
+      period,
       activityId: "electricity-supply_grid-source_residual_mix",
       // Climatiq requires a data-version selector for live estimates (the
       // current major, 2026-09); replay fixtures ignore it.
@@ -297,7 +306,7 @@ function climatiqDemoAdapter(config: GatewayConfig, deps: LiveDeps, apiKey?: str
       measurementMethod: "third-party-modeled",
       ...(apiKey !== undefined ? { apiKey } : { fixture: CLIMATIQ_FIXTURE }),
     }),
-    periodClose(period),
+    period.end,
   );
 }
 
@@ -344,7 +353,7 @@ function salesforceDemoAdapter(): SourceAdapter {
       fixture: SALESFORCE_FIXTURE,
       measurementMethod: "third-party-modeled",
     }),
-    periodClose("2025"),
+    yearPeriod(2025).end,
   );
 }
 
@@ -375,12 +384,12 @@ function msDemoAdapter(): SourceAdapter {
       "successor is the Azure Carbon Optimization REST API). Figures are SYNTHETIC and " +
       "describe no real tenant. Not affiliated with Microsoft.",
       methodologyUri: "https://learn.microsoft.com/en-us/industry/sustainability/",
-      reportingPeriod: "2025",
+      period: yearPeriod(2025),
       energyKwh: 5230,
       fixturePages: MS_FIXTURE_PAGES,
       measurementMethod: "third-party-modeled",
     }),
-    periodClose("2025"),
+    yearPeriod(2025).end,
   );
 }
 
@@ -410,11 +419,11 @@ function watershedDemoAdapter(): SourceAdapter {
       "Figures are SYNTHETIC and describe no real organization. Not affiliated with " +
       "Watershed.",
       methodologyUri: "https://api-docs.watershed.com/",
-      reportingPeriod: "2025",
+      period: yearPeriod(2025),
       fixture: WATERSHED_FIXTURE,
       measurementMethod: "third-party-modeled",
     }),
-    periodClose("2025"),
+    yearPeriod(2025).end,
   );
 }
 
@@ -431,8 +440,8 @@ export interface DemoSpecOptions {
 }
 
 /** This gateway's energy for a calendar month, by the same rule as its self report. */
-function gatewayMonthKwh(config: GatewayConfig, wattsByMonth: Record<string, number>, period: string): number {
-  const watts = wattsByMonth[period] ?? config.self.watts;
+function gatewayMonthKwh(config: GatewayConfig, wattsByMonth: Record<string, number>, period: Period): number {
+  const watts = wattsByMonth[monthKey(period.start)] ?? config.self.watts;
   return Number(((watts * periodHours(period)) / 1000).toPrecision(4));
 }
 
@@ -481,6 +490,7 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
           `LIVE from the National Energy System Operator (NESO) Carbon Intensity API, ` +
             `${intensity} gCO2/kWh for the current GB half-hour at refresh time, refreshed ` +
             "daily and cached. Data: NESO Carbon Intensity API, CC BY 4.0.",
+          dateTimeOf(deps.now().getTime()),
           wattsByMonth,
         );
       },
@@ -493,6 +503,7 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
             `(${NESO_FIXTURE_INTENSITY} gCO2/kWh, retrieved ${NESO_FIXTURE_RETRIEVED}); the ` +
             "live API was unavailable at the last refresh. Data: NESO Carbon Intensity API, " +
             "CC BY 4.0.",
+          `${NESO_FIXTURE_RETRIEVED}T00:00:00Z`,
           wattsByMonth,
         ),
       labelLive: "adapter:computed (LIVE NESO grid intensity, daily)",
@@ -533,14 +544,16 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       attribution: "CO2.js Apache-2.0; Ember CC BY 4.0; GWF Green Domains ODbL",
       input: {
         body: {
-          "bytes-transferred": crawlBytes,
-          measured: "the serialized size of one crawl of every document this gateway serves, at start-up",
+          "bytes-transferred": GIGABYTE,
+          "crawl-bytes": crawlBytes,
+          measured: "crawl-bytes is the serialized size of one crawl of every document this gateway serves, at start-up; the score is computed for one gigabyte",
           model: "Sustainable Web Design model, version 4, as implemented by CO2.js",
           "green-hosting": "looked up at start-up with the Green Web Foundation Greencheck API when a public base URL is set",
         },
         note:
-          "The only input CO2.js needs is a byte count. This one is real: the gateway measures it " +
-          "by serializing every document it serves when it starts.",
+          "The only input CO2.js needs is a byte count: one gigabyte, so the result is a score per " +
+          "gigabyte. The size of one crawl of this gateway, measured by serializing every document " +
+          "it serves when it starts, is given for scale.",
       },
     },
     {
@@ -669,7 +682,7 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       targetType: "organization",
       live: async (deps) => {
         const doc = await fetchGwfDist(deps.fetchImpl as typeof fetch);
-        return distLiveAdapter(doc, deps.now().toISOString().slice(0, 10) + "T00:00:00Z");
+        return distLiveAdapter(doc, dateTimeOf(startOfDay(deps.now().getTime())));
       },
       fixture: () => distReplayAdapter(),
       labelLive: "adapter:dist (LIVE Green Web Foundation dist.json, daily)",

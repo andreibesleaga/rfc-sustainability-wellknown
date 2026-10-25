@@ -21,13 +21,20 @@ test("the environment becomes a signed, conformant declaration", async () => {
     assert.equal(r.status, 200);
     assert.equal(r.headers.get("content-type"), "application/sustainability-data+json");
     const doc = await r.json();
+    assert.equal(Array.isArray(doc), false, "the kit publishes one current report, not an array");
     assert.equal(doc.target, "node.example");
+    assert.deepEqual(doc.period, { start: "2026-09-01T00:00:00Z", end: "2026-10-01T00:00:00Z" });
+    assert.equal(doc.signed.split(".").length, 3);
     assert.equal(doc["energy-consumption"], 12.5);
     assert.equal(typeof doc.signed, "string");
     if (consumer) {
       assert.equal(consumer.validateDocument(doc).valid, true);
       assert.equal((await consumer.verifyEmbeddedSignature(doc)).result.status, "verified");
     }
+    // A basic publisher ignores every parameter: no 400, no 404, the same body.
+    const withQuery = await fetch(`${base}/.well-known/sustainability-data?start=1999-01-01T00:00:00Z&target=other&granularity=daily&foo=%`);
+    assert.equal(withQuery.status, 200);
+    assert.equal((await withQuery.json()).target, "node.example");
     assert.equal((await fetch(`${base}/.well-known/sustainability-data`, { method: "POST" })).status, 405);
   } finally {
     await new Promise((r) => server.close(() => r()));
@@ -58,4 +65,52 @@ test("a missing or invalid measurement method stops the service at start", async
     Object.assign(process.env, base, m ? { SD_MEASUREMENT_METHOD: m } : {});
     await assert.rejects(() => makePublisher({ log: false }), /SD_MEASUREMENT_METHOD is required/);
   }
+});
+
+function configure(extra) {
+  for (const k of Object.keys(process.env)) if (k.startsWith("SD_")) delete process.env[k];
+  Object.assign(process.env, {
+    SD_TARGET: "node.example", SD_PROVIDER: "P (https://node.example/c)", SD_METHODOLOGY_URI: "https://node.example/m",
+    SD_ENERGY_KWH: "1", SD_UPDATED: "2026-10-01T00:00:00Z", SD_MEASUREMENT_METHOD: "third-party-modeled",
+  }, extra);
+}
+
+test("SD_START and SD_END give the period as two date-times, and win over SD_PERIOD", async () => {
+  configure({ SD_START: "2026-03-01T00:00:00+08:00", SD_END: "2026-04-01T00:00:00+08:00", SD_PERIOD: "2025" });
+  const doc = await (await makePublisher({ log: false })).build({});
+  assert.deepEqual(doc.period, { start: "2026-03-01T00:00:00+08:00", end: "2026-04-01T00:00:00+08:00" });
+});
+
+test("SD_PERIOD is the whole year, month or day in UTC", async () => {
+  for (const [label, end] of [["2025", "2026-01-01T00:00:00Z"], ["2026-02", "2026-03-01T00:00:00Z"], ["2026-02-28", "2026-03-01T00:00:00Z"]]) {
+    configure({ SD_PERIOD: label });
+    const doc = await (await makePublisher({ log: false })).build({});
+    assert.equal(doc.period.start, `${label.length === 4 ? `${label}-01-01` : label.length === 7 ? `${label}-01` : label}T00:00:00Z`);
+    assert.equal(doc.period.end, end);
+  }
+});
+
+test("a bad period setting stops the service at start and names the variable", async () => {
+  const cases = [
+    [{ SD_START: "not-a-date", SD_END: "2026-10-01T00:00:00Z" }, /SD_START/],
+    [{ SD_START: "2026-09-01T00:00:00Z" }, /SD_START and SD_END must be given together/],
+    [{ SD_END: "2026-10-01T00:00:00Z" }, /SD_START and SD_END must be given together/],
+    [{ SD_START: "2026-09-01t00:00:00z", SD_END: "2026-10-01T00:00:00Z" }, /SD_START/],
+    [{ SD_START: "2026-10-01T00:00:00Z", SD_END: "2026-09-01T00:00:00Z" }, /SD_START and SD_END/],
+    [{ SD_PERIOD: "2026-13" }, /SD_PERIOD/],
+    [{}, /SD_START and SD_END, or SD_PERIOD, is required/],
+  ];
+  for (const [extra, message] of cases) {
+    configure(extra);
+    await assert.rejects(() => makePublisher({ log: false }), message, JSON.stringify(extra));
+  }
+});
+
+test("the nine target types of the draft are accepted and no other", async () => {
+  for (const type of ["origin", "path", "organization", "facility", "service", "product", "device", "tenant", "data-source"]) {
+    configure({ SD_PERIOD: "2026-09", SD_TARGET_TYPE: type, SD_TARGET: type === "path" ? "/api" : "node.example" });
+    assert.equal((await (await makePublisher({ log: false })).build({}))["target-type"], type);
+  }
+  configure({ SD_PERIOD: "2026-09", SD_TARGET_TYPE: "datacenter" });
+  await assert.rejects(() => makePublisher({ log: false }), /SD_TARGET_TYPE/);
 });

@@ -1,20 +1,52 @@
 /** Shared helpers for adapters. */
 import { readFileSync } from "node:fs";
+import { domainToASCII } from "node:url";
+import { parseStrict } from "./json";
+import { isFullDate, monthPeriod, parsePeriod, Period, periodFromFullDates, periodFromReportingPeriod, toUtcQueryValue } from "./period";
+import { CarbonUnit, EnergyUnit, isTargetType } from "./tokens";
 import {
-  CarbonUnit,
-  EnergyUnit,
   EVIDENCE_MEMBERS,
   Extensions,
   METRIC_MEMBERS,
   RawMetrics,
   SustainabilityMetrics,
-  TARGET_TYPES,
-  TargetType,
   UpstreamEntry,
 } from "./types";
 
 /** Largest upstream JSON body an adapter will read (an emissions API answer is a few kilobytes). */
 export const MAX_UPSTREAM_BYTES = 4 * 1024 * 1024;
+
+/**
+ * The body of a response as text, read with a running byte count: it throws as
+ * soon as the body passes `maxBytes`, without reading the rest. A response with
+ * no stream (a test double) is read whole and measured.
+ */
+export async function readBodyCapped(
+  res: { body?: ReadableStream<Uint8Array> | null; text(): Promise<string> },
+  maxBytes: number,
+  what: string,
+): Promise<string> {
+  const tooLarge = () => new Error(`${what} exceeds ${maxBytes} bytes`);
+  if (!res.body) {
+    const text = await res.text();
+    if (Buffer.byteLength(text) > maxBytes) throw tooLarge();
+    return text;
+  }
+  const reader = res.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      throw tooLarge();
+    }
+    chunks.push(Buffer.from(value));
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
 
 /** Minimal JSON fetch over the global `fetch` (Node 22): bounded in time and size. */
 export async function fetchJson(
@@ -27,35 +59,20 @@ export async function fetchJson(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { ...init, signal: controller.signal });
-    const text = await res.text();
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} for ${url} ${text.slice(0, 200)}`);
-    if (Buffer.byteLength(text) > maxBytes) throw new Error(`upstream body from ${url} exceeds ${maxBytes} bytes`);
-    return JSON.parse(text);
+    if (!res.ok) {
+      const detail = await readBodyCapped(res, 1024, "error body").catch(() => "");
+      throw new Error(`HTTP ${res.status} ${res.statusText} for ${url} ${detail.slice(0, 200)}`);
+    }
+    return JSON.parse(await readBodyCapped(res, maxBytes, `upstream body from ${url}`));
   } finally {
     clearTimeout(timer);
   }
 }
 
 /**
- * Round to `dp` decimal places to avoid float noise in payloads, but never to
- * fewer than four significant figures: a fixed number of decimals turns a small
- * value into zero or a large relative error (0.000358 kWh would become 0.0004,
- * +12%; 0.0000144 kWh would become 0 next to a non-zero carbon figure).
- */
-export function round(n: number, dp = 4): number {
-  if (n === 0 || !Number.isFinite(n)) return n;
-  const magnitude = Math.floor(Math.log10(Math.abs(n)));
-  if (dp + magnitude + 1 >= 4) {
-    const f = 10 ** dp;
-    return Math.round(n * f) / f;
-  }
-  return Number(n.toPrecision(4));
-}
-
-/**
- * Draft §Value Constraints and Omitted Metrics: "A declaration object MUST
- * carry at least one numeric metric member or at least one of disclosure-uri
- * and verifiable-attestation-uri." True when the object satisfies that rule.
+ * Draft §Optional Members: "A declaration object MUST carry at least one
+ * numeric metric member or at least one of disclosure-uri and
+ * verifiable-attestation-uri." True when the object satisfies that rule.
  */
 export function hasReportableContent(obj: unknown): boolean {
   if (typeof obj !== "object" || obj === null) return false;
@@ -64,60 +81,89 @@ export function hasReportableContent(obj: unknown): boolean {
   return EVIDENCE_MEMBERS.some((m) => typeof rec[m] === "string" && rec[m] !== "");
 }
 
-/** Read and parse a JSON file. */
-export function readJson<T = any>(path: string): T {
-  return JSON.parse(readFileSync(path, "utf8")) as T;
+/**
+ * True when `value` reads as a host name: no whitespace or "/", and a "." with at least one character on each
+ * side. Written without a regular expression so the check stays linear on any input.
+ */
+export function isHostShaped(value: string): boolean {
+  if (/[\s/]/.test(value)) return false;
+  const dot = value.indexOf(".", 1);
+  return dot > 0 && dot < value.length - 1;
 }
 
 /**
- * Convert an already wire-shaped {@link SustainabilityMetrics} object back into
- * {@link RawMetrics} so existing `/.well-known/sustainability-data` files (or example
- * payloads) can be re-ingested and re-validated by the gateway.
+ * For a `target` that reads as a host name (no whitespace or slash, at least one
+ * dot) and is written with non-ASCII characters, the A-label form the draft
+ * requires for an internationalized host (§Mandatory Members; RFC 5890,
+ * Section 2.3.2.1), or "" when the name has none. `undefined` when the target is
+ * not host-shaped or is in A-label form already.
  */
-/** Wire-format keys handled explicitly by {@link fromWire}. */
-const WIRE_KEYS = new Set([
-  "updated",
-  "capabilities",
-  "provider",
-  "measurement-method",
-  "methodology-uri",
-  "reporting-period",
-  "target",
-  "energy-consumption",
-  "energy-unit",
-  "carbon-footprint",
-  "carbon-unit",
-  "carbon-accounting",
-  "scope-1",
-  "scope-2",
-  "scope-3",
-  "sci-score",
-  "functional-unit",
-  "carbon-intensity-gCO2e-per-kWh",
-  "estimated-annual-emissions-kgCO2e",
-  "renewable-energy",
-  "verifiable-attestation-uri",
-  "disclosure-uri",
-  "target-type",
-  "upstream",
-  "extensions",
-  // The signature covers the object it was served in; a re-emitted object is
-  // signed afresh by the publisher, never carried over.
-  "signed",
-  // Historical member names, re-ingested via field-driven compatibility rules.
-  "target-path",
-  "carbon-intensity-gCO2-per-kWh",
-  "estimated-annual-emissions-kgCO2",
-]);
+export function aLabelOf(target: string): string | undefined {
+  if (!isHostShaped(target) || !/[^\x00-\x7f]/.test(target)) return undefined;
+  return domainToASCII(target);
+}
+
+/** Read and parse a JSON file as I-JSON: a duplicate member name, a number beyond binary64 or an unpaired surrogate is refused. */
+export function readJson<T = any>(path: string): T {
+  return parseStrict(readFileSync(path, "utf8")) as T;
+}
+
+/** The current time as an RFC 3339 date-time in whole seconds, UTC, with `T` and `Z` in upper case. */
+export function nowDateTime(): string {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, "Z"); // clock
+}
+
+/**
+ * The most recently completed calendar month before `now` (an instant, or an
+ * RFC 3339 date-time), in UTC. The clock is the caller's: default the present.
+ */
+export function lastFullMonthPeriod(now: string | Date = new Date()): Period {
+  const utc = toUtcQueryValue(typeof now === "string" ? now : now.toISOString());
+  const year = Number(utc.slice(0, 4));
+  const month = Number(utc.slice(5, 7));
+  return month === 1 ? monthPeriod(year - 1, 12) : monthPeriod(year, month - 1);
+}
+
+export interface FromWireOptions {
+  /**
+   * Read the older forms of a document as the current ones. Default true: a
+   * `reporting-period` label or a pair of `full-date` bounds becomes the period
+   * it stands for, a negative or out-of-range figure is read as "not reported"
+   * (the old convention), and an unrecognized `target-type` is dropped. With
+   * `false`, the document is read as it stands, and `normalize` refuses what it
+   * cannot publish.
+   */
+  legacyCompat?: boolean;
+}
+
+/**
+ * The period of an object that carries one of the two earlier forms: the
+ * `reporting-period` label of -08 (the whole year, month or day), or the pair of
+ * inclusive `full-date` bounds of -09. Both conversions are exact. `undefined`
+ * when the object carries neither; throws a `PeriodError` when it carries one
+ * that names no date. A token of another revision is never converted here.
+ */
+export function olderPeriodOf(m: object): Period | undefined {
+  const wire = m as Record<string, unknown>;
+  const label = wire["reporting-period"];
+  const period = wire["period"] as Record<string, unknown> | undefined;
+  if (period === undefined && typeof label === "string") return periodFromReportingPeriod(label);
+  if (isFullDate(period?.start) && isFullDate(period?.end)) return periodFromFullDates({ start: period.start, end: period.end });
+  return undefined;
+}
+
+// The period of a wire object; with `legacyCompat`, an earlier form is read as well.
+function periodOf(m: object, legacyCompat: boolean): Period {
+  return (legacyCompat ? olderPeriodOf(m) : undefined) ?? parsePeriod((m as Record<string, unknown>)["period"]);
+}
 
 /**
  * Re-ingest value policy (one rule per class, applied consistently):
  *  - A NON-NUMBER in a present numeric member is a corrupt file — fail loud
  *    (never silently drop a typo'd metric).
- *  - A NEGATIVE value in a non-negative member is the historical "not
- *    reported" sentinel and is dropped (draft §Value Constraints and Omitted Metrics, out-of-range rule).
- *  - An OUT-OF-RANGE value (renewable-energy > 100) is likewise treated as
- *    not reported and dropped (draft §Value Constraints, client leniency).
+ *  - With `legacyCompat`, a NEGATIVE value in a non-negative member is the
+ *    historical "not reported" sentinel and is dropped, and so is an
+ *    OUT-OF-RANGE value (renewable-energy > 100).
  *  - scope-1/2/3 MAY legitimately be negative and are numeric-checked only.
  */
 function numOrThrow(v: unknown, member: string): number {
@@ -126,28 +172,32 @@ function numOrThrow(v: unknown, member: string): number {
   }
   return v;
 }
-const isReported = (v: unknown, member: string): boolean => {
-  const n = numOrThrow(v, member);
-  if (n < 0) return false; // historical sentinel -> not reported
-  if (member === "renewable-energy" && n > 100) return false; // out of range
-  return true;
-};
 
-export function fromWire(m: SustainabilityMetrics): RawMetrics {
+/**
+ * Convert an already wire-shaped {@link SustainabilityMetrics} object back into
+ * {@link RawMetrics} so existing `/.well-known/sustainability-data` files (or example
+ * payloads) can be re-ingested and re-validated by the gateway.
+ */
+export function fromWire(m: SustainabilityMetrics, options: FromWireOptions = {}): RawMetrics {
+  const legacyCompat = options.legacyCompat !== false;
+  const isReported = (v: unknown, member: string): boolean => {
+    const n = numOrThrow(v, member);
+    if (!legacyCompat) return true;
+    if (n < 0) return false; // historical sentinel -> not reported
+    return !(member === "renewable-energy" && n > 100); // out of range
+  };
   const raw: RawMetrics = {
     provider: m.provider,
     measurementMethod: m["measurement-method"],
     methodologyUri: m["methodology-uri"],
-    reportingPeriod: m["reporting-period"],
+    period: periodOf(m, legacyCompat),
     capabilities: m.capabilities,
     updated: m.updated,
   };
   const legacy = m as unknown as Record<string, unknown>;
-  // Energy/carbon are optional since -03: only re-ingest members actually
-  // present (a `{ value: undefined }` would poison normalize with NaN). When
-  // the value is present without its unit, the draft's defaults apply. A
-  // negative value in a non-negative member is the historical sentinel and
-  // reads as "not reported" (dropped), per the draft's compatibility rules.
+  // Energy/carbon are optional: only re-ingest members actually present (a
+  // `{ value: undefined }` would poison normalize with NaN). When the value is
+  // present without its unit, the draft's defaults apply.
   if (m["energy-consumption"] !== undefined && isReported(m["energy-consumption"], "energy-consumption")) {
     raw.energy = {
       value: Number(m["energy-consumption"]),
@@ -165,12 +215,12 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
     // carry it so normalize doesn't reinterpret the scopes as gCO2e.
     raw.carbonUnitHint = m["carbon-unit"] as CarbonUnit;
   }
-  // Historical documents conveyed the reporting subject via the optional
-  // `target-path` member; map it to `target` (compatibility rule: absence of
-  // target-path meant origin-wide — the caller's opts.target covers that).
+  // Historical documents conveyed the target via the optional `target-path`
+  // member; map it to `target` (absence of target-path meant origin-wide — the
+  // caller's opts.target covers that).
   if (m.target !== undefined) raw.target = String(m.target);
-  else if (legacy["target-path"] !== undefined) raw.target = String(legacy["target-path"]);
-  if (m["carbon-accounting"] !== undefined) raw.carbonAccounting = m["carbon-accounting"] as any;
+  else if (legacyCompat && legacy["target-path"] !== undefined) raw.target = String(legacy["target-path"]);
+  if (m["carbon-accounting"] !== undefined) raw.carbonAccounting = m["carbon-accounting"];
   // Scopes MAY be negative (removals/net accounting) — numeric-check only.
   if (m["scope-1"] !== undefined) raw.scope1 = numOrThrow(m["scope-1"], "scope-1");
   if (m["scope-2"] !== undefined) raw.scope2 = numOrThrow(m["scope-2"], "scope-2");
@@ -181,19 +231,19 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
   if (
     m["sci-score"] !== undefined &&
     isReported(m["sci-score"], "sci-score") &&
-    m["functional-unit"] !== undefined
+    (m["functional-unit"] !== undefined || !legacyCompat)
   ) {
     raw.sciScore = Number(m["sci-score"]);
   }
-  if (m["functional-unit"] !== undefined) raw.functionalUnit = String(m["functional-unit"]);
-  const intensity = m["carbon-intensity-gCO2e-per-kWh"] ?? legacy["carbon-intensity-gCO2-per-kWh"];
+  if (m["functional-unit"] !== undefined) raw.functionalUnit = m["functional-unit"];
+  const intensity = m["carbon-intensity-gCO2e-per-kWh"] ?? (legacyCompat ? legacy["carbon-intensity-gCO2-per-kWh"] : undefined);
   if (intensity !== undefined && isReported(intensity, "carbon-intensity-gCO2e-per-kWh")) {
     raw.carbonIntensity = Number(intensity);
   }
   if (m["renewable-energy"] !== undefined && isReported(m["renewable-energy"], "renewable-energy")) {
     raw.renewableEnergy = Number(m["renewable-energy"]);
   }
-  const annual = m["estimated-annual-emissions-kgCO2e"] ?? legacy["estimated-annual-emissions-kgCO2"];
+  const annual = m["estimated-annual-emissions-kgCO2e"] ?? (legacyCompat ? legacy["estimated-annual-emissions-kgCO2"] : undefined);
   if (annual !== undefined && isReported(annual, "estimated-annual-emissions-kgCO2e")) {
     raw.estimatedAnnualEmissionsKg = Number(annual);
   }
@@ -201,29 +251,21 @@ export function fromWire(m: SustainabilityMetrics): RawMetrics {
     raw.verifiableAttestationUri = String(m["verifiable-attestation-uri"]);
   }
   if (m["disclosure-uri"] !== undefined) raw.disclosureUri = String(m["disclosure-uri"]);
-  // target-type (draft -04): an enumerated hint. Per the draft's tolerance
-  // rule for enumerated string members (Value Constraints and Omitted
-  // Metrics), a client that encounters an unrecognized value SHOULD disregard
-  // the member — fromWire re-ingests foreign documents, so DROP it rather
-  // than throw (interpreting `target` as if target-type were absent).
-  if (m["target-type"] !== undefined && TARGET_TYPES.includes(m["target-type"] as TargetType)) {
-    raw.targetType = m["target-type"] as TargetType;
+  // A client that meets a target-type it does not recognize disregards the
+  // member, so a document being re-ingested loses it rather than failing.
+  if (m["target-type"] !== undefined && (isTargetType(m["target-type"]) || !legacyCompat)) {
+    raw.targetType = m["target-type"];
   }
 
-  // -07 members carried through verbatim; normalize re-validates both.
+  // Carried through verbatim; normalize re-validates both.
   if (Array.isArray(legacy["upstream"])) raw.upstream = legacy["upstream"] as UpstreamEntry[];
   const extensions = legacy["extensions"];
   if (typeof extensions === "object" && extensions !== null && !Array.isArray(extensions)) {
     raw.extensions = extensions as Extensions;
   }
-  // Every other top-level member is dropped: a consumer MUST ignore a member it
-  // does not recognize (draft, Payload Format), and the base object is closed,
-  // so re-emitting one would publish a non-conformant document.
+  // The `signed` member is not carried over: the signature covers the object it
+  // was served in, and a re-emitted object is signed afresh by the publisher.
+  // Every other top-level member is dropped as well: a consumer ignores a member
+  // it does not recognize (draft §Body), and a publisher adds none.
   return raw;
-}
-
-/** Most recently completed full calendar month, "YYYY-MM" (draft Basic default). */
-export function lastFullMonth(now = new Date()): string {
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }

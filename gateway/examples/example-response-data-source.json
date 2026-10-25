@@ -4,7 +4,10 @@
   "provider": "Example Environmental Metrics Feed (data@metrics.example)",
   "measurement-method": "third-party-modeled",
   "methodology-uri": "https://metrics.example/feed-sustainability-methodology",
-  "reporting-period": "2025",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
   "target": "https://metrics.example/feeds/grid-sensor-network",
   "energy-consumption": 3400,
   "energy-unit": "kWh",

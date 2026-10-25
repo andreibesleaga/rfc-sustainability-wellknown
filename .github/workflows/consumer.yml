@@ -1,5 +1,7 @@
 name: consumer
 
+# Node 22 and 24 must pass; Node 26 is reported but does not block.
+
 on:
   push:
     paths:
@@ -15,20 +17,28 @@ on:
       - "schemas-validators/**"
       - "example-responses/**"
 
+permissions:
+  contents: read
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    continue-on-error: ${{ matrix.node == '26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24", "26"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "${{ matrix.node }}"
           cache: npm
           cache-dependency-path: consumer/package-lock.json
 
-      # interop.test.ts imports publisher's built dist/ directly (both
-      # packages live in the same repo) — it must be built first.
+      # The interop and identity tests import the publisher's built dist/ directly
+      # (both packages live in the same repo): it must be built first.
       - name: Build publisher (for the interop test)
         working-directory: publisher
         run: |
@@ -38,6 +48,10 @@ jobs:
       - name: Install consumer dependencies
         working-directory: consumer
         run: npm ci
+
+      - name: Typecheck
+        working-directory: consumer
+        run: npm run typecheck
 
       - name: Build consumer
         working-directory: consumer

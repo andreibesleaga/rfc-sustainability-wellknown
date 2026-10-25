@@ -1,0 +1,68 @@
+[
+  {
+    "updated": "2026-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "carbon-footprint": 4140,
+    "carbon-unit": "kgCO2e",
+    "extensions": {
+      "https://example.com/ext/water": {
+        "water-consumption-m3": 1250,
+        "sources": [
+          "mains",
+          "rainwater",
+          {
+            "recycled": true
+          }
+        ],
+        "meter": null,
+        "detail": {}
+      },
+      "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845": {
+        "waste": [
+          [
+            1,
+            2
+          ],
+          [
+            3
+          ]
+        ],
+        "note": null
+      },
+      "urn:oid:1.3.6.1.4.1.99999.1": {
+        "nested": {
+          "a": {
+            "b": [
+              {}
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "updated": "2025-03-01T12:00:00Z",
+    "capabilities": "basic",
+    "provider": "Example Corp (sustain@example.com)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "/sustainability/methodology",
+    "period": {
+      "start": "2024-01-01T00:00:00Z",
+      "end": "2025-01-01T00:00:00Z"
+    },
+    "target": "Example Corp",
+    "target-type": "organization",
+    "carbon-footprint": 4140,
+    "carbon-unit": "kgCO2e",
+    "extensions": {}
+  }
+]

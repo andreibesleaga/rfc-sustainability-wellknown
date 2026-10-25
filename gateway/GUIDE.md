@@ -51,7 +51,7 @@ distinction is the whole design.
 
 The gateway does not reimplement the format. It depends on the published
 [`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)
-package (0.7.3) for normalization, the JTD validation gate, ETag generation,
+package (0.8.0) for normalization, the JTD validation gate, ETag generation,
 caching and the per-document HTTP semantics; the gateway adds multi-subject
 routing, `Last-Modified`, the index, and the honesty machinery.
 
@@ -91,7 +91,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 cd gateway
 npm install
 npm run build
-npm test                       # 473 tests
+npm test                       # 730 tests
 node dist/index.js             # binds 0.0.0.0:8080
 ```
 
@@ -113,22 +113,25 @@ the reason.
 Relayed subject documents implement the **Basic** service level:
 `capabilities: "basic"`, no query parameters — with two deliberate,
 draft-conformant exceptions. The gateway's **own** report is an Extended
-publisher (`period` and `granularity` honoured, `target` ignored; see
+publisher (`start`, `end`, `granularity` and `target` honoured; see
 [The gateway's own report](#the-gateways-own-report-extended-signed-attested)),
 and the wire-format example subjects whose documents themselves declare
-`capabilities: "extended"` honor `?period=` and `?granularity=`, returning their
-sorted trend array only for a granularity finer than the period (see
-[Wiring an adapter](#wiring-an-adapter)).
+`capabilities: "extended"` honor the same four parameters and return the objects
+they hold that satisfy them, as an array in ascending order of `period.start`
+(see [Wiring an adapter](#wiring-an-adapter)).
 
 | Route | Behaviour |
 |---|---|
 | `GET\|HEAD /{domain}/.well-known/sustainability-data` | The subject's declaration. `200` + the dedicated `application/sustainability-data+json` media type (or the generic `application/json`, per [Configuration reference](#configuration-reference)), or `404` if the subject is unknown. |
-| `GET\|HEAD /.well-known/sustainability-data` | The gateway's own report, `target-type: "service"`, `capabilities: "extended"`: `?period=YYYY[-MM[-DD]]` and `?granularity=monthly\|daily` honoured (array only when the granularity is finer than the period), `404` for a period wholly before go-live. When `SUSTAINABILITY_SIGNING_KEY` is set, every object it returns carries a `signed` member — there is no separate signature resource. |
-| a defined query parameter given twice, or a `period` that names no real calendar date, on a route that honours the parameters | `400` + a JSON body naming the fault, `Cache-Control: no-store` (draft §Extended Query Parameters, steps 1 and 2). |
-| `?target=…` on a route that honours the parameters | `404`: this gateway publishes an empty path-prefix set, so no value matches (step 4). The value is never echoed back, and the response is byte for byte the no-data `404` a period with no figures gets, so the two cannot be told apart (draft §Privacy Considerations). |
+| `GET\|HEAD /.well-known/sustainability-data` | The gateway's own report, `target-type: "service"`, `capabilities: "extended"`: `?start=`, `?end=` (UTC date-times such as `2026-09-01T00:00:00Z`), `?granularity=yearly\|monthly\|daily` and `?target=` honoured; a request that names none of them is answered with one object, the most recently completed month, and one that names any is answered with an array, empty (`200` and `[]`) when nothing is held for it. When `SUSTAINABILITY_SIGNING_KEY` is set, every object it returns carries a `signed` member — there is no separate signature resource. |
+| a query value outside the grammar of the draft, or a parameter given twice, on a route that honours the parameters | Ignored, never an error: the parameter is read as absent and the answer is the one the request would get without it (draft §Query Parameters). |
+| `?target=…` on a route that honours the parameters | An array of the objects whose `target` equals the value, compared as the draft says; for the gateway's own report that is its one `target`, any other value selects nothing and the answer is `200` and `[]`. |
 | `GET\|HEAD /` | HTML index: every subject and the honesty notice. |
 | `GET\|HEAD /index.json` | The same index, machine-readable. |
 | `GET\|HEAD /healthz` | `{"status":"ok","subjects":N}`, `Cache-Control: no-store`. |
+| `GET\|HEAD /legal` | The legal notice, `text/plain`, in English. |
+| `GET\|HEAD /validate?origin=https://host` | The public validator: one retrieval of that origin's declaration with the published consumer, answered as JSON with `status` (`valid`, `invalid`, `unreachable`), `format` (`current` or `legacy`), `converted`, `disregarded`, `period` (an object), `signature`, `detail` and `note`. `https` on port 443 and public DNS names only; a name that resolves to a private address is refused; 64 KiB, 5 s; the outcome is kept for an hour per host. `400` for an origin that is not accepted or is in `VALIDATOR_EXCLUDE`; `503` with `Retry-After` when this client's or the whole service's budget of new retrievals is spent, which says nothing about the origin. |
+| `GET\|HEAD /badge/<host>.svg` | The same outcome as an SVG badge with a text alternative; the word on it is the status (`valid`, `valid (legacy)`, `invalid`, `unreachable`) and never `verified` or `certified`. A request that was not answered with an outcome gets a "not checked" or "try later" notice badge, which is not stored as an outcome. |
 | any other method on any of the above | `405` + `Allow: GET, HEAD`. |
 | anything else | `404` with a JSON body. |
 | more than `RATE_LIMIT_PER_MINUTE` requests from one client in a minute (any path but `/healthz`) | `429` + `Retry-After`, `Cache-Control: no-store`. |
@@ -150,9 +153,8 @@ Content-Length: 939
 Notes on each of those, and on the rules behind them:
 
 - **`Content-Type` is the dedicated `application/sustainability-data+json`
-  media type by default** — draft -07's §Mandatory Minimum Supported Service
-  requires it for a `200` response and forbids any other media type
-  there. Set `SUSTAINABILITY_MEDIA_TYPE=json` to switch the whole service to
+  media type by default** — the type the draft registers (Location and
+  Transport); a consumer MAY also process `application/json`. Set `SUSTAINABILITY_MEDIA_TYPE=json` to switch the whole service to
   the generic `application/json` type instead (the type under which
   declarations published before the registration exist, and which a consumer
   MAY still process; **not** conformant publishing), or pin one subject to it
@@ -162,7 +164,7 @@ Notes on each of those, and on the rules behind them:
   Error responses (`400`/`404`/`405`/`503`) always use `application/json`,
   never the dedicated type.
 - **`X-Content-Type-Options: nosniff` is sent on every response**, declaration
-  or not. It is this deployment's own hardening — -07 no longer mentions the
+  or not. It is this deployment's own hardening — the draft does not mention the
   header — so a client cannot be induced to interpret the declaration as some
   other, more dangerous type.
 - **`ETag` is strong** (no `W/`), a SHA-1 of the exact body, produced by the
@@ -171,9 +173,8 @@ Notes on each of those, and on the rules behind them:
 - **`Last-Modified` comes from the document's own `updated` member**, not from
   the file's mtime. It describes the published document, not the deploy, so it
   is stable across redeploys and replicas.
-- **`Content-Language: en`** identifies the language of the human-readable
-  `provider` text, which the specification's Internationalization
-  Considerations ask publishers to do at the HTTP layer. No negotiation is
+- **`Content-Language: en`** states the language of the `provider` text, as the
+  draft's `provider` definition says a publisher does. No negotiation is
   offered, so there is no `Vary`.
 - **`HEAD` returns byte-identical headers** to `GET`, `Content-Length`
   included, with no body.
@@ -181,14 +182,15 @@ Notes on each of those, and on the rules behind them:
   client can read the status rather than an opaque failure.
 - **Query parameters are ignored, never an error.** The specification requires a
   server that does not support the Extended parameters to ignore them and return
-  the Basic response. `?period=2019&granularity=hourly&target=/x` returns the
+  the Basic response. `?start=2019-01-01T00:00:00Z&granularity=hourly&target=/x` returns the
   byte-identical `200` with the same `ETag`. This also collapses every query
-  string onto one cache entry, which is the specification's Denial-of-Service
-  guidance about bounding the cache-key space. (On the declared-extended example
-  subjects, only the exact granularity their entries carry is honored; every
-  other value is ignored the same way, so the key space stays bounded there
-  too.)
-- **An unknown subject is `404`** — the no-data rule — with the same JSON body
+  string onto one cache entry, which keeps the cache-key space to one entry per
+  subject (this deployment's choice; the draft's last Security Considerations
+  paragraph asks a server that computes answers to rate-limit and cache). (On the declared-extended example
+  subjects the parameters are honored; a value outside the grammar is ignored
+  the same way, and equal values share one cache entry however they are spelled,
+  so the key space stays bounded there too.)
+- **An unknown subject is `404`**: this gateway holds nothing for it, with the same JSON body
   as any other unknown path:
 
   ```json
@@ -223,13 +225,13 @@ The data layer is drop-in: **no code change is needed.**
    {
      "updated": "2026-07-29T00:00:00Z",
      "capabilities": "basic",
-     "provider": "Illustrative mapping prepared by the gateway operator, NAME (EMAIL), from the reporting subject's own published DOCUMENT; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: …",
-     "measurement-method": "hardware-estimated",
+     "provider": "Illustrative mapping prepared by the gateway operator, OPERATOR ROLE (role address, e.g. registry@your.domain), from the reporting subject's own published DOCUMENT; NOT published, reviewed, authorized, or endorsed by the reporting subject. Every figure is read from the source document named in methodology-uri. Scope caveats: …",
+     "measurement-method": "third-party-modeled",
      "methodology-uri": "https://example.com/their-actual-report.pdf",
-     "reporting-period": "2025",
+     "period": { "start": "2025-01-01T00:00:00Z", "end": "2026-01-01T00:00:00Z" },
      "target": "Example Corporation",
      "carbon-footprint": 12345,
-     "carbon-unit": "mtCO2e",
+     "carbon-unit": "tCO2e",
      "carbon-accounting": "location-based",
      "scope-1": 100,
      "scope-2": 2245,
@@ -242,22 +244,29 @@ The data layer is drop-in: **no code change is needed.**
    Rules the loader and tests enforce:
 
    - a **single object**, never an array (the Basic response is one object);
-   - all **seven** mandatory members present; **no `version` member** — -07
-     removed it, the media type identifies the format; `capabilities: "basic"`;
-   - `reporting-period` a **full calendar year**, `YYYY`;
+   - all **seven** mandatory members present; **no `version` member** — the
+     media type identifies the format; `capabilities: "basic"`;
+   - `period` an object with `start` and `end`, both RFC 3339 date-times, `start`
+     before `end`; the bounds of a calendar year are
+     `YYYY-01-01T00:00:00Z` and `(YYYY+1)-01-01T00:00:00Z`;
+   - `measurement-method` one of its four tokens (`hardware-metered`,
+     `hardware-estimated`, `cloud-billing`, `third-party-modeled`), `carbon-unit` one
+     of `gCO2e`, `kgCO2e`, `tCO2e`;
    - `target-type` one of `organization`, `origin`, `service` for a real
-     subject (a synthetic `.example` vector may use any of the eight);
+     subject (a synthetic `.example` vector may use any of the nine);
    - every URI member an absolute `https` URI, `upstream[].declaration`
-     included;
-   - **the top-level member set is closed**: -07 forbids a publisher adding a
+     included (this registry's house style; the draft allows any URI
+     reference);
+   - **the top-level member set is closed**: the draft forbids a publisher adding a
      member of its own. Anything this specification does not define goes in
-     `extensions`, an object whose keys are absolute URIs (RFC 3986; ASCII,
-     scheme in lowercase, no fragment) and whose values are objects. Two forms are used in practice: an
-     `https` URI under your own control, which should identify a page
-     documenting the extension, or `urn:uuid:` plus a lowercase hyphenated UUID
-     (RFC 9562), for a definer without a domain. The key is an identifier
-     compared as a string — nothing is ever fetched from it — and there is no
-     registry. This registry's own name is
+     `extensions`, an object whose keys are extension names and whose values are
+     objects. An extension name is a URI under the definer's control when the
+     name was minted (for example an `https` URI), or a UUID URN
+     (`urn:uuid:…`, RFC 9562) for a definer without a domain. It is an
+     identifier, compared as a string after JSON escapes are decoded, and never
+     dereferenced; there is no registry of names. This registry itself mints
+     only lowercase `https` names and lowercase UUID URNs: a house style, not a
+     rule of the draft. This registry's own name is
      `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041`; mint your own once
      (`python3 -c "import uuid;print('urn:uuid:'+str(uuid.uuid4()))"`, or pick
      an `https` URI you control) and publish what its members mean in your
@@ -273,13 +282,10 @@ The data layer is drop-in: **no code change is needed.**
    `carbon-footprint`. Every one of those cases is live in `data/` already; copy
    the nearest.
 
-4. **Fiscal years.** `reporting-period` admits only whole calendar periods.
-   For a subject reporting on a fiscal year, carry the calendar year in which
-   the fiscal year *ended*, and state the exact boundary in two more places: in
-   the `provider` caveats, and in a machine-readable member. Since -07 that
-   member lives inside `extensions`, under this registry's extension name
-   `urn:uuid:58f04ecf-c558-4674-8dc6-c8bdbb6a8041`, as `reporting-period-basis`, e.g.
-   `"fiscal-year-ended-2025-06-30"`. See `go.eco.json`.
+4. **Fiscal years.** `period` states its two bounds, so a fiscal year is
+   written as it is: for a year from 1 October 2024 to 30 September 2025 the
+   bounds are `2024-10-01T00:00:00Z` and `2025-10-01T00:00:00Z`. State the exact
+   boundary in the `provider` caveats as well, in words. See `go.eco.json`.
 
 5. **Naming an upstream provider.** A subject whose figures partly derive from
    what a provider delivered to it names that provider's declaration in
@@ -318,7 +324,7 @@ leading underscore keeps it out of the subject registry:
 Each key is a domain already served by this gateway (a curated file, an
 adapter demonstration, or a wire-format example); the value is `"json"` (the
 generic `application/json` type) or `"sustainability-data+json"` (the
-dedicated type -07 requires, spelled out explicitly — only useful to override a `json`
+dedicated type the draft requires, spelled out explicitly — only useful to override a `json`
 service default back to the default for one subject). A domain not listed
 here simply inherits the service default. The file is optional; absent, no
 subject is overridden. The loader rejects an unrecognized value, an invalid
@@ -339,7 +345,7 @@ which reads the same data from a file, is not used here):
 | Subject | Adapter | Mode |
 |---|---|---|
 | `grid-intensity-demo.example` | `computed` | **live** — grid intensity fetched daily from the NESO (GB) Carbon Intensity API (keyless, CC BY 4.0) |
-| `co2js-demo.example` | `co2js` | **live** when `BASE_URL` is set — CO2.js computes locally over the gateway's own measured crawl bytes; green-hosting via keyless GWF Greencheck (ODbL) |
+| `co2js-demo.example` | `co2js` | **live** when `BASE_URL` is set — CO2.js computes locally a `sci-score` per gigabyte (`per-gigabyte`), with the size of one crawl of the gateway given for scale; green-hosting via keyless GWF Greencheck (ODbL) |
 | `carbontxt-demo.example` | `carbontxt-api` | live when `GWF_API_KEY` is set (free key); otherwise replay of the real, retrieved `thegreenwebfoundation.org/carbon.txt` |
 | `climatiq-demo.example` | `climatiq` | replay only: a synthetic response in Climatiq's documented shape. Climatiq's terms restrict redistribution, so this deployment relays nothing Climatiq computes, even with a key set |
 | `kepler-demo.example` | `kepler-prometheus` | replay (no publicly queryable Prometheus with Kepler metrics exists) |
@@ -360,15 +366,17 @@ Replay mode runs the *same adapter code* against a recorded upstream response
 
 The gateway also serves the repository's canonical **wire-format examples**
 (`gateway/examples/`, byte-identical to `example-responses/`, enforced by
-test): all twenty-two cases, including the -07 upstream pair, a pre-signed
-declaration served with its own verifiable `signed` member,
-(`upstream-organization.example` and `upstream-tenant.example`) and the trend
-arrays, which follow the
-draft's rule — the Basic response collapses to the most recent entry, and the
-sorted array is served only for a granularity finer than the requested period
-(`?period=2025&granularity=monthly`) on documents that themselves declare
-`capabilities: "extended"`; `?granularity=monthly` alone applies to the default
-(monthly) period and answers one object.
+test): all forty-two cases: the original ones in the form of the current draft,
+declaration files signed with Ed25519 and with ES256, a chain of upstream
+declarations (`chain-org.example` and the ones it names), and the time-series
+and Extended arrays. A request that names no parameter is answered as the
+file's case says (one object, the most recent entry of a series, or the whole
+array); a request that names `start`, `end`, `granularity` or `target` on a
+document that itself declares `capabilities: "extended"`
+(`?start=2026-01-01T00:00:00Z&end=2027-01-01T00:00:00Z&granularity=monthly`) is
+answered with the array of the objects it holds that satisfy them. A selection
+of a signed array keeps each object's own `signed` member: the gateway serves
+the signed bytes and does not sign again.
 
 At boot, every served document is additionally validated with the published
 **consumer** library (`src/verify.ts`); a failure aborts startup, and the
@@ -378,7 +386,7 @@ Two of the demonstrations in detail, as worked examples:
 
 **1. The gateway's own report — `computedAdapter`.**
 `src/adapters/self-report.ts` composes the published `computedAdapter`: energy
-= power × hours in the calendar period, carbon = energy × grid intensity, with
+= power × hours in the period, carbon = energy × grid intensity, with
 the members that adapter does not carry (`updated`, `target`, `target-type`,
 `disclosure-uri`) added by a thin wrapper. It is served at
 `/.well-known/sustainability-data`.
@@ -392,8 +400,8 @@ swap one option:
 keplerPrometheusAdapter({
   provider: "Example Corp (sustainability@example.com)",
   methodologyUri: "https://example.com/methodology",
-  reportingPeriod: "2025",
-  gridIntensity: 373,
+  period: "2025",
+  gridIntensity: 245, // your grid's gCO2e/kWh, with its source in the methodology
   // replay:
   fixture: KEPLER_FIXTURE_2025,
   // live — delete `fixture` and add:
@@ -517,7 +525,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/nobody.example/.well-known/sust
 
 # query parameters IGNORED, not an error
 curl -sS -o /dev/null -w '%{http_code}\n' \
-     "$BASE/wikimedia.org/.well-known/sustainability-data?period=2019&granularity=hourly"   # 200
+     "$BASE/wikimedia.org/.well-known/sustainability-data?start=2019-01-01T00:00:00Z&granularity=hourly"   # 200
 
 # the gateway's own report
 curl -sS "$BASE/.well-known/sustainability-data" | jq .
@@ -587,9 +595,8 @@ lockfile with `npm ci`, ships only production dependencies and compiled output,
 runs as a non-root user, and builds byte-identically on a laptop.
 
 **Before citing the URL**: make sure `SELF_METHODOLOGY_URI` resolves publicly.
-It is a mandatory member of a document you are publishing, and the
-specification requires the resource behind it to be retrievable without
-authentication. The default points at `gateway/METHODOLOGY.md` on GitHub, which
+It is a mandatory member of a document you are publishing, so make sure it
+resolves publicly, since readers follow it. The default points at `gateway/METHODOLOGY.md` on GitHub, which
 works once the branch is pushed.
 
 ## Configuration reference
@@ -602,24 +609,26 @@ injects.
 | `PORT` | `8080` | Injected by the platform. |
 | `HOST` | `0.0.0.0` | Bind address. |
 | `DATA_DIR` | `<app>/data` | Where subject documents are read from. |
-| `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…` for the relayed subjects. The gateway's own report is capped at 3600, the resolution of the model behind it — it changes every hour for a period in progress. (Since -07 the signature is inside the body, so there is no second resource whose cache entry could drift out of step with it.) |
+| `MAX_AGE` | `86400` | `Cache-Control: public, max-age=…` for the relayed subjects. The gateway's own report is capped at 3600, the resolution of the model behind it — it changes every hour for a period in progress. (The signature is inside the body, so there is no second resource whose cache entry could drift out of step with it.) |
 | `BASE_URL` | *(empty)* | Public base URL for absolute links in the index. Also enables the co2js demonstration's live Greencheck lookup of this host. |
 | `EXAMPLES_DIR` | `<app>/examples` | Where the canonical wire-format example documents are read from. |
-| `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` declaration response media type, service-wide. `sustainability-data+json` (default) serves the dedicated `application/sustainability-data+json` type -07 requires; `json` serves the generic `application/json` type (a consumer MAY process it, but publishing it is not conformant). Per-subject overrides live in [`data/_media-type.json`](#pinning-a-subject-to-the-legacy-media-type). |
+| `SUSTAINABILITY_MEDIA_TYPE` | `sustainability-data+json` | `200` declaration response media type, service-wide. `sustainability-data+json` (default) serves the dedicated `application/sustainability-data+json` type the draft requires; `json` serves the generic `application/json` type (a consumer MAY process it, but publishing it is not conformant). Per-subject overrides live in [`data/_media-type.json`](#pinning-a-subject-to-the-legacy-media-type). |
 | `GWF_API_KEY` | *(unset)* | Free Green Web Foundation API key; when set, the carbontxt demonstration runs live against the carbon.txt validator API. |
 | `CLIMATIQ_API_KEY` | *(unset)* | Not read by this deployment: the climatiq demonstration is replay-only because Climatiq's terms restrict redistribution. The publisher package's `climatiqAdapter` takes a key for an operator whose own licence allows publishing the result. |
 | `SELF_TARGET` | `sustainability-data-gateway` | `target` of the gateway's own report. |
 | `SELF_PROVIDER` | operator contact | `provider` of the gateway's own report; prefer a role address. |
 | `SELF_METHODOLOGY_URI` | `gateway/METHODOLOGY.md` on GitHub | Must resolve publicly. |
 | `SELF_DISCLOSURE_URI` | `gateway/` on GitHub | Disclosure index for the gateway. |
-| `SELF_PERIOD` | last completed calendar month | Pin the gateway's own period (`YYYY` or `YYYY-MM`). |
+| `SELF_PERIOD_START`, `SELF_PERIOD_END` | last completed calendar month | Pin the period of the gateway's own answer to a request that names no parameter. Both are UTC date-times such as `2026-09-01T00:00:00Z` and are set together; one without the other stops the start. |
+| `VALIDATOR_EXCLUDE` | *(empty)* | Comma-separated host names that the public validator and badge never fetch (an operator asked not to be checked); such a request is answered `400` before any lookup. |
 | `SELF_WATTS` | `3` | Modelled average container power draw. |
 | `SELF_GRID_INTENSITY` | `245` | gCO2e/kWh: the Netherlands, 2024 (EEA, CC BY 4.0), where this deployment runs; sourced and caveated in METHODOLOGY.md. Set it to your own region's figure. |
-| `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When the gateway went live (RFC 3339). The self model counts no hours before it; a period wholly before it is `404`. |
+| `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When the gateway went live (RFC 3339). The self model counts no hours before it; a range wholly before it selects nothing and is answered `200` and `[]`. |
+| `SELF_MODEL_CHANGED_AT` | `2026-10-02T00:00:00Z` | When the self model's figures were last restated (RFC 3339). A complete period that ended earlier states this instant as `updated`, because its figures were recomputed then. |
 | `SELF_ATTESTATION_URI` | *(unset)* | `verifiable-attestation-uri` of the self report — the URL of a signed third-party statement (the reference deployment: a `vc+jwt` credential issued with `scripts/issue-attestation.mjs`). |
 | `SELF_SIGNING_KEY_URL` | *(unset)* | Where the PUBLIC signing key is hosted; shown on the index so verifiers can pin it. The key itself travels in the JWS header. |
 | `SUSTAINABILITY_SIGNING_KEY` | *(unset)* | The PRIVATE JWK (JSON) that signs the self report: every declaration object it emits then carries a `signed` member. Unset, the member is simply absent, which the draft says means only that the publisher did not sign. Generate with `npx -p sustainability-wellknown-publisher sustainability-publisher keygen --out <file>` and paste the file's contents; never commit it. |
-| `RATE_LIMIT_PER_MINUTE` | `600` | Requests per client per minute on every path but `/healthz`; `0` disables. 600 leaves room for the repository's own conformance script, which fires ~435 requests from one client in well under a minute (it grows with the subject count; re-measure when adding subjects). |
+| `RATE_LIMIT_PER_MINUTE` | `600` | Requests per client per minute on every path but `/healthz`; `0` disables. The repository's own conformance script spaces its requests to stay under it (it makes about a dozen per document, so a run over every document takes a minute or two and grows with the subject count); a `429` is answered with `Retry-After` and is never stored as a declaration. |
 | `TRUST_PROXY` | `1` | Trusted proxies in front of the process (the client is the last `X-Forwarded-For` entry); `0` when exposed directly. |
 
 Bounds enforced by the loader (specification, Security Considerations), in
@@ -628,7 +637,7 @@ Bounds enforced by the loader (specification, Security Considerations), in
 | Bound | Value |
 |---|---|
 | Largest source document, and largest parameterless body served | 256 KiB (Extended variant bodies are bounded by the calendar instead: the largest today, a year sliced daily, is about 52 KB) |
-| Array-entry cap | 366 — a defensive default of this deployment, not a specification requirement: -07 removes the server-side cap and puts the binding bound on the consumer. Curated `data/` files must be single objects (this registry relays one transcription of one period per subject); the wire-format example trend files are the one sanctioned array path, served collapsed to their newest entry unless a finer granularity is requested |
+| Array-entry cap | 366 — a defensive default of this deployment, not a specification requirement: the draft puts the binding bound on the consumer. Curated `data/` files must be single objects (this registry relays one transcription of one period per subject); the wire-format example files and the gateway's own report, which holds at most 200 objects and is never cut, are the array paths |
 | Longest domain accepted on a request line | 253 characters |
 
 ## Design notes
@@ -645,11 +654,12 @@ silently drop).
 
 **Why the relayed subjects are Basic, and no query parameters there.** The
 gateway relays static annual disclosures. It has no finer-grained data to
-slice, so `period` and `granularity` would be honest only as no-ops — and the
+slice, so `start`, `end` and `granularity` would be honest only as no-ops — and the
 specification's answer for a server that does not support them is to ignore
 them and return the Basic response, which is exactly what happens. The side
-benefit is that the cache-key space is one entry per subject, which is the
-specification's Denial-of-Service guidance.
+benefit is that the cache-key space is one entry per subject (this deployment's
+choice; the draft's last Security Considerations paragraph asks a server that
+computes answers to rate-limit and cache).
 
 ## The gateway's own report: Extended, signed, attested
 
@@ -658,20 +668,19 @@ a closed-form model (see [METHODOLOGY.md](METHODOLOGY.md#2-the-gateways-own-repo
 so it is the one declaration that can honestly offer more than the Basic
 service. It exercises every optional part of the draft:
 
-- **Extended service.** `?period=` (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`) and
-  `?granularity=` (`monthly`, `daily`) are honoured; an array is returned only
-  when the granularity is finer than the period. Only hours inside
-  `[SELF_LIVE_SINCE, now)` count: a period wholly before go-live is `404` (the
-  no-data rule), a period in progress reports the completed portion to date
-  (`updated` = the current hour, so its ETag is stable within the hour). The
-  A defined parameter given twice, or a `period` naming no real calendar date,
-  is `400`; a `target` is `404`, because one process has no path prefixes and
-  METHODOLOGY.md therefore publishes an empty prefix set, which no value
-  matches — and that `404` is byte for byte the no-data one, which is what
-  §Privacy Considerations asks for. The parameterless declaration is still the
-  most recently completed month. The key space is bounded by construction:
-  periods with any live overlap × two granularities × three shapes, behind a
-  64-entry, one-hour variant cache.
+- **Extended service.** `?start=` and `?end=` (UTC date-times),
+  `?granularity=` (`yearly`, `monthly`, `daily`) and `?target=` are honoured: the
+  answer is the array of the objects the gateway **holds** that satisfy every
+  parameter given, in ascending order of `period.start`, and it computes no
+  aggregate. The held set is whole days for the most recent 120 days since go-live,
+  every whole month and every whole calendar year since go-live, and the two
+  partial months at the edges (the go-live month and the month in progress), at most
+  200 objects, so a selection is never cut. Only hours inside
+  `[SELF_LIVE_SINCE, now)` count; a range that selects nothing is `200` and `[]`.
+  A value outside the grammar of the draft, or a parameter given twice, is
+  ignored and the answer is the one without it. `?target=` selects by equality
+  with the report's own `target`; any other value selects nothing. The
+  parameterless declaration is still one object, the most recently completed month.
 - **Signature, embedded in the declaration.** With `SUSTAINABILITY_SIGNING_KEY`
   set (a private JWK as `sustainability-publisher keygen --out` writes it), the
   publisher library inserts a `signed` member into every declaration object the
@@ -683,9 +692,9 @@ service. It exercises every optional part of the draft:
   implements no signing of its own; it only hands the library the key, and
   signing happens once per built (and therefore cached) document, regenerated
   at month rollover. `SELF_SIGNING_KEY_URL` publishes the same key out of band
-  so a verifier can pin it and match it by `kid`. **-07 defines no signature
-  resource**: the `.jws` path -06 used is now an ordinary unknown path and
-  answers a plain `404`, with no legacy route, redirect or `410`. At boot the
+  so a verifier can pin it and match it by `kid`. **The draft defines no signature
+  resource**: a `.jws` path is an ordinary unknown path and
+  answers a plain `404`. At boot the
   gateway verifies the signed self declaration once with the consumer library
   and refuses to start if that fails; a key that cannot be imported also stops
   the boot. Relayed declarations are never signed: the gateway can vouch for its
@@ -701,7 +710,7 @@ service. It exercises every optional part of the draft:
   in the self document (and nowhere else). The reference deployment links a
   W3C Verifiable Credential 2.0 secured as `vc+jwt`, issued with
   `scripts/issue-attestation.mjs`, attesting the *model* for five years. The
-  index page states that operator and issuer are the same person. Under -07 a
+  index page states that operator and issuer are the same person. A
   credential binds to a declaration by carrying a copy of it (without `signed`)
   at `credentialSubject.declaration`; the tool does that on
   `--declaration <file>`, and omits the copy by default, because a copy binds
@@ -714,16 +723,16 @@ service. It exercises every optional part of the draft:
   rotate spoofed addresses. Railway's edge cache answers repeat hits before
   they reach the process, so the limiter is a backstop, not the primary control.
 
-Verify all of it with the consumer (0.7.0 or newer, the revision that
-implements -07): `sustainability-fetch <base> --strict --verify-attestation`
+Verify all of it with the consumer (0.8.0 or newer, the revision that
+implements the current draft): `sustainability-fetch <base> --strict --verify-attestation`
 (battery incl. the embedded-signature check, then the credential) or `--verify
 --verify-attestation` (one fetch, both outcomes on stderr). The upstream chain
 is `sustainability-fetch <base>/tenant-demo.example --upstream`.
 
-**Why `node:http` rather than Express or Fastify.** The specification pins exact
-status codes and header sets, and a framework that adds `X-Powered-By`, rewrites
-`ETag`, or synthesises its own `HEAD` handling gets in the way of demonstrating
-that. The core server has no runtime dependencies beyond the publisher package.
+**Why `node:http` rather than Express or Fastify.** The gateway pins exact
+status codes and header sets so that what it serves can be checked byte for byte,
+and a framework that adds `X-Powered-By`, rewrites `ETag`, or synthesises its
+own `HEAD` handling gets in the way of demonstrating that. The core server has no runtime dependencies beyond the publisher package.
 Teams that already run Express or Fastify can use the publisher package's own
 middlewares for a single-subject deployment; this gateway's multi-subject
 routing is exported as `route()` for embedding.

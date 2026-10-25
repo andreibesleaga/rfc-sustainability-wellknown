@@ -31,11 +31,16 @@ test("readings on the 1st bound a month; completed months become metered declara
   assert.equal(await snapshotIfDue({ stateDir: dir, sensorReader: reader, now: new Date("2026-01-15T00:30:00Z") }), false);
   assert.equal(await snapshotIfDue({ stateDir: dir, sensorReader: reader, now: new Date("2026-02-01T00:30:00Z") }), true);
   assert.equal(await snapshotIfDue({ stateDir: dir, sensorReader: reader, now: new Date("2026-03-01T00:30:00Z") }), true);
-  const pub = new Publisher(makeAdapter(dir, cfg), { cacheTtlMs: 0, normalize: { target: cfg.target, targetType: "device" } });
-  const months = await pub.build({ period: "2026", granularity: "monthly" });
-  assert.deepEqual(months.map((m) => [m["reporting-period"], m["energy-consumption"], m["measurement-method"]]), [["2026-01", 120.25, "hardware-metered"], ["2026-02", 129.75, "hardware-metered"]]);
+  const pub = new Publisher(makeAdapter(dir, cfg), { cacheTtlMs: 0, normalize: { target: cfg.target, targetType: "device", clock: () => "2026-03-01T01:00:00Z" } });
+  const months = await pub.build({ start: "2026-01-01T00:00:00Z", end: "2027-01-01T00:00:00Z", granularity: "monthly" });
+  assert.deepEqual(months.map((m) => [m.period.start, m.period.end, m["energy-consumption"], m["measurement-method"]]), [
+    ["2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z", 120.25, "hardware-metered"],
+    ["2026-02-01T00:00:00Z", "2026-03-01T00:00:00Z", 129.75, "hardware-metered"],
+  ]);
   for (const m of months) assert.equal(consumer.validateDocument(m).valid, true, JSON.stringify(consumer.validateDocument(m).errors));
   assert.equal(months[0]["carbon-footprint"], 120.25 * 245);
+  // `updated` is the closing reading, not the clock the normalizer would otherwise read.
+  assert.deepEqual(months.map((m) => m.updated), ["2026-02-01T00:30:00Z", "2026-03-01T00:30:00Z"]);
 });
 
 test("an install in the middle of a month publishes only the first full month after it", () => {
@@ -44,7 +49,7 @@ test("an install in the middle of a month publishes only the first full month af
     "2026-11-01": { kwh: 150, at: "2026-11-01T00:05:00.000Z" },
     "2026-12-01": { kwh: 260, at: "2026-12-01T00:05:00.000Z" },
   };
-  assert.deepEqual(monthsFromSnapshots(snaps, cfg).map((m) => [m.reportingPeriod, m.energy.value]), [["2026-11", 110]]);
+  assert.deepEqual(monthsFromSnapshots(snaps, cfg).map((m) => [m.period.start, m.energy.value]), [["2026-11-01T00:00:00Z", 110]]);
 });
 
 test("a missed boundary leaves both adjoining months unreported, and a skipped month is never summed", () => {
@@ -64,5 +69,18 @@ test("a meter reset leaves that month unreported rather than negative", () => {
     "2026-02-01": { kwh: 20, at: "2026-02-01T00:00:00.000Z" },
     "2026-03-01": { kwh: 80, at: "2026-03-01T00:00:00.000Z" },
   }, cfg);
-  assert.deepEqual(months.map((m) => m.reportingPeriod), ["2026-02"]);
+  assert.deepEqual(months.map((m) => m.period.start), ["2026-02-01T00:00:00Z"]);
+});
+
+test("a request without parameters gets every month as an array in ascending order; a range that matches nothing gets []", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "ha-"));
+  const reads = fakeHa([0, 10, 25]);
+  const reader = () => readSensor({ api: "x", token: "t", sensor: "s", fetchImpl: reads });
+  for (const at of ["2026-01-01T00:30:00Z", "2026-02-01T00:30:00Z", "2026-03-01T00:30:00Z"]) await snapshotIfDue({ stateDir: dir, sensorReader: reader, now: new Date(at) });
+  const pub = new Publisher(makeAdapter(dir, cfg), { cacheTtlMs: 0, normalize: { target: cfg.target, targetType: "device" } });
+  const all = await pub.build({});
+  assert.deepEqual(all.map((m) => m.period.start), ["2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z"]);
+  assert.deepEqual(await pub.build({ start: "1999-01-01T00:00:00Z", end: "2000-01-01T00:00:00Z" }), []);
+  const february = await pub.build({ start: "2026-02-10T00:00:00Z", end: "2026-02-11T00:00:00Z" });
+  assert.deepEqual(february.map((m) => m.period.start), ["2026-02-01T00:00:00Z"]);
 });

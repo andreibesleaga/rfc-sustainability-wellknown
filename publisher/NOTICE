@@ -28,5 +28,15 @@ ajv
   Copyright (c) Evgeny Poberezkin.
   Licensed under the MIT License.
 
+temporal-polyfill
+  Copyright (c) 2026 Adam Shaw.
+  Licensed under the MIT License.
+  https://github.com/fullcalendar/temporal-polyfill
+
+lossless-json
+  Copyright (c) 2016-2026 Jos de Jong.
+  Licensed under the MIT License.
+  https://github.com/josdejong/lossless-json
+
 The Green Web Foundation carbon.txt convention and the carbon.txt HTTP API:
   https://carbontxt.org/  ·  https://developers.thegreenwebfoundation.org/

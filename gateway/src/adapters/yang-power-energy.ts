@@ -31,7 +31,7 @@
  * period; the energy of the period is then unknown and the adapter refuses to
  * publish rather than guess.
  */
-import type { RawMetrics, SourceAdapter } from "sustainability-wellknown-publisher";
+import { yearPeriod, type Period, type RawMetrics, type SourceAdapter } from "sustainability-wellknown-publisher";
 
 export const YANG_MODULE = "ietf-power-and-energy";
 export const YANG_REVISION = "2026-07-02";
@@ -56,8 +56,8 @@ export interface YangEnergySnapshot {
 export interface YangPowerEnergyConfig {
   provider: string;
   methodologyUri: string;
-  /** "YYYY", "YYYY-MM" or "YYYY-MM-DD": the period the two snapshots bound. */
-  reportingPeriod: string;
+  /** The period the two snapshots bound: `start` is the instant of the first snapshot, `end` that of the second. */
+  period: Period;
   /** The reporting subject, e.g. the device's host name. */
   target: string;
   start: YangEnergySnapshot;
@@ -126,7 +126,7 @@ export function yangPowerEnergyAdapter(config: YangPowerEnergyConfig): SourceAda
         provider: config.provider,
         measurementMethod: allMeasured ? "hardware-metered" : "hardware-estimated",
         methodologyUri: config.methodologyUri,
-        reportingPeriod: config.reportingPeriod,
+        period: config.period,
         energy: { value: kwh, unit: "kWh" },
         target: config.target,
         targetType: "device",
@@ -195,7 +195,7 @@ export function yangPowerEnergyReplayAdapter(opts: { target: string; gridIntensi
       "watt-hours, the leaf's `units` statement (its description says milliwatt-hours). The " +
       "figures are invented and describe nothing real. Gateway operator: Andrei Besleaga",
     methodologyUri: YANG_SOURCE,
-    reportingPeriod: "2025",
+    period: yearPeriod(2025),
     target: opts.target,
     start: YANG_FIXTURE_START,
     end: YANG_FIXTURE_END,

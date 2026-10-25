@@ -4,7 +4,7 @@
     "options": {
       "provider": "Example Corp (sustain@example.org)",
       "methodologyUri": "https://example.com/sustainability/methodology",
-      "reportingPeriod": "2026-02",
+      "period": "2026-02",
       "bytes": 5000000000,
       "green": false,
       "gridZone": "USA",

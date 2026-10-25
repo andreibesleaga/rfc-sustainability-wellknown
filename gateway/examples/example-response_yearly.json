@@ -5,7 +5,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-01",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2025-02-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1100,
     "energy-unit": "kWh",
@@ -20,7 +23,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-02",
+    "period": {
+      "start": "2025-02-01T00:00:00Z",
+      "end": "2025-03-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1050,
     "energy-unit": "kWh",
@@ -35,7 +41,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-03",
+    "period": {
+      "start": "2025-03-01T00:00:00Z",
+      "end": "2025-04-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1080,
     "energy-unit": "kWh",
@@ -50,7 +59,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-04",
+    "period": {
+      "start": "2025-04-01T00:00:00Z",
+      "end": "2025-05-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1020,
     "energy-unit": "kWh",
@@ -65,7 +77,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-05",
+    "period": {
+      "start": "2025-05-01T00:00:00Z",
+      "end": "2025-06-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1150,
     "energy-unit": "kWh",
@@ -80,7 +95,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-06",
+    "period": {
+      "start": "2025-06-01T00:00:00Z",
+      "end": "2025-07-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1250,
     "energy-unit": "kWh",
@@ -95,7 +113,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-07",
+    "period": {
+      "start": "2025-07-01T00:00:00Z",
+      "end": "2025-08-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1300,
     "energy-unit": "kWh",
@@ -110,7 +131,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-08",
+    "period": {
+      "start": "2025-08-01T00:00:00Z",
+      "end": "2025-09-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1280,
     "energy-unit": "kWh",
@@ -125,7 +149,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-09",
+    "period": {
+      "start": "2025-09-01T00:00:00Z",
+      "end": "2025-10-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1120,
     "energy-unit": "kWh",
@@ -140,7 +167,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-10",
+    "period": {
+      "start": "2025-10-01T00:00:00Z",
+      "end": "2025-11-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1090,
     "energy-unit": "kWh",
@@ -155,7 +185,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-11",
+    "period": {
+      "start": "2025-11-01T00:00:00Z",
+      "end": "2025-12-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1110,
     "energy-unit": "kWh",
@@ -170,7 +203,10 @@
     "provider": "CloudProvider Ops (ops@example.com)",
     "measurement-method": "hardware-metered",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2025-12",
+    "period": {
+      "start": "2025-12-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
     "target": "example.com",
     "energy-consumption": 1180,
     "energy-unit": "kWh",

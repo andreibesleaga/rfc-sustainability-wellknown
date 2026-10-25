@@ -15,6 +15,11 @@
  * zero contributes nothing; a job still running (`End` = `Unknown`) is left
  * out. Carbon is derived from a configured grid intensity, or omitted.
  *
+ * `End` is a local time without an offset, and the month of a job is read off its text. Each declaration
+ * covers that whole calendar month, its two bounds written in the cluster's fixed offset (`utcOffset`, "Z"
+ * by default). A cluster in a zone that changes its offset within the year gives the offset in force on
+ * the 1st of each month it publishes by publishing the periods itself, or publishes in UTC.
+ *
  * ConsumedEnergyRaw is a job's real consumption only where nodes are allocated exclusively; a centre
  * that shares nodes between jobs should say so in its methodology document.
  *
@@ -24,8 +29,9 @@
  * may configure `hardware-metered` and should say so in its methodology.
  */
 import { readFileSync } from "node:fs";
-import { RawMetrics, ServiceQuery, SourceAdapter, TargetType } from "../types";
-import { NotFoundError } from "../publisher";
+import { monthPeriod } from "../period";
+import { TargetType } from "../tokens";
+import { RawMetrics, ServiceQuery, SourceAdapter } from "../types";
 
 export interface SlurmSacctConfig {
   /** `sacct --parsable2` text (a header in any column order, or none in the order JobID|Start|End|ConsumedEnergyRaw), or a file path. */
@@ -42,6 +48,8 @@ export interface SlurmSacctConfig {
   capabilities?: "basic" | "extended";
   /** Field separator of the export (`|` for --parsable2). */
   separator?: string;
+  /** The cluster's offset from UTC, "Z" or "+HH:MM" / "-HH:MM"; the month bounds are written in it. */
+  utcOffset?: string;
 }
 
 export interface SacctJob {
@@ -101,6 +109,13 @@ export function energyByMonth(jobs: SacctJob[]): Map<string, number> {
 /** One declaration per month from a sacct export. */
 export function slurmSacctAdapter(cfg: SlurmSacctConfig): SourceAdapter {
   const capabilities = cfg.capabilities ?? "extended";
+  const offset = cfg.utcOffset ?? "Z";
+  try {
+    if (!/^(Z|[+-]\d{2}:\d{2})$/.test(offset)) throw new Error('not "Z" or "+HH:MM" / "-HH:MM"');
+    monthPeriod(2000, 1, offset);
+  } catch (e) {
+    throw new Error(`slurmSacctAdapter: utcOffset ${JSON.stringify(offset)} is not a valid offset (${(e as Error).message})`);
+  }
   const entries = (): RawMetrics[] => {
     const text = cfg.text ?? readFileSync(cfg.file as string, "utf8");
     const months = energyByMonth(parseSacct(text, cfg.separator ?? "|"));
@@ -108,7 +123,7 @@ export function slurmSacctAdapter(cfg: SlurmSacctConfig): SourceAdapter {
       provider: cfg.provider,
       measurementMethod: cfg.measurementMethod ?? "hardware-estimated",
       methodologyUri: cfg.methodologyUri,
-      reportingPeriod: month,
+      period: monthPeriod(Number(month.slice(0, 4)), Number(month.slice(5, 7)), offset),
       capabilities,
       ...(cfg.target ? { target: cfg.target } : {}),
       ...(cfg.targetType ? { targetType: cfg.targetType } : {}),
@@ -119,13 +134,8 @@ export function slurmSacctAdapter(cfg: SlurmSacctConfig): SourceAdapter {
   return {
     name: "slurm-sacct",
     capabilities,
-    async fetch(query: ServiceQuery): Promise<RawMetrics | RawMetrics[]> {
-      const all = entries();
-      if (all.length === 0) throw new NotFoundError("no completed job with energy accounting");
-      if (capabilities === "basic" || !query.period) return all[all.length - 1];
-      const inside = all.filter((e) => e.reportingPeriod.startsWith(query.period as string));
-      if (inside.length === 0) throw new NotFoundError();
-      return inside;
+    async fetch(_query: ServiceQuery): Promise<RawMetrics[]> {
+      return entries();
     },
   };
 }

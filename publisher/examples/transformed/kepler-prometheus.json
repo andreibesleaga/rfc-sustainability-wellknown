@@ -1,15 +1,17 @@
 {
-  "updated": "2026-09-16T07:20:17Z",
+  "updated": "2026-06-01T00:00:00Z",
   "capabilities": "basic",
   "provider": "Platform SRE (sre@example.com)",
   "measurement-method": "hardware-estimated",
   "methodology-uri": "https://example.com/methodology/kepler",
-  "reporting-period": "2026-05",
+  "period": {
+    "start": "2026-05-01T00:00:00Z",
+    "end": "2026-06-01T00:00:00Z"
+  },
   "target": "example.com",
   "energy-consumption": 280000,
   "energy-unit": "kWh",
   "carbon-footprint": 64400000,
   "carbon-unit": "gCO2e",
-  "functional-unit": "per-cluster-month",
   "carbon-intensity-gCO2e-per-kWh": 230
 }

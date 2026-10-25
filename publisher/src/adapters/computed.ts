@@ -4,20 +4,20 @@
  * The canonical "I have an energy number and a grid factor" path. Zero external
  * credentials; the normalizer does the energy→carbon math.
  */
-import {
-  CarbonAccounting,
-  EnergyUnit,
-  RawMetrics,
-  SourceAdapter,
-} from "../types";
-import { lastFullMonth } from "../util";
+import { PeriodInput } from "../period";
+import { CarbonAccounting, EnergyUnit, FunctionalUnit, MeasurementMethod } from "../tokens";
+import { Extensions, RawMetrics, SourceAdapter } from "../types";
+import { lastFullMonthPeriod } from "../util";
 
 export interface ComputedAdapterConfig {
   provider: string;
   methodologyUri: string;
-  measurementMethod?: string;
-  /** Defaults to the most recent full calendar month (draft Basic default). */
-  reportingPeriod?: string;
+  measurementMethod?: MeasurementMethod;
+  /**
+   * The period the figures cover: a `{ start, end }` object, or "YYYY", "YYYY-MM" or "YYYY-MM-DD" for
+   * the whole calendar unit in UTC. Defaults to the most recent full calendar month.
+   */
+  period?: PeriodInput;
   /** Energy as value+unit, or raw joules. */
   energy?: { value: number; unit: EnergyUnit };
   energyJoules?: number;
@@ -25,8 +25,14 @@ export interface ComputedAdapterConfig {
   gridIntensity: number;
   carbonAccounting?: CarbonAccounting;
   renewableEnergy?: number;
-  functionalUnit?: string;
+  /** One of the twelve functional units of the draft; `sciScore` is the score for that one unit. */
+  functionalUnit?: FunctionalUnit;
   sciScore?: number;
+  /**
+   * A score in a unit the draft does not list goes here, under a URI name whose definition states the
+   * unit (draft, Optional Members); leave `sciScore` and `functionalUnit` out then.
+   */
+  extensions?: Extensions;
   capabilities?: "basic" | "extended";
 }
 
@@ -44,7 +50,7 @@ export function computedAdapter(config: ComputedAdapterConfig): SourceAdapter {
         provider: config.provider,
         measurementMethod: config.measurementMethod ?? "hardware-estimated",
         methodologyUri: config.methodologyUri,
-        reportingPeriod: config.reportingPeriod ?? lastFullMonth(),
+        period: config.period ?? lastFullMonthPeriod(),
         carbonIntensity: config.gridIntensity,
         capabilities: config.capabilities ?? "basic",
       };
@@ -54,6 +60,7 @@ export function computedAdapter(config: ComputedAdapterConfig): SourceAdapter {
       if (config.renewableEnergy !== undefined) raw.renewableEnergy = config.renewableEnergy;
       if (config.functionalUnit) raw.functionalUnit = config.functionalUnit;
       if (config.sciScore !== undefined) raw.sciScore = config.sciScore;
+      if (config.extensions) raw.extensions = config.extensions;
       return raw;
     },
   };

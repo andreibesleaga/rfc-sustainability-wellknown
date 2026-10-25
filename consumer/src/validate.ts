@@ -1,27 +1,53 @@
 /**
  * Defensive validation of an incoming declaration. The data just arrived from
- * an arbitrary third-party origin, so it is schema-validated (JTD, RFC 8927)
- * AND checked against the draft's prose rules — the ones the formal schemas
- * cannot express — before being handed to caller code: the at-least-one rule,
- * the `sci-score`/`functional-unit` dependency, the absolute-URI form of
- * `extensions` keys with object values, the at-least-one-entry rule on `upstream`, numeric
- * members carrying no actual value (`NaN`/±`Infinity`), and the cross-entry
- * array rules. A non-conformant publisher is the normal case for early
- * ecosystem adoption, not a hypothetical.
+ * an arbitrary third-party origin, so it is checked in layers before it is
+ * handed to caller code. A JSON Type Definition schema (RFC 8927) checks the
+ * form: the seven mandatory members, the closed token sets, the types. The
+ * rules no schema states come after it: the exact profile of a date-time (upper
+ * case `T` and `Z`, a real date and time), `start` before `end`, non-negative
+ * figures, the range of `renewable-energy`, the at-least-one rule, the names in
+ * `extensions`, and I-JSON (finite numbers, well-formed strings). What the draft
+ * only recommends, or what a consumer ignores, is a warning with a code and
+ * never makes a document invalid.
  *
- * A non-`https` URI member is deliberately a WARNING here, not an error: the
- * member is kept and the object stays valid, and the rule is enforced where it
- * bites, at dereference time (`disclosure.ts` and the upstream walk refuse to
- * fetch such a URI at all).
+ * The verdict is on the document as served. A document of an earlier revision is
+ * read by the compatibility reading (`sentinel.ts`) before it gets here, or is
+ * invalid here; an `energy-unit`, `carbon-accounting` or `capabilities` outside
+ * its set, a wrong type and a negative figure are invalid in both cases.
  */
-import { isolate } from "./text";
-import { NUMERIC_MEMBERS } from "./sentinel";
-import Ajv, { ValidateFunction } from "ajv/dist/jtd";
+import Ajv, { ErrorObject, ValidateFunction } from "ajv/dist/jtd";
+import { domainToASCII } from "node:url";
+import { compareDateTimes, dateTimeError, hasLeapSecond, isFullDate, isOnDayBoundaries, Period } from "./period";
 import { RESPONSE_JTD_SCHEMA } from "./schema";
-import { SustainabilityDocument, SustainabilityMetrics } from "./types";
+import { isolate } from "./text";
+import type { SustainabilityDocument } from "./types";
 
 const ajv = new Ajv({ allErrors: true });
 const validateObject: ValidateFunction = ajv.compile(RESPONSE_JTD_SCHEMA as unknown as object);
+
+/** What a warning is about; a warning never makes a document invalid. */
+export type WarningCode =
+  /** A bound is not the first instant of a calendar day in its own offset (the draft recommends a day or longer). */
+  | "period-below-day-floor"
+  /** `updated` is before `period.end`: a forecast, or a period still running. */
+  | "updated-before-period-end"
+  /** A bound or `updated` names the leap second 23:59:60, which is read as 23:59:59. */
+  | "leap-second-read-as-59"
+  /** A member the draft does not define: a consumer ignores it. */
+  | "unknown-member"
+  /** A URI-valued member is not a URI reference. */
+  | "uri-not-a-reference"
+  /** The scopes accompany `carbon-footprint` and do not account for it. */
+  | "scopes-do-not-account-for-footprint"
+  /** A host-shaped `target` is written in U-label form; the draft writes the A-label. */
+  | "origin-u-label"
+  /** `provider` holds a contact address that does not look like a role. */
+  | "provider-personal-contact";
+
+export interface ValidationWarning {
+  code: WarningCode;
+  message: string;
+}
 
 export interface ValidationResult {
   /**
@@ -32,32 +58,25 @@ export interface ValidationResult {
    */
   valid: boolean;
   errors: string[];
-  /**
-   * Advisory findings that do NOT make the declaration invalid: an absolute
-   * non-`https` URI member ({@link URI_MEMBERS}) and an unrecognized top-level
-   * member ({@link KNOWN_MEMBERS}). The member is kept either way.
-   */
-  warnings: string[];
+  warnings: ValidationWarning[];
 }
 
 /**
- * The URI-valued members. Draft -07 §Optional Members: `methodology-uri`,
- * `verifiable-attestation-uri`, `disclosure-uri` and `upstream[].declaration`
- * "MUST be absolute URIs with the 'https' scheme; a consumer MUST NOT
- * automatically dereference any other scheme".
+ * The URI-valued members other than `upstream[].declaration`: URI references
+ * (draft -10 §URI-Valued Members), resolved against the retrieval URI.
  */
 export const URI_MEMBERS = ["methodology-uri", "disclosure-uri", "verifiable-attestation-uri"] as const;
 
-/** Every top-level member this revision defines (the base object is closed). */
+/** Every top-level member the draft defines, as the schema lists them. */
 export const KNOWN_MEMBERS: readonly string[] = [
   ...Object.keys(RESPONSE_JTD_SCHEMA.properties),
   ...Object.keys(RESPONSE_JTD_SCHEMA.optionalProperties),
 ];
 
 /**
- * The numeric metric members. Draft -07 §Value Constraints and Omitted
- * Metrics: an object MUST carry at least one of these, or at least one of
- * `disclosure-uri` and `verifiable-attestation-uri`.
+ * The numeric metric members. Draft -10 §Optional Members: an object MUST carry
+ * at least one of these, or at least one of `disclosure-uri` and
+ * `verifiable-attestation-uri`.
  */
 export const METRIC_MEMBERS: readonly string[] = [
   "energy-consumption",
@@ -72,466 +91,366 @@ export const METRIC_MEMBERS: readonly string[] = [
 ];
 
 /**
- * An `extensions` member name (draft -07 §Extensions): an absolute URI, ASCII
- * only, with no whitespace and no fragment. Two forms are named — an "https"
- * URI with a host, which documents the members for a human and which this
- * package NEVER dereferences, and `urn:uuid:` plus a lowercase UUID, the Nil
- * and Max UUIDs excluded — and any other absolute URI is permitted by the rule.
- * Keys are compared octet for octet and are never normalized, so the WHATWG URL
- * parser (which lowercases the scheme and host and may percent-encode) is not
- * used to check one.
+ * Gross-quantity members that MUST NOT be negative (draft -10 §Optional
+ * Members). Scopes are deliberately absent: they MAY be negative to convey
+ * removals under net accounting. `renewable-energy` has its own range.
  */
-/**
- * The shape of an RFC 3986 Section 4.3 `absolute-URI`: a scheme
- * in lowercase (ALPHA *( ALPHA / DIGIT / "+" / "-" / "." ), draft §Extensions:
- * "written in ASCII with the scheme in lowercase"), a colon, then one or more of
- * the characters RFC 3986 allows after it — unreserved, sub-delims, "%", and the
- * gen-delims ":" "/" "?" "@" "[" "]" — so no space, no double quote, and none of
- * < > \ ^ ` { | } , and no "#": a key carries no fragment. It is the repo CDDL's `ext-name` rule,
- * character for character. The WHATWG URL parser
- * is deliberately not used here: it lowercases the scheme and host and may
- * percent-encode, and draft §Extensions compares keys octet for octet.
- */
-export const ABSOLUTE_URI_RE = /^[a-z][a-z0-9+.-]*:[!$-;=?-Z\[\]_a-z~]+$/;
+const NON_NEGATIVE_FIELDS = [
+  "energy-consumption",
+  "carbon-footprint",
+  "sci-score",
+  "carbon-intensity-gCO2e-per-kWh",
+  "estimated-annual-emissions-kgCO2e",
+] as const;
 
-/** `urn:uuid:` followed by the lowercase hyphenated UUID text form (RFC 9562, Section 4). */
-export const URN_UUID_RE = /^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+/** Local parts of an address in `provider` that name a role, not a person (draft -10 §Privacy Considerations). */
+const ROLE_ADDRESSES = ["sustainability", "sustain", "esg", "ops", "compliance", "contact", "info", "admin", "support", "security"];
 
-/**
- * The Nil and Max UUIDs (RFC 9562 §§5.9, 5.10) in the `urn:uuid:` form. Draft
- * §Extensions forbids them: an `extensions` key identifies the party that
- * defined its members, and these two identify everyone.
- */
-export const NIL_UUID_NAME = "urn:uuid:00000000-0000-0000-0000-000000000000";
-export const MAX_UUID_NAME = "urn:uuid:ffffffff-ffff-ffff-ffff-ffffffffffff";
-export const RESERVED_EXTENSION_NAMES: readonly string[] = [NIL_UUID_NAME, MAX_UUID_NAME];
+// The characters a URI holds (RFC 3986): the unreserved and reserved characters,
+// and "%" only as a percent-encoded octet. No space, no control character, no
+// non-ASCII character, and none of " < > \ ^ ` { | }.
+const URI_CHAR = "(?:[!#$&'()*+,\\-./0-9:;=?@A-Z\\[\\]_a-z~]|%[0-9A-Fa-f]{2})";
+const SCHEME = "[A-Za-z][A-Za-z0-9+.-]*";
+const URI_RE = new RegExp(`^${SCHEME}:${URI_CHAR}*$`);
+const URI_REFERENCE_RE = new RegExp(`^${URI_CHAR}*$`);
+const SCHEME_ONLY_RE = new RegExp(`^${SCHEME}$`);
 
 /**
- * The "https" form of an `extensions` key (draft §Extensions): `https://` and a
- * non-empty host. It should identify human-readable documentation, and a
- * consumer MUST NEVER dereference it.
+ * Whether `value` is a URI reference (RFC 3986, Section 4.1): a URI, or a
+ * relative reference. Syntax only; nothing is resolved or retrieved.
  */
-export function isHttpsExtensionName(key: string): boolean {
-  if (!ABSOLUTE_URI_RE.test(key) || !key.startsWith("https://")) return false;
-  return httpsHost(key) !== "";
-}
-
-/**
- * The `urn:uuid:` form of an `extensions` key (draft §Extensions): a lowercase
- * hyphenated UUID (RFC 9562, Section 4) that is neither the Nil nor the Max UUID.
- */
-export function isUrnUuidExtensionName(key: string): boolean {
-  return URN_UUID_RE.test(key) && !RESERVED_EXTENSION_NAMES.includes(key);
-}
-
-/** The host of an `https://` key: the authority without userinfo and without port. */
-function httpsHost(key: string): string {
-  const authority = key.slice("https://".length).split(/[/?]/, 1)[0];
-  const hostport = authority.slice(authority.lastIndexOf("@") + 1);
-  if (hostport.startsWith("[")) return hostport.slice(0, hostport.indexOf("]") + 1);
-  return hostport.split(":", 1)[0];
+export function isUriReference(value: string): boolean {
+  if (!URI_REFERENCE_RE.test(value)) return false;
+  // A colon before the first "/", "?" or "#" ends a scheme, which must then be one (Section 4.2).
+  const end = value.search(/[:/?#]/);
+  return end === -1 || value[end] !== ":" || SCHEME_ONLY_RE.test(value.slice(0, end));
 }
 
 /**
  * Why `key` is not a usable `extensions` member name, or `undefined` when it is
- * one. The rule (draft §Extensions): an absolute URI, ASCII only, restricted to
- * the characters RFC 3986 allows, so no whitespace and no fragment; the CDDL
- * rule is `ext-name`. The two named forms are an "https" URI with a host and
- * `urn:uuid:` + a lowercase UUID that is neither the Nil nor the Max UUID. Any
- * other absolute URI (`urn:oid:1.3.6.1.4.1.32473.1`, say) is permitted by the
- * rule. Keys are compared octet for octet and are never normalized.
+ * one. The rule (draft -10 §Extensions): a URI, so a scheme, a colon and the
+ * characters RFC 3986 allows; no other form is required, and no scheme, letter
+ * case or fragment is excluded. Names are compared as strings and never
+ * normalized, and never dereferenced.
  */
 export function extensionNameError(key: string): string | undefined {
   if (typeof key !== "string" || key === "") {
-    return "is empty; an extensions key is an absolute URI (draft, Extensions)";
+    return "is empty; an extension name is a URI (draft, Extensions)";
   }
-  if (/[^\x21-\x7E]/.test(key)) {
-    return /^[\x00-\x7f]*$/.test(key)
-      ? "contains whitespace or a control character; an extensions key is an absolute URI with none (draft, Extensions)"
-      : "is not ASCII; an extensions key is an ASCII absolute URI (draft, Extensions)";
+  if (/[\s\x00-\x1f\x7f]/.test(key)) {
+    return "contains whitespace or a control character; an extension name is a URI (draft, Extensions)";
   }
-  if (key.includes("#")) {
-    return 'contains "#"; an extensions key is an absolute-URI (RFC 3986, Section 4.3) and carries no fragment (draft, Extensions)';
+  if (/[^\x21-\x7e]/.test(key)) {
+    return "is not ASCII; an extension name is a URI, which RFC 3986 writes in ASCII (draft, Extensions)";
   }
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(key) && !/^[a-z][a-z0-9+.-]*:/.test(key)) {
+  if (!URI_RE.test(key)) {
     return (
-      "has an uppercase scheme; an extensions key is written in ASCII with the scheme " +
-      'in lowercase (e.g. "https://…", not "HTTPS://…") (draft, Extensions)'
+      "is not a URI: it begins with a scheme and a colon (for example " +
+      '"https://example.com/extensions/water" or "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845") ' +
+      "and holds only the characters RFC 3986 allows (draft, Extensions)"
     );
-  }
-  const disallowed = /["<>\\^`{|}]/.exec(key);
-  if (disallowed) {
-    return (
-      `contains ${JSON.stringify(disallowed[0])}, which RFC 3986 does not allow in a URI; ` +
-      "an extensions key is an absolute-URI (RFC 3986, Section 4.3) (draft, Extensions)"
-    );
-  }
-  if (!ABSOLUTE_URI_RE.test(key)) {
-    return (
-      "is not an absolute URI: it must begin with a scheme and a colon " +
-      '(e.g. "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845" or ' +
-      '"https://example.com/sustainability/extensions/water-and-waste") (draft, Extensions)'
-    );
-  }
-  const scheme = key.slice(0, key.indexOf(":")).toLowerCase();
-  if (scheme === "https") {
-    if (!key.startsWith("https://") || httpsHost(key) === "") {
-      return 'is an "https" key without "https://" and a host, in lowercase (draft, Extensions)';
-    }
-  } else if (scheme === "urn" && key.slice(4, 9).toLowerCase() === "uuid:") {
-    if (!URN_UUID_RE.test(key)) {
-      return (
-        'is not "urn:uuid:" followed by a UUID in the RFC 9562 Section 4 lowercase ' +
-        'hyphenated text form (e.g. "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845") (draft, Extensions)'
-      );
-    }
-    if (key === NIL_UUID_NAME) {
-      return "is the Nil UUID (RFC 9562 §5.9), which MUST NOT be used as an extensions key: it is a guaranteed collision (draft, Extensions)";
-    }
-    if (key === MAX_UUID_NAME) {
-      return "is the Max UUID (RFC 9562 §5.10), which MUST NOT be used as an extensions key: it is a guaranteed collision (draft, Extensions)";
-    }
   }
   return undefined;
 }
 
-/** Whether `key` is a usable `extensions` member name (draft §Extensions). */
+/** Whether `key` is a usable `extensions` member name (draft -10 §Extensions). */
 export function isExtensionName(key: string): boolean {
   return extensionNameError(key) === undefined;
 }
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
+/**
+ * One schema error as a sentence. A member outside a closed set names the
+ * members of the set, so the reader knows what to write.
+ */
+function schemaErrorMessage(e: ErrorObject): string {
+  const where = e.instancePath || "/";
+  if (e.keyword === "enum" && Array.isArray(e.params.allowedValues)) {
+    return `${where} must be one of ${e.params.allowedValues.join(", ")}`;
+  }
+  if (e.keyword === "properties" && typeof e.params.missingProperty === "string") {
+    return `${where === "/" ? "" : where}/${e.params.missingProperty} is a mandatory member and is missing${e.schemaPath ? ` (${e.schemaPath})` : ""}`;
+  }
+  return `${where} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`;
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/** `JSON.stringify` of a value from the document, isolated for display next to other text. */
+const shown = (value: unknown): string => isolate(JSON.stringify(value));
+
+/** Digits after the decimal point in the shortest form of `n`. */
+function decimals(n: number): number {
+  const [mantissa, exponent] = n.toExponential().split("e");
+  return Math.max(0, (mantissa.split(".")[1] ?? "").length - Number(exponent));
 }
 
 /**
- * Advisory findings for URI members carrying an absolute non-`https` URI.
- *
- * Deliberately a WARNING, not an error: the member is kept and the object
- * stays valid (failing a whole declaration over a supporting link would lose
- * the metrics with it). What the rule actually buys is protection at
- * dereference time, which `disclosure.ts` and the upstream walk enforce by
- * refusing to fetch such a URI at all.
- *
- * A value that is not an absolute URI at all (a relative reference, or
- * anything `new URL()` rejects) is left alone here: the draft's absolute-URI
- * requirement is not this function's subject, and guessing a base would be
- * worse than saying nothing.
+ * Every number in the value is finite, and every string and member name is
+ * well-formed (no unpaired surrogate): the I-JSON a publisher emits (draft -10
+ * §Body). A number beyond binary64 reaches here as an infinity when the body was
+ * parsed with `JSON.parse`; `json.ts` refuses it earlier.
  */
-function uriMemberWarnings(obj: unknown): string[] {
-  if (!isRecord(obj)) return [];
-  const warnings: string[] = [];
-  const check = (key: string, value: unknown) => {
-    if (typeof value !== "string" || value === "") return;
-    let parsed: URL;
-    try {
-      parsed = new URL(value);
-    } catch {
-      warnings.push(
-        `${key} is not an absolute URI ("${isolate(value)}"): the draft requires an absolute "https" URI ` +
-          `and a consumer never dereferences a relative reference (member kept; reported, not a validation error)`,
-      );
-      return;
-    }
-    if (parsed.protocol !== "https:") {
-      warnings.push(
-        `${key} is an absolute non-https URI ("${isolate(value)}"): the draft restricts URI members to the "https" scheme ` +
-          `and a consumer MUST NOT automatically dereference another scheme (member kept; not a validation error)`,
-      );
-    }
-  };
-  for (const key of URI_MEMBERS) check(key, obj[key]);
-  if (Array.isArray(obj.upstream)) {
-    obj.upstream.forEach((entry, i) => {
-      if (isRecord(entry)) check(`upstream[${i}].declaration`, entry.declaration);
-    });
-  }
-  return warnings;
-}
-
-/** Unrecognized top-level members: a warning, and the member is ignored (draft -07 §Payload Format). */
-function unknownMemberWarnings(obj: unknown): string[] {
-  if (!isRecord(obj)) return [];
-  return Object.keys(obj)
-    .filter((k) => !KNOWN_MEMBERS.includes(k))
-    .map(
-      (k) =>
-        `unknown-member: "${isolate(k)}" is not a member this revision defines; it is ignored ` +
-        `(the base object is closed — other data belongs under "extensions" — but a consumer MUST ignore a ` +
-        `top-level member it does not recognize, since a revision may define one)`,
-    );
-}
-
-function validateMetrics(obj: unknown, atLeastOneAsServed?: boolean): ValidationResult {
-  const warnings = [...uriMemberWarnings(obj), ...unknownMemberWarnings(obj)];
-
-  // The schema gate runs against the object WITHOUT its unrecognized
-  // top-level members: the -07 JTD closes the base object, so leaving them in
-  // would turn "ignore what you do not recognize" into a rejection.
-  const gated = isRecord(obj)
-    ? Object.fromEntries(Object.entries(obj).filter(([k]) => KNOWN_MEMBERS.includes(k)))
-    : obj;
-  const valid = validateObject(gated) as boolean;
-  const errors = valid
-    ? []
-    : (validateObject.errors ?? []).map(
-        (e) => `${e.instancePath || "/"} ${e.keyword}${e.schemaPath ? ` (${e.schemaPath})` : ""}`,
-      );
-
-  // Draft §Optional Members: "sci-score ... in grams of CO2e per
-  // functional-unit, which MUST then be present." This cross-field dependency
-  // cannot be expressed in JTD (or CDDL), so the schema gate above can't catch
-  // it — check it here so a conformance-checking consumer enforces the full
-  // prose MUST. Exception: a NEGATIVE sci-score is out of the member's stated
-  // range and therefore already "not reported", so it carries no dependency.
-  if (isRecord(obj) && "sci-score" in obj) {
-    const sci = obj["sci-score"];
-    const reported = !(typeof sci === "number" && sci < 0);
-    if (reported && obj["functional-unit"] === undefined) {
-      errors.push("sci-score is present but functional-unit is missing (draft MUST)");
+function ijsonErrors(value: unknown, path: string, errors: string[]): void {
+  if (typeof value === "number" && !Number.isFinite(value)) {
+    errors.push(`${path} is not a finite number (${String(value)})`);
+  } else if (typeof value === "string" && !value.isWellFormed()) {
+    errors.push(`${path} holds an unpaired surrogate (RFC 7493, Section 2.1)`);
+  } else if (Array.isArray(value)) {
+    value.forEach((item, i) => ijsonErrors(item, `${path}/${i}`, errors));
+  } else if (isRecord(value)) {
+    for (const [key, item] of Object.entries(value)) {
+      if (!key.isWellFormed()) errors.push(`${path}/${isolate(key)} is a member name with an unpaired surrogate (RFC 7493, Section 2.1)`);
+      ijsonErrors(item, `${path}/${isolate(key)}`, errors);
     }
   }
-
-  if (isRecord(obj)) {
-    // The at-least-one rule is judged on the members the object carried AS
-    // SERVED (draft -07 §Value Constraints and Omitted Metrics). When a caller
-    // has already applied the tolerance rules to `obj` — stripping a defective
-    // value before this gate — it passes that verdict in, and a stripped
-    // member does not turn a conformant object into a non-conformant one.
-    errors.push(
-      ...periodShapeErrors(obj),
-      ...nonFiniteErrors(obj),
-      ...extensionErrors(obj),
-      ...upstreamErrors(obj),
-      ...(atLeastOneAsServed === true ? [] : atLeastOneError(obj)),
-    );
-  }
-
-  return { valid: errors.length === 0, errors, warnings };
 }
 
-/**
- * Draft -07 §Extensions: the member names of `extensions` are absolute URIs
- * (RFC 3986, Section 4.3). The CDDL says so formally, so a key of any other
- * form is a schema-level defect rather than a tolerated value. Values are
- * objects, and nothing inside one — a documentation URI included — is ever
- * dereferenced or executed by this package.
- */
-function extensionErrors(obj: Record<string, unknown>): string[] {
-  if (obj.extensions === undefined) return [];
-  const ext = obj.extensions;
-  if (!isRecord(ext)) return ["extensions is present but is not a JSON object"];
-  const errors: string[] = [];
-  for (const [key, value] of Object.entries(ext)) {
-    const why = extensionNameError(key);
-    if (why !== undefined) {
-      errors.push(`extensions key "${isolate(key)}" ${why}`);
-    }
-    // The JTD `values` form ajv compiles does not itself reject a non-object
-    // value here, and the draft requires one ("whose values are objects").
-    if (!isRecord(value)) {
-      errors.push(`extensions["${isolate(key)}"] is not a JSON object, which the draft requires of every extensions value`);
+function dateTimeChecks(rec: Record<string, unknown>, errors: string[], warnings: ValidationWarning[]): void {
+  const period = isRecord(rec.period) ? rec.period : {};
+  const bounds: [string, unknown][] = [["updated", rec.updated], ["period/start", period.start], ["period/end", period.end]];
+  for (const [path, value] of bounds) {
+    const why = dateTimeError(value);
+    if (why !== undefined) errors.push(`/${path} ${why}`);
+    else if (hasLeapSecond(value as string)) {
+      warnings.push({ code: "leap-second-read-as-59", message: `/${path} names the leap second 23:59:60, which is read as 23:59:59` });
     }
   }
-  return errors;
-}
-
-/**
- * Draft -07 §Upstream Declarations: "The `upstream` member is an array of at
- * least one object ... A publisher with nothing to name omits the member rather
- * than carrying an empty array." §Formal Definition (JTD) names it among the
- * rules "which the CDDL captures and the JTD cannot ... prose rules of this
- * document; validating implementations enforce them" — so, like the absolute-URI
- * form of an `extensions` key, an empty array is a schema-level defect rather than a
- * value the tolerance rules cover (those reach a value "of the wrong JSON
- * type", and an empty array is the right type).
- */
-function upstreamErrors(obj: Record<string, unknown>): string[] {
-  if (!Array.isArray(obj.upstream) || obj.upstream.length > 0) return [];
-  return [
-    "upstream is present but empty; the draft requires at least one entry and has a publisher with " +
-      "nothing to name omit the member rather than carry an empty array",
-  ];
-}
-
-/**
- * The three `period-value` forms (draft -07 §Mandatory Members: `reporting-period`
- * is "in the `period` form of Extended Query Parameters (`YYYY`, `YYYY-MM`, or
- * `YYYY-MM-DD`)"). Month is bounded 01-12 and day 01-31 by the pattern; a day
- * that does not exist in its month is left to the publisher's own gate, since
- * nothing a consumer does with the value depends on it.
- */
-export const PERIOD_RE = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
-
-/**
- * `reporting-period` is a MANDATORY member with a stated form, and §Value
- * Constraints and Omitted Metrics is explicit that "a defective value of any
- * other mandatory member leaves the object non-conformant" — only `capabilities`
- * gets a fallback. So a value that is not one of the three `period-value` forms
- * is an error, not something to disregard: the whole of this package's period
- * handling (the within-P comparison, the array precision and ordering rules, the
- * upstream period match) reads those three forms and nothing else.
- *
- * It is also what keeps a client-side {@link AggregateSummary} — whose
- * `reporting-period` is a RANGE, `"2026-01..2026-12"` — from being republished
- * or round-tripped as a declaration.
- */
-function periodShapeErrors(obj: Record<string, unknown>): string[] {
-  const period = obj["reporting-period"];
-  if (typeof period !== "string" || PERIOD_RE.test(period)) return [];
-  return [
-    `reporting-period "${isolate(period)}" is not one of the three forms this revision defines ` +
-      `(YYYY, YYYY-MM, YYYY-MM-DD); it is a mandatory member, and a defective value of a mandatory ` +
-      `member other than capabilities leaves the object non-conformant`,
-  ];
-}
-
-/**
- * Numeric members carrying `NaN` or ±`Infinity`. JSON has no literal for
- * either, but a `1e999` on the wire parses to `Infinity` in every JavaScript
- * runtime — a hazard the media type's own security considerations name. Such a
- * member carries no actual value and re-serializes as `null`, so a strict
- * validation reports it; the tolerance pre-pass (`sentinel.ts`) strips it
- * before this gate on the ordinary fetch path, exactly as it does for a
- * `sci-score` without `functional-unit`.
- */
-function nonFiniteErrors(obj: Record<string, unknown>): string[] {
-  return NUMERIC_MEMBERS.filter((k) => typeof obj[k] === "number" && !Number.isFinite(obj[k] as number)).map(
-    (k) =>
-      `${k} is ${String(obj[k])}, which is not a value this member can carry (JSON has no literal for it; ` +
-      `a number outside double precision, such as 1e999, parses to it and re-serializes as null)`,
-  );
+  const { start, end } = period;
+  if (dateTimeError(start) !== undefined || dateTimeError(end) !== undefined) return;
+  if (compareDateTimes(start as string, end as string) >= 0) {
+    errors.push(`/period/start must be before /period/end, compared as instants (got ${start} and ${end})`);
+    return;
+  }
+  const bounded: Period = { start: start as string, end: end as string };
+  if (!isOnDayBoundaries(bounded)) {
+    // A bound at the leap second is already noted above: it is read as another instant, and no day boundary.
+    if (!hasLeapSecond(bounded.start) && !hasLeapSecond(bounded.end)) {
+      warnings.push({
+        code: "period-below-day-floor",
+        message:
+          "/period bounds are not both the first instant of a calendar day in their own offset; " +
+          "the draft recommends a calendar day or longer (Mandatory Members, Privacy Considerations)",
+      });
+    }
+  } else if (dateTimeError(rec.updated) === undefined && compareDateTimes(rec.updated as string, bounded.end) < 0) {
+    warnings.push({ code: "updated-before-period-end", message: `/updated (${rec.updated}) is before /period/end (${end})` });
+  }
 }
 
 /**
  * Whether an object satisfies the at-least-one rule: "A declaration object
  * MUST carry at least one numeric metric member or at least one of
- * `disclosure-uri` and `verifiable-attestation-uri`" (draft -07 §Value
- * Constraints and Omitted Metrics). `upstream` deliberately does not count as
- * evidence.
- *
- * The rule "is judged on the members the object carries as served", so this is
- * asked of the object as it arrived: a consumer that applies the tolerance
- * rules first (see `fetch.ts`) asks it BEFORE stripping anything, since "a
- * consumer that disregards a defective value under the rules below does not
- * thereby make the object non-conformant, it simply has less to read".
+ * `disclosure-uri` and `verifiable-attestation-uri`" (draft -10 §Optional
+ * Members). `upstream` and `extensions` do not count as evidence. A number that
+ * is not finite is not a figure the object carries.
  */
 export function carriesAtLeastOne(obj: unknown): boolean {
   if (!isRecord(obj)) return false;
-  // A non-finite number (`1e999` on the wire parses to Infinity) is not an
-  // actual value, so it is not a metric the object "carries" for this rule.
-  const hasMetric = METRIC_MEMBERS.some((k) => typeof obj[k] === "number" && Number.isFinite(obj[k]));
-  return hasMetric || typeof obj["disclosure-uri"] === "string" || typeof obj["verifiable-attestation-uri"] === "string";
+  if (METRIC_MEMBERS.some((m) => typeof obj[m] === "number" && Number.isFinite(obj[m]))) return true;
+  return ["disclosure-uri", "verifiable-attestation-uri"].some((m) => typeof obj[m] === "string" && obj[m] !== "");
 }
 
-/** The at-least-one rule as an error list; see {@link carriesAtLeastOne}. */
-function atLeastOneError(obj: Record<string, unknown>): string[] {
-  if (carriesAtLeastOne(obj)) return [];
-  return [
-    "object carries no numeric metric member and neither disclosure-uri nor verifiable-attestation-uri " +
-      "(draft MUST: at least one of them)",
-  ];
-}
-
-/** Options for {@link validateDocument}. */
-export interface ValidateOptions {
-  /**
-   * The verdict of the at-least-one rule on the object AS SERVED, one entry
-   * per declaration object (index 0 for a single object, index i for array
-   * entry i). Only a caller that has applied the draft's tolerance rules to
-   * `doc` before validating — stripping a defective value out of the object —
-   * supplies it, so that the rule is still judged on the members the object
-   * carried as served (draft -07 §Value Constraints and Omitted Metrics); what
-   * tolerance removed is reported through that caller's own channel (the
-   * `disregarded` list), not by making the document invalid. `true` suppresses
-   * the at-least-one error for that object; anything else leaves the rule to
-   * be judged on `doc` itself.
-   */
-  atLeastOneAsServed?: readonly boolean[];
+function figureChecks(rec: Record<string, unknown>, errors: string[], warnings: ValidationWarning[]): void {
+  for (const field of NON_NEGATIVE_FIELDS) {
+    const v = rec[field];
+    if (typeof v === "number" && v < 0) errors.push(`/${field} must not be negative (got ${v}); omit a metric that is not reported`);
+  }
+  const renewable = rec["renewable-energy"];
+  if (typeof renewable === "number" && (renewable < 0 || renewable > 100)) {
+    errors.push(`/renewable-energy must be between 0 and 100 inclusive (got ${renewable})`);
+  }
+  // "sci-score ... functional-unit, which MUST then be present." JTD cannot express dependencies.
+  if (rec["sci-score"] !== undefined && rec["functional-unit"] === undefined) {
+    errors.push("/sci-score requires functional-unit to be present");
+  }
+  if (!carriesAtLeastOne(rec)) {
+    errors.push("/ carries no numeric metric member and neither disclosure-uri nor verifiable-attestation-uri (draft, Optional Members)");
+  }
+  // Scopes that accompany carbon-footprint SHOULD account for it, to the
+  // precision of the least precise of the four figures.
+  const figures = ["scope-1", "scope-2", "scope-3", "carbon-footprint"].map((m) => rec[m]);
+  if (figures.every((v) => typeof v === "number" && Number.isFinite(v))) {
+    const [s1, s2, s3, footprint] = figures as number[];
+    const tolerance = 0.5 * 10 ** -Math.min(...figures.map((v) => decimals(v as number)));
+    if (Math.abs(s1 + s2 + s3 - footprint) > tolerance + Math.abs(footprint) * 1e-12) {
+      warnings.push({
+        code: "scopes-do-not-account-for-footprint",
+        message:
+          `/scope-1, /scope-2 and /scope-3 sum to ${s1 + s2 + s3} and carbon-footprint is ${footprint}; ` +
+          "scopes that cover only part of the footprint are explained in the methodology document (draft, Optional Members)",
+      });
+    }
+  }
 }
 
 /**
- * Validate a full declaration (single object or array), incl. cross-entry
- * array rules. `valid` reflects errors ONLY; `warnings` are advisory and never
- * change it.
+ * True when `value` reads as a host name: no whitespace or "/", and a "." with at least one character on each
+ * side. Written without a regular expression so the check stays linear on any input.
  */
-export function validateDocument(doc: unknown, options: ValidateOptions = {}): ValidationResult {
-  // Draft -07 §Payload Format: "The body is one declaration object or an array
-  // of them ... a body whose top-level value is neither an object nor an array
-  // is not a declaration." Said plainly here, rather than left to the schema
-  // gate to report as a member-shaped error about a number or a string.
+function isHostShaped(value: string): boolean {
+  if (/[\s/]/.test(value)) return false;
+  const dot = value.indexOf(".", 1);
+  return dot > 0 && dot < value.length - 1;
+}
+
+/** The A-label form of a host-shaped `target` written with non-ASCII characters, "" when it has none, `undefined` otherwise. */
+function aLabelOf(target: string): string | undefined {
+  if (!isHostShaped(target) || !/[^\x00-\x7f]/.test(target)) return undefined;
+  return domainToASCII(target);
+}
+
+function textChecks(rec: Record<string, unknown>, errors: string[], warnings: ValidationWarning[]): void {
+  if (rec["provider"] === "") errors.push("/provider must not be empty");
+  if (rec["target"] === "") errors.push("/target must not be empty (it names what the object is about)");
+  if (typeof rec["provider"] === "string") {
+    // One linear split into address-shaped words; the local part is what precedes the first "@".
+    for (const word of rec["provider"].split(/[\s()<>,;]+/)) {
+      const [local, domain] = word.split("@");
+      if (!local || !domain) continue;
+      if (!ROLE_ADDRESSES.includes(local.toLowerCase())) {
+        warnings.push({
+          code: "provider-personal-contact",
+          message: `/provider holds the address ${isolate(`${local}@…`)}; a role address is better than a personal one (draft, Privacy Considerations)`,
+        });
+      }
+    }
+  }
+  const target = rec["target"];
+  if (typeof target === "string") {
+    if (rec["target-type"] === "path" && !target.startsWith("/")) {
+      errors.push(`/target ${shown(target)} has target-type path, so it begins with "/"`);
+    }
+    const alabel = aLabelOf(target);
+    if (alabel !== undefined) {
+      warnings.push({
+        code: "origin-u-label",
+        message: `/target ${shown(target)} is a host in U-label form; the draft writes an internationalized host in A-label form${alabel ? `: ${shown(alabel)}` : ""}`,
+      });
+    }
+  }
+}
+
+function linkChecks(rec: Record<string, unknown>, errors: string[], warnings: ValidationWarning[]): void {
+  const notReference = (path: string, value: unknown) =>
+    warnings.push({
+      code: "uri-not-a-reference",
+      message: `${path} is not a URI reference (got ${shown(value)}); it is kept, and this consumer never dereferences it`,
+    });
+  for (const member of URI_MEMBERS) {
+    const value = rec[member];
+    if (typeof value === "string" && !isUriReference(value)) notReference(`/${member}`, value);
+  }
+  const upstream = rec["upstream"];
+  if (Array.isArray(upstream)) {
+    if (upstream.length === 0) errors.push("/upstream must carry at least one entry");
+    upstream.forEach((entry, i) => {
+      const uri = isRecord(entry) ? entry["declaration"] : undefined;
+      if (typeof uri === "string" && !isUriReference(uri)) notReference(`/upstream/${i}/declaration`, uri);
+    });
+  }
+  // Draft -10 §Extensions: the member names of `extensions` are URIs, and its values are objects. JTD cannot constrain the names.
+  const extensions = rec["extensions"];
+  if (isRecord(extensions)) {
+    for (const [key, value] of Object.entries(extensions)) {
+      const why = extensionNameError(key);
+      if (why !== undefined) errors.push(`/extensions/${isolate(key)} ${why}`);
+      if (!isRecord(value)) errors.push(`/extensions/${isolate(key)} must be a JSON object`);
+    }
+  }
+}
+
+/** The members of the object, of `period` and of the `upstream` entries that the draft does not define: ignored by a consumer, and worth a note. */
+function unknownMembers(rec: Record<string, unknown>): { path: string; name: string }[] {
+  const found = Object.keys(rec).filter((name) => !KNOWN_MEMBERS.includes(name)).map((name) => ({ path: "", name }));
+  if (isRecord(rec.period)) {
+    for (const name of Object.keys(rec.period)) if (name !== "start" && name !== "end") found.push({ path: "/period", name });
+  }
+  if (Array.isArray(rec.upstream)) {
+    rec.upstream.forEach((entry, i) => {
+      if (!isRecord(entry)) return;
+      for (const name of Object.keys(entry)) if (name !== "declaration" && name !== "role") found.push({ path: `/upstream/${i}`, name });
+    });
+  }
+  return found;
+}
+
+// What a document of an earlier revision gets as a hint: how it is read, and the value that is not.
+function olderFormHint(obj: Record<string, unknown>): string | undefined {
+  const period = obj.period;
+  const reading =
+    "this consumer reads that form in compatibility mode (legacyCompat, the default) when it names a date, and finds it invalid as served";
+  if ("reporting-period" in obj && period === undefined) {
+    return `/reporting-period ${shown(obj["reporting-period"])} is the -08 form of the period; ${reading}`;
+  }
+  if (isRecord(period) && (isFullDate(period.start) || isFullDate(period.end))) {
+    return `/period holds ${shown(period.start)} and ${shown(period.end)}, the -09 form of two full-dates; ${reading}`;
+  }
+  return undefined;
+}
+
+/**
+ * Validate one declaration object: the JTD schema first, then the rules it
+ * cannot state. An unknown member is a warning, since a consumer ignores it.
+ */
+function validateObjectRules(obj: unknown): ValidationResult {
+  const errors: string[] = [];
+  const warnings: ValidationWarning[] = [];
+
+  if (!validateObject(obj)) {
+    for (const e of validateObject.errors ?? []) {
+      errors.push(schemaErrorMessage(e));
+    }
+    const hint = isRecord(obj) ? olderFormHint(obj) : undefined;
+    if (hint !== undefined) errors.push(hint);
+    return { valid: false, errors, warnings };
+  }
+
+  const rec = obj as Record<string, unknown>;
+  ijsonErrors(rec, "", errors);
+  dateTimeChecks(rec, errors, warnings);
+  figureChecks(rec, errors, warnings);
+  textChecks(rec, errors, warnings);
+  linkChecks(rec, errors, warnings);
+  for (const { path, name } of unknownMembers(rec)) {
+    warnings.push({
+      code: "unknown-member",
+      message: `${path}/${isolate(name)} is not a member the draft defines; this consumer ignores it`,
+    });
+  }
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+/**
+ * Validate a full declaration: one object or an array of them. The objects of
+ * an array are validated one by one; their periods and targets may differ and
+ * overlap, and no order is required of the body (draft -10 §Body). An empty
+ * array is a valid body. `valid` reflects errors ONLY.
+ */
+export function validateDocument(doc: unknown): ValidationResult {
+  // Draft -10 §Body: "whose value is one declaration object or one JSON array
+  // of them". Said plainly here, rather than left to the schema gate to report
+  // as a member-shaped error about a number or a string.
   if (typeof doc !== "object" || doc === null) {
     return {
       valid: false,
       errors: [
         `the top-level value is ${doc === null ? "null" : `a JSON ${typeof doc}`}, so the body is not a declaration: ` +
-          `a declaration is one declaration object or an array of them`,
+          "a declaration is one declaration object or an array of them",
       ],
       warnings: [],
     };
   }
-  // An empty array conveys no report at all — the publisher side answers the
-  // equivalent situation with 404 rather than serving []; treat it as invalid
-  // instead of handing callers a vacuous "valid" declaration.
-  if (Array.isArray(doc) && doc.length === 0) {
-    return { valid: false, errors: ["empty array conveys no report"], warnings: [] };
-  }
   const items = Array.isArray(doc) ? doc : [doc];
-  const errors: string[] = [];
-  const warnings: string[] = [];
+  const result: ValidationResult = { valid: true, errors: [], warnings: [] };
   items.forEach((item, i) => {
-    const r = validateMetrics(item, options.atLeastOneAsServed?.[i]);
+    const r = validateObjectRules(item);
     const prefix = Array.isArray(doc) ? `[${i}]` : "";
-    if (!r.valid) {
-      errors.push(...r.errors.map((e) => `${prefix}${e}`));
-    }
-    // Advisory findings are collected whether or not the entry validated:
-    // they describe the declaration, they do not judge it.
-    warnings.push(...r.warnings.map((w) => `${prefix}${w}`));
+    result.errors.push(...r.errors.map((e) => `${prefix}${e}`));
+    // Advisory findings are collected whether or not the entry validated: they describe the declaration, they do not judge it.
+    result.warnings.push(...r.warnings.map((w) => ({ ...w, message: `${prefix}${w.message}` })));
   });
-
-  // Note on out-of-range values: the draft says a consumer encountering a
-  // value outside a member's stated range (e.g. a negative energy-consumption)
-  // SHOULD treat that member as not reported rather than reject the object —
-  // so no negative-value rejection happens here; that treatment lives in
-  // sentinel.ts (the legacy-compatibility module).
-
-  // Draft §Payload Format: array entries MUST be in ascending order of
-  // reporting-period, MUST NOT overlap, and MUST share the same period
-  // precision and the same target value; target-type MUST be present in every
-  // object with the same value or absent from all.
-  if (Array.isArray(doc) && doc.length > 1 && errors.length === 0) {
-    const entries = doc as SustainabilityMetrics[];
-    const periods = entries.map((m) => String(m["reporting-period"] ?? ""));
-    if (new Set(periods.map((p) => p.length)).size > 1) {
-      errors.push("array entries mix reporting-period precisions");
-    }
-    for (let i = 1; i < periods.length; i++) {
-      if (periods[i] <= periods[i - 1]) {
-        errors.push(
-          `array entries not strictly ascending by reporting-period at [${i}] ("${isolate(periods[i])}" after "${isolate(periods[i - 1])}")`,
-        );
-        break;
-      }
-    }
-    // target is mandatory (schema-gated above), so compare the actual values.
-    if (new Set(entries.map((m) => m.target)).size > 1) {
-      errors.push("array entries carry differing target values");
-    }
-    // target-type is ALL-OR-NONE across an array: "present in every object
-    // with the same value or absent from all" — mixed presence is invalid,
-    // not just mixed values.
-    const withType = entries.filter((m) => m["target-type"] !== undefined);
-    if (withType.length > 0 && withType.length < entries.length) {
-      errors.push(
-        "target-type must be present in every array entry or absent from every entry (mixed presence)",
-      );
-    } else if (new Set(withType.map((m) => m["target-type"])).size > 1) {
-      errors.push("array entries carry differing target-type values");
-    }
-  }
-
-  return { valid: errors.length === 0, errors, warnings };
+  result.valid = result.errors.length === 0;
+  return result;
 }
 
 export class ValidationError extends Error {

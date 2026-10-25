@@ -9,7 +9,7 @@
  * re-hash where the case needs a valid signature.
  */
 import { createHash, createPrivateKey, generateKeyPairSync, sign as cryptoSign, type KeyObject } from "node:crypto";
-import { Publisher, importSigningKey, signDeclaration, type SustainabilityMetrics } from "sustainability-wellknown-publisher";
+import { Publisher, importSigningKey, signDeclaration, yearPeriod, type SustainabilityMetrics } from "sustainability-wellknown-publisher";
 import { validateDocument, verifyEmbeddedSignature, withoutSigned } from "sustainability-wellknown-consumer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { isThirdPartyMapping } from "../src/app";
@@ -54,7 +54,7 @@ const EXPECTED: Record<string, unknown> = {
   provider: SFC_LEDGER_PROVIDER,
   "measurement-method": "hardware-metered",
   "methodology-uri": METHODOLOGY,
-  "reporting-period": "2026-04",
+  period: { start: "2026-04-01T00:00:00Z", end: "2026-05-01T00:00:00Z" },
   target: "validator.operator7.example",
   "energy-consumption": 412.5,
   "energy-unit": "kWh",
@@ -205,7 +205,7 @@ describe("the recorded excerpt", () => {
     // The flags and the allocation are checked by bridge(), which must accept the excerpt too.
     expect(() => bridge(v, { mode: "operator", provider: "p", methodologyUri: METHODOLOGY, ledgerAccessUri: ACCESS })).not.toThrow();
     for (const e of SFC_LEDGER_FIXTURE.ledger) expect(eventHash(e.event)).toBe(e.hash);
-    expect(createHash("sha256").update(JSON.stringify(SFC_LEDGER_FIXTURE, null, 2) + "\n").digest("hex")).toBe("4472b215170c1a75e8705a5bb045d35e9fb3f547e2c1725f8d7f4adc2cad1317");
+    expect(createHash("sha256").update(JSON.stringify(SFC_LEDGER_FIXTURE, null, 2) + "\n").digest("hex")).toBe("9c1d93785cb6fd1987a5d51240e6d333bd3a3f0a6c3833fa7ead0624cd740c1b");
   });
 
   it("jcs: sorted members, no whitespace, ECMAScript numbers; exponents are refused by the exact arithmetic", () => {
@@ -223,6 +223,17 @@ describe("the recorded excerpt", () => {
     expect(() => readExcerpt({ ...clone(SFC_LEDGER_FIXTURE), "profile-version": "1.3" })).toThrow("[E-SHAPE] excerpt.profile-version: unsupported value \"1.3\"");
     expect(() => readExcerpt({ ...clone(SFC_LEDGER_FIXTURE), "hash-algorithm": "sha-512" })).toThrow("[E-SHAPE] excerpt.hash-algorithm");
     expect(() => readExcerpt("not an object")).toThrow("[E-SHAPE]");
+  });
+
+  it("a period written with a +08:00 offset is a whole calendar month when its days are, and the allocation months stay the local calendar", async () => {
+    const f = clone(SFC_LEDGER_FIXTURE);
+    f.publication.period = { start: "2026-04-01T00:00:00+08:00", end: "2026-05-01T00:00:00+08:00" };
+    const d = await build(f);
+    expect(d.period).toEqual(f.publication.period);
+    expect(d["energy-consumption"]).toBe((await build(SFC_LEDGER_FIXTURE))["energy-consumption"]);
+    // Bounds in two different offsets do not match the days the profile names, and are refused.
+    f.publication.period = { start: "2026-04-01T00:00:00Z", end: "2026-05-01T00:00:00+08:00" };
+    await expect(build(f)).rejects.toThrow(/\[E-PERIOD\]/);
   });
 
   it("ignores members it does not name: an extra payload member and an extra nodeProfile member publish unchanged", async () => {
@@ -252,9 +263,13 @@ describe("publishing: events -> declaration", () => {
     const o = await verifyEmbeddedSignature(doc, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK] });
     expect(o.result.status).toBe("verified");
     expect(o.result.status === "verified" && o.result.precedence).toBe("payload");
+    expect(o.result.status === "verified" && o.result.keyTrust).toBe("out-of-band");
+    expect(o.result.status === "verified" && o.result.thumbprint).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const s3 = (await shallowCheck(doc, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK] })).rows.find((r) => r.id === "S3 signature");
+    expect(s3?.detail ?? "").toMatch(/Ed25519, key trust out-of-band, thumbprint [A-Za-z0-9_-]{43}/);
     expect(o.differences ?? []).toEqual([]);
     const header = JSON.parse(Buffer.from(doc.signed!.split(".")[0], "base64url").toString("utf8"));
-    expect(header.alg).toBe("EdDSA");
+    expect(header.alg).toBe("Ed25519");
     expect(header.cty).toBe("sustainability-data+json");
     expect(header.jwk.x).toBe(SFC_LEDGER_TEST_PUBLIC_JWK.x);
     expect(header.jwk.d).toBeUndefined();
@@ -334,7 +349,7 @@ describe("publishing: events -> declaration", () => {
       ["E-ALLOCATION", () => withAllocation(clone(SFC_LEDGER_FIXTURE), (a) => { a.parts[3].kg = 200; })],
       ["E-ALLOCATION", () => withAllocation(clone(SFC_LEDGER_FIXTURE), (a) => { a.beneficiary = "did:example:operator8"; })],
       ["E-ALLOCATION", () => { const f = clone(SFC_LEDGER_FIXTURE); f.retirements[0].sig.value = "A".repeat(86); return f; }],
-      ["E-PERIOD", () => { const f = clone(SFC_LEDGER_FIXTURE); f.publication["reporting-period"] = "2026"; return f; }],
+      ["E-PERIOD", () => { const f = clone(SFC_LEDGER_FIXTURE); f.publication.period = yearPeriod(2026); return f; }],
       ["E-PERIOD", () => { const f = clone(SFC_LEDGER_FIXTURE); f.publication["period-end"] = "2026-04-29"; return f; }],
       ["E-SHAPE", () => ({ ...clone(SFC_LEDGER_FIXTURE), "fixture-version": 2 })],
       ["E-SHAPE", () => { const f = clone(SFC_LEDGER_FIXTURE); (f.ledger[0] as Record<string, unknown>).hash = "xyz"; return f; }],
@@ -476,7 +491,8 @@ describe("publishing: events -> declaration", () => {
       expect(d["energy-unit"]).toBeUndefined();
       expect(d["carbon-intensity-gCO2e-per-kWh"]).toBeUndefined();
       expect(d["scope-2"]).toBe(156.75);
-      expect(d["measurement-method"]).toMatch(/^not stated/);
+      // The draft's set is closed: with nothing attested the residual token stands, and methodology-uri says why.
+      expect(d["measurement-method"]).toBe("third-party-modeled");
       expect(entryOf(d)["energy-events"]).toBe(0);
     });
 
@@ -562,7 +578,7 @@ function networkExcerpt(operators: string[], figures: (operator: string, month: 
   return {
     fixture: "network-test.example", "fixture-version": 1, notice: "SYNTHETIC test excerpt", "profile-version": "1.2", "hash-algorithm": "sha-256", "event-encoding": "rfc8785",
     network: "ledger.example", registry, retirements, ledger,
-    publication: { "reporting-period": "2025", "period-start": "2025-01-01", "period-end": "2025-12-31", updated: "2026-01-15T00:00:00Z", target: "ledger.example", "target-type": "service" },
+    publication: { period: yearPeriod(2025), "period-start": "2025-01-01", "period-end": "2025-12-31", updated: "2026-01-15T00:00:00Z", target: "ledger.example", "target-type": "service" },
   };
 }
 
@@ -574,7 +590,7 @@ describe("network mode (one year, every active operator)", () => {
   it("publishes a service declaration with the network flag, the disclosure index, and no topology extension", async () => {
     const d = await build(networkExcerpt(OPS, () => steady), networkConfig);
     expect(d["target-type"]).toBe("service");
-    expect(d["reporting-period"]).toBe("2025");
+    expect(d.period).toEqual({ start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" });
     expect(d["disclosure-uri"]).toBe(DISCLOSURE);
     expect(d["energy-consumption"]).toBe(2400);
     expect(d["scope-2"]).toBe(912);
@@ -711,6 +727,21 @@ describe("the shallow check", () => {
     expect(statusOf(r.rows, "S5b coherence-energy")).toBe("PASS");
     expect(statusOf(r.rows, "S5c coherence-scope-2")).toBe("FAIL");
     expect(statusOf(r.rows, "S5c coherence-scope-3")).toBe("FAIL");
+  });
+
+  it("reads tCO2e scopes in tonnes (S5c), and fails, not throws, on an unknown unit", async () => {
+    const tonnes = await resigned(doc, (x) => { x["carbon-unit"] = "tCO2e"; x["carbon-footprint"] = 0.21675; x["scope-2"] = 0.15675; x["scope-3"] = 0.06; });
+    const r = await shallowCheck(tonnes, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK] });
+    expect(statusOf(r.rows, "S5c coherence-scope-2")).toBe("PASS");
+    expect(statusOf(r.rows, "S5c coherence-scope-3")).toBe("PASS");
+    expect(statusOf(r.rows, "S0 internal")).toBeUndefined();
+    expect(statusOf(deepCheck(tonnes, SFC_LEDGER_FIXTURE).rows, "D6b declaration")).toBe("PASS");
+    const unknown = await resigned(doc, (x) => { x["carbon-unit"] = "mtCO2e"; });
+    const u = await shallowCheck(unknown, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK] });
+    // The draft check refuses the unit first; the bridge's own S5c row is a second guard and never throws.
+    expect(u.ok).toBe(false);
+    expect(statusOf(u.rows, "S2 draft-conformance")).toBe("FAIL");
+    expect(statusOf(u.rows, "S0 internal")).toBeUndefined();
   });
 });
 
@@ -960,7 +991,7 @@ describe("sfc-ledger-demo.example in the gateway", () => {
     expect(input.status).toBe(200);
     const text = await input.text();
     expect(JSON.parse(text)).toEqual(JSON.parse(JSON.stringify(SFC_LEDGER_FIXTURE)));
-    expect(createHash("sha256").update(text).digest("hex")).toBe("4472b215170c1a75e8705a5bb045d35e9fb3f547e2c1725f8d7f4adc2cad1317");
+    expect(createHash("sha256").update(text).digest("hex")).toBe("9c1d93785cb6fd1987a5d51240e6d333bd3a3f0a6c3833fa7ead0624cd740c1b");
 
     const idx = await (await fetch(url("/index.json"))).json();
     const entry = idx["adapter-demonstrations"].entries.find((e: { domain: string }) => e.domain === SFC_LEDGER_DEMO_DOMAIN);

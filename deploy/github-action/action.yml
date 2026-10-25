@@ -6,7 +6,7 @@ branding:
   color: "green"
 inputs:
   origin:
-    description: "An https origin to fetch and check in strict mode, e.g. https://example.com (leave empty to check a file instead)"
+    description: "An https origin to fetch and check in strict mode (nothing is converted: a -08 or -09 document is invalid), e.g. https://example.com (leave empty to check a file instead)"
     required: false
     default: ""
   file:
@@ -16,7 +16,7 @@ inputs:
   consumer-version:
     description: "Exact version of sustainability-wellknown-consumer to use (the version this action was tested with by default)"
     required: false
-    default: "0.7.0"
+    default: "0.8.0"
 outputs:
   status:
     description: "valid or invalid"
@@ -56,15 +56,28 @@ runs:
           fi
           if NODE_PATH="$PREFIX/node_modules" node -e '
             const fs = require("node:fs");
-            const { validateDocument } = require("sustainability-wellknown-consumer");
+            const { validateDocument, verifyEmbeddedSignature } = require("sustainability-wellknown-consumer");
             const file = process.argv[1];
-            let doc;
-            try { doc = JSON.parse(fs.readFileSync(file, "utf8")); }
-            catch (e) { console.log(`::error file=${file}::not valid JSON: ${e.message}`); process.exit(1); }
-            const r = validateDocument(doc);
-            for (const w of r.warnings ?? []) console.log(`::warning file=${file}::${w}`);
-            if (!r.valid) { for (const e of r.errors) console.log(`::error file=${file}::${e}`); process.exit(1); }
-            console.log(`valid declaration: ${file}`);
+            (async () => {
+              let doc;
+              try { doc = JSON.parse(fs.readFileSync(file, "utf8")); }
+              catch (e) { console.log(`::error file=${file}::not valid JSON: ${e.message}`); return 1; }
+              // The document as written: nothing is converted, so a -08 or -09 file is reported invalid.
+              const r = validateDocument(doc);
+              for (const w of r.warnings ?? []) console.log(`::warning file=${file}::${w.code}: ${w.message}`);
+              if (!r.valid) { for (const e of r.errors) console.log(`::error file=${file}::${e}`); return 1; }
+              let failed = 0;
+              for (const [i, object] of (Array.isArray(doc) ? doc : [doc]).entries()) {
+                const { result } = await verifyEmbeddedSignature(object, {}, { legacyCompat: false });
+                const at = Array.isArray(doc) ? `[${i}] ` : "";
+                if (result.status === "unverified") { console.log(`::error file=${file}::${at}signed does not verify (${result.reason}): ${result.detail}`); failed = 1; }
+                else if (result.modifiedAfterSigning) { console.log(`::error file=${file}::${at}members changed after signing (${result.modifiedMembers.join(", ")}): sign the file again`); failed = 1; }
+                else if (result.alg === "EdDSA") console.log(`::warning file=${file}::${at}the signature names EdDSA, which RFC 9864 replaced with Ed25519`);
+              }
+              if (failed) return 1;
+              console.log(`valid declaration: ${file}`);
+              return 0;
+            })().then((code) => process.exit(code));
           ' "$FILE"; then
             echo "status=valid" >> "$GITHUB_OUTPUT"
           else

@@ -20,7 +20,7 @@ describe("carbontxt-api adapter", () => {
     const doc: any = await docOf(
       carbonTxtApiAdapter({
         provider: "ACME",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         domain: "acme.example",
         fixture: domainFixture(),
         compute: { bytes: 2_000_000_000, green: true, gridZone: "DEU" },
@@ -40,7 +40,7 @@ describe("carbontxt-api adapter", () => {
     const doc: any = await docOf(
       carbonTxtApiAdapter({
         provider: "ACME",
-        reportingPeriod: "2026-02",
+        period: "2026-02",
         domain: "acme.example",
         fixture: domainFixture(),
         energy: { value: 500, unit: "kWh" },
@@ -60,7 +60,7 @@ describe("carbontxt-api adapter", () => {
       document_data: { energy_kwh: 42, carbon_gco2e: 9000 },
     };
     const doc: any = await docOf(
-      carbonTxtApiAdapter({ provider: "ACME", reportingPeriod: "2026-02", url: "https://acme.example/carbon.txt", fixture }),
+      carbonTxtApiAdapter({ provider: "ACME", period: "2026-02", url: "https://acme.example/carbon.txt", fixture }),
     );
     expect(validateDocument(doc).valid).toBe(true);
     expect(doc["energy-consumption"]).toBe(42);

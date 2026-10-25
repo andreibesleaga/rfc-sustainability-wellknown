@@ -8,9 +8,9 @@ export interface Result {
 
 /**
  * CORS is echoed on EVERY response — including 404 and 405 — so a browser or
- * cross-origin aggregator can read the status, not just a 200. The draft
- * (Mandatory Minimum Supported Service) recommends this for 200s; extending it
- * to error statuses costs nothing and removes a class of opaque failures.
+ * cross-origin aggregator can read the status, not just a 200. The draft says
+ * nothing about CORS; this is the deployment's choice, and it costs nothing
+ * and removes a class of opaque failures.
  */
 export const CORS_ORIGIN = "*";
 
@@ -28,9 +28,8 @@ export function corsHeaders(): Record<string, string> {
  * is unaffected — the value is identical either way.
  */
 export function withBody(status: number, headers: Record<string, string>, body: string): Result {
-  // Every error body this service emits is English text (the draft's
-  // Internationalization Considerations ask a server to say so at the HTTP
-  // layer); a 200 carries the declaration's own language header elsewhere.
+  // Every error body this service emits is English text, and says so; a 200
+  // carries the declaration's own language header elsewhere.
   if (status >= 400 && headers["Content-Language"] === undefined) headers = { ...headers, "Content-Language": "en" };
   return {
     status,

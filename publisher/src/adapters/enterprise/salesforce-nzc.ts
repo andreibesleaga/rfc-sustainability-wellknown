@@ -2,7 +2,7 @@
  * Salesforce Net Zero Cloud adapter.
  *
  * Reads emissions/energy from Net Zero Cloud Standard Objects via the REST query
- * API (SOQL). Net Zero Cloud reports emissions in metric tonnes (mtCO2e) and
+ * API (SOQL). Net Zero Cloud reports emissions in metric tonnes (tCO2e) and
  * energy on the AnnualEmssnInventory / EmissionsForecastFact objects.
  *
  * Live mode: pass instanceUrl + accessToken (OAuth bearer). Replay mode: pass a
@@ -10,7 +10,8 @@
  *
  * Docs: https://developer.salesforce.com/docs/atlas.en-us.netzero_cloud_dev_guide.meta/
  */
-import { CarbonUnit, EnergyUnit, RawMetrics, SourceAdapter } from "../../types";
+import { CarbonAccounting, CarbonUnit, EnergyUnit, MeasurementMethod } from "../../tokens";
+import { RawMetrics, SourceAdapter } from "../../types";
 import { fetchJson } from "../../util";
 
 export interface SoqlResponse {
@@ -50,7 +51,13 @@ export interface SalesforceNzcConfig {
   /** Net Zero Cloud carbon is in metric tonnes. */
   carbonUnit?: CarbonUnit;
   fieldMap?: Partial<SalesforceFieldMap>;
-  measurementMethod?: string;
+  /**
+   * The accounting the scope-2 field follows. Default `"market-based"`, which
+   * matches the default field (`TotalScope2MktEmissions`); a location-based
+   * `fieldMap.scope2` needs `"location-based"`.
+   */
+  carbonAccounting?: CarbonAccounting;
+  measurementMethod?: MeasurementMethod;
   fixture?: SoqlResponse;
   /** Declared service level; "basic" unless the deployment honors Extended query parameters. */
   capabilities?: "basic" | "extended";
@@ -65,7 +72,7 @@ function num(v: unknown): number | undefined {
 export function salesforceNzcAdapter(config: SalesforceNzcConfig): SourceAdapter {
   const fm = { ...DEFAULT_FIELD_MAP, ...config.fieldMap };
   const energyUnit = config.energyUnit ?? "MWh";
-  const carbonUnit = config.carbonUnit ?? "mtCO2e";
+  const carbonUnit = config.carbonUnit ?? "tCO2e";
   const soql =
     config.soql ??
     `SELECT ${fm.period}, ${fm.scope1}, ${fm.scope2}, ${fm.scope3}, ${fm.carbon}, ${fm.energy} FROM AnnualEmssnInventory ORDER BY ${fm.period} DESC LIMIT 1`;
@@ -127,10 +134,10 @@ export function salesforceNzcAdapter(config: SalesforceNzcConfig): SourceAdapter
           provider: config.provider,
           measurementMethod: config.measurementMethod ?? "third-party-modeled",
           methodologyUri: config.methodologyUri,
-          reportingPeriod: yr,
+          period: yr,
           energy: { value: energy, unit: energyUnit },
           carbon: { value: carbonTotal, unit: carbonUnit },
-          carbonAccounting: "market-based",
+          carbonAccounting: config.carbonAccounting ?? "market-based",
           scope1,
           scope2,
           scope3,

@@ -1,0 +1,18 @@
+{
+  "updated": "2025-04-02T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Paris Colo SAS (sustainability@dst.example)",
+  "measurement-method": "hardware-metered",
+  "methodology-uri": "https://dst.example/sustainability/methodology",
+  "period": {
+    "start": "2025-03-01T00:00:00+01:00",
+    "end": "2025-04-01T00:00:00+02:00"
+  },
+  "target": "Paris DC 1",
+  "target-type": "facility",
+  "energy-consumption": 8200,
+  "energy-unit": "kWh",
+  "carbon-footprint": 410,
+  "carbon-unit": "kgCO2e",
+  "carbon-accounting": "location-based"
+}

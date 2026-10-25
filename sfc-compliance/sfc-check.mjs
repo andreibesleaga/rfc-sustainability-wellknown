@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * sfc-check: read one sustainability declaration and report the four criteria of
- * PROFILE.md (the SFC profile of draft-besleaga-sustainability-wellknown-07).
+ * PROFILE.md (the SFC profile of draft-besleaga-sustainability-wellknown-10).
  *
  * Nothing here extends the draft. The document is validated by the published
  * consumer library, and every criterion is read off the members the draft
@@ -28,6 +28,8 @@ import {
   fetchSustainability,
   verifyAttestation,
   isExtensionName,
+  periodError,
+  isWholeCalendarPeriod,
 } from "sustainability-wellknown-consumer";
 
 export const NS = "https://andreibesleaga.com/sfc/extensions/";
@@ -40,14 +42,16 @@ export const LEDGER_EVIDENCE = NS + "ledger-evidence";
 export const CAP_GWH = 1;
 /** PROFILE.md section 2. The draft's target-type enumeration has no "network". */
 export const NETWORK_TARGET_TYPE = "service";
-/** The period form C1 is evaluated on. */
-export const ANNUAL_PERIOD_RE = /^\d{4}$/;
 
 /**
- * The clock. Injected everywhere a library reads one, so that a run is
- * reproducible and no verdict moves with the date. Override with --now.
+ * Whether an object's period is the form C1 is evaluated on: a whole calendar
+ * year, both bounds on 1 January 00:00 of consecutive years (the consumer's
+ * period helpers do the date work).
  */
-export const DEFAULT_CLOCK = new Date("2026-01-01T00:00:00Z");
+export const isAnnualPeriod = (o) => !periodError(o.period) && isWholeCalendarPeriod(o.period, "yearly");
+
+/** An object's period as text for the report: "start to end", or "(none)". */
+export const periodLabel = (o) => (periodError(o.period) ? "(none)" : `${o.period.start} to ${o.period.end}`);
 
 const isNumber = (v) => typeof v === "number" && Number.isFinite(v);
 const isString = (v) => typeof v === "string" && v.length > 0;
@@ -66,9 +70,9 @@ export function objectsOf(doc) {
  * PROFILE.md section 2: a whole year, and the network level.
  */
 export function selectAnnualNetworkObject(objects) {
-  const annual = objects.filter((o) => ANNUAL_PERIOD_RE.test(String(o["reporting-period"] ?? "")));
+  const annual = objects.filter(isAnnualPeriod);
   if (annual.length === 0) {
-    const periods = objects.map((o) => String(o["reporting-period"] ?? "(none)")).join(", ");
+    const periods = objects.map(periodLabel).join(", ");
     return {
       object: undefined,
       reason: `no object covers a whole calendar year. C1 is an annual figure, and this document reports ${periods || "nothing"}`,
@@ -94,7 +98,7 @@ export function selectAnnualNetworkObject(objects) {
 /** The object the other criteria are read from. */
 export function selectSubjectObject(objects, annualNetwork) {
   if (annualNetwork) return annualNetwork;
-  const annual = objects.filter((o) => ANNUAL_PERIOD_RE.test(String(o["reporting-period"] ?? "")));
+  const annual = objects.filter(isAnnualPeriod);
   return annual[0] ?? objects[0];
 }
 
@@ -124,7 +128,7 @@ function checkC1(rows, selection) {
     rows.push(row("REFUSED", "C1-energy", `energy-unit "${unit}" is not one of Wh, kWh, MWh, GWh, so the figure cannot be converted`));
     return false;
   }
-  const detail = `${o["energy-consumption"]} ${unit} = ${gwh} GWh against the cap of ${CAP_GWH} GWh, for ${o.target} over ${o["reporting-period"]}`;
+  const detail = `${o["energy-consumption"]} ${unit} = ${gwh} GWh against the cap of ${CAP_GWH} GWh, for ${o.target} over ${periodLabel(o)}`;
   if (gwh < CAP_GWH) {
     rows.push(row("PASS", "C1-energy", detail));
     return false;
@@ -230,6 +234,8 @@ async function checkAttestation(rows, obj, options) {
   let result;
   try {
     result = await verifyAttestation(uri, {
+      base: options.base,
+      trustedIssuerKeys: options.trustedIssuerKeys,
       now: options.clock,
       declaration: obj,
       timeoutMs: options.timeoutMs,
@@ -245,11 +251,22 @@ async function checkAttestation(rows, obj, options) {
     return;
   }
   const binding = result.binding ? result.binding.status : "not-checked";
+  if (result.attested) {
+    rows.push(
+      row(
+        "DECLARED",
+        "C3-attestation",
+        `attested by ${result.issuer}: signature verified under a trusted key (${result.alg}), covers the target and period, declaration copy ${binding}. This is evidence about the statement, not about the figures`
+      )
+    );
+    return;
+  }
+  const coverage = result.coverage ? result.coverage.status : "not-checked";
   rows.push(
     row(
-      "DECLARED",
+      "INFO",
       "C3-attestation",
-      `a statement by ${result.issuer} was fetched and its signature checks out (${result.alg}, key ${result.assurance}, declaration copy ${binding}). It is attested, not verified: this is evidence about the statement, not about the figures`
+      `a statement by ${result.issuer} was fetched and its signature verifies under ${result.assurance === "issuer-key-pinned" ? "a trusted key" : `the key in its own header (${result.alg}); that key is trusted no further than the credential carrying it`}, coverage ${coverage}, declaration copy ${binding}, so the object is not attested. Pass --trusted-issuer-key=<jwk file> to trust the issuer's key`
     )
   );
 }
@@ -325,11 +342,13 @@ function checkLedgerEvidence(rows, obj) {
  */
 export async function checkDocument(doc, options = {}) {
   const opts = {
-    clock: options.clock ?? DEFAULT_CLOCK,
+    clock: options.clock ?? new Date(),
     verifyAttestation: options.verifyAttestation === true,
     timeoutMs: options.timeoutMs,
     fetchImpl: options.fetchImpl,
     lookup: options.lookup,
+    base: options.base,
+    trustedIssuerKeys: options.trustedIssuerKeys,
   };
   const rows = [];
   const objects = objectsOf(doc);
@@ -341,15 +360,15 @@ export async function checkDocument(doc, options = {}) {
   const validation = validateDocument(doc);
   rows.push(
     validation.valid
-      ? row("PASS", "draft-conformance", "valid against the -07 schema and prose rules")
+      ? row("PASS", "draft-conformance", "valid against the -10 schema and prose rules")
       : row("FAIL", "draft-conformance", validation.errors.join("; "))
   );
-  for (const warning of validation.warnings) rows.push(row("WARN", "draft-warning", warning));
+  for (const warning of validation.warnings) rows.push(row("WARN", "draft-warning", warning.message));
 
   const selection = selectAnnualNetworkObject(objects);
   const subject = selectSubjectObject(objects, selection.object);
   if (objects.length > 1) {
-    rows.push(row("INFO", "subject", `${objects.length} objects in this document; the criteria below are read from the one covering ${subject["reporting-period"]}`));
+    rows.push(row("INFO", "subject", `${objects.length} objects in this document; the criteria below are read from the one covering ${periodLabel(subject)}`));
   }
   for (const key of Object.keys((isObject(subject.extensions) ? subject.extensions : {}))) {
     if (!isExtensionName(key)) rows.push(row("WARN", "ext-name", `${JSON.stringify(key)} is not a usable extension name`));
@@ -371,23 +390,31 @@ export async function checkDocument(doc, options = {}) {
   };
 }
 
+/** The fetch status, with the detail the consumer gives for the statuses that carry one. */
+function describeFetchFailure(fetched) {
+  const detail = fetched.detail ?? (fetched.status === "http-error" ? `HTTP ${fetched.httpStatus}` : undefined);
+  return detail ? `${fetched.status} (${detail})` : fetched.status;
+}
+
 /** The HTTP half of C4, which needs a live origin. */
 export async function checkOrigin(origin, options = {}) {
-  const clock = options.clock ?? DEFAULT_CLOCK;
+  const clock = options.clock ?? new Date();
+  // The compatibility reading is off: the checker judges the document as served.
   const fetched = await fetchSustainability(origin, {
+    legacyCompat: false,
     timeoutMs: options.timeoutMs,
     fetchImpl: options.fetchImpl,
     lookup: options.lookup,
   });
   if (fetched.status !== "ok") {
     return {
-      rows: [row("FAIL", "draft-conformance", `the origin did not serve a declaration: ${fetched.status}`)],
+      rows: [row("FAIL", "draft-conformance", `the origin did not serve a declaration: ${describeFetchFailure(fetched)}`)],
       conformant: false,
       capExceeded: false,
       exitCode: 1,
     };
   }
-  const result = await checkDocument(fetched.document, options);
+  const result = await checkDocument(fetched.document, { ...options, base: fetched.url });
   const report = await runConformanceChecks(origin, options.fetchImpl, {
     now: () => clock,
     timeoutMs: options.timeoutMs,
@@ -400,7 +427,8 @@ export async function checkOrigin(origin, options = {}) {
       ? row("PASS", "C4-origin", `${report.checks.length} checks run against ${report.origin}; every MUST passed`)
       : row("FAIL", "C4-origin", `${musts.length} MUST level checks failed: ${musts.map((c) => c.name).join(", ")}`)
   );
-  for (const check of failed.filter((c) => c.level === "SHOULD")) {
+  // Everything below MUST level that did not pass: unmet recommendations, HTTP practice, notes.
+  for (const check of report.checks.filter((c) => c.level !== "MUST" && c.outcome !== "pass")) {
     result.rows.push(row("WARN", "C4-origin", `${check.name}: ${check.detail ?? "recommendation not met"}`));
   }
   if (musts.length > 0) {
@@ -427,7 +455,8 @@ function usage() {
     "usage: node sfc-check.mjs <https origin or local file> [options]",
     "",
     "  --verify-attestation   fetch the statement at verifiable-attestation-uri and check it (default off)",
-    "  --now=<RFC 3339>       the fixed clock the checks read (default 2026-01-01T00:00:00Z)",
+    "  --now=<RFC 3339>       the fixed clock the checks read (default: the current time)",
+    "  --trusted-issuer-key=<jwk file>  an attestation issuer's public key, trusted out of band (default: none)",
     "  --json                 print the rows as JSON instead of text",
     "  --help                 this text",
     "",
@@ -435,14 +464,25 @@ function usage() {
   ].join("\n");
 }
 
+/** A public JWK from a file, or the error that says which file was unusable. */
+function readJwk(file) {
+  try {
+    return JSON.parse(readFileSync(file, "utf8"));
+  } catch (err) {
+    throw new Error(`--trusted-issuer-key: cannot read a JWK from ${file}: ${err.message}`);
+  }
+}
+
 export function parseArgs(argv) {
-  const options = { verifyAttestation: false, json: false, clock: DEFAULT_CLOCK, help: false };
+  const options = { verifyAttestation: false, json: false, help: false };
   let subject;
   for (const arg of argv) {
     if (arg === "--verify-attestation") options.verifyAttestation = true;
     else if (arg === "--json") options.json = true;
     else if (arg === "--help" || arg === "-h") options.help = true;
-    else if (arg.startsWith("--now=")) {
+    else if (arg.startsWith("--trusted-issuer-key=")) {
+      options.trustedIssuerKeys = [...(options.trustedIssuerKeys ?? []), readJwk(arg.slice("--trusted-issuer-key=".length))];
+    } else if (arg.startsWith("--now=")) {
       const when = new Date(arg.slice("--now=".length));
       if (Number.isNaN(when.getTime())) throw new Error(`--now is not a date: ${arg}`);
       options.clock = when;
@@ -470,7 +510,7 @@ export async function main(argv) {
   if (/^https:\/\//i.test(subject)) {
     result = await checkOrigin(subject, options);
   } else if (/^http:\/\//i.test(subject)) {
-    process.stderr.write("the draft requires https, and a consumer must not accept a declaration fetched over http\n");
+    process.stderr.write("a declaration is published and retrieved over https (draft, Location and Transport)\n");
     return 2;
   } else {
     let doc;

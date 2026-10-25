@@ -1,559 +1,496 @@
+/**
+ * Validation of an incoming declaration under draft -10: the verdict on the
+ * document as served, with a coded warning for what a consumer only notes.
+ * The example corpus carries the verdict of every file, strict and with the
+ * warning codes; the cases below name the rules one by one.
+ */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import Ajv from "ajv/dist/jtd";
 import { describe, expect, it } from "vitest";
+import { parseStrict } from "../src/json";
+import { RESPONSE_JTD_SCHEMA } from "../src/schema";
+import { isolate } from "../src/text";
 import {
   assertValid,
   carriesAtLeastOne,
   extensionNameError,
   isExtensionName,
-  isHttpsExtensionName,
-  isUrnUuidExtensionName,
-  RESERVED_EXTENSION_NAMES,
-  URN_UUID_RE,
-  ABSOLUTE_URI_RE,
+  isUriReference,
+  KNOWN_MEMBERS,
+  METRIC_MEMBERS,
+  URI_MEMBERS,
   validateDocument,
   ValidationError,
 } from "../src/validate";
-import { SustainabilityMetrics } from "../src/types";
 
-function metrics(overrides: Partial<SustainabilityMetrics> = {}): SustainabilityMetrics {
-  return {
-    updated: "2026-01-01T00:00:00Z",
-    capabilities: "basic",
-    provider: "example.com",
-    "measurement-method": "metered",
-    "methodology-uri": "https://example.com/methodology",
-    "reporting-period": "2026-01",
-    target: "example.com",
-    "energy-consumption": 100,
-    "energy-unit": "kWh",
-    "carbon-footprint": 50,
-    "carbon-unit": "kgCO2e",
-    ...overrides,
-  };
+const CORPUS = resolve(process.cwd(), "..", "schemas-validators", "examples");
+
+interface Entry {
+  id: string;
+  path: string;
+  ajv: boolean;
+  strict: "ok" | "reject";
+  warn: string[];
 }
 
-describe("validateDocument: single object", () => {
-  it("accepts a valid single object", () => {
-    const r = validateDocument(metrics());
-    expect(r.valid).toBe(true);
-    expect(r.errors).toEqual([]);
+const manifest: Entry[] = JSON.parse(readFileSync(resolve(CORPUS, "manifest.json"), "utf8"));
+const text = (entry: Entry): string => readFileSync(resolve(CORPUS, entry.path), "utf8");
+
+const schemaOnly = new Ajv({ allErrors: true }).compile(RESPONSE_JTD_SCHEMA as unknown as object);
+const schemaAccepts = (doc: unknown): boolean => (Array.isArray(doc) ? doc : [doc]).every((item) => schemaOnly(item));
+
+// The schema's rule that an extension value is an object is stricter than the manifest records for this file.
+const SCHEMA_STRICTER_THAN_MANIFEST = new Set(["I35"]);
+
+// Warnings that come from verifying `signed`, not from validating the document: the manifest lists them, the signature tests check them.
+const SIGNATURE_WARNINGS = new Set(["deprecated-alg", "modified-after-signing"]);
+
+const codes = (warnings: { code: string }[]): string[] => [...new Set(warnings.map((w) => w.code))].sort();
+
+describe("the example corpus, read as served", () => {
+  it("lists the files of the corpus", () => {
+    expect(manifest.length).toBeGreaterThan(100);
   });
 
-  it("rejects a document missing a mandatory field (provider)", () => {
-    const doc = metrics() as Record<string, unknown>;
-    delete doc["provider"];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.length).toBeGreaterThan(0);
+  for (const entry of manifest) {
+    it(`${entry.id} ${entry.path}: ${entry.strict}${entry.warn.length ? ` with ${entry.warn.join(", ")}` : ""}`, () => {
+      const doc = JSON.parse(text(entry));
+      const result = validateDocument(doc);
+      expect(result.valid, result.errors.join("; ")).toBe(entry.strict === "ok");
+      expect(codes(result.warnings)).toEqual(entry.warn.filter((code) => !SIGNATURE_WARNINGS.has(code)).sort());
+      if (!SCHEMA_STRICTER_THAN_MANIFEST.has(entry.id)) expect(schemaAccepts(doc), "the JTD schema alone").toBe(entry.ajv);
+    });
+  }
+
+  it("parses as I-JSON, except for the one file whose number exceeds binary64", () => {
+    const refused = manifest.filter((entry) => {
+      try {
+        parseStrict(text(entry));
+        return false;
+      } catch {
+        return true;
+      }
+    });
+    expect(refused.map((entry) => entry.path)).toEqual(["prose/number-overflow.json"]);
+  });
+});
+
+const good = {
+  updated: "2026-03-01T12:00:00Z",
+  capabilities: "basic",
+  provider: "Example Corp (sustainability@example.com)",
+  "measurement-method": "hardware-metered",
+  "methodology-uri": "https://example.com/methodology",
+  period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
+  target: "example.com",
+  "energy-consumption": 100,
+  "carbon-footprint": 50,
+};
+const object = (over: Record<string, unknown> = {}, drop: string[] = []): Record<string, unknown> => {
+  const copy: Record<string, unknown> = { ...good, ...over };
+  for (const name of drop) delete copy[name];
+  return copy;
+};
+const errorsOf = (doc: unknown): string => validateDocument(doc).errors.join("; ");
+
+describe("a member outside a closed set names the set", () => {
+  const sets: [string, string, string[]][] = [
+    ["functional-unit", "per-minute", ["per-request", "per-device"]],
+    ["measurement-method", "metered", ["hardware-metered", "hardware-estimated", "cloud-billing", "third-party-modeled"]],
+    ["carbon-unit", "mtCO2e", ["gCO2e", "kgCO2e", "tCO2e"]],
+    ["energy-unit", "kwh", ["Wh", "kWh", "MWh", "GWh"]],
+  ];
+  for (const [member, value, allowed] of sets) {
+    it(member, () => {
+      const errors = errorsOf(object({ [member]: value, ...(member === "functional-unit" ? { "sci-score": 1 } : {}) }));
+      expect(errors).toContain(`/${member} must be one of `);
+      for (const token of allowed) expect(errors).toContain(token);
+    });
+  }
+});
+
+describe("a valid object", () => {
+  it("has no errors and no warnings", () => {
+    expect(validateDocument(good)).toEqual({ valid: true, errors: [], warnings: [] });
   });
 
-  it("rejects a document missing the mandatory target member (-03)", () => {
-    const doc = metrics() as Record<string, unknown>;
-    delete doc["target"];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.length).toBeGreaterThan(0);
+  it("is accepted alone and as an array of one", () => {
+    expect(validateDocument([good]).valid).toBe(true);
+  });
+});
+
+describe("the body", () => {
+  it("accepts an empty array", () => {
+    expect(validateDocument([])).toEqual({ valid: true, errors: [], warnings: [] });
   });
 
-  it("accepts a sparse object with no metric at all when it carries an evidence link (at-least-one rule)", () => {
-    const doc = metrics({ "disclosure-uri": "https://example.com/disclosures" }) as Record<string, unknown>;
-    delete doc["energy-consumption"];
-    delete doc["energy-unit"];
-    delete doc["carbon-footprint"];
-    delete doc["carbon-unit"];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(true);
-    expect(r.errors).toEqual([]);
+  it.each([[null, "null"], [4, "a JSON number"], ["text", "a JSON string"], [true, "a JSON boolean"]])(
+    "says plainly that %j is not a declaration",
+    (body, what) => {
+      const result = validateDocument(body);
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain(what);
+    },
+  );
+
+  it("refuses an array with an entry that is not an object", () => {
+    expect(validateDocument([good, 4]).valid).toBe(false);
+    expect(errorsOf([good, 4])).toContain("[1]");
   });
 
-  it("rejects an object with no numeric metric and no evidence link (-07 at-least-one MUST)", () => {
-    const doc = metrics() as Record<string, unknown>;
-    for (const k of ["energy-consumption", "energy-unit", "carbon-footprint", "carbon-unit"]) delete doc[k];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => /at least one/i.test(e))).toBe(true);
-    // Any single metric satisfies it, as does either evidence link.
-    expect(validateDocument({ ...doc, "renewable-energy": 0 }).valid).toBe(true);
-    expect(validateDocument({ ...doc, "scope-1": -5 }).valid).toBe(true);
-    expect(validateDocument({ ...doc, "disclosure-uri": "https://x.example/d" }).valid).toBe(true);
-    expect(validateDocument({ ...doc, "verifiable-attestation-uri": "https://x.example/vc" }).valid).toBe(true);
-    // `upstream` is deliberately NOT evidence for this rule.
-    expect(validateDocument({ ...doc, upstream: [{ declaration: "https://u.example/d" }] }).valid).toBe(false);
+  it("prefixes each error and warning with the index of its entry", () => {
+    const result = validateDocument([good, object({ "energy-consumption": -1, "disclosure-uri": "not a uri" })]);
+    expect(result.errors.every((e) => e.startsWith("[1]"))).toBe(true);
+    expect(result.warnings.every((w) => w.message.startsWith("[1]"))).toBe(true);
+  });
+});
+
+describe("array rules under -10", () => {
+  const month = (m: string, over: Record<string, unknown> = {}) =>
+    object({ period: { start: `2025-${m}-01T00:00:00Z`, end: `2025-${String(Number(m) + 1).padStart(2, "0")}-01T00:00:00Z` }, ...over });
+
+  it("accepts objects for different targets and different target-types", () => {
+    expect(validateDocument([good, object({ target: "/api", "target-type": "path" }), object({ target: "Example", "target-type": "organization" })]).valid).toBe(true);
   });
 
-  it("warns about an unrecognized top-level member, ignores it, and keeps the object valid (-07 closed base)", () => {
-    // -07 closes the base object — other data belongs under `extensions` — but
-    // a consumer MUST ignore a top-level member it does not recognize, since a
-    // later revision may define one. So: a warning, never an error, and the
-    // member is left in place.
-    const doc = metrics({ version: "2.0", "com.example.pue": 1.4 } as Partial<SustainabilityMetrics>);
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(true);
-    expect(r.errors).toEqual([]);
-    expect(r.warnings).toHaveLength(2);
-    expect(r.warnings.every((w) => w.startsWith("unknown-member"))).toBe(true);
-    expect(r.warnings.some((w) => w.includes("version"))).toBe(true);
-    expect((doc as Record<string, unknown>)["com.example.pue"]).toBe(1.4);
+  it("accepts periods that overlap, a year beside its months", () => {
+    expect(validateDocument([good, month("01"), month("02")]).valid).toBe(true);
   });
 
-  it("validates the -07 extensions member: absolute-URI keys, object values", () => {
-    // Draft -07 §Extensions names two forms: `urn:uuid:` + a lowercase UUID,
-    // and an https URI (documentation for a human, never dereferenced).
-    const uuid = "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845";
-    const https = "https://example.com/sustainability/extensions/water-and-waste";
-    for (const good of [uuid, https, "urn:oid:1.3.6.1.4.1.32473.1"]) {
-      const ok = validateDocument(
-        metrics({ extensions: { [good]: { "water-consumption-m3": 1250 } } } as Partial<SustainabilityMetrics>),
-      );
-      expect(ok.valid, good).toBe(true);
-      expect(ok.warnings, good).toEqual([]);
-    }
-
-    for (const bad of [
-      "16c36135-e6ae-40f9-a972-015eefc68845", // a bare UUID
-      "urn:uuid:16C36135-E6AE-40F9-A972-015EEFC68845", // uppercase hex
-      "urn:uuid:00000000-0000-0000-0000-000000000000", // Nil
-      "urn:uuid:ffffffff-ffff-ffff-ffff-ffffffffffff", // Max
-      "16c36135e6ae40f9a972015eefc68845",
-      "com.example.pue", // a reverse-domain name
-      "__proto__",
-      "extensions/water-and-waste", // a relative reference
-      "https://example.com/ext#water", // a fragment
-      "https://example.com/e xt", // whitespace
-      "https://exämple.com/ext", // non-ASCII
-      "https:water-and-waste", // no host
-      "https://", // no host
-      "tag:", // a scheme and nothing else
-      "HTTPS://example.com/ext", // uppercase scheme
-      "URN:UUID:16c36135-e6ae-40f9-a972-015eefc68845",
-      "Urn:oid:1.3.6.1.4.1.32473.1",
-      "",
-    ]) {
-      const r = validateDocument(metrics({ extensions: { [bad]: {} } } as Partial<SustainabilityMetrics>));
-      expect(r.valid, `extensions key "${bad}" must be rejected`).toBe(false);
-      expect(r.errors.some((e) => /extensions key/.test(e)), bad).toBe(true);
-    }
-    // A non-object value fails at the schema gate.
-    expect(validateDocument(metrics({ extensions: { [uuid]: 42 } } as unknown as Partial<SustainabilityMetrics>)).valid).toBe(false);
+  it("accepts any order: order is a rule for a server, not for the body", () => {
+    expect(validateDocument([month("03"), month("01"), month("02")])).toMatchObject({ valid: true, warnings: [] });
   });
 
-  it("rejects the Nil and Max UUIDs as extensions keys (-07: guaranteed collisions)", () => {
-    // Draft -07 §Extensions: "The Nil and Max UUIDs (RFC 9562, Sections 5.9
-    // and 5.10) MUST NOT be used, since they are guaranteed collisions."
-    for (const forbidden of RESERVED_EXTENSION_NAMES) {
-      const r = validateDocument(metrics({ extensions: { [forbidden]: { x: 1 } } } as Partial<SustainabilityMetrics>));
-      expect(r.valid, forbidden).toBe(false);
-      expect(r.errors.some((e) => /Nil|Max/.test(e)), forbidden).toBe(true);
-      // They are well-formed `urn:uuid:` keys, so the rejection is not the text-form one.
-      expect(URN_UUID_RE.test(forbidden)).toBe(true);
-    }
-    expect(RESERVED_EXTENSION_NAMES).toEqual([
-      "urn:uuid:00000000-0000-0000-0000-000000000000",
-      "urn:uuid:ffffffff-ffff-ffff-ffff-ffffffffffff",
+  it("accepts two objects that differ only in their accounting method", () => {
+    expect(validateDocument([object({ "carbon-accounting": "location-based" }), object({ "carbon-accounting": "market-based" })]).valid).toBe(true);
+  });
+
+  it("accepts two objects of one target and period that differ in their functional-unit", () => {
+    const withScore = (unit: string) => object({ "functional-unit": unit, "sci-score": 1 });
+    expect(validateDocument([withScore("per-request"), withScore("per-job")]).valid).toBe(true);
+  });
+});
+
+describe("the period", () => {
+  const withPeriod = (start: unknown, end: unknown) => object({ period: { start, end } });
+
+  it("accepts bounds in other offsets and with a zero fraction", () => {
+    expect(validateDocument(withPeriod("2025-01-01T00:00:00+08:00", "2025-02-01T00:00:00+08:00")).valid).toBe(true);
+    expect(validateDocument(withPeriod("2025-01-01T00:00:00.000Z", "2026-01-01T00:00:00.000Z")).valid).toBe(true);
+  });
+
+  it("accepts members of period a later revision may define, with a warning", () => {
+    const result = validateDocument(object({ period: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z", zone: "UTC" } }));
+    expect(result.valid).toBe(true);
+    expect(result.warnings.map((w) => w.message)).toEqual([`/period/${isolate("zone")} is not a member the draft defines; this consumer ignores it`]);
+  });
+
+  it.each([
+    ["a date without a time (the -09 form)", "2025-01-01", "2025-12-31"],
+    ["a lower-case t", "2025-01-01t00:00:00Z", "2026-01-01T00:00:00Z"],
+    ["a lower-case z", "2025-01-01T00:00:00Z", "2026-01-01T00:00:00z"],
+    ["no offset", "2025-01-01T00:00:00", "2026-01-01T00:00:00Z"],
+    ["an offset without a colon", "2025-01-01T00:00:00+0100", "2026-01-01T00:00:00Z"],
+    ["a space for the T", "2025-01-01 00:00:00Z", "2026-01-01T00:00:00Z"],
+    ["a zone in brackets", "2025-01-01T00:00:00Z[Europe/Paris]", "2026-01-01T00:00:00Z"],
+    ["a date that does not exist", "2025-02-30T00:00:00Z", "2026-01-01T00:00:00Z"],
+    ["hour 24", "2025-01-01T24:00:00Z", "2026-01-01T00:00:00Z"],
+    ["an offset out of range", "2025-01-01T00:00:00+99:99", "2026-01-01T00:00:00Z"],
+    ["a bound that is not a string", 20250101, "2026-01-01T00:00:00Z"],
+  ])("refuses %s", (_what, start, end) => {
+    expect(validateDocument(withPeriod(start, end)).valid).toBe(false);
+  });
+
+  it("refuses an end equal to the start, and an end before it, compared as instants", () => {
+    expect(errorsOf(withPeriod("2025-01-01T00:00:00Z", "2025-01-01T00:00:00Z"))).toContain("must be before");
+    expect(errorsOf(withPeriod("2025-02-01T00:00:00Z", "2025-01-01T00:00:00Z"))).toContain("must be before");
+    // The same instant written in two offsets.
+    expect(errorsOf(withPeriod("2025-01-01T00:00:00Z", "2025-01-01T01:00:00+01:00"))).toContain("must be before");
+    // A start that is later as text but earlier as an instant.
+    expect(validateDocument(withPeriod("2025-01-01T01:00:00+05:00", "2025-01-01T00:00:00Z")).valid).toBe(true);
+  });
+
+  it("refuses a missing period, a period that is not an object, and a missing bound", () => {
+    expect(validateDocument(object({}, ["period"])).valid).toBe(false);
+    expect(validateDocument(object({ period: "2025" })).valid).toBe(false);
+    expect(validateDocument(object({ period: { start: "2025-01-01T00:00:00Z" } })).valid).toBe(false);
+  });
+
+  it("refuses a malformed updated", () => {
+    expect(errorsOf(object({ updated: "2026-03-01 12:00:00Z" }))).toContain("/updated");
+    expect(errorsOf(object({ updated: "2026-03-01" }))).toContain("/updated");
+  });
+
+  it("warns, and does not refuse, a period below the day floor", () => {
+    const twelveHours = validateDocument(withPeriod("2025-01-01T00:00:00Z", "2025-01-01T12:00:00Z"));
+    expect(twelveHours.valid).toBe(true);
+    expect(codes(twelveHours.warnings)).toEqual(["period-below-day-floor"]);
+  });
+
+  it("does not warn about a 23-hour day across a change of daylight-saving time", () => {
+    const result = validateDocument(withPeriod("2025-03-30T00:00:00+01:00", "2025-03-31T00:00:00+02:00"));
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("warns about the leap second 23:59:60, which is read as 23:59:59", () => {
+    const result = validateDocument(object({ updated: "2025-06-30T23:59:60Z" }));
+    expect(result.valid).toBe(true);
+    expect(codes(result.warnings)).toContain("leap-second-read-as-59");
+  });
+
+  it("warns when updated is before the end of the period", () => {
+    expect(codes(validateDocument(object({ updated: "2025-06-01T00:00:00Z" })).warnings)).toEqual(["updated-before-period-end"]);
+  });
+});
+
+describe("the forms of earlier revisions are invalid as served", () => {
+  it("names the -08 label", () => {
+    const { period: _period, ...rest } = good;
+    const result = validateDocument({ ...rest, "reporting-period": "2025" });
+    expect(result.valid).toBe(false);
+    expect(result.errors.join("; ")).toMatch(/reporting-period .?"2025".? is the -08 form/);
+  });
+
+  it("names the -09 full-dates", () => {
+    const result = validateDocument(object({ period: { start: "2025-01-01", end: "2025-12-31" } }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.join("; ")).toContain("the -09 form");
+  });
+
+  it.each([
+    ["measurement-method", "Hardware-Metered"],
+    ["functional-unit", "per-thousand-requests"],
+    ["carbon-unit", "mtCO2e"],
+    ["target-type", "datacenter"],
+    ["energy-unit", "TWh"],
+    ["carbon-accounting", "hourly"],
+    ["capabilities", "full"],
+  ])("refuses %s %j", (member, value) => {
+    expect(validateDocument(object({ [member]: value, ...(member === "functional-unit" ? { "sci-score": 1 } : {}) })).valid).toBe(false);
+  });
+
+  it("refuses an upstream role outside its six", () => {
+    expect(validateDocument(object({ upstream: [{ declaration: "https://a.example/x", role: "transit" }] })).valid).toBe(false);
+    expect(validateDocument(object({ upstream: [{ declaration: "https://a.example/x", role: "colocation" }] })).valid).toBe(true);
+  });
+});
+
+describe("the figures", () => {
+  it.each(["energy-consumption", "carbon-footprint", "sci-score", "carbon-intensity-gCO2e-per-kWh", "estimated-annual-emissions-kgCO2e"])(
+    "refuses a negative %s",
+    (member) => {
+      expect(errorsOf(object({ [member]: -1, "functional-unit": "per-request", "sci-score": member === "sci-score" ? -1 : 1 }))).toContain("must not be negative");
+    },
+  );
+
+  it("accepts a negative scope: removals under net accounting", () => {
+    expect(validateDocument(object({ "scope-1": -5 })).valid).toBe(true);
+  });
+
+  it("keeps renewable-energy between 0 and 100 inclusive", () => {
+    expect(validateDocument(object({ "renewable-energy": 0 })).valid).toBe(true);
+    expect(validateDocument(object({ "renewable-energy": 100 })).valid).toBe(true);
+    expect(validateDocument(object({ "renewable-energy": 100.1 })).valid).toBe(false);
+    expect(validateDocument(object({ "renewable-energy": -0.1 })).valid).toBe(false);
+  });
+
+  it.each([[null], ["12"], [true], [[1]]])("refuses %j as a metric", (value) => {
+    expect(validateDocument(object({ "energy-consumption": value })).valid).toBe(false);
+  });
+
+  it("refuses a sci-score without a functional-unit", () => {
+    expect(errorsOf(object({ "sci-score": 1.2 }))).toContain("requires functional-unit");
+  });
+
+  it("requires a metric or an evidence link", () => {
+    const bare = object({}, ["energy-consumption", "carbon-footprint"]);
+    expect(validateDocument(bare).valid).toBe(false);
+    expect(validateDocument({ ...bare, "disclosure-uri": "https://example.com/report" }).valid).toBe(true);
+    expect(validateDocument({ ...bare, "verifiable-attestation-uri": "https://example.com/vc" }).valid).toBe(true);
+    expect(validateDocument({ ...bare, "energy-unit": "kWh", upstream: [{ declaration: "https://a.example/x" }], extensions: { "urn:x:y": {} } }).valid).toBe(false);
+  });
+
+  it("counts a metric of 0 as carried", () => {
+    expect(validateDocument(object({ "energy-consumption": 0 }, ["carbon-footprint"])).valid).toBe(true);
+    expect(carriesAtLeastOne({ "energy-consumption": 0 })).toBe(true);
+    expect(carriesAtLeastOne({ "energy-consumption": Infinity })).toBe(false);
+    expect(carriesAtLeastOne({ "disclosure-uri": "" })).toBe(false);
+    expect(carriesAtLeastOne(null)).toBe(false);
+  });
+
+  it("lists the nine metric members", () => {
+    expect(METRIC_MEMBERS).toHaveLength(9);
+  });
+
+  it("refuses a number the parser read as an infinity, and an unpaired surrogate", () => {
+    expect(errorsOf(object({ "energy-consumption": Infinity }))).toContain("not a finite number");
+    expect(errorsOf(object({ provider: "Example \ud800" }))).toContain("unpaired surrogate");
+    expect(errorsOf(object({ extensions: { "urn:x:\ud800": {} } }))).toContain("unpaired surrogate");
+  });
+
+  it("warns when the scopes do not account for the footprint, to the precision of the least precise figure", () => {
+    expect(codes(validateDocument(object({ "scope-1": 10, "scope-2": 10, "scope-3": 10, "carbon-footprint": 50 })).warnings)).toEqual([
+      "scopes-do-not-account-for-footprint",
     ]);
+    expect(validateDocument(object({ "scope-1": 10, "scope-2": 10, "scope-3": 30, "carbon-footprint": 50 })).warnings).toEqual([]);
+    expect(validateDocument(object({ "scope-1": 0.1, "scope-2": 0.2, "scope-3": 0.3, "carbon-footprint": 0.6 })).warnings).toEqual([]);
+  });
+});
+
+describe("the text members", () => {
+  it("refuses an empty provider and an empty target", () => {
+    expect(validateDocument(object({ provider: "" })).valid).toBe(false);
+    expect(validateDocument(object({ target: "" })).valid).toBe(false);
   });
 
-  it("isExtensionName and the two form checks agree with the draft's rule", () => {
-    const uuid = "urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845";
-    const https = "https://example.com/sustainability/extensions/water-and-waste";
-    expect(isExtensionName(uuid)).toBe(true);
-    expect(isExtensionName(https)).toBe(true);
-    expect(isExtensionName("urn:oid:1.3.6.1.4.1.32473.1")).toBe(true);
-    expect(isUrnUuidExtensionName(uuid)).toBe(true);
-    expect(isUrnUuidExtensionName(https)).toBe(false);
-    expect(isHttpsExtensionName(https)).toBe(true);
-    expect(isHttpsExtensionName("https://example.com")).toBe(true);
-    expect(isHttpsExtensionName("https://user@example.com:8443/x?q=1")).toBe(true);
-    expect(isHttpsExtensionName("https://")).toBe(false);
-    expect(isHttpsExtensionName("https:water")).toBe(false);
-    expect(isHttpsExtensionName(uuid)).toBe(false);
-    // Neither named form, so neither form check claims it, yet the rule permits it.
-    expect(isUrnUuidExtensionName("urn:oid:1.3.6.1.4.1.32473.1")).toBe(false);
-    expect(isHttpsExtensionName("urn:oid:1.3.6.1.4.1.32473.1")).toBe(false);
+  it("requires a path target to begin with a slash", () => {
+    expect(errorsOf(object({ target: "api/v1", "target-type": "path" }))).toContain('begins with "/"');
+    expect(validateDocument(object({ target: "/api/v1", "target-type": "path" })).valid).toBe(true);
   });
 
-  it("gives a precise reason, citing the draft's Extensions section", () => {
-    expect(extensionNameError("16c36135-e6ae-40f9-a972-015eefc68845")).toMatch(/is not an absolute URI/);
-    expect(extensionNameError("com.example.pue")).toMatch(/draft, Extensions/);
-    expect(extensionNameError("urn:uuid:16C36135-E6AE-40F9-A972-015EEFC68845")).toMatch(/lowercase/);
-    expect(extensionNameError("urn:uuid:00000000-0000-0000-0000-000000000000")).toMatch(/Nil UUID/);
-    expect(extensionNameError("urn:uuid:ffffffff-ffff-ffff-ffff-ffffffffffff")).toMatch(/Max UUID/);
-    expect(extensionNameError("https://example.com/ext#water")).toMatch(/fragment/);
-    expect(extensionNameError("https://example.com/e xt")).toMatch(/whitespace/);
-    expect(extensionNameError("https://exämple.com/ext")).toMatch(/ASCII/);
-    expect(extensionNameError("https://")).toMatch(/host/);
-    expect(extensionNameError("")).toMatch(/is empty/);
-    // Draft §Extensions: "written in ASCII with the scheme in lowercase".
-    for (const upper of ["HTTPS://example.com/ext", "URN:UUID:16c36135-e6ae-40f9-a972-015eefc68845", "Urn:oid:1.3.6.1.4.1.32473.1"]) {
-      expect(extensionNameError(upper), upper).toMatch(/scheme in lowercase/);
-    }
-    expect(isExtensionName("HTTPS://example.com/ext")).toBe(false);
-    // No RFC line numbers in a message a publisher reads: the section name.
-    expect(extensionNameError("com.example.pue")).not.toMatch(/line \d/);
-    expect(extensionNameError("urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845")).toBeUndefined();
+  it("warns about a host written in U-label form, and about a personal contact address", () => {
+    const u = validateDocument(object({ target: "bücher.example" }));
+    expect(u.valid).toBe(true);
+    expect(u.warnings[0].message).toContain("xn--bcher-kva.example");
+    expect(codes(u.warnings)).toEqual(["origin-u-label"]);
+    expect(codes(validateDocument(object({ provider: "Example (jane.doe@example.com)" })).warnings)).toEqual(["provider-personal-contact"]);
+    expect(validateDocument(object({ provider: "Example (esg@example.com)" })).warnings).toEqual([]);
   });
 
-  // The CDDL `ext-name` rule is
-  //   tstr .regexp "[a-z][a-z0-9+.-]*:[!$-;=?-Z\\[\\]_a-z~]+"
-  // so the characters RFC 3986 never allows in a URI are rejected outright.
-  it("rejects the characters RFC 3986 does not allow, and accepts an IP-literal host", () => {
-    for (const bad of [
-      'https://example.com/a"b',
-      "https://example.com/{x}",
-      "https://example.com/a|b",
-      "https://example.com/<x>",
-      "https://example.com/a\\b",
-      "https://example.com/a^b",
-      "https://example.com/a`b",
-    ]) {
-      expect(isExtensionName(bad), bad).toBe(false);
-      expect(extensionNameError(bad), bad).toMatch(/RFC 3986 does not allow/);
-      const r = validateDocument(metrics({ extensions: { [bad]: { a: 1 } } } as Partial<SustainabilityMetrics>));
-      expect(r.valid, bad).toBe(false);
-    }
-    expect(isExtensionName("https://[::1]/x")).toBe(true);
-    expect(isHttpsExtensionName("https://[::1]/x")).toBe(true);
-    expect(extensionNameError("https://[::1]/x")).toBeUndefined();
-    expect(
-      validateDocument(metrics({ extensions: { "https://[::1]/x": { a: 1 } } } as Partial<SustainabilityMetrics>)),
-    ).toEqual({ valid: true, errors: [], warnings: [] });
+  it("isolates a value from the document in the message that quotes it", () => {
+    const warning = validateDocument(object({ "disclosure-uri": "not a uri \u202e" })).warnings[0];
+    expect(warning.message).toContain("\u2068");
+    expect(warning.message).toContain("\u2069");
+  });
+});
+
+describe("URI-valued members", () => {
+  it("keeps the three members and the upstream declaration as references", () => {
+    expect([...URI_MEMBERS]).toEqual(["methodology-uri", "disclosure-uri", "verifiable-attestation-uri"]);
   });
 
-  it("ABSOLUTE_URI_RE is the CDDL ext-name class, character for character", () => {
-    const allowed = new Set(
-      ("!$%&'()*+,-./0123456789:;=?@" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ[]_" + "abcdefghijklmnopqrstuvwxyz~").split(""),
-    );
-    for (let c = 0; c < 128; c++) {
-      const ch = String.fromCharCode(c);
-      expect(ABSOLUTE_URI_RE.test(`x:${ch}`), `U+${c.toString(16).padStart(4, "0")}`).toBe(allowed.has(ch));
-    }
+  it.each([
+    ["http://example.com/report"],
+    ["ftp://example.com/report"],
+    ["/sustainability/methodology"],
+    ["../report.pdf"],
+    ["//example.com/report"],
+    ["?x=1"],
+    ["#section"],
+    [""],
+  ])("does not warn about the reference %j", (value) => {
+    expect(validateDocument(object({ "methodology-uri": value, "disclosure-uri": value })).warnings).toEqual([]);
   });
 
-  it("compares keys octet for octet: nothing is case-folded or normalized", () => {
-    const keys = ["https://EXAMPLE.com/Ext", "https://example.com/ext", "https://example.com/ext%20one"];
-    const doc = metrics({ extensions: Object.fromEntries(keys.map((k) => [k, { a: 1 }])) } as Partial<SustainabilityMetrics>);
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(true);
-    expect(Object.keys((doc as Record<string, any>).extensions)).toEqual(keys);
+  it("warns, and keeps the object valid, when a value is not a URI reference", () => {
+    const result = validateDocument(object({ "methodology-uri": "not a uri", "disclosure-uri": "http://exa mple.com", "verifiable-attestation-uri": "<x>" }));
+    expect(result.valid).toBe(true);
+    expect(result.warnings.map((w) => w.code)).toEqual(["uri-not-a-reference", "uri-not-a-reference", "uri-not-a-reference"]);
+    expect(result.warnings[0].message).toContain("/methodology-uri");
+    expect(result.warnings[0].message).toContain("never dereferences");
   });
 
-  it("says a body whose top-level value is neither an object nor an array is not a declaration", () => {
-    // Draft -07 §Payload Format.
-    for (const body of [42, "a string", true, null]) {
-      const r = validateDocument(body);
-      expect(r.valid, String(body)).toBe(false);
-      expect(r.errors).toHaveLength(1);
-      expect(r.errors[0], String(body)).toContain("is not a declaration");
-      expect(r.errors[0], String(body)).toContain("one declaration object or an array of them");
-    }
-    expect(validateDocument(null).errors[0]).toContain("null");
-    expect(validateDocument(42).errors[0]).toContain("JSON number");
-  });
-
-  it("validates the -07 upstream member: an https declaration URI per entry, role optional", () => {
-    const ok = validateDocument(
-      metrics({
-        upstream: [{ declaration: "https://cloud.example/tenants/acme.json", role: "cloud" }, { declaration: "https://grid.example/.well-known/sustainability-data" }],
-      } as Partial<SustainabilityMetrics>),
-    );
-    expect(ok.valid).toBe(true);
-    expect(ok.warnings).toEqual([]);
-
-    // A missing declaration member, or a wrong-typed one, is a schema failure.
-    expect(validateDocument(metrics({ upstream: [{ role: "cloud" }] } as unknown as Partial<SustainabilityMetrics>)).valid).toBe(false);
-    expect(validateDocument(metrics({ upstream: [{ declaration: 42 }] } as unknown as Partial<SustainabilityMetrics>)).valid).toBe(false);
-
-    // A non-https declaration is a WARNING (the member is kept), exactly like
-    // the other URI members — the rule bites at dereference time.
-    const warned = validateDocument(
-      metrics({ upstream: [{ declaration: "http://cloud.example/d" }] } as Partial<SustainabilityMetrics>),
-    );
+  it("checks the upstream declaration the same way, and requires an entry", () => {
+    const warned = validateDocument(object({ upstream: [{ declaration: "ok" }, { declaration: "not a uri" }] }));
     expect(warned.valid).toBe(true);
-    expect(warned.warnings.some((w) => w.startsWith("upstream[0].declaration"))).toBe(true);
+    expect(warned.warnings.map((w) => w.message)).toEqual([expect.stringContaining("/upstream/1/declaration")]);
+    expect(errorsOf(object({ upstream: [] }))).toContain("at least one entry");
   });
 
-  // Draft -07 §Upstream Declarations: "The `upstream` member is an array of at
-  // least one object ... A publisher with nothing to name omits the member
-  // rather than carrying an empty array", and §Formal Definition (JTD) lists
-  // the at-least-one-entry rule among those "which the CDDL captures and the
-  // JTD cannot ... validating implementations enforce them". The publisher side
-  // refuses to emit one; this is the consumer half of the same rule.
-  it("rejects an empty upstream array (the draft requires at least one entry)", () => {
-    const r = validateDocument(metrics({ upstream: [] } as Partial<SustainabilityMetrics>));
-    expect(r.valid).toBe(false);
-    expect(r.errors.join(" ")).toContain("upstream is present but empty");
-    // The member is still optional: omitting it entirely is the conformant way
-    // to say there is nothing to name.
-    expect(validateDocument(metrics()).valid).toBe(true);
+  it("tells a scheme from a relative path that holds a colon", () => {
+    expect(isUriReference("urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845")).toBe(true);
+    expect(isUriReference("./a:b")).toBe(true);
+    expect(isUriReference("1a:b")).toBe(false);
+    expect(isUriReference("a b")).toBe(false);
+    expect(isUriReference("%zz")).toBe(false);
+    expect(isUriReference("é")).toBe(false);
+  });
+});
+
+describe("extension names", () => {
+  it.each([
+    ["https://example.com/extensions/water"],
+    ["HTTPS://Example.com/x"],
+    ["urn:uuid:16c36135-e6ae-40f9-a972-015eefc68845"],
+    ["urn:uuid:16C36135-E6AE-40F9-A972-015EEFC68845"],
+    ["urn:uuid:00000000-0000-0000-0000-000000000000"],
+    ["urn:uuid:ffffffff-ffff-ffff-ffff-ffffffffffff"],
+    ["urn:oid:1.3.6.1.4.1.32473.1"],
+    ["https://example.com/x#water"],
+    ["tag:example.com,2026:water"],
+    ["mailto:x@example.com"],
+  ])("accepts %s", (name) => {
+    expect(extensionNameError(name)).toBeUndefined();
+    expect(isExtensionName(name)).toBe(true);
+    expect(validateDocument(object({ extensions: { [name]: { a: 1 } } })).valid).toBe(true);
   });
 
-  // JSON has no literal for NaN or Infinity, but `1e999` is a legal JSON
-  // number that parses to Infinity in every JavaScript runtime — the hazard
-  // the media type registration names ("numbers outside the range exactly
-  // representable in IEEE 754 double precision"). Such a member carries no
-  // actual value and re-serializes as `null`, so it cannot pass a strict gate
-  // and cannot satisfy the at-least-one rule on its own.
-  it("rejects a numeric member that is not a finite number (1e999 off the wire)", () => {
-    const doc = JSON.parse(
-      '{"updated":"2026-01-01T00:00:00Z","capabilities":"basic","provider":"p",' +
-        '"measurement-method":"m","methodology-uri":"https://example.com/m",' +
-        '"reporting-period":"2026-01","target":"example.com","carbon-footprint":1e999}',
-    );
-    expect(doc["carbon-footprint"]).toBe(Infinity);
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.join(" ")).toContain("carbon-footprint is Infinity");
-    // …and it is not a metric for the at-least-one rule either: with nothing
-    // else to report, the object reports nothing.
-    expect(carriesAtLeastOne(doc)).toBe(false);
-    expect(r.errors.join(" ")).toContain("at least one of them");
-    // The rule reaches the scopes too, which MAY legitimately be negative but
-    // may not be infinite.
-    expect(validateDocument(metrics({ "scope-1": -Infinity })).valid).toBe(false);
+  it.each([
+    ["", "is empty"],
+    ["water", "is not a URI"],
+    ["example.com/x", "is not a URI"],
+    ["a b:c", "whitespace"],
+    ["https://example.com/a\tb", "whitespace"],
+    ["https://exämple.com/x", "not ASCII"],
+    ['https://example.com/"x"', "is not a URI"],
+    ["1http://example.com", "is not a URI"],
+    ["https://example.com/%zz", "is not a URI"],
+  ])("refuses %j", (name, why) => {
+    expect(extensionNameError(name)).toContain(why);
+    expect(validateDocument(object({ extensions: { [name]: { a: 1 } } })).valid).toBe(false);
   });
 
-  it("accepts every recognized target-type value (-04 enum)", () => {
-    for (const tt of ["origin", "path", "organization", "service", "product", "device", "tenant", "data-source"]) {
-      const r = validateDocument(metrics({ "target-type": tt } as Partial<SustainabilityMetrics>));
-      expect(r.valid, `target-type "${tt}" should validate`).toBe(true);
+  it("requires a value that is an object", () => {
+    for (const value of [1, "x", null, [1], true]) {
+      expect(validateDocument(object({ extensions: { "urn:x:y": value } })).valid).toBe(false);
     }
+    expect(validateDocument(object({ extensions: {} })).valid).toBe(true);
+    expect(validateDocument(object({ extensions: { "urn:x:y": {} } })).valid).toBe(true);
   });
 
-  it("rejects an unrecognized target-type value at the schema gate (the enum is deliberately closed)", () => {
-    // The TOLERANCE for such a value lives in fetchSustainability's pre-pass
-    // (strip + record), NOT in a weakened schema: validated as-is, it fails.
-    const r = validateDocument(metrics({ "target-type": "warehouse" } as unknown as Partial<SustainabilityMetrics>));
-    expect(r.valid).toBe(false);
-  });
-
-  // Draft cross-field MUST that JTD/CDDL cannot express: sci-score ⇒ functional-unit.
-  it("rejects sci-score present without functional-unit (cross-field MUST)", () => {
-    const r = validateDocument(metrics({ "sci-score": 1.2 }));
-    expect(r.valid).toBe(false);
-    expect(r.errors.some((m) => /sci-score.*functional-unit/i.test(m))).toBe(true);
-  });
-
-  it("accepts sci-score when functional-unit is also present", () => {
-    const r = validateDocument(metrics({ "sci-score": 1.2, "functional-unit": "request" }));
-    expect(r.valid).toBe(true);
+  it("refuses an extensions member that is not an object", () => {
+    expect(validateDocument(object({ extensions: [] })).valid).toBe(false);
   });
 });
 
-describe("validateDocument: array (trend) rules", () => {
-  it("accepts a valid ascending, non-overlapping, uniform-precision, uniform-target array", () => {
-    const doc = [
-      metrics({ "reporting-period": "2026-01", target: "/api" }),
-      metrics({ "reporting-period": "2026-02", target: "/api" }),
-      metrics({ "reporting-period": "2026-03", target: "/api" }),
-    ];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(true);
-    expect(r.errors).toEqual([]);
+describe("members the draft does not define", () => {
+  it("ignores a top-level member, with a warning, and does not treat it as an error", () => {
+    const result = validateDocument(object({ version: 2, "x-note": "hello" }));
+    expect(result.valid).toBe(true);
+    expect(result.warnings.map((w) => w.message)).toEqual([
+      `/${isolate("version")} is not a member the draft defines; this consumer ignores it`,
+      `/${isolate("x-note")} is not a member the draft defines; this consumer ignores it`,
+    ]);
+    expect(codes(result.warnings)).toEqual(["unknown-member"]);
   });
 
-  it("rejects an unsorted (non-ascending) array", () => {
-    const doc = [
-      metrics({ "reporting-period": "2026-02" }),
-      metrics({ "reporting-period": "2026-01" }),
-    ];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => /ascending/i.test(e))).toBe(true);
+  it("notes an unknown member of an upstream entry", () => {
+    const result = validateDocument(object({ upstream: [{ declaration: "https://a.example/x", weight: 0.5 }] }));
+    expect(result.valid).toBe(true);
+    expect(result.warnings.map((w) => w.message)).toEqual([`/upstream/0/${isolate("weight")} is not a member the draft defines; this consumer ignores it`]);
   });
 
-  it("rejects an overlapping-period array (duplicate reporting-period is non-ascending, i.e. not strictly increasing)", () => {
-    const doc = [
-      metrics({ "reporting-period": "2026-01" }),
-      metrics({ "reporting-period": "2026-01" }),
-    ];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => /ascending/i.test(e))).toBe(true);
-  });
-
-  it("rejects a mixed-precision array (one entry 'YYYY', another 'YYYY-MM')", () => {
-    const doc = [
-      metrics({ "reporting-period": "2026" }),
-      metrics({ "reporting-period": "2026-01" }),
-    ];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => /precision/i.test(e))).toBe(true);
-  });
-
-  it("rejects a mixed-target array (entries MUST share the same target value)", () => {
-    const doc = [
-      metrics({ "reporting-period": "2026-01", target: "/api/a" }),
-      metrics({ "reporting-period": "2026-02", target: "/api/b" }),
-    ];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => /target/i.test(e))).toBe(true);
-  });
-
-  it("accepts an array whose entries share one target-type value (-04 uniformity rule)", () => {
-    const doc = [
-      metrics({ "reporting-period": "2026-01", "target-type": "path", target: "/api" } as Partial<SustainabilityMetrics>),
-      metrics({ "reporting-period": "2026-02", "target-type": "path", target: "/api" } as Partial<SustainabilityMetrics>),
-    ];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(true);
-    expect(r.errors).toEqual([]);
-  });
-
-  it("rejects an array with MIXED target-type values ('when present, the same target-type value')", () => {
-    const doc = [
-      metrics({ "reporting-period": "2026-01", "target-type": "origin" } as Partial<SustainabilityMetrics>),
-      metrics({ "reporting-period": "2026-02", "target-type": "service" } as Partial<SustainabilityMetrics>),
-    ];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => /target-type/i.test(e))).toBe(true);
-  });
-
-  it("rejects an array where only SOME entries carry target-type (-04 all-or-none rule)", () => {
-    // Final -04 wording: "target-type MUST be either present in every entry
-    // with the same value or absent from every entry" — mixed PRESENCE is a
-    // violation even when the values that are present agree.
-    const doc = [
-      metrics({ "reporting-period": "2026-01", "target-type": "origin" } as Partial<SustainabilityMetrics>),
-      metrics({ "reporting-period": "2026-02" }),
-      metrics({ "reporting-period": "2026-03", "target-type": "origin" } as Partial<SustainabilityMetrics>),
-    ];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => /target-type.*(presence|every)/i.test(e))).toBe(true);
-  });
-
-  it("accepts an array where NO entry carries target-type (all-absent side of all-or-none)", () => {
-    const doc = [
-      metrics({ "reporting-period": "2026-01" }),
-      metrics({ "reporting-period": "2026-02" }),
-    ];
-    expect(validateDocument(doc).valid).toBe(true);
-  });
-
-  it("does not run cross-entry array checks when a per-entry schema error already exists (avoids noisy cascades)", () => {
-    const badEntry = metrics() as Record<string, unknown>;
-    delete badEntry["provider"];
-    const doc = [metrics({ "reporting-period": "2026-02" }), badEntry, metrics({ "reporting-period": "2026-01" })];
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    // Should report the per-entry schema failure, not also pile on ordering errors
-    // (per src/validate.ts: array rules are only checked `if (... errors.length === 0)`).
-    expect(r.errors.some((e) => /ascending/i.test(e))).toBe(false);
+  it("derives the defined members from the schema", () => {
+    expect(KNOWN_MEMBERS).toHaveLength(26);
+    for (const name of ["period", "signed", "extensions", "upstream", "target-type"]) expect(KNOWN_MEMBERS).toContain(name);
+    expect(KNOWN_MEMBERS).not.toContain("reporting-period");
   });
 });
 
-describe("assertValid / ValidationError", () => {
-  it("returns the document unchanged when valid", () => {
-    const doc = metrics();
-    expect(assertValid(doc)).toBe(doc);
+describe("assertValid", () => {
+  it("returns a valid document as it is", () => {
+    expect(assertValid(good)).toBe(good);
   });
 
-  it("throws a ValidationError whose message includes the failure reasons", () => {
-    const doc = [
-      metrics({ "reporting-period": "2026-02" }),
-      metrics({ "reporting-period": "2026-01" }),
-    ];
-    expect(() => assertValid(doc)).toThrow(ValidationError);
+  it("throws a ValidationError that lists the errors", () => {
     try {
-      assertValid(doc);
-      expect.fail("expected assertValid to throw");
+      assertValid(object({ "energy-consumption": -1 }));
+      expect.unreachable();
     } catch (e) {
       expect(e).toBeInstanceOf(ValidationError);
-      const err = e as ValidationError;
-      expect(err.errors.length).toBeGreaterThan(0);
-      expect(err.errors.some((m) => /ascending/i.test(m))).toBe(true);
-      // The thrown Error's own message must surface the same reasons, not just a generic label.
-      expect(err.message).toContain("failed validation");
-      for (const reason of err.errors) {
-        expect(err.message).toContain(reason);
-      }
+      expect((e as ValidationError).errors[0]).toContain("must not be negative");
+      expect((e as ValidationError).message).toContain("must not be negative");
     }
-  });
-});
-
-describe("final-audit fixes: legacy sci-score sentinel + empty array", () => {
-  it("accepts a legacy sci-score sentinel (-1) without functional-unit (compat rule)", () => {
-    const r = validateDocument(metrics({ "sci-score": -1 } as any));
-    expect(r.valid).toBe(true);
-  });
-
-  it("still rejects a reported sci-score without functional-unit", () => {
-    const r = validateDocument(metrics({ "sci-score": 1.2 } as any));
-    expect(r.valid).toBe(false);
-  });
-
-  it("rejects an empty array (conveys no report)", () => {
-    const r = validateDocument([]);
-    expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => /empty array/i.test(e))).toBe(true);
-  });
-});
-
-describe("-06: URI members restricted to https — WARNINGS, never errors", () => {
-  // The `valid` boolean is a contract: the gateway calls validateDocument() at
-  // boot and throws when it is false. A non-https URI member must therefore
-  // never reach `errors`, no matter how many of them a document carries.
-  it("warns about an absolute non-https methodology-uri while staying valid", () => {
-    const r = validateDocument(metrics({ "methodology-uri": "http://example.com/methodology" }));
-    expect(r.valid).toBe(true);
-    expect(r.errors).toEqual([]);
-    expect(r.warnings).toHaveLength(1);
-    expect(r.warnings[0]).toContain("methodology-uri");
-    expect(r.warnings[0]).toContain("https");
-  });
-
-  it("warns about disclosure-uri and verifiable-attestation-uri too", () => {
-    const r = validateDocument(
-      metrics({
-        "disclosure-uri": "http://example.com/disclosures",
-        "verifiable-attestation-uri": "ftp://example.com/vc",
-      } as Partial<SustainabilityMetrics>),
-    );
-    expect(r.valid).toBe(true);
-    expect(r.warnings).toHaveLength(2);
-    expect(r.warnings.some((w) => w.includes("disclosure-uri"))).toBe(true);
-    expect(r.warnings.some((w) => w.includes("verifiable-attestation-uri"))).toBe(true);
-  });
-
-  it("keeps URI members out of the warning list when they are https", () => {
-    const r = validateDocument(
-      metrics({
-        "disclosure-uri": "https://example.com/disclosures",
-        "verifiable-attestation-uri": "https://example.com/vc",
-      } as Partial<SustainabilityMetrics>),
-    );
-    expect(r.valid).toBe(true);
-    expect(r.warnings).toEqual([]);
-  });
-
-  it("reports (as a warning) a value that is not an absolute URI at all", () => {
-    // Out of scope for this check: no base to resolve against, and the
-    // absolute-URI requirement is a separate rule.
-    const r = validateDocument(metrics({ "methodology-uri": "/methodology" }));
-    expect(r.valid).toBe(true);
-    expect(r.warnings).toHaveLength(1);
-    expect(r.warnings[0]).toMatch(/is not an absolute URI/);
-  });
-
-  it("prefixes array-entry warnings with the entry index, like errors", () => {
-    const r = validateDocument([
-      metrics({ "reporting-period": "2026-01" }),
-      metrics({ "reporting-period": "2026-02", "methodology-uri": "http://example.com/m" }),
-    ]);
-    expect(r.valid).toBe(true);
-    expect(r.warnings).toHaveLength(1);
-    expect(r.warnings[0]).toMatch(/^\[1\]/);
-  });
-
-  it("still reports warnings for a document that ALSO has errors, without conflating them", () => {
-    const doc = metrics({ "methodology-uri": "http://example.com/m" }) as Record<string, unknown>;
-    delete doc["provider"]; // a real error, unrelated to the URI scheme
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.length).toBeGreaterThan(0);
-    expect(r.errors.every((e) => !e.includes("methodology-uri"))).toBe(true);
-    expect(r.warnings).toHaveLength(1);
   });
 });

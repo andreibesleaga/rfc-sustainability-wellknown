@@ -3,10 +3,18 @@
 // (headers, HEAD, 405, ETag, 304, Extended query handling). No file system state.
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { Publisher, createSustainabilityServer, generateSigningKey, importSigningKey } from "sustainability-wellknown-publisher";
+import {
+  Publisher,
+  TARGET_TYPES,
+  createSustainabilityServer,
+  dateTimeError,
+  generateSigningKey,
+  importSigningKey,
+  parsePeriod,
+  toPeriod,
+} from "sustainability-wellknown-publisher";
 
 const METHODS = ["hardware-metered", "hardware-estimated", "cloud-billing", "third-party-modeled"];
-const TARGET_TYPES = ["origin", "path", "organization", "service", "product", "device", "tenant", "data-source"];
 
 const env = (name, fallback) => {
   const v = process.env[name];
@@ -20,17 +28,44 @@ const num = (name) => {
   return n;
 };
 
+/**
+ * The period the figures cover: SD_START and SD_END (two RFC 3339 date-times, `end` excluded), or SD_PERIOD
+ * (`YYYY`, `YYYY-MM` or `YYYY-MM-DD`) for a whole year, month or day in UTC. SD_START and SD_END, when given, win.
+ */
+function periodFromEnv() {
+  const start = env("SD_START");
+  const end = env("SD_END");
+  if (start === undefined && end === undefined) {
+    const label = env("SD_PERIOD");
+    if (!label) throw new Error("SD_START and SD_END, or SD_PERIOD, is required");
+    try {
+      return toPeriod(label);
+    } catch (e) {
+      throw new Error(`SD_PERIOD must be YYYY, YYYY-MM or YYYY-MM-DD (${e.message})`);
+    }
+  }
+  if (start === undefined || end === undefined) throw new Error("SD_START and SD_END must be given together");
+  for (const [name, value] of [["SD_START", start], ["SD_END", end]]) {
+    const problem = dateTimeError(value);
+    if (problem) throw new Error(`${name} must be an RFC 3339 date-time such as 2026-09-01T00:00:00Z (${problem})`);
+  }
+  try {
+    return parsePeriod({ start, end });
+  } catch (e) {
+    throw new Error(`SD_START and SD_END: ${e.message}`);
+  }
+}
+
 /** What this node declares, read once at start. Change a variable and redeploy to change the document. */
 export function declarationFromEnv() {
   const target = env("SD_TARGET");
   const provider = env("SD_PROVIDER");
   const methodologyUri = env("SD_METHODOLOGY_URI");
-  const reportingPeriod = env("SD_PERIOD");
-  for (const [k, v] of Object.entries({ SD_TARGET: target, SD_PROVIDER: provider, SD_METHODOLOGY_URI: methodologyUri, SD_PERIOD: reportingPeriod })) {
+  for (const [k, v] of Object.entries({ SD_TARGET: target, SD_PROVIDER: provider, SD_METHODOLOGY_URI: methodologyUri })) {
     if (!v) throw new Error(`${k} is required`);
   }
   if (!/^https:\/\//.test(methodologyUri)) throw new Error("SD_METHODOLOGY_URI must be an https URI");
-  if (!/^\d{4}(-\d{2}(-\d{2})?)?$/.test(reportingPeriod)) throw new Error("SD_PERIOD must be YYYY, YYYY-MM or YYYY-MM-DD");
+  const period = periodFromEnv();
   const energyKwh = num("SD_ENERGY_KWH");
   const carbonKg = num("SD_CARBON_KGCO2E");
   const disclosureUri = env("SD_DISCLOSURE_URI");
@@ -60,7 +95,7 @@ export function declarationFromEnv() {
     provider,
     measurementMethod,
     methodologyUri,
-    reportingPeriod,
+    period,
     updated: env("SD_UPDATED", new Date().toISOString().replace(/\.\d{3}Z$/, "Z")),
     capabilities: "basic",
     target,
@@ -79,7 +114,7 @@ export async function makePublisher(opts = {}) {
   const { raw, targetType } = declarationFromEnv();
   const adapter = { name: "environment", capabilities: "basic", async fetch() { return raw; } };
   const keyJwk = env("SD_SIGNING_KEY_JWK");
-  const key = keyJwk ? await importSigningKey(keyJwk) : await generateSigningKey("EdDSA");
+  const key = keyJwk ? await importSigningKey(keyJwk) : await generateSigningKey("Ed25519");
   if (!keyJwk && opts.log !== false) {
     // A key generated at start changes on every restart. The private half is never printed:
     // logs are kept longer and read more widely than secrets. Generate a persistent key
@@ -90,6 +125,8 @@ export async function makePublisher(opts = {}) {
   return new Publisher(adapter, {
     normalize: { target: raw.target, targetType },
     signing: { key },
+    // One current report: a request is answered with this one object, not an array.
+    representation: "single",
     cacheTtlMs: 3_600_000,
   });
 }
@@ -105,6 +142,7 @@ function isMainModule() {
 
 if (isMainModule()) {
   const publisher = await makePublisher();
+  await publisher.build({}); // a document the publisher would refuse (for example a path target without "/") stops the start, not the first request
   const server = createSustainabilityServer(publisher, { onError: (e) => console.error(e) });
   const port = Number(env("PORT", "8080"));
   server.listen(port, "0.0.0.0", () => console.error(`serving /.well-known/sustainability-data on :${port}`));

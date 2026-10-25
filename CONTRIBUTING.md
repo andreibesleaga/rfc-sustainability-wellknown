@@ -5,7 +5,7 @@ deliberately in step, so which one you are changing determines how to proceed.
 
 ## Requirements
 
-**Node.js 22.12 or newer** for all three packages, at runtime too: since 0.6.5 the publisher
+**Node.js 22.13 or newer** for all three packages and for everything that loads them (the SFC checker in `sfc-compliance/` still needs only 22.12), at runtime too. The publisher and consumer 0.8.0 declare 22.13 as their floor. Since 0.6.5 the publisher
 and consumer load `jose` (an ES module) through `require()`, which Node supports unflagged
 from 22.12, and the test runner (Vitest 5) requires 22.12 as well, so an older Node will install and build yet fail to
 run the tests.
@@ -14,7 +14,8 @@ For the schema validators and the draft build you also need Python 3 and Ruby 3:
 
 ```bash
 python3 -m pip install jtd xml2rfc
-gem install cddl kramdown-rfc2629
+gem install cddl -v 0.12.14
+gem install kramdown-rfc2629
 ```
 
 ## Building and testing
@@ -31,10 +32,23 @@ npm test
 `consumer/`'s interop test runs against a real `Publisher` instance, so build `publisher/`
 first if you are working on the consumer.
 
-To validate every example document against both formal schemas:
+To validate the example corpus (every file listed in `schemas-validators/examples/manifest.json`, and the served examples
+in `example-responses/`) against both formal schemas, and to check that the generated files equal a fresh run:
 
 ```bash
 cd schemas-validators && bash validate-all.sh
+node gen/pairwise.mjs --check && node gen/signed.mjs --check && node gen/served.mjs --check
+```
+
+`bdd/` (the behaviour scenarios) and `fitness/` (rules that span the packages) run against the source builds of the
+publisher and the consumer. Build both, then let the gateway and the initializer use those builds instead of the
+registry versions (neither lockfile is touched), and run the two suites:
+
+```bash
+bash scripts/overlay-source-libs.sh
+bash scripts/overlay-source-publisher.sh tools/create-sustainability-data
+(cd bdd && npm ci && npm test)
+(cd fitness && npm test)
 ```
 
 `sfc-compliance/` is the fourth area with a test suite. It depends on exactly one package,
@@ -49,15 +63,16 @@ node sfc-check.mjs examples/sfc-network.example.json
 ```
 
 `.github/workflows/full-verify.yml` runs all of the above on every push and pull request except
-the gateway, which `gateway.yml` covers on changes under `gateway/`, and `sfc-compliance/`,
-which `sfc-compliance.yml` covers on changes under that directory. `full-verify.yml`
-is the check to satisfy before opening a PR.
+`sfc-compliance/`, which `sfc-compliance.yml` covers on changes under that directory; its gateway job uses the source
+builds of the two libraries, and `gateway.yml` runs the gateway against the registry versions on changes under `gateway/`.
+The library jobs run on Node 22 and 24, which must pass, and on Node 26, which is reported and does not block.
+`full-verify.yml` is the check to satisfy before opening a PR.
 
 ## The schema identity rule
 
 The data model exists in four places, and they must stay identical (the embedded TypeScript copies are equal to the JSON schema as JSON values; the CDDL and JSON files are byte-identical):
 
-1. the CDDL and JTD blocks in `internet-drafts/draft-besleaga-sustainability-wellknown-08.md` (`-08` was posted 2026-10-09 and must not be edited, nor the posted `-05`/`-06`/`-07` files; further changes go to a future `-09` file)
+1. the CDDL block in `internet-drafts/draft-besleaga-sustainability-wellknown-10.md` (the draft carries no JTD block since `-09`; `-10` was posted 2026-10-24 and must not be edited, nor the posted `-05` to `-09` files; further changes go to a future `-11` file)
 2. `schemas-validators/response-schema.cddl` and `response-schema.json`
 3. `publisher/src/schema.ts`
 4. `consumer/src/schema.ts`
@@ -80,7 +95,7 @@ and runs idnits. **Do not commit a rebuild of a revision that is already posted*
 rewrites the date and expiry lines, so the repository copy would stop matching the bytes on
 the Datatracker. The script warns you and prints the command to restore it.
 
-Only the current and previous revisions are kept as files; earlier ones live on the
+Only the revisions from `-05` on are kept as files; earlier ones live on the
 Datatracker and in git history.
 
 ## Changing the reference gateway's data

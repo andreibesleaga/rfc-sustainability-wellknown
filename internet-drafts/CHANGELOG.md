@@ -4,6 +4,39 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
+### **Version 09 to Version 10 (`draft-besleaga-sustainability-wellknown`) — posted 2026-10-24**
+
+Changes the wire format, at the Independent Submissions Editor's suggestions on `-09`. **A `-09` document is not a valid `-10`
+document:** the bounds of `period` are RFC 3339 date-times, and a `measurement-method`, `functional-unit`, `carbon-unit` or
+`upstream` `role` outside its set is no longer allowed. `period.start`, `period.end` and the `start` and `end` query parameters
+are `date-time` values; the period is half-open (`start` included, `end` excluded), so calendar 2025 is
+`2025-01-01T00:00:00Z` to `2026-01-01T00:00:00Z`, and a whole year, month or day is defined by its two bounds alone. The query
+bounds are UTC (`Z`); a value that does not match the grammar is ignored and never read as another value. An object is
+selected when its period overlaps the range, in ascending order of the instant of `period.start`. `measurement-method` (four
+tokens, from the most to the least direct), `functional-unit` (twelve), `target-type` (nine; `facility` is new), the `role` of
+an `upstream` entry (six; `colocation` is new) and `carbon-unit` (`gCO2e`, `kgCO2e`, `tCO2e`, where `-09` wrote `mtCO2e`) are
+closed sets. In the CDDL one rule, `date-time`, types `updated`, `start` and `end`, and RFC 9165 becomes a normative
+reference. The Internationalization Considerations section is removed (each rule sits with the member it governs, and strings
+are compared after JSON escapes are decoded); Security Considerations is a short list of what an attacker could do and the
+provision that limits it. The text is shortened throughout without removing a requirement. The full list is the draft's
+"Since -09" appendix.
+
+---
+
+### **Version 08 to Version 09 (`draft-besleaga-sustainability-wellknown`) — posted 2026-10-16**
+
+Changes the wire format and restructures the document, in answer to the Independent Submissions Editor's comments on `-08` and
+the ART-area early review of `-07`. **A `-08` document is not a valid `-09` document:** `reporting-period` is replaced by
+`period`, an object with `start` and `end`. The `period` query parameter is replaced by `start` and `end`; `granularity`
+remains as a filter on whole calendar years, months or days (`yearly` is new). A server returns the objects it holds that
+overlap the range and never computes an aggregate; the aggregation procedure, the parsing procedure and the `400` and `404`
+rules are gone. `methodology-uri`, `verifiable-attestation-uri`, `disclosure-uri` and `upstream[].declaration` are URI
+references; an empty array is a valid body; the RECOMMENDED signature algorithm identifier is `Ed25519` (RFC 9864), replacing
+`EdDSA`. The document has four parts: the well-known URI and its query parameters, the declaration, the nature of the response,
+and IANA Considerations. The full list is the draft's "Since -08" appendix.
+
+---
+
 ### **Version 07 to Version 08 (`draft-besleaga-sustainability-wellknown`) — posted 2026-10-09**
 
 Editorial only. **No member, schema, media type or registration changes: every `-07` document is a

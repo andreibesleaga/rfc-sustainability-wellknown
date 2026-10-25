@@ -7,14 +7,17 @@
  * gate → cache → HTTP exposure.
  */
 export * from "./types";
+export * from "./tokens";
 export * from "./media-type";
 export * from "./normalize";
 export * from "./security";
+export * from "./selection";
 export * from "./validate";
 export * from "./publisher";
 export * from "./handler";
 export * from "./period";
 export * from "./jws";
+export * from "./upgrade";
 export * from "./server";
 export * from "./carbontxt";
 export * from "./adapters";
@@ -22,4 +25,4 @@ export { RESPONSE_JTD_SCHEMA } from "./schema";
 export { expressSustainability } from "./middleware/express";
 export { fastifySustainability } from "./middleware/fastify";
 export type { FastifyPluginOptions } from "./middleware/fastify";
-export { fromWire, lastFullMonth } from "./util";
+export { fromWire, lastFullMonthPeriod } from "./util";

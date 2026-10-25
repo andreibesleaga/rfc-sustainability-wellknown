@@ -1,0 +1,47 @@
+{
+  "updated": "2026-02-25T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Roles Org Ltd (sustainability@roles.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://roles.example/sustainability/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
+  "target": "Roles Org Ltd",
+  "target-type": "organization",
+  "energy-unit": "MWh",
+  "carbon-unit": "tCO2e",
+  "energy-consumption": 750,
+  "carbon-footprint": 260,
+  "carbon-accounting": "market-based",
+  "upstream": [
+    {
+      "declaration": "https://hosting.roles.example/.well-known/sustainability-data",
+      "role": "hosting"
+    },
+    {
+      "declaration": "https://colocation.roles.example/.well-known/sustainability-data",
+      "role": "colocation"
+    },
+    {
+      "declaration": "https://cloud.roles.example/.well-known/sustainability-data",
+      "role": "cloud"
+    },
+    {
+      "declaration": "https://cdn.roles.example/.well-known/sustainability-data",
+      "role": "cdn"
+    },
+    {
+      "declaration": "https://network.roles.example/.well-known/sustainability-data",
+      "role": "network"
+    },
+    {
+      "declaration": "https://electricity.roles.example/.well-known/sustainability-data",
+      "role": "electricity"
+    },
+    {
+      "declaration": "https://other.roles.example/.well-known/sustainability-data"
+    }
+  ]
+}

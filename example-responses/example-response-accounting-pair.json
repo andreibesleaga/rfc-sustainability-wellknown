@@ -1,0 +1,46 @@
+[
+  {
+    "updated": "2026-02-20T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Retail Pair plc (sustainability@retail-pair.example)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "https://retail-pair.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "Retail Pair plc",
+    "target-type": "organization",
+    "energy-consumption": 1800,
+    "energy-unit": "MWh",
+    "carbon-footprint": 520,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "location-based",
+    "scope-1": 90,
+    "scope-2": 330,
+    "scope-3": 100,
+    "disclosure-uri": "https://retail-pair.example/sustainability/disclosures"
+  },
+  {
+    "updated": "2026-02-20T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "Retail Pair plc (sustainability@retail-pair.example)",
+    "measurement-method": "third-party-modeled",
+    "methodology-uri": "https://retail-pair.example/sustainability/methodology",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "Retail Pair plc",
+    "target-type": "organization",
+    "energy-consumption": 1800,
+    "energy-unit": "MWh",
+    "carbon-footprint": 410,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "scope-1": 90,
+    "scope-2": 220,
+    "scope-3": 100,
+    "disclosure-uri": "https://retail-pair.example/sustainability/disclosures"
+  }
+]

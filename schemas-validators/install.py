@@ -2,7 +2,7 @@
 """Install all dependencies for the schemas-validators tools.
 
 Python packages: jtd  (via pip, from requirements.txt)
-Ruby gems:       cddl (via gem, used by validator-cddl.py)
+Ruby gems:       cddl 0.12.14 (via gem, used by validator-cddl.py)
 """
 
 import subprocess
@@ -36,18 +36,18 @@ def install_pip_deps():
 
 
 def install_gem_deps():
-    print("\n[2/2] Installing Ruby gems (gem install cddl) ...")
+    print("\n[2/2] Installing Ruby gems (gem install cddl -v 0.12.14) ...")
     if shutil.which("gem") is None:
         print("Error: 'gem' not found. Please install Ruby first.", file=sys.stderr)
         print("       Ubuntu/Debian: sudo apt install ruby-full", file=sys.stderr)
         print("       macOS:         brew install ruby", file=sys.stderr)
         sys.exit(1)
 
-    result = run(["gem", "install", "cddl"])
+    result = run(["gem", "install", "cddl", "-v", "0.12.14"])
     if result.returncode != 0:
         # Try with sudo as a fallback for system Ruby installs
         print("      Retrying with sudo ...")
-        result = run(["sudo", "gem", "install", "cddl"])
+        result = run(["sudo", "gem", "install", "cddl", "-v", "0.12.14"])
     if result.returncode != 0:
         print("Error: gem install cddl failed.", file=sys.stderr)
         sys.exit(result.returncode)

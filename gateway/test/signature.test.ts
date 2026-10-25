@@ -1,5 +1,5 @@
 /**
- * The gateway's OWN signature (draft -07 §Signing) and attestation link, end
+ * The gateway's OWN signature (draft -10 §The signed Member) and attestation link, end
  * to end: the `signed` member embedded in each declaration object, its
  * verification by the published consumer over the object as served, the
  * absence of any signature resource, the boot self-check, and the index.
@@ -101,16 +101,16 @@ describe("with a key and an attestation URI", () => {
     // The draft's header set: an asymmetric alg, the media type as `cty`, and
     // the public key so verification needs nothing but the declaration.
     const header = JSON.parse(Buffer.from(h, "base64url").toString());
-    expect(header.alg).toBe("EdDSA");
+    expect(header.alg).toBe("Ed25519");
     expect(header.cty).toBe("sustainability-data+json");
-    expect(header.jwk).toMatchObject({ kid, use: "sig", alg: "EdDSA" });
+    expect(header.jwk).toEqual({ kty: "OKP", crv: "Ed25519", x: expect.any(String) });
     expect(header.jwk.d).toBeUndefined(); // never the private half
 
     const outcome = await verifyEmbeddedSignature(doc);
     expect(outcome.result).toMatchObject({
       status: "verified",
-      alg: "EdDSA",
-      keySource: "header",
+      alg: "Ed25519",
+      keyTrust: "declaration-only",
       cty: "sustainability-data+json",
       modifiedAfterSigning: false,
     });
@@ -120,9 +120,9 @@ describe("with a key and an attestation URI", () => {
   });
 
   it("signs every object of an Extended trend array individually", async () => {
-    const arr = await (await fetch(`${srv.base}${SELF}?period=2025&granularity=monthly`)).json();
+    const arr = await (await fetch(`${srv.base}${SELF}?start=2026-08-01T00:00:00Z&end=2026-10-01T00:00:00Z&granularity=monthly`)).json();
     expect(Array.isArray(arr)).toBe(true);
-    expect(arr.length).toBeGreaterThan(1);
+    expect(arr).toHaveLength(2);
     for (const object of arr) {
       expect(typeof object.signed).toBe("string");
       expect(await verifyEmbeddedSignature(object)).toMatchObject({ result: { status: "verified" } });
@@ -149,12 +149,12 @@ describe("with a key and an attestation URI", () => {
     expect(r.status).toBe("ok");
     if (r.status !== "ok") return;
     expect(r.signatures).toHaveLength(1);
-    expect(r.signatures![0]).toMatchObject({ status: "verified", alg: "EdDSA", keySource: "header" });
+    expect(r.signatures![0]).toMatchObject({ status: "verified", alg: "Ed25519", keyTrust: "declaration-only" });
     expect(Array.isArray(r.document) ? undefined : r.document["verifiable-attestation-uri"]).toBe(ATTESTATION);
     const report = await runConformanceChecks(srv.base, undefined, { allowInsecure: true });
     const c = report.checks.find((x) => x.name.startsWith("Embedded signature"))!;
     expect(c.outcome).toBe("pass");
-    expect(c.detail).toContain("verified EdDSA");
+    expect(c.detail).toContain("verified Ed25519");
     expect(report.allPassed).toBe(true);
     // A relayed declaration is not the gateway's to sign or to attest.
     const third = await (await fetch(`${srv.base}/wikimedia.org${SELF}`)).json();
@@ -166,7 +166,7 @@ describe("with a key and an attestation URI", () => {
     const idx = await (await fetch(`${srv.base}/index.json`)).json();
     expect(idx.self.signature).toEqual({
       member: "signed",
-      alg: "EdDSA",
+      alg: "Ed25519",
       kid,
       "public-key-url": null,
     });
@@ -201,13 +201,15 @@ describe("with a key and an attestation URI", () => {
       clock: () => new Date(nowMs),
       fetchImpl: null,
       env: {},
+      validator: null,
     });
+    config.self.measured = false;
     const d1 = JSON.parse((await route(gw, "GET", SELF)).body);
-    expect(d1["reporting-period"]).toBe("2026-07");
+    expect(d1.period).toEqual({ start: "2026-07-30T00:00:00Z", end: "2026-08-01T00:00:00Z" }); // the gateway went live on 30 July
     expect((await verifyEmbeddedSignature(d1)).result).toMatchObject({ status: "verified", alg: "ES256" });
     nowMs = Date.parse("2026-09-02T00:00:00Z");
     const d2 = JSON.parse((await route(gw, "GET", SELF)).body);
-    expect(d2["reporting-period"]).toBe("2026-08");
+    expect(d2.period).toEqual({ start: "2026-08-01T00:00:00Z", end: "2026-09-01T00:00:00Z" });
     expect(d2.signed).not.toBe(d1.signed);
     expect((await verifyEmbeddedSignature(d2)).result).toMatchObject({ status: "verified" });
     // The older signature does not cover the newer declaration.

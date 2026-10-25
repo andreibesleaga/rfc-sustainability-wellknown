@@ -9,6 +9,7 @@ import { watershedAdapter } from "../src/adapters/enterprise/watershed";
 import { carbonTxtResult, handleRequest, ifNoneMatchMatches } from "../src/handler";
 import { normalize } from "../src/normalize";
 import { Publisher } from "../src/publisher";
+import { isOnDayBoundaries, periodFromReportingPeriod } from "../src/period";
 import { secureReports } from "../src/security";
 import { createSustainabilityServer } from "../src/server";
 import type { RawMetrics, SourceAdapter, SustainabilityMetrics } from "../src/types";
@@ -17,9 +18,9 @@ import { validateDocument } from "../src/validate";
 
 const okRaw = (over: Partial<RawMetrics> = {}): RawMetrics => ({
   provider: "P",
-  measurementMethod: "m",
+  measurementMethod: "third-party-modeled",
   methodologyUri: "https://x/m",
-  reportingPeriod: "2026-02",
+  period: "2026-02",
   target: "example.com",
   energy: { value: 10, unit: "kWh" },
   carbon: { value: 5, unit: "kgCO2e" },
@@ -33,9 +34,9 @@ describe("fromWire round-trip (fix 1)", () => {
       updated: "2026-03-01T00:00:00Z",
       capabilities: "extended",
       provider: "P",
-      "measurement-method": "m",
+      "measurement-method": "third-party-modeled",
       "methodology-uri": "https://x/m",
-      "reporting-period": "2026-02",
+      period: { start: "2026-02-01T00:00:00Z", end: "2026-03-01T00:00:00Z" },
       target: "example.com",
       "energy-consumption": 10,
       "energy-unit": "kWh",
@@ -70,9 +71,9 @@ describe("fromWire round-trip (fix 1)", () => {
       updated: "2026-04-01T00:00:00Z",
       capabilities: "basic",
       provider: "P",
-      "measurement-method": "m",
+      "measurement-method": "third-party-modeled",
       "methodology-uri": "https://x/m",
-      "reporting-period": "2026-03",
+      period: { start: "2026-03-01T00:00:00Z", end: "2026-04-01T00:00:00Z" },
       target: "partial.example",
       "carbon-footprint": 4200, // no carbon-unit: default gCO2e applies
       "scope-2": 4200,
@@ -97,9 +98,9 @@ describe("fromWire target-type (draft -04)", () => {
       updated: "2026-03-01T00:00:00Z",
       capabilities: "basic",
       provider: "P",
-      "measurement-method": "m",
+      "measurement-method": "third-party-modeled",
       "methodology-uri": "https://x/m",
-      "reporting-period": "2026-02",
+      period: { start: "2026-02-01T00:00:00Z", end: "2026-03-01T00:00:00Z" },
       target: "example.com",
       "disclosure-uri": "https://x.example/disclosures",
       ...over,
@@ -135,15 +136,14 @@ describe("ifNoneMatchMatches (fix 2)", () => {
   });
 });
 
-// #3 bounded cache. The keys vary on a parameter the publisher HONORS
-// (`target` against a published prefix set), since since -07 a parameter the
-// publisher ignores no longer produces a distinct cache entry at all.
+// #3 bounded cache. The keys vary on a parameter the publisher HONORS (`target`),
+// since a parameter the publisher ignores produces no distinct cache entry at all.
 describe("Publisher cache is bounded (fix 3)", () => {
   it("never exceeds maxCacheEntries under unique-query spam", async () => {
     const prefixes = Array.from({ length: 50 }, (_, i) => `/p${i}`);
     const pub = new Publisher(
       { name: "c", capabilities: "extended", fetch: async (q) => okRaw({ target: q?.target }) },
-      { cacheTtlMs: 60_000, maxCacheEntries: 8, targetPrefixes: prefixes },
+      { cacheTtlMs: 60_000, maxCacheEntries: 8 },
     );
     for (const prefix of prefixes) await pub.getSerialized({ target: prefix });
     expect(pub.cacheSize).toBeLessThanOrEqual(8);
@@ -170,8 +170,8 @@ describe("adapters fail loudly on bad input (fix 5/6/8)", () => {
     const a = watershedAdapter({
       provider: "P",
       methodologyUri: "https://x/m",
-      // real fixture shape; reportingPeriod "2026-Q1" is not YYYY[-MM[-DD]]
-      fixture: { reportingPeriod: "2026-Q1", totalEmissionsKgCo2e: 100, energyKwh: 50 } as any,
+      // a fiscal-year label is neither a calendar unit nor a quarter
+      fixture: { reportingPeriod: "FY26", totalEmissionsKgCo2e: 100, energyKwh: 50 } as any,
     });
     await expect(a.fetch({})).rejects.toThrow(/reportingPeriod/i);
   });
@@ -187,7 +187,7 @@ describe("adapters fail loudly on bad input (fix 5/6/8)", () => {
     const a = climatiqAdapter({
       provider: "P",
       methodologyUri: "https://x/m",
-      reportingPeriod: "2026-02",
+      period: "2026-02",
       activityId: "x",
       energy: { value: 1, unit: "kWh" },
       fixture: { co2e: 1, co2e_unit: "lb" } as any,
@@ -202,7 +202,7 @@ describe("ms-sustainability guards (fix 7)", () => {
     const a = msSustainabilityAdapter({
       provider: "P",
       methodologyUri: "https://x/m",
-      reportingPeriod: "2026-02",
+      period: "2026-02",
       emissionsField: "totalEmissions",
       energyField: "energyKwh",
       fixturePages: [{ value: [{ energyKwh: 5 }] }] as any,
@@ -214,7 +214,7 @@ describe("ms-sustainability guards (fix 7)", () => {
     const a = msSustainabilityAdapter({
       provider: "P",
       methodologyUri: "https://x/m",
-      reportingPeriod: "2026-02",
+      period: "2026-02",
       emissionsField: "totalEmissions",
       energyField: "energyKwh",
       // "N/A" is present, so the old num() would coerce it to 0 and publish a
@@ -260,26 +260,26 @@ describe("carbonTxtResult rejects a poisoned Host (fix 9)", () => {
 });
 
 // #10 floor before cap
-describe("security floor-before-cap (fix 10)", () => {
-  it("yields up to 366 daily objects even when sub-daily entries precede them", () => {
+describe("security day floor (fix 10)", () => {
+  it("drops the sub-daily entries and keeps every daily one", () => {
     const daily = (i: number): SustainabilityMetrics => ({
       updated: "2026-01-01T00:00:00Z",
       capabilities: "basic",
       provider: "p",
-      "measurement-method": "m",
+      "measurement-method": "third-party-modeled",
       "methodology-uri": "https://example.com/methodology",
-      "reporting-period": "2026-01-01",
+      period: { start: "2026-01-01T00:00:00Z", end: "2026-01-02T00:00:00Z" },
       target: "example.com",
       "energy-consumption": 1,
       "energy-unit": "kWh",
       "carbon-footprint": 1,
       "carbon-unit": "gCO2e",
     });
-    const subDaily = { ...daily(0), "reporting-period": "2026-01-01T12:00:00Z" };
+    const subDaily = { ...daily(0), period: { start: "2026-01-01T12:00:00Z", end: "2026-01-02T12:00:00Z" } };
     const mixed = [...Array.from({ length: 200 }, () => subDaily), ...Array.from({ length: 400 }, (_, i) => daily(i))];
     const out = secureReports(mixed);
-    expect(out.length).toBe(366); // all daily, floor applied before the cap
-    expect(out.every((r) => String(r["reporting-period"]).length <= 10)).toBe(true);
+    expect(out.length).toBe(400); // all daily; the floor drops the sub-daily ones, nothing is cut
+    expect(out.every((r) => isOnDayBoundaries(r.period))).toBe(true);
   });
 });
 
@@ -338,7 +338,7 @@ describe("closed base object, URI-keyed extensions", () => {
       },
       { cacheTtlMs: 0 },
     );
-    const doc = (await pub.getDocument()) as any;
+    const [doc] = (await pub.getDocument()) as any[];
     expect(doc.extensions[UUID]["x-vendor"]).toBe(1);
     expect(validateDocument(doc).valid).toBe(true);
   });
@@ -348,7 +348,7 @@ describe("closed base object, URI-keyed extensions", () => {
       { name: "x", capabilities: "extended", fetch: async () => okRaw({ extra: { "x-vendor": 1 } }) },
       { cacheTtlMs: 0 },
     );
-    await expect(pub.getDocument()).rejects.toThrow(/closed/);
+    await expect(pub.getDocument()).rejects.toThrow(/undefined top-level member.*"x-vendor"/s);
   });
 
   it("still rejects a document missing a mandatory member", () => {
@@ -363,9 +363,9 @@ describe("security conforms to draft -02 review hardening", () => {
     updated: "2026-04-01T00:00:00Z",
     capabilities: "basic",
     provider: "p",
-    "measurement-method": "m",
+    "measurement-method": "third-party-modeled",
     "methodology-uri": "https://example.com/methodology",
-    "reporting-period": period,
+    period: periodFromReportingPeriod(period),
     target: "example.com",
     "energy-consumption": energy,
     "energy-unit": "kWh",
@@ -373,10 +373,10 @@ describe("security conforms to draft -02 review hardening", () => {
     "carbon-unit": "gCO2e",
   });
 
-  it("noise is deterministic per reporting period (same values on regeneration)", () => {
+  it("noise is deterministic per period (same values on regeneration)", () => {
     const input = [rep("2026-01"), rep("2026-02")];
-    const a = secureReports(input, { applyNoise: true });
-    const b = secureReports(input, { applyNoise: true });
+    const a = secureReports(input, { applyNoise: true, noiseDisclosed: true });
+    const b = secureReports(input, { applyNoise: true, noiseDisclosed: true });
     expect(a).toEqual(b); // regeneration (e.g. cache expiry) must not change published values
     for (const r of a) {
       // bounded within ~±1% (a factor of exactly 1.0 is a legitimate hash outcome)
@@ -387,16 +387,16 @@ describe("security conforms to draft -02 review hardening", () => {
 
   it("noise keeps arithmetically related fields consistent (single factor)", () => {
     const withScopes = { ...rep("2026-01"), "scope-1": 400, "scope-2": 300, "scope-3": 300 };
-    const [out] = secureReports([withScopes], { applyNoise: true });
+    const [out] = secureReports([withScopes], { applyNoise: true, noiseDisclosed: true });
     const sum = (out["scope-1"] as number) + (out["scope-2"] as number) + (out["scope-3"] as number);
     expect(Math.abs(sum - (out["carbon-footprint"] as number))).toBeLessThan(0.05); // rounding only
   });
 
-  it("arrays are sorted ascending and truncation keeps the most recent periods", () => {
+  it("arrays are sorted ascending and are not truncated", () => {
     const months = Array.from({ length: 12 }, (_, i) => rep(`2026-${String(i + 1).padStart(2, "0")}`));
     const shuffled = [months[5], months[0], months[11], ...months.slice(1, 5), ...months.slice(6, 11)];
     const out = secureReports(shuffled, { maxObjects: 3 });
-    expect(out.map((r) => r["reporting-period"])).toEqual(["2026-10", "2026-11", "2026-12"]);
+    expect(out.map((r) => r.period.start.slice(0, 7))).toEqual(months.map((r) => r.period.start.slice(0, 7)));
   });
 });
 
@@ -407,28 +407,26 @@ describe("draft -02 conformance sweep fixes", () => {
     expect(() => normalize(okRaw({ sciScore: 0.5, functionalUnit: "per-request" }))).not.toThrow();
   });
 
-  it("publisher collapses a trend to the most recent object when no granularity is requested", async () => {
-    const trend = ["2026-01", "2026-02", "2026-03"].map((p) => okRaw({ reportingPeriod: p }));
-    const pub = new Publisher(
-      { name: "t", capabilities: "extended", fetch: async () => trend },
-      { cacheTtlMs: 0 },
-    );
-    const noGran = await pub.getDocument({});
-    expect(Array.isArray(noGran)).toBe(false);
-    expect((noGran as any)["reporting-period"]).toBe("2026-03"); // most recent
-    const withGran = await pub.getDocument({ period: "2026", granularity: "monthly" });
-    expect(Array.isArray(withGran)).toBe(true);
-    expect((withGran as any[]).length).toBe(3);
+  it("an Extended publisher serves the held trend as an array when no parameter is honored, and its latest object on request", async () => {
+    const trend = ["2026-01", "2026-02", "2026-03"].map((p) => okRaw({ period: p }));
+    const adapter = { name: "t", capabilities: "extended" as const, fetch: async () => trend };
+    const bare = await new Publisher(adapter, { cacheTtlMs: 0 }).getDocument({});
+    expect((bare as any[]).map((o) => o.period.start.slice(0, 7))).toEqual(["2026-01", "2026-02", "2026-03"]);
+    const single = await new Publisher(adapter, { cacheTtlMs: 0, representation: "single" }).getDocument({});
+    expect(Array.isArray(single)).toBe(false);
+    expect((single as any).period.start).toBe("2026-03-01T00:00:00Z");
+    const monthly = await new Publisher(adapter, { cacheTtlMs: 0 }).getDocument({ granularity: "monthly" });
+    expect((monthly as any[]).length).toBe(3);
   });
 
-  it("validateDocument enforces cross-entry array rules", () => {
+  it("an array may hold any periods and targets, in any order, overlapping", () => {
     const entry = (period: string, target?: string) => ({
       updated: "2026-04-01T00:00:00Z",
       capabilities: "basic",
       provider: "p",
-      "measurement-method": "m",
+      "measurement-method": "third-party-modeled",
       "methodology-uri": "https://example.com/methodology",
-      "reporting-period": period,
+      period: periodFromReportingPeriod(period),
       target: target ?? "example.com",
       "energy-consumption": 1,
       "energy-unit": "kWh",
@@ -436,33 +434,30 @@ describe("draft -02 conformance sweep fixes", () => {
       "carbon-unit": "gCO2e",
     });
     expect(validateDocument([entry("2026-01"), entry("2026-02")] as any).valid).toBe(true);
-    expect(validateDocument([entry("2026-02"), entry("2026-01")] as any).valid).toBe(false); // unsorted
-    expect(validateDocument([entry("2026-01"), entry("2026-01")] as any).valid).toBe(false); // overlap
-    expect(validateDocument([entry("2026"), entry("2026-01")] as any).valid).toBe(false); // mixed precision
-    expect(validateDocument([entry("2026-01", "/a"), entry("2026-02", "/b")] as any).valid).toBe(false); // mixed target
+    expect(validateDocument([entry("2026-02"), entry("2026-01")] as any).valid).toBe(true); // unsorted
+    expect(validateDocument([entry("2026-01"), entry("2026-01")] as any).valid).toBe(true); // the same period twice
+    expect(validateDocument([entry("2026"), entry("2026-01")] as any).valid).toBe(true); // a year beside its month
+    expect(validateDocument([entry("2026-01", "/a"), entry("2026-02", "/b")] as any).valid).toBe(true); // different targets
+    expect(validateDocument([entry("2026-01"), { ...entry("2026-02"), "energy-consumption": -1 }] as any).errors[0]).toMatch(/^\[1\]/);
   });
 
-  it("gate enforces the -04 all-or-none target-type array rule", () => {
+  it("target-type may be present in some objects of an array and not in others, with different values", () => {
     const entry = (period: string, targetType?: string) => ({
       updated: "2026-04-01T00:00:00Z",
       capabilities: "basic",
       provider: "p",
-      "measurement-method": "m",
+      "measurement-method": "third-party-modeled",
       "methodology-uri": "https://example.com/methodology",
-      "reporting-period": period,
+      period: periodFromReportingPeriod(period),
       target: "example.com",
       "disclosure-uri": "https://example.com/disclosures",
       ...(targetType !== undefined ? { "target-type": targetType } : {}),
     });
-    // All present with the same value, or absent from every entry: valid.
     expect(validateDocument([entry("2026-01", "origin"), entry("2026-02", "origin")] as any).valid).toBe(true);
     expect(validateDocument([entry("2026-01"), entry("2026-02")] as any).valid).toBe(true);
-    // Mixed values: invalid.
-    expect(validateDocument([entry("2026-01", "origin"), entry("2026-02", "service")] as any).valid).toBe(false);
-    // Final -04: mixed PRESENCE is also invalid (was tolerated pre-audit).
-    const mixedPresence = validateDocument([entry("2026-01", "origin"), entry("2026-02")] as any);
-    expect(mixedPresence.valid).toBe(false);
-    expect(mixedPresence.errors.some((e) => /target-type.*(presence|every)/i.test(e))).toBe(true);
+    expect(validateDocument([entry("2026-01", "origin"), entry("2026-02", "service")] as any).valid).toBe(true);
+    expect(validateDocument([entry("2026-01", "origin"), entry("2026-02")] as any).valid).toBe(true);
+    expect(validateDocument([entry("2026-01", "datacenter"), entry("2026-02")] as any).valid).toBe(false);
   });
 });
 
@@ -471,7 +466,7 @@ describe("co2js swdVersion (dependency bump)", () => {
   it("v3 pin yields different (higher) numbers than v4 default, both valid", async () => {
     const mk = (over: any) =>
       new Publisher(
-        co2jsAdapter({ provider: "P", methodologyUri: "https://x/m", reportingPeriod: "2026-02", bytes: 5e9, green: false, gridZone: "USA", ...over }),
+        co2jsAdapter({ provider: "P", methodologyUri: "https://x/m", period: "2026-02", bytes: 5e9, green: false, gridZone: "USA", ...over }),
         { cacheTtlMs: 0, normalize: { target: "example.com" } },
       ).getDocument();
     const v4: any = await mk({});
@@ -489,9 +484,9 @@ describe("fromWire scope-unit + legacy re-ingest (final-audit fixes)", () => {
       updated: "2026-04-01T00:00:00Z",
       capabilities: "basic",
       provider: "P",
-      "measurement-method": "m",
+      "measurement-method": "third-party-modeled",
       "methodology-uri": "https://x/m",
-      "reporting-period": "2026-03",
+      period: { start: "2026-03-01T00:00:00Z", end: "2026-04-01T00:00:00Z" },
       target: "example.com",
       "carbon-unit": "kgCO2e",
       "scope-1": 5,
@@ -511,9 +506,9 @@ describe("fromWire scope-unit + legacy re-ingest (final-audit fixes)", () => {
       updated: "2026-01-01T00:00:00Z",
       capabilities: "extended",
       provider: "Legacy",
-      "measurement-method": "m",
+      "measurement-method": "third-party-modeled",
       "methodology-uri": "https://x/m",
-      "reporting-period": "2026-01",
+      period: { start: "2026-01-01T00:00:00Z", end: "2026-02-01T00:00:00Z" },
       "target-path": "/api",
       "energy-consumption": -1, // sentinel -> dropped
       "energy-unit": "kWh",
@@ -535,20 +530,31 @@ describe("fromWire scope-unit + legacy re-ingest (final-audit fixes)", () => {
     expect(validateDocument(out).valid).toBe(true);
   });
 
-  it("gate rejects a malformed reporting-period on hand-built documents", () => {
-    const doc = {
-      updated: "2026-01-01T00:00:00Z",
-      capabilities: "basic",
-      provider: "P",
-      "measurement-method": "m",
-      "methodology-uri": "https://x/m",
-      "reporting-period": "not-a-date",
-      target: "example.com",
-      "disclosure-uri": "https://x.example/disclosures",
-    } as any;
-    const r = validateDocument(doc);
-    expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => /reporting-period/.test(e))).toBe(true);
+  it("gate rejects a malformed period on hand-built documents", () => {
+    const doc = (period: unknown) =>
+      ({
+        updated: "2026-01-01T00:00:00Z",
+        capabilities: "basic",
+        provider: "P",
+        "measurement-method": "third-party-modeled",
+        "methodology-uri": "https://x/m",
+        period,
+        target: "example.com",
+        "disclosure-uri": "https://x.example/disclosures",
+      }) as any;
+    for (const period of [
+      { start: "2026-01-01", end: "2026-01-31" },
+      { start: "2026-01-01T00:00:00Z", end: "2025-01-01T00:00:00Z" },
+      { start: "2026-01-01t00:00:00Z", end: "2026-02-01T00:00:00Z" },
+      { start: "2026-01-01T00:00:00Z" },
+      "2026-01",
+      "not-a-date",
+    ]) {
+      const r = validateDocument(doc(period), { legacyCompat: false });
+      expect(r.valid, JSON.stringify(period)).toBe(false);
+      expect(r.errors.some((e) => /period/.test(e)), JSON.stringify(period)).toBe(true);
+    }
+    expect(validateDocument({ ...doc({ start: "2026-01-01T00:00:00Z", end: "2026-02-01T00:00:00Z" }), updated: "2026-01-01T00:00:00z" }).valid).toBe(false);
   });
 });
 
@@ -558,9 +564,9 @@ describe("final pre-tag hardening", () => {
     updated: "2026-01-01T00:00:00Z",
     capabilities: "basic",
     provider: "P",
-    "measurement-method": "m",
+    "measurement-method": "third-party-modeled",
     "methodology-uri": "https://x/m",
-    "reporting-period": "2026-01",
+    period: { start: "2026-01-01T00:00:00Z", end: "2026-02-01T00:00:00Z" },
     target: "example.com",
     "disclosure-uri": "https://x.example/disclosures",
   } as any;
@@ -589,12 +595,12 @@ describe("final pre-tag hardening", () => {
     const a = msSustainabilityAdapter({
       provider: "P",
       methodologyUri: "https://x/m",
-      reportingPeriod: "2026-02",
+      period: "2026-02",
       emissionsField: "totalEmissions",
       fixturePages: [{ value: [{ totalEmissions: 1.5 }] }] as any,
     });
     const raw = await a.fetch({});
-    expect(raw).toMatchObject({ carbon: { value: 1.5, unit: "mtCO2e" } });
+    expect(raw).toMatchObject({ carbon: { value: 1.5, unit: "tCO2e" } });
     expect((raw as any).energy).toBeUndefined();
     const doc = normalize(raw as any, { target: "example.com" });
     expect(doc).not.toHaveProperty("energy-consumption");

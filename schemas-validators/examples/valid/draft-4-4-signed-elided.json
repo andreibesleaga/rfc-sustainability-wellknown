@@ -1,0 +1,29 @@
+[
+  {
+    "updated": "2026-03-21T00:05:00Z",
+    "capabilities": "extended",
+    "provider": "Global Storage Inc. (compliance@storage.example)",
+    "measurement-method": "hardware-estimated",
+    "methodology-uri": "https://storage.example/methods",
+    "period": {
+      "start": "2026-03-20T00:00:00Z",
+      "end": "2026-03-21T00:00:00Z"
+    },
+    "target": "/app/storage",
+    "target-type": "path",
+    "energy-consumption": 12,
+    "energy-unit": "kWh",
+    "carbon-footprint": 3.2,
+    "carbon-unit": "kgCO2e",
+    "carbon-accounting": "market-based",
+    "scope-1": 0.0,
+    "scope-2": 2.1,
+    "scope-3": 1.1,
+    "carbon-intensity-gCO2e-per-kWh": 175,
+    "estimated-annual-emissions-kgCO2e": 1168,
+    "renewable-energy": 45,
+    "verifiable-attestation-uri": "https://verify.example/vc/42",
+    "disclosure-uri": "https://storage.example/disclosures",
+    "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3Vz...(elided)"
+  }
+]

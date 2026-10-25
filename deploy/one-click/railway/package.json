@@ -6,16 +6,16 @@
   "type": "module",
   "description": "One-click sustainability-data publisher: figures from environment variables, served and signed at /.well-known/sustainability-data.",
   "engines": {
-    "node": ">=22.12"
+    "node": ">=22.13"
   },
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
-    "sustainability-wellknown-publisher": "^0.7.2"
+    "sustainability-wellknown-publisher": "^0.8.0"
   },
   "devDependencies": {
-    "sustainability-wellknown-consumer": "^0.7.0"
+    "sustainability-wellknown-consumer": "^0.8.0"
   }
 }

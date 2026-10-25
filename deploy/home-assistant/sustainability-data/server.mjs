@@ -6,7 +6,7 @@
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { NotFoundError, Publisher, createSustainabilityServer, exportPrivateJwk, generateSigningKey, importSigningKey } from "sustainability-wellknown-publisher";
+import { Publisher, createSustainabilityServer, exportPrivateJwk, generateSigningKey, importSigningKey, monthPeriod } from "sustainability-wellknown-publisher";
 
 const env = (k, d) => (process.env[k] === undefined || process.env[k] === "" ? d : process.env[k]);
 
@@ -62,7 +62,9 @@ export function monthsFromSnapshots(snaps, cfg) {
       provider: cfg.provider,
       measurementMethod: "hardware-metered",
       methodologyUri: cfg.methodologyUri,
-      reportingPeriod: start.slice(0, 7),
+      period: monthPeriod(Number(start.slice(0, 4)), Number(start.slice(5, 7))),
+      // The closing reading is when the month's figure became known; without it every build would stamp the wall clock.
+      updated: new Date(snaps[end].at).toISOString().replace(/\.\d{3}Z$/, "Z"),
       capabilities: "extended",
       target: cfg.target,
       energy: { value: Math.round(kwh * 1000) / 1000, unit: "kWh" },
@@ -76,13 +78,9 @@ export function makeAdapter(stateDir, cfg) {
   return {
     name: "home-assistant-energy",
     capabilities: "extended",
-    async fetch(query) {
-      const months = monthsFromSnapshots(loadSnapshots(stateDir), cfg);
-      if (months.length === 0) throw new NotFoundError();
-      if (!query.period) return months[months.length - 1];
-      const inside = months.filter((m) => m.reportingPeriod.startsWith(query.period));
-      if (!inside.length) throw new NotFoundError();
-      return inside;
+    // Every completed month; the publisher selects among them for target, start, end and granularity.
+    async fetch() {
+      return monthsFromSnapshots(loadSnapshots(stateDir), cfg);
     },
   };
 }
@@ -119,7 +117,7 @@ if (isMainModule()) {
   const sensorReader = () => readSensor({ api: env("HA_API"), token: env("HA_TOKEN"), sensor: env("HA_ENERGY_SENSOR") });
   const keyFile = join(stateDir, "signing-key.jwk");
   mkdirSync(stateDir, { recursive: true });
-  const key = existsSync(keyFile) ? await importSigningKey(readFileSync(keyFile, "utf8")) : await generateSigningKey("EdDSA");
+  const key = existsSync(keyFile) ? await importSigningKey(readFileSync(keyFile, "utf8")) : await generateSigningKey("Ed25519");
   if (!existsSync(keyFile)) writeFileSync(keyFile, JSON.stringify(await exportPrivateJwk(key)), { mode: 0o600 });
   const publisher = new Publisher(makeAdapter(stateDir, cfg), { normalize: { target: cfg.target, targetType: cfg.targetType }, signing: { key }, cacheTtlMs: 3_600_000 });
   await snapshotIfDue({ stateDir, sensorReader }).catch((e) => console.error(`snapshot: ${e.message}`));

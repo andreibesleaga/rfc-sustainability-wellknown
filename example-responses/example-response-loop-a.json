@@ -1,0 +1,24 @@
+{
+  "updated": "2026-02-25T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Loop Network A (sustainability@loop.example)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://loop.example/sustainability/methodology",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
+  "target": "Loop Network A",
+  "target-type": "organization",
+  "energy-unit": "MWh",
+  "carbon-unit": "tCO2e",
+  "energy-consumption": 40,
+  "carbon-footprint": 14,
+  "carbon-accounting": "market-based",
+  "upstream": [
+    {
+      "declaration": "../../loop-b.example/.well-known/sustainability-data",
+      "role": "network"
+    }
+  ]
+}

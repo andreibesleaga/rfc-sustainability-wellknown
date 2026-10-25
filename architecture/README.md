@@ -11,8 +11,8 @@ Context → Level 2 Container → Level 3 Component), written in
 inline (Mermaid source) and as a pre-rendered image in [`images/`](images/); the
 sources live in [`diagrams/`](diagrams/).
 
-**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-08.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-08.md)
-(the latest posted draft is **`-08`, posted 2026-10-09**; the wire format is that of `-07`, posted 2026-09-17; see [§3](#3-the-protocol-subsystem) for what
+**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-10.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-10.md)
+(the latest posted draft is **`-10`, posted 2026-10-24**; `-09` was posted 2026-10-16 and `-07`, which §3 describes in detail, on 2026-09-17; see [§3](#3-the-protocol-subsystem) for what
 it changes), with [`internet-drafts/draft-besleaga-sustainability-wellknown-06.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-06.md)
 kept as the historical reference for the prior posted revision
 (2026-09-10, the "2.0"-labeled `sustainability-data` URI rename), [`../README.md`](../README.md),
@@ -217,8 +217,22 @@ flowchart TB
 
 ## 3. The protocol subsystem
 
-The normative artifact is the Internet-Draft (`internet-drafts/`). **`-07` is
-the revision that defines the current wire format (posted 2026-09-17; `-08`, posted 2026-10-09, is the latest posted revision and changes no member).** Since `-06` it: withdraws the companion
+The normative artifact is the Internet-Draft (`internet-drafts/`).
+
+> **Current wire format, `-10` (posted 2026-10-24).** The members are those of `-07` (7 mandatory, 19 optional), with these
+> changes since `-08`: `reporting-period` is replaced by `period`, an object of two RFC 3339 `date-time` values (`start`
+> included, `end` excluded, bounds compared as instants); the query parameters are `target`, `start`, `end` (UTC
+> date-times) and `granularity` (`yearly`, `monthly`, `daily`); a server returns the objects it holds that satisfy every
+> parameter it honors, as an array in ascending order of `period.start`, empty when none does, and computes no aggregate;
+> a parameter it does not support, or a value that does not match the grammar, is ignored (there is no `400` and no
+> `404` for a query); `measurement-method`, `functional-unit`, `carbon-unit` (`gCO2e`, `kgCO2e`, `tCO2e`), `target-type`
+> and the `upstream` `role` are closed sets; the signature algorithm is `Ed25519` (or `ES256`); URI-valued members are
+> URI references. The reference codebase (`publisher/` 0.8.0, `consumer/` 0.8.0, `gateway/` 0.2.0,
+> `schemas-validators/`) implements `-10`. The paragraphs and diagrams below that describe `-07` query rules (the
+> seven-step procedure, `400`/`404` cases, aggregation) are the record of `-07`; the publisher's 366-object cap is a
+> deployment safeguard, not a requirement of the draft.
+
+**`-07` (posted 2026-09-17) defined the wire format that `-08` kept.** Since `-06` it: withdraws the companion
 `sustainability-data.jws` resource and its detached signature entirely, in
 favor of an OPTIONAL `signed` member embedded in each declaration object (a
 JWS Compact Serialization over the object itself, typed by `cty`); removes the
@@ -267,7 +281,8 @@ Two service levels:
 * **Extended (optional)** — three query parameters: `target` (path-prefix
   scoping, honored only for a deliberately published prefix set — a
   path-disclosure and cache-key-space defense), `period` (`YYYY` / `YYYY-MM` /
-  `YYYY-MM-DD`), and `granularity` (`monthly` / `daily`). A granularity finer
+  `YYYY-MM-DD`), and `granularity` (`monthly` / `daily`). *(`-07`; in `-10` they are `target`, `start`, `end` and
+  `granularity`, as the note at the top of this section says.)* A granularity finer
   than the period yields a sorted **array** (trend); a `period` alone MUST NOT
   yield an array — a single (possibly aggregated) object, or 404 per the
   no-data rule. A server ignores a parameter it does not support and answers the rest of the
@@ -296,7 +311,7 @@ sequenceDiagram
 
     Note over C,S: 1 — Basic service (Mandatory Minimum)
     C->>S: GET /.well-known/sustainability-data
-    S-->>C: 200 OK · application/sustainability-data+json · ETag: "abc" · Cache-Control: public, max-age=86400<br/>single JSON object (most recent completed period, origin-wide target)
+    S-->>C: 200 OK · application/sustainability-data+json · ETag: "abc" · Cache-Control: public, max-age=86400<br/>the declaration (one object or an array)
 
     Note over C,S: 2 — Conditional revalidation (RFC 9110/9111)
     C->>S: GET /.well-known/sustainability-data · If-None-Match: "abc"
@@ -307,32 +322,32 @@ sequenceDiagram
     S-->>C: 405 Method Not Allowed · Allow: GET, HEAD
 
     Note over C,S: 4 — Extended service: trend query
-    C->>S: GET /.well-known/sustainability-data?period=2025&granularity=monthly
-    S-->>C: 200 OK · JSON array (ascending reporting-period, uniform precision,<br/>single target — no server-side size cap since -07, the consumer bounds what it accepts)
+    C->>S: GET /.well-known/sustainability-data?start=2025-01-01T00:00:00Z&end=2026-01-01T00:00:00Z&granularity=monthly
+    S-->>C: 200 OK · JSON array (ascending period.start, as instants; the objects the server holds, none computed —<br/>no server-side size cap, the consumer bounds what it accepts)
 
-    Note over C,S: 5 — Extended service: scoped single period
-    C->>S: GET ...?target=/api/v1&period=2026-03
-    S-->>C: 200 OK · single object · target member echoes "/api/v1"
+    Note over C,S: 5 — Extended service: one target
+    C->>S: GET ...?target=/api/v1
+    S-->>C: 200 OK · JSON array of the objects whose target equals "/api/v1"
 
-    Note over C,S: 6 — No data for a valid request
-    C->>S: GET ...?period=1999
-    S-->>C: 404 Not Found
+    Note over C,S: 6 — Nothing selected by a valid request
+    C->>S: GET ...?start=1999-01-01T00:00:00Z&end=2000-01-01T00:00:00Z
+    S-->>C: 200 OK · []
 
     Note over C,S: 7 — Basic-only server ignores Extended parameters
-    C->>S: GET ...?period=2025&granularity=monthly (to a "basic" server)
-    S-->>C: 200 OK · Basic single object (parameters ignored, never an error)
+    C->>S: GET ...?granularity=monthly (to a "basic" server)
+    S-->>C: 200 OK · the declaration as published (parameters ignored, never an error)
 
     Note over C,S: 8 — Publish-only-if-valid (reference publisher)
     C->>S: GET /.well-known/sustainability-data
     S-->>C: 503 Service Unavailable (adapter/validation failure —<br/>corrupt data is never published)
 
-    Note over C,S: 9 — Extended service: malformed query (-07)
-    C->>S: GET ...?period=2025&period=2026
-    S-->>C: 400 Bad Request (duplicate parameter name)
+    Note over C,S: 9 — Extended service: a value that does not match the grammar (-10)
+    C->>S: GET ...?start=yesterday
+    S-->>C: 200 OK · the parameter is ignored, never read as another value
 
-    Note over C,S: 10 — Extended service: target outside the published prefix set (-07)
+    Note over C,S: 10 — Extended service: a target the server does not hold (-10)
     C->>S: GET ...?target=/not-published
-    S-->>C: 404 Not Found
+    S-->>C: 200 OK · []
 ```
 
 ### 3.2 Data model (26 members)
@@ -380,24 +395,23 @@ classDiagram
         single SustainabilityMetrics object
         OR array of SustainabilityMetrics — a trend
     }
-    note for SustainabilityDocument "Array rules — MUST: ascending reporting-period,
-    non-overlapping, uniform period precision,
-    same target (and target-type, when present) in every entry.
-    No server-side size cap since -07 (a full calendar year at daily
-    granularity is naturally at most 366 entries; the consumer MUST bound
+    note for SustainabilityDocument "Array rules (-10): the objects may cover different periods and
+    targets of the origin, in any order, and may overlap; a query answer
+    is in ascending order of period.start.
+    No server-side size cap (the consumer MUST bound
     what it accepts - see Consumer Considerations).
     A single object == a one-element array."
 
     SustainabilityDocument "1" *-- "1..*" SustainabilityMetrics
 
     class SustainabilityMetrics {
-        <<7 mandatory members as of -07>>
+        <<7 mandatory members as of -10>>
         +updated : string — RFC 3339 date-time of generation
         +capabilities : "basic" | "extended" — query-parameter support only
         +provider : string — entity operating the origin
-        +measurement-method : string — free-form; recommended values exist
+        +measurement-method : "hardware-metered" | "hardware-estimated" | "cloud-billing" | "third-party-modeled"
         +methodology-uri : string — link to calculation methodology
-        +reporting-period : string — YYYY | YYYY-MM | YYYY-MM-DD
+        +period : object { start, end } — RFC 3339 date-times, start included, end excluded
         +target : string — subject: origin host, path prefix, entity, tenant, product
     }
     note for SustainabilityMetrics "-06 and earlier also required an 8th mandatory
@@ -405,25 +419,25 @@ classDiagram
     -07 removes version entirely; it is not carried forward."
 
     class OptionalMetrics {
-        <<19 optional members as of -07 - omission is the ONLY not-reported mechanism>>
-        +target-type : "origin" | "path" | "organization" | "service" | "product" | "device" | "tenant" | "data-source" — hint classifying target; unrecognized values tolerated
+        <<19 optional members as of -10 - omission is the ONLY not-reported mechanism>>
+        +target-type : "organization" | "facility" | "origin" | "path" | "service" | "product" | "device" | "tenant" | "data-source" — classifies target
         +energy-consumption : number — MUST NOT be negative
         +energy-unit : "Wh" | "kWh" | "MWh" | "GWh" — default kWh when absent
         +carbon-footprint : number — gross, MUST NOT be negative
-        +carbon-unit : "gCO2e" | "kgCO2e" | "mtCO2e" — default gCO2e, also scales scopes
+        +carbon-unit : "gCO2e" | "kgCO2e" | "tCO2e" — default gCO2e, also scales scopes
         +carbon-accounting : "location-based" | "market-based"
         +scope-1 : number — MAY be negative: removals, net accounting
         +scope-2 : number — MAY be negative
         +scope-3 : number — MAY be negative
         +sci-score : number — non-negative; REQUIRES functional-unit
-        +functional-unit : string — e.g. per-request
+        +functional-unit : one of twelve, e.g. per-request, per-session, per-vcpu-hour
         +carbon-intensity-gCO2e-per-kWh : number — non-negative
         +estimated-annual-emissions-kgCO2e : number — non-negative
         +renewable-energy : number — percent, 0..100 inclusive
         +verifiable-attestation-uri : string — W3C Verifiable Credential link
         +disclosure-uri : string — disclosure index, e.g. carbon.txt
         +upstream : array of UpstreamEntry — providers this object's figures derive from, new in -07
-        +signed : string — OPTIONAL embedded JWS (alg EdDSA or ES256, cty sustainability-data+json) over this object minus signed; absence is not an error, new in -07
+        +signed : string — OPTIONAL embedded JWS (alg Ed25519 or ES256, cty sustainability-data+json) over this object minus signed; absence is not an error, new in -07
     }
 
     SustainabilityMetrics "1" o-- "0..1" OptionalMetrics : MAY carry
@@ -573,7 +587,7 @@ same three-property contract: `{ name, capabilities, fetch(query) }`.
 
 1. **`adapter.fetch(query)`** → `RawMetrics | RawMetrics[]`.
 2. **`normalize()`** (`normalize.ts`) — joules→kWh and full unit conversion
-   (`Wh…GWh`, `g…mtCO2e`), carbon derived from energy × grid intensity when
+   (`Wh…GWh`, `g…tCO2e`), carbon derived from energy × grid intensity when
    absent, defaults (`capabilities "basic"`, `updated` now; the `-06`-era
    `version "2.0"` default is gone with the member itself, see §3),
    the mandatory `target` (adapter value or configured fallback), and hard
@@ -624,13 +638,13 @@ flowchart TD
 
     AD["SourceAdapter.fetch(query)"] -- "RawMetrics | RawMetrics[]" --> N
 
-    N["normalize()<br/>· joules → kWh, unit conversion (Wh…GWh, g…mtCO2e)<br/>· carbon = energy × grid intensity when absent<br/>· defaults: capabilities basic, updated now<br/>· mandatory target (adapter value or configured fallback)<br/>· reject negative gross metrics, renewable outside 0–100,<br/>  sci-score without functional-unit, bad periods"]
+    N["normalize()<br/>· joules → kWh, unit conversion (Wh…GWh, g…tCO2e)<br/>· carbon = energy × grid intensity when absent<br/>· defaults: capabilities basic, updated now<br/>· mandatory target (adapter value or configured fallback)<br/>· reject negative gross metrics, renewable outside 0–100,<br/>  sci-score without functional-unit, bad periods"]
 
     N -- "SustainabilityMetrics[]" --> G1
 
     subgraph SAFE["secureReports() — operational safeguards"]
-        G1["Daily floor: drop entries with<br/>reporting-period finer than 24h"] --> G2
-        G2["Sort ascending by reporting-period"] --> G3
+        G1["Daily floor: drop entries with<br/>period shorter than a calendar day"] --> G2
+        G2["Sort ascending by period.start"] --> G3
         G3["Defensive cap: max 366 objects,<br/>keep most recent (a deployment safeguard;<br/>-07 puts the binding bound on the consumer)"] --> G4
         G4["Optional anti-fingerprinting noise:<br/>~±1% multiplicative, deterministic per period,<br/>consistent across related fields"]
     end
@@ -822,10 +836,10 @@ flowchart TB
         UNITS["units.ts<br/>convertEnergy / convertCarbon"]
         TRANS["transform.ts<br/>toCsvRows · toNdjson · flatten (one row/metric,<br/>default units kWh/gCO2e) · aggregate (sum/average,<br/>unit-normalized)"]
         CLIENT2["client.ts — SustainabilityClient<br/>ETag cache per origin+params (bounded 256);<br/>304 ⇒ replay cached document; getTrend()"]
-        CONF["conformance.ts — runConformanceChecks()<br/>7 checks: basic single object · media type (application/sustainability-data+json;<br/>legacy application/json ⇒ WARN) · embedded signed member (OPTIONAL)<br/>absent or verifiable · ETag present · fresh ETag ⇒ 304 ·<br/>POST ⇒ 405+Allow · granularity ⇒ valid (sorted array when honored);<br/>legacyCompat OFF (sees the declaration as served)"]
+        CONF["conformance.ts — runConformanceChecks()<br/>12 checks: basic declaration · media type (application/sustainability-data+json) ·<br/>embedded signed member (OPTIONAL) absent or verifiable · signature algorithm ·<br/>ETag · fresh ETag ⇒ 304 · POST ⇒ 405+Allow (these three at level INFO: HTTP practice) ·<br/>ignored query values · empty range ⇒ 200 · capabilities extended when honored · extended range ·<br/>calendar periods (INFO);<br/>legacyCompat OFF (sees the declaration as served)"]
         DISC["disclosure.ts<br/>resolveDisclosureLinks (passive — never auto-fetches);<br/>fetchDisclosure only on explicit opt-in"]
-        SIG["signature.ts — verifyEmbeddedSignature()<br/>the OPTIONAL `signed` member: JWS over the object minus signed;<br/>rejects alg none/MAC, absent or wrong cty, unknown crit;<br/>payload must be a declaration, carry no signed, and match<br/>target + reporting-period; header jwk ⇒ origin members still win"]
-        UPS["upstream.ts — walkUpstream()<br/>depth ≤ 3 · visited URIs refused · ≤ 20 retrievals ·<br/>same fetch limits per hop; compares energy/carbon for the<br/>same reporting-period against a tenant-scoped upstream:<br/>consistent · under-reported · not-comparable · unreachable"]
+        SIG["signature.ts — verifyEmbeddedSignature()<br/>the OPTIONAL `signed` member: JWS over the object minus signed;<br/>rejects alg none/MAC, absent or wrong cty, unknown crit;<br/>payload must be a declaration, carry no signed, and match<br/>target, period.start, period.end, carbon-accounting and functional-unit (compared as strings); header jwk ⇒ origin members still win"]
+        UPS["upstream.ts — walkUpstream()<br/>depth ≤ 3 · visited URIs refused · ≤ 20 retrievals ·<br/>same fetch limits per hop; compares energy/carbon for the<br/>same period against a tenant-scoped upstream:<br/>consistent · under-reported · not-comparable · unreachable"]
         ATT["attestation.ts — verifyAttestation()<br/>vc+jwt credential, explicit opt-in only;<br/>issuer key pinned or self-asserted; binds the copy<br/>at credentialSubject.declaration to what was served"]
         CLI3["cli.ts / bin/sustainability-fetch<br/>--format=json|csv|ndjson · --strict = conformance battery ·<br/>--verify · --upstream · --verify-attestation ·<br/>exit codes per status"]
         TYPES["types.ts — wire-format types,<br/>FetchResult status union: ok · not-modified · not-found ·<br/>no-report · invalid · http-error · timeout · too-large · insecure-transport"]

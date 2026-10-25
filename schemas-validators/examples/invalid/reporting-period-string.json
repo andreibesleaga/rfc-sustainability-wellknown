@@ -1,0 +1,12 @@
+{
+  "updated": "2026-03-01T12:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Corp (sustain@example.com)",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "/sustainability/methodology",
+  "reporting-period": "2025",
+  "target": "Example Corp",
+  "target-type": "organization",
+  "carbon-footprint": 4140,
+  "carbon-unit": "kgCO2e"
+}

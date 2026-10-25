@@ -4,12 +4,16 @@ name: full-verify
 # workflows (draft.yml, publisher.yml, consumer.yml, example-scripts.yml), which are path-filtered to their own area, this one
 # always runs on every push/PR to main and re-verifies every area in one place.
 # Intended as the required status check for branch protection.
+# Node 22 and 24 must pass in the library jobs; Node 26 is reported but does not block.
 
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch: {}
+
+permissions:
+  contents: read
 
 jobs:
   draft:
@@ -27,7 +31,7 @@ jobs:
         run: |
           set -e
           cd internet-drafts
-          md=$(ls draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
+          md=$(ls draft-besleaga-sustainability-wellknown-[0-9][0-9].md | sort -V | tail -1)
           base="${md%.md}"
           # The same pipeline as build.sh: RFCXML v3 vocabulary, then the idnits3 clean-up.
           kramdown-rfc -3 "$md" > "$base.v2.xml"
@@ -37,18 +41,28 @@ jobs:
       - name: idnits3, normal mode (no nit at all)
         run: |
           cd internet-drafts
-          md=$(ls draft-besleaga-sustainability-wellknown-*.md | sort | tail -1)
+          md=$(ls draft-besleaga-sustainability-wellknown-[0-9][0-9].md | sort -V | tail -1)
           base="${md%.md}"
           npx --yes @ietf-tools/idnits -m normal --no-progress --no-color "$base.xml" | tee /tmp/idnits.out
           n=$(npx --yes @ietf-tools/idnits -m normal -o count --no-progress "$base.xml" | tail -1)
           if [ "$n" != "0" ]; then echo "::error::idnits3 reports $n nit(s)"; exit 1; fi
   tools:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    continue-on-error: ${{ matrix.node == '26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24", "26"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
-        with: { node-version: "22" }
+        with: { node-version: "${{ matrix.node }}" }
+      - name: Build publisher and consumer (the tools use their builds)
+        run: |
+          (cd publisher && npm ci --no-audit --no-fund && npm run build)
+          (cd consumer  && npm ci --no-audit --no-fund && npm run build)
+          bash scripts/overlay-source-publisher.sh tools/create-sustainability-data
       - name: report-to-declaration tests
         working-directory: tools/report-to-declaration
         run: node --test test/*.test.mjs
@@ -70,17 +84,35 @@ jobs:
     # The scenarios and the fitness functions run against the SOURCE builds of the
     # three packages, so a regression is caught before a release, not after.
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    continue-on-error: ${{ matrix.node == '26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24", "26"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
-        with: { node-version: "22" }
-      - name: Build publisher and consumer, then the gateway against those source builds
+        with: { node-version: "${{ matrix.node }}" }
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12" }
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.2" }
+      - name: Validators (jtd in a virtual environment, cddl gem 0.12.14 on the PATH)
         run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install -r schemas-validators/requirements.txt
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+          echo "PYTHON=$RUNNER_TEMP/venv/bin/python" >> "$GITHUB_ENV"
+          gem install cddl -v 0.12.14
+          echo "$(ruby -e 'print Gem.bindir')" >> "$GITHUB_PATH"
+      - name: Build publisher and consumer, then the gateway and the initializer against those source builds
+        run: |
+          cddl --version 2>&1 | grep -q '0.12.14'   # the gem prints its version on stderr
           (cd publisher && npm ci --no-audit --no-fund && npm run build)
           (cd consumer  && npm ci --no-audit --no-fund && npm run build)
-          (cd gateway   && npm ci --no-audit --no-fund)
           bash scripts/overlay-source-libs.sh
+          bash scripts/overlay-source-publisher.sh tools/create-sustainability-data
       - name: Traceability (every normative sentence of the draft has a scenario)
         working-directory: bdd
         run: npm ci --no-audit --no-fund && npm run trace
@@ -93,18 +125,33 @@ jobs:
 
   schemas:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: "22" }
       - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.2" }
-      - run: python3 -m pip install jtd
-      - run: gem install cddl
-      - name: Validate every example response (both validators)
+      - name: Validators (jtd in a virtual environment, cddl gem 0.12.14 on the PATH)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install -r schemas-validators/requirements.txt
+          echo "PYTHON=$RUNNER_TEMP/venv/bin/python" >> "$GITHUB_ENV"
+          gem install cddl -v 0.12.14
+          echo "$(ruby -e 'print Gem.bindir')" >> "$GITHUB_PATH"
+      - name: Generated corpus files equal a fresh run (all-pairs set, signed files, served examples)
         working-directory: schemas-validators
-        run: bash validate-all.sh
+        run: |
+          node gen/pairwise.mjs --check
+          node gen/signed.mjs --check
+          node gen/served.mjs --check
+      - name: Validate the corpus and every served example (both validators, verdicts from the manifest)
+        working-directory: schemas-validators
+        run: |
+          cddl --version 2>&1 | grep -q '0.12.14'   # the gem prints its version on stderr
+          bash validate-all.sh
       # Three-way schema equality (schemas-validators/response-schema.json ==
       # publisher/src/schema.ts == consumer/src/schema.ts) is enforced by each
       # package's own test suite: publisher/test/conformance.test.ts and
@@ -115,26 +162,37 @@ jobs:
   publisher:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    continue-on-error: ${{ matrix.node == '26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24", "26"]
     defaults:
       run:
         working-directory: publisher
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
-        with: { node-version: "22", cache: npm, cache-dependency-path: publisher/package-lock.json }
+        with: { node-version: "${{ matrix.node }}", cache: npm, cache-dependency-path: publisher/package-lock.json }
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
       - run: npm publish --dry-run
+        if: matrix.node == '22'
 
   consumer:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    continue-on-error: ${{ matrix.node == '26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24", "26"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
-        with: { node-version: "22" }
+        with: { node-version: "${{ matrix.node }}" }
       - name: Build publisher (consumer's interop test needs its dist/)
         working-directory: publisher
         run: npm ci; npm run build
@@ -146,8 +204,48 @@ jobs:
           npm run build
           npm test
       - name: Dry-run publish
+        if: matrix.node == '22'
         working-directory: consumer
         run: npm publish --dry-run
+
+  gateway:
+    # Against the SOURCE builds of the publisher and the consumer (scripts/overlay-source-libs.sh leaves
+    # gateway/package-lock.json alone); gateway.yml runs it against the versions the registry serves.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: ${{ matrix.node == '26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24", "26"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: "${{ matrix.node }}" }
+      - name: Build publisher and consumer, then the gateway against those source builds
+        run: |
+          (cd publisher && npm ci --no-audit --no-fund && npm run build)
+          (cd consumer  && npm ci --no-audit --no-fund && npm run build)
+          bash scripts/overlay-source-libs.sh
+      - name: Typecheck and test
+        working-directory: gateway
+        run: |
+          npm run typecheck
+          npm test
+      - name: Conformance battery against a live instance (rate limit off, since one address sends hundreds of requests)
+        working-directory: gateway
+        run: |
+          RATE_LIMIT_PER_MINUTE=0 PORT=8080 node dist/index.js &
+          GATEWAY_PID=$!
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8080/healthz >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8080/healthz || { echo "gateway did not become healthy"; kill $GATEWAY_PID; exit 1; }
+          STATUS=0
+          npm run conformance -- http://127.0.0.1:8080 --allow-http || STATUS=$?
+          kill $GATEWAY_PID
+          exit $STATUS
 
   example-scripts-and-server-configs:
     runs-on: ubuntu-latest
@@ -162,8 +260,8 @@ jobs:
         with: { php-version: "8.3" }
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.2" }
-      - run: python3 -m pip install jtd
-      - run: gem install cddl
+      - run: python3 -m pip install -r schemas-validators/requirements.txt
+      - run: gem install cddl -v 0.12.14
       - name: example-scripts test suites
         working-directory: example-scripts
         run: |
@@ -233,9 +331,9 @@ jobs:
           apache2 -f /tmp/apache-fv/httpd.conf -k stop
 
   summary:
-    needs: [draft, tools, bdd-and-fitness, schemas, publisher, consumer, example-scripts-and-server-configs]
+    needs: [draft, tools, bdd-and-fitness, schemas, publisher, consumer, gateway, example-scripts-and-server-configs]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - run: |
-          echo "All areas verified green: draft, tools, bdd-and-fitness, schemas, publisher, consumer, example-scripts, server-configurations."
+          echo "All areas verified green: draft, tools, bdd-and-fitness, schemas, publisher, consumer, gateway, example-scripts, server-configurations."

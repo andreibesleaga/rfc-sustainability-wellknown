@@ -10,14 +10,14 @@ profile), and a checker for it.
 | [`SFC.md`](SFC.md) | The older non normative note on how the framework and the specification fit together. Kept as written, with stale facts corrected. |
 | [`examples/`](examples) | Two reference declarations, one network level and one operator level. Both validate against the JTD schema, the CDDL schema and the consumer library. |
 | `sfc-check.mjs` | The checker. |
-| [`test/`](test) | Nine fixtures and the test suite. |
+| [`test/`](test) | Eleven fixtures and the test suite. |
 
 The examples and fixtures use reserved `.example` names and every figure in them
 is invented. They say so in their own `provider` member.
 
 ## Running the checker
 
-It needs Node 22 or later and the published consumer library:
+It needs Node 22.13 or later and the published consumer library (0.8.0 or a later 0.8 release):
 
 ```
 npm install
@@ -35,8 +35,10 @@ An `http` URL is refused, because the specification requires HTTPS.
 
 Options: `--verify-attestation` fetches the statement at
 `verifiable-attestation-uri` and checks it, and is off by default so that a run
-needs no network; `--now=<RFC 3339>` sets the fixed clock; `--json` prints the
-rows as JSON.
+needs no network; `--trusted-issuer-key=<jwk file>` trusts an issuer's public key, without
+which a statement signed under the key in its own header is reported as not attested;
+`--now=<RFC 3339>` sets a fixed clock (the default is the current time); `--json`
+prints the rows as JSON.
 
 Exit status is 0 normally, 1 when the document does not conform to the
 specification or when an annual network figure is at or above the 1 GWh cap, and
@@ -65,6 +67,18 @@ never about the figures.
 
 Section 9 of `PROFILE.md` says this in full, in the form of what a conformance
 statement may and may not claim.
+
+## Version 1.1.1
+
+Package version 1.1.1 is a compatibility release for draft-besleaga-sustainability-wellknown-10
+and consumer 0.8.0. The checks, the verdict words, the demo and the command line are those of 1.1.0.
+What changed is the wire the checker reads: the `period` object (`start` and `end`, half open) in
+place of the `reporting-period` label, `tCO2e` in place of `mtCO2e`, the closed token sets, and
+Ed25519 signatures. The annual rule of criterion 1 now reads: `period` is a whole calendar year,
+both bounds on 1 January 00:00 of consecutive years. Examples and fixtures were converted with
+`sustainability-publisher upgrade`. A file still written with `reporting-period` is reported as not
+conforming, exactly as the consumer reports it. The profile text itself (version 1.1) is unchanged
+apart from these wire fixes; `PROFILE-1.0.md` is kept as it was written.
 
 ## Dependencies
 

@@ -1,10 +1,13 @@
 {
-  "updated": "2026-09-16T07:20:17Z",
+  "updated": "2026-06-01T00:00:00Z",
   "capabilities": "basic",
   "provider": "DataCenter Analytics Inc. (sustain@dcanalytics.example)",
   "measurement-method": "third-party-modeled",
   "methodology-uri": "https://dcanalytics.example/methodology/climatiq",
-  "reporting-period": "2026-05",
+  "period": {
+    "start": "2026-05-01T00:00:00Z",
+    "end": "2026-06-01T00:00:00Z"
+  },
   "target": "dcanalytics.example",
   "energy-consumption": 2500,
   "energy-unit": "kWh",

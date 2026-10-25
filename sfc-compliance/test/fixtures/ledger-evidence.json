@@ -4,13 +4,16 @@
   "provider": "SYNTHETIC FIXTURE, invented figures, reserved .example name (RFC 2606). The ledger-evidence entry copies one operator's April values from a worked example; it only exercises the checker's DECLARED row and does not reconcile with the annual figures above (in a real declaration the operator sums agree with them, SFC ledger profile 1.2 section 9.3, step 5).",
   "measurement-method": "third-party-modeled",
   "methodology-uri": "https://ledger.example/sustainability/methodology-2025",
-  "reporting-period": "2025",
+  "period": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2026-01-01T00:00:00Z"
+  },
   "target": "ledger.example",
   "target-type": "service",
   "energy-consumption": 800,
   "energy-unit": "MWh",
   "carbon-footprint": 95.5,
-  "carbon-unit": "mtCO2e",
+  "carbon-unit": "tCO2e",
   "carbon-accounting": "market-based",
   "scope-1": 0,
   "scope-2": 33.1,

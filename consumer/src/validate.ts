@@ -283,9 +283,19 @@ function figureChecks(rec: Record<string, unknown>, errors: string[], warnings: 
   }
 }
 
+/**
+ * True when `value` reads as a host name: no whitespace or "/", and a "." with at least one character on each
+ * side. Written without a regular expression so the check stays linear on any input.
+ */
+function isHostShaped(value: string): boolean {
+  if (/[\s/]/.test(value)) return false;
+  const dot = value.indexOf(".", 1);
+  return dot > 0 && dot < value.length - 1;
+}
+
 /** The A-label form of a host-shaped `target` written with non-ASCII characters, "" when it has none, `undefined` otherwise. */
 function aLabelOf(target: string): string | undefined {
-  if (!/^[^\s/]+\.[^\s/]+$/.test(target) || !/[^\x00-\x7f]/.test(target)) return undefined;
+  if (!isHostShaped(target) || !/[^\x00-\x7f]/.test(target)) return undefined;
   return domainToASCII(target);
 }
 
@@ -293,7 +303,10 @@ function textChecks(rec: Record<string, unknown>, errors: string[], warnings: Va
   if (rec["provider"] === "") errors.push("/provider must not be empty");
   if (rec["target"] === "") errors.push("/target must not be empty (it names what the object is about)");
   if (typeof rec["provider"] === "string") {
-    for (const [, local] of rec["provider"].matchAll(/([^\s()<>@,;]+)@[^\s()<>@,;]+/g)) {
+    // One linear split into address-shaped words; the local part is what precedes the first "@".
+    for (const word of rec["provider"].split(/[\s()<>,;]+/)) {
+      const [local, domain] = word.split("@");
+      if (!local || !domain) continue;
       if (!ROLE_ADDRESSES.includes(local.toLowerCase())) {
         warnings.push({
           code: "provider-personal-contact",

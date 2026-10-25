@@ -18,6 +18,9 @@ on:
       - "example-responses/**"
       - "schemas-validators/**"
 
+permissions:
+  contents: read
+
 jobs:
   build-test:
     runs-on: ubuntu-latest

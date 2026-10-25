@@ -17,6 +17,10 @@ coverage/
 *private*.jwk
 *.private.json
 *.pem
+# ...except the test-only certificates and keys the suites read (a test CA and the RFC 8032 test key;
+# consumer/test/fixtures/tls/make-fixtures.sh regenerates them). They sign nothing outside the tests.
+!publisher/test/fixtures/*.pem
+!consumer/test/fixtures/tls/*.pem
 
 # sfc-compliance has no lockfile by design (its CI job runs npm install against the registry)
 sfc-compliance/package-lock.json

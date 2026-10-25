@@ -32,6 +32,9 @@ on:
       - "scripts/overlay-source-*.sh"
       - "README.md"
 
+permissions:
+  contents: read
+
 jobs:
   scenarios:
     runs-on: ubuntu-latest
@@ -59,7 +62,7 @@ jobs:
           echo "$(ruby -e 'print Gem.bindir')" >> "$GITHUB_PATH"
       - name: Build publisher and consumer, then the gateway and the initializer against those source builds
         run: |
-          cddl --version | grep -q '0.12.14'
+          cddl --version 2>&1 | grep -q '0.12.14'   # the gem prints its version on stderr
           (cd publisher && npm ci --no-audit --no-fund && npm run build)
           (cd consumer  && npm ci --no-audit --no-fund && npm run build)
           bash scripts/overlay-source-libs.sh

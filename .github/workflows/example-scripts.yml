@@ -13,6 +13,9 @@ on:
       - "schemas-validators/**"
       - "server-configurations/**"
 
+permissions:
+  contents: read
+
 jobs:
   security-scripts:
     # The three security.* files each implement the same array safeguards

@@ -8,6 +8,7 @@
  */
 import { comparePeriodStart, isUtcDateTime, isWholeCalendarPeriod, overlapsRange } from "./period";
 import { isGranularity } from "./tokens";
+import { isHostShaped } from "./util";
 import type { ServiceQuery, SustainabilityMetrics } from "./types";
 
 /** The query parameters whose values are honored; every other name is ignored. */
@@ -33,10 +34,11 @@ export const honorsAny = (query: ServiceQuery): boolean => QUERY_PARAMETERS.some
 
 // A name that reads as a host: an origin always does, any other target when it has
 // no whitespace or slash and at least one dot (the same reading as the A-label rule).
-const HOST_NAME = /^[^\s/]+\.[^\s/]+$/;
-const ORIGIN_HOST = /^[^\s/]+$/;
 
 const lowerAscii = (text: string): string => text.replace(/[A-Z]/g, (c) => c.toLowerCase());
+
+/** An origin-wide `target` is a host with no whitespace or "/" (a dot is not required: "localhost"). */
+const isOriginHost = (value: string): boolean => value.length > 0 && !/[\s/]/.test(value);
 
 /**
  * Whether the `target` member of an object equals the value of a `target`
@@ -47,8 +49,8 @@ const lowerAscii = (text: string): string => text.replace(/[A-Z]/g, (c) => c.toL
  */
 export function targetEquals(object: Pick<SustainabilityMetrics, "target" | "target-type">, value: string): boolean {
   if (object.target === value) return true;
-  const host = object["target-type"] === "origin" ? ORIGIN_HOST : HOST_NAME;
-  return host.test(object.target) && host.test(value) && lowerAscii(object.target) === lowerAscii(value);
+  const host = object["target-type"] === "origin" ? isOriginHost : isHostShaped;
+  return host(object.target) && host(value) && lowerAscii(object.target) === lowerAscii(value);
 }
 
 function compareCodePoints(a: string, b: string): number {

@@ -82,6 +82,16 @@ export function hasReportableContent(obj: unknown): boolean {
 }
 
 /**
+ * True when `value` reads as a host name: no whitespace or "/", and a "." with at least one character on each
+ * side. Written without a regular expression so the check stays linear on any input.
+ */
+export function isHostShaped(value: string): boolean {
+  if (/[\s/]/.test(value)) return false;
+  const dot = value.indexOf(".", 1);
+  return dot > 0 && dot < value.length - 1;
+}
+
+/**
  * For a `target` that reads as a host name (no whitespace or slash, at least one
  * dot) and is written with non-ASCII characters, the A-label form the draft
  * requires for an internationalized host (§Mandatory Members; RFC 5890,
@@ -89,7 +99,7 @@ export function hasReportableContent(obj: unknown): boolean {
  * not host-shaped or is in A-label form already.
  */
 export function aLabelOf(target: string): string | undefined {
-  if (!/^[^\s/]+\.[^\s/]+$/.test(target) || !/[^\x00-\x7f]/.test(target)) return undefined;
+  if (!isHostShaped(target) || !/[^\x00-\x7f]/.test(target)) return undefined;
   return domainToASCII(target);
 }
 

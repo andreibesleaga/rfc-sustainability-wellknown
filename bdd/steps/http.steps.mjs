@@ -851,7 +851,9 @@ Then("every form control of the page has a label", function () {
 });
 
 Then("the page needs no script to be read", function () {
-  const readable = this.response.body.replace(/<script[\s\S]*?<\/script>/g, "");
+  // What a reader needs comes before the first script element (the scripts sit at the end of the body).
+  const firstScript = this.response.body.toLowerCase().indexOf("<script");
+  const readable = firstScript < 0 ? this.response.body : this.response.body.slice(0, firstScript);
   assert.ok(readable.includes("<table>") && readable.includes('<form id="check"') && readable.includes("<h1>"), "the page needs a script to show its content");
 });
 

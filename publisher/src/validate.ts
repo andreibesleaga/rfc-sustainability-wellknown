@@ -208,7 +208,10 @@ function textChecks(rec: Record<string, unknown>, errors: string[], warnings: Va
   if (rec["provider"] === "") errors.push("/provider must not be empty");
   if (rec["target"] === "") errors.push("/target must not be empty (it names what the object is about)");
   if (typeof rec["provider"] === "string") {
-    for (const [, local] of rec["provider"].matchAll(/([^\s()<>@,;]+)@[^\s()<>@,;]+/g)) {
+    // One linear split into address-shaped words; the local part is what precedes the first "@".
+    for (const word of rec["provider"].split(/[\s()<>,;]+/)) {
+      const [local, domain] = word.split("@");
+      if (!local || !domain) continue;
       if (!ROLE_ADDRESSES.includes(local.toLowerCase())) {
         warnings.push({
           code: "provider-personal-contact",

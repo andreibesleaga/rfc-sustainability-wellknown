@@ -56,7 +56,9 @@ describe("GET / (G12)", () => {
   });
 
   it("can be read without script: tables, the figure description and the check form are in the markup", () => {
-    const body = html.replace(/<script[\s\S]*?<\/script>/g, "");
+    // Everything a reader needs comes before the first script element (scripts sit at the end of the body).
+    const firstScript = html.toLowerCase().indexOf("<script");
+    const body = firstScript < 0 ? html : html.slice(0, firstScript);
     expect(body).toContain("<table>");
     expect(body).toContain('<form id="check" class="check" action="/validate" method="get">');
     expect(body).toContain("<desc id=\"figdesc\">");
@@ -78,8 +80,8 @@ describe("GET / (G12)", () => {
   });
 
   it("shows no status by colour alone: every badge carries its word", () => {
-    for (const [badge] of html.matchAll(/<span class="badge [a-z]+">[^<]*<\/span>/g)) {
-      expect(badge.replace(/<[^>]+>/g, "").trim().length, badge).toBeGreaterThan(0);
+    for (const [badge, word] of html.matchAll(/<span class="badge [a-z]+">([^<]*)<\/span>/g)) {
+      expect(word.trim().length, badge).toBeGreaterThan(0);
     }
   });
 

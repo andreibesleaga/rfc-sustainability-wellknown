@@ -15,6 +15,9 @@ on:
       - "schemas-validators/**"
       - "example-responses/**"
 
+permissions:
+  contents: read
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
@@ -67,7 +70,7 @@ jobs:
           npm run build
       - name: Generate a document and validate it
         run: |
-          cddl --version | grep -q '0.12.14'
+          cddl --version 2>&1 | grep -q '0.12.14'   # the gem prints its version on stderr
           node publisher/bin/sustainability-publisher.js \
             --config publisher/examples/config.computed.json --once > "$RUNNER_TEMP/gen.json"
           cat "$RUNNER_TEMP/gen.json"

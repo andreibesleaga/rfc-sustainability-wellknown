@@ -54,7 +54,8 @@ function withShorthand(a, k, shorthand, unitKey, unit) {
 
 /** The host in A-label form when it was given in U-label form (draft, Mandatory Members). */
 export function hostTarget(target, targetType) {
-  const hostShaped = /^[^\s/]+\.[^\s/]+$/.test(target) && /[^\x00-\x7f]/.test(target);
+  const dot = target.indexOf(".", 1);
+  const hostShaped = !/[\s/]/.test(target) && dot > 0 && dot < target.length - 1 && /[^\x00-\x7f]/.test(target);
   if (targetType !== "origin" || !hostShaped) return { target };
   const ascii = domainToASCII(target);
   if (ascii === "") throw new Error(`target ${JSON.stringify(target)} is not a valid host name`);

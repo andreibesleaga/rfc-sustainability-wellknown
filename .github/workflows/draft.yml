@@ -11,6 +11,9 @@ on:
       - "internet-drafts/**"
       - "schemas-validators/response-schema.cddl"
 
+permissions:
+  contents: read
+
 jobs:
   build-id:
     # Build the latest Internet-Draft from Markdown to XML and text, and run

@@ -60,13 +60,14 @@ jobs:
           echo "PYTHON=$RUNNER_TEMP/venv/bin/python" >> "$GITHUB_ENV"
           gem install cddl -v 0.12.14
           echo "$(ruby -e 'print Gem.bindir')" >> "$GITHUB_PATH"
-      - name: Build publisher and consumer, then the gateway and the initializer against those source builds
+      - name: Build publisher and consumer, then the gateway, the initializer and the one-click kit against those source builds
         run: |
           cddl --version 2>&1 | grep -q '0.12.14'   # the gem prints its version on stderr
           (cd publisher && npm ci --no-audit --no-fund && npm run build)
           (cd consumer  && npm ci --no-audit --no-fund && npm run build)
           bash scripts/overlay-source-libs.sh
           bash scripts/overlay-source-publisher.sh tools/create-sustainability-data
+          bash scripts/overlay-source-publisher.sh deploy/one-click/railway   # the scenarios start this kit
       - name: Traceability check (against the posted revision named in requirements.json)
         working-directory: bdd
         run: npm ci --no-audit --no-fund && npm run trace

@@ -979,7 +979,7 @@ the whole (six verification workflows plus one publishing workflow):
 | `consumer.yml` | Builds the **publisher first** (the consumer's `interop.test.ts` runs a live in-process producer→consumer round trip), then builds and tests the consumer |
 | `example-scripts.yml` | Python/JS/PHP safeguard test suites |
 | `publish-github-packages.yml` | Mirrors the publisher and consumer npm packages to GitHub Packages as `@andreibesleaga/…` on `v*` tags or manual dispatch (npmjs.com stays canonical; already-published versions are skipped), and builds, smoke-tests and pushes the gateway image `ghcr.io/andreibesleaga/sustainability-wellknown-gateway` from `gateway/Dockerfile` |
-| `full-verify.yml` | The umbrella: draft build + idnits (0 errors), dual-validator schema pass, both packages (typecheck/build/test/dry-run publish), example-script suites, **live nginx and Apache runs** of the `server-configurations/` snippets (curl-asserting 200 and `405 + Allow: GET, HEAD`), and a summary gate over all areas |
+| `full-verify.yml` | The umbrella: draft build + idnits (0 errors), dual-validator schema pass, both packages (typecheck/build/test/dry-run publish), example-script suites, **live nginx and Apache runs** of the `server-configurations/` snippets (curl-asserting 200 and `405 + Allow: GET, HEAD`), and a summary gate over all areas; runs weekly, by hand, and on changes to the schema corpus or `tools/report-to-declaration/` (each push is covered by the area workflows) |
 
 Verification is thus layered exactly like the architecture: schema conformance
 at the document level (dual validators), MUST-level behavior at the HTTP level

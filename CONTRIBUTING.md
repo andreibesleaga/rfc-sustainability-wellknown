@@ -62,11 +62,13 @@ npm test
 node sfc-check.mjs examples/sfc-network.example.json
 ```
 
-`.github/workflows/full-verify.yml` runs all of the above on every push and pull request except
-`sfc-compliance/`, which `sfc-compliance.yml` covers on changes under that directory; its gateway job uses the source
+Each area has its own workflow (`publisher.yml`, `consumer.yml`, `gateway.yml`, `bdd.yml`, `draft.yml`, `deploy-kit.yml`,
+`example-scripts.yml`, `sfc-compliance.yml`), run on every push and pull request that touches its paths.
+`.github/workflows/full-verify.yml` runs all of the above together weekly, by hand from the Actions tab, and on changes to
+the schema corpus or the report-to-declaration tool, which no other workflow covers; its gateway job uses the source
 builds of the two libraries, and `gateway.yml` runs the gateway against the registry versions on changes under `gateway/`.
 The library jobs run on Node 22 and 24, which must pass, and on Node 26, which is reported and does not block.
-`full-verify.yml` is the check to satisfy before opening a PR.
+The workflows a change triggers are the checks to satisfy before opening a PR; `full-verify.yml` can be run by hand.
 
 ## The schema identity rule
 
@@ -147,8 +149,8 @@ days, a short follow-up comment on it is welcome. Security reports follow the ti
 [SECURITY.md](SECURITY.md).
 
 **How outside contributions are reviewed.** Every pull request, including the maintainer's
-own, must pass `full-verify.yml` (and `gateway.yml` or `sfc-compliance.yml` when it touches
-those areas). It is then read against the draft: a change that alters what a conforming
+own, must pass the workflows its paths trigger (`full-verify.yml` can be run by hand for a
+whole-repository check). It is then read against the draft: a change that alters what a conforming
 document or response looks like needs a draft revision first (see above). Review comments
 are given on the pull request; if a contribution is declined, the reason is stated there.
 Contributors are credited in the release notes unless they ask not to be. To run every

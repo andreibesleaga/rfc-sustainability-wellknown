@@ -35,11 +35,13 @@ describe("carbon.txt emit/parse", () => {
       upstreamServices: [{ domain: "aws.amazon.com", service_type: "shared-hosting" }],
     });
     const doc = parseCarbonTxt(toml);
-    expect(doc.version).toBe("0.5");
+    expect(doc.version).toBe("0.6");
     expect(doc.last_updated).toBe("2026-06-27");
     expect(doc.org.disclosures[0].url).toBe("https://acme.example/.well-known/sustainability-data");
-    // A machine-readable data file, not a page: carbon.txt's honest type for it is "other".
-    expect(doc.org.disclosures[0].doc_type).toBe("other");
+    // carbon.txt 0.6: "measurement-data" is "any quantitative information, measured or estimated,
+    // about your organization's carbon emissions", in a machine-readable format (carbontxt.org/faq).
+    expect(doc.org.disclosures[0].doc_type).toBe("measurement-data");
+    expect(parseCarbonTxt(emitCarbonTxt({ sustainabilityUrl: "https://acme.example/x", version: "0.5", docType: "other" })).org.disclosures[0].doc_type).toBe("other");
     expect(doc.org.disclosures).toHaveLength(2);
     expect(doc.upstream?.services).toHaveLength(1);
   });

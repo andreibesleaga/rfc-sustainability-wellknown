@@ -363,14 +363,28 @@ Feature: Query parameters
     And the request carried "end=2026-03-31T16:00:00Z"
     And the request carried no "+" character in its query
 
+  @REQ-QRY-06 @UC-5.2 @golden
+  Scenario Outline: The consumer sends a calendar date, month or year as the UTC date-times it stands for
+    Given a basic publisher with one entry for "2026-01"
+    And the publisher is served on a local port
+    When the consumer fetches the local origin asking for start "<start>" and end "<end>"
+    Then the request carried "start=<sent start>"
+    And the request carried "end=<sent end>"
+
+    Examples:
+      | start      | end        | sent start           | sent end             |
+      | 2026-01-01 | 2026-01-31 | 2026-01-01T00:00:00Z | 2026-02-01T00:00:00Z |
+      | 2026-01    | 2026-03    | 2026-01-01T00:00:00Z | 2026-04-01T00:00:00Z |
+      | 2026       | 2026       | 2026-01-01T00:00:00Z | 2027-01-01T00:00:00Z |
+
   @REQ-QRY-06 @UC-5.2 @error
-  Scenario Outline: The consumer refuses to send a bound that is not a date-time
+  Scenario Outline: The consumer refuses to send a bound that is neither a date-time nor a real calendar date
     When the consumer builds a request asking for start "<value>"
     Then the consumer refuses with a message mentioning "date-time"
 
     Examples:
       | value        |
-      | 2026-03-01   |
+      | 2026-02-30   |
       | tomorrow     |
       | 2026-03-01T00:00 |
 

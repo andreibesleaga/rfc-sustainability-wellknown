@@ -101,7 +101,7 @@ tested the way its platform expects. Details and the verification status of each
 
 [publisher/](publisher/) publishes a draft-conformant `/.well-known/sustainability-data` document. It is on npm as
 **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)**; the
-current release, **`0.8.1`**, implements draft `-10`.
+current release, **`0.8.2`**, implements draft `-10`.
 
 - **What it does:** takes figures from pluggable adapters, normalises them to the draft's members, validates every
   document against this repository's JTD and CDDL schemas before serving it (nothing invalid is published), and
@@ -117,7 +117,7 @@ current release, **`0.8.1`**, implements draft `-10`.
 
 [consumer/](consumer/) reads `/.well-known/sustainability-data` from any origin. It is on npm as
 **[`sustainability-wellknown-consumer`](https://www.npmjs.com/package/sustainability-wellknown-consumer)**; the
-current release, **`0.8.1`**, implements draft `-10`; by default it also reads the `-08` and `-09` forms that `-10` replaced.
+current release, **`0.8.2`**, implements draft `-10`; by default it also reads the `-08` and `-09` forms that `-10` replaced.
 
 - **What it does:** fetches, validates defensively (schema plus this package's prose checks: start before end, at-least-one-metric, the sci-score dependency, the day floor and the URI forms), verifies the embedded
   `signed` member, walks `upstream` declarations (depth three at most, no URI twice), and transforms a document to
@@ -209,7 +209,7 @@ git history. The full revision history is in [internet-drafts/README.md](interne
 
 **Compatibility between revisions.** `-07` and `-08` have the same wire format. `-09` replaced `reporting-period` with a
 `period` object of two full-dates, and `-10` changed it again: a `-09` document is not a valid `-10` document (the bounds
-of `period` are date-times, and a token outside its set is no longer allowed). The current library releases (`0.8.1`)
+of `period` are date-times, and a token outside its set is no longer allowed). The current library releases (`0.8.2`)
 implement `-10`; the consumer also reads the `-08` and `-09` forms by default and reports what it converted, and
 `sustainability-publisher upgrade` converts a file. The consumer still accepts the generic `application/json` while the media
 type registration is pending, and the publisher can emit it with `mediaType: "json"` (not conformant). What earlier revisions
@@ -228,12 +228,12 @@ changed, and which library releases implemented them, is in [internet-drafts/REA
 | `example-response_yearly.json` | Extended service — array of 12 monthly objects for a full year trend (location-based) |
 | `example-response-yearly-monthly-target.json` | Extended service — two monthly objects of the path `/api/v1`, named in the mandatory `target` member |
 | `example-response-year-and-months.json` | Extended service — calendar 2025 beside its twelve months in one array; the year states the sums of the months |
-| `example-response-unreported.json` | Partial reporting — demonstrates metric omission (the only "not reported" mechanism the format defines) and the default units (`kWh`/`gCO2e`), with a `disclosure-uri` pointer |
+| `example-response-unreported.json` | Partial reporting — demonstrates metric omission (the only "not reported" mechanism the format defines) and the default carbon unit (`gCO2e`, as no `carbon-unit` is given), with a `disclosure-uri` pointer |
 | `example-response-organization.json` | Organization-level reporting (`target-type: "organization"`) — a synthetic corporate GHG inventory in the shape a real one takes: Scope 1/2/3 in `tCO2e`, the three scopes summing to `carbon-footprint`, location-based accounting. Every value is invented; no real organization is named. |
 | `example-response-comprehensive.json` | Comprehensive organization report (`target-type: "organization"`) for a fictional data-centre operator — every optional member that fits an organization, plus six `https`-keyed `extensions` carrying what the base format does not define: ISO/IEC 30134 facility KPIs (PUE/REF/ITEU/ERF/CER/WUE) and CUE, water, waste, hardware circularity, refrigerant and generator emissions, and renewable procurement. Every figure is invented and internally coherent (the scopes sum to `carbon-footprint`; `carbon-intensity-gCO2e-per-kWh` times `energy-consumption` is `scope-2`). |
 | `example-response-origin-annual.json` | Basic service — annual origin-level report (`target-type: "origin"`), the primary real-world static-file use case: no query parameters, one calendar year |
 | `example-response-service.json` | Basic service — SaaS `target-type: "service"` annual report, with `sci-score`/`functional-unit` |
-| `example-response-product.json` | Basic service — hardware product carbon disclosure (`target-type: "product"`), Digital Product Passport style, assessed per unit (`target-type` product) |
+| `example-response-product.json` | Basic service — hardware product carbon disclosure (`target-type: "product"`), Digital Product Passport style, assessed per unit (`target-type` product); the footprint covers manufacture and use, the energy the use phase only, so the two imply no grid intensity |
 | `example-response-device.json` | Basic service — IoT/edge node with hardware-metered energy (`target-type: "device"`), demonstrating a URI-keyed `extensions` member |
 | `example-response-tenant.json` | Basic service — cloud tenant allocation (`target-type: "tenant"`, `measurement-method: "cloud-billing"`), full Scope 1/2/3 |
 | `example-response-data-source.json` | Basic service — metrics-feed/data-source report (`target-type: "data-source"`) |

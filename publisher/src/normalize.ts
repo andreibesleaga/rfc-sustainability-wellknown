@@ -78,6 +78,20 @@ export function convertCarbon(value: number, from: CarbonUnit, to: CarbonUnit): 
 }
 
 /**
+ * A figure this library computes (a unit conversion, carbon from energy), to the
+ * fifteen significant digits a binary64 holds exactly in decimal: 72 Wh at
+ * 245 gCO2e/kWh is published as 17.64, not 17.639999999999997. A figure the
+ * source gives in the unit it is published in is never passed through this.
+ */
+const computed = (n: number): number => Number(n.toPrecision(15));
+
+/** `value` converted from `from` to `to` (which checks both units), unchanged when the units are the same. */
+const inUnit = <U extends string>(value: number, from: U, to: U, convert: (v: number, f: U, t: U) => number): number => {
+  const out = convert(value, from, to);
+  return from === to ? value : computed(out);
+};
+
+/**
  * Compute carbon emissions from energy and grid carbon intensity.
  * @param energyKwh    energy in kWh
  * @param gco2PerKwh   grid carbon intensity in gCO2e/kWh
@@ -247,11 +261,11 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   let energyUnit: EnergyUnit | undefined;
   if (raw.energy) {
     energyUnit = opts.energyUnit ?? raw.energy.unit;
-    energyValue = convertEnergy(raw.energy.value, raw.energy.unit, energyUnit);
+    energyValue = inUnit(raw.energy.value, raw.energy.unit, energyUnit, convertEnergy);
   } else if (typeof raw.energyJoules === "number") {
     const kwh = joulesToKwh(raw.energyJoules);
     energyUnit = opts.energyUnit ?? "kWh";
-    energyValue = convertEnergy(kwh, "kWh", energyUnit);
+    energyValue = computed(convertEnergy(kwh, "kWh", energyUnit));
   }
   if (energyValue !== undefined && energyValue < 0) {
     throw new Error(
@@ -276,12 +290,12 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
   let carbonUnit: CarbonUnit | undefined;
   if (raw.carbon) {
     carbonUnit = opts.carbonUnit ?? raw.carbon.unit;
-    carbonValue = convertCarbon(raw.carbon.value, raw.carbon.unit, carbonUnit);
+    carbonValue = inUnit(raw.carbon.value, raw.carbon.unit, carbonUnit, convertCarbon);
   } else if (typeof raw.carbonIntensity === "number" && energyValue !== undefined) {
     const energyKwh = convertEnergy(energyValue, energyUnit as EnergyUnit, "kWh");
     const grams = carbonFromEnergy(energyKwh, raw.carbonIntensity);
     carbonUnit = opts.carbonUnit ?? "gCO2e";
-    carbonValue = convertCarbon(grams, "gCO2e", carbonUnit);
+    carbonValue = computed(convertCarbon(grams, "gCO2e", carbonUnit));
   }
   if (carbonValue !== undefined && carbonValue < 0) {
     throw new Error(
@@ -332,7 +346,7 @@ export function normalize(raw: RawMetrics, opts: NormalizeOptions = {}): Sustain
     carbonUnit = opts.carbonUnit ?? scopeSourceUnit;
     out["carbon-unit"] = carbonUnit;
   }
-  const toScope = (v: number) => convertCarbon(v, scopeSourceUnit, carbonUnit as CarbonUnit);
+  const toScope = (v: number) => inUnit(v, scopeSourceUnit, carbonUnit as CarbonUnit, convertCarbon);
   if (raw.scope1 !== undefined) out["scope-1"] = toScope(raw.scope1);
   if (raw.scope2 !== undefined) out["scope-2"] = toScope(raw.scope2);
   if (raw.scope3 !== undefined) out["scope-3"] = toScope(raw.scope3);

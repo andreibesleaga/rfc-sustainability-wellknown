@@ -42,6 +42,8 @@ const hours = (Date.UTC(y, m, 1) - Date.UTC(y, m - 1, 1)) / 3_600_000;
 // Railway's "Project Cost" view gives totals accumulated per minute over the billing period
 // (GB-minutes, vCPU-minutes). Turn them into averages over the month (or --minutes).
 const minutes = opt.minutes ?? hours * 60;
+// The hours the figures were accumulated over: the month, or --minutes of it (a go-live or open month).
+const spanHours = minutes / 60;
 if (opt["vcpu-minutes"] !== undefined) opt.vcpu = opt["vcpu-minutes"] / minutes;
 if (opt["memory-gb-minutes"] !== undefined) opt["memory-gb"] = opt["memory-gb-minutes"] / minutes;
 const fromTotals = opt["vcpu-minutes"] !== undefined || opt["memory-gb-minutes"] !== undefined;
@@ -56,7 +58,7 @@ if (opt.watts !== undefined) {
   if (alloc !== undefined && alloc < used) die("--vcpu-allocated is less than --vcpu");
   const compute = alloc === undefined ? used * CCF.maxW : alloc * (CCF.minW + (used / alloc) * (CCF.maxW - CCF.minW));
   const memory = opt["memory-gb"] * CCF.memWPerGB;
-  const network = ((opt["egress-gb"] ?? 0) * CCF.netKWhPerGB * 1000) / hours;
+  const network = ((opt["egress-gb"] ?? 0) * CCF.netKWhPerGB * 1000) / spanHours;
   const pue = opt.pue ?? CCF.pue;
   watts = (compute + memory + network) * pue;
   source =
@@ -81,6 +83,6 @@ const before = doc.months[month];
 doc.months[month] = { watts, source, entered: new Date().toISOString().replace(/\.\d{3}Z$/, "Z") };
 doc.months = Object.fromEntries(Object.entries(doc.months).sort(([a], [b]) => a.localeCompare(b)));
 writeFileSync(FILE, JSON.stringify(doc, null, 2) + "\n");
-console.log(`${month}: ${watts} W average -> ${((watts * hours) / 1000).toFixed(4)} kWh over ${hours} h${before ? ` (was ${before.watts} W)` : ""}`);
+console.log(`${month}: ${watts} W average -> ${((watts * spanHours) / 1000).toFixed(4)} kWh over ${spanHours} h${before ? ` (was ${before.watts} W)` : ""}`);
 console.log(`written to ${FILE}`);
 console.log("then: run the gateway tests, commit data/_self-measured.json, and redeploy (railway up, or push).");

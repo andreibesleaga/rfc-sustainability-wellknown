@@ -3,7 +3,7 @@
 A reference publisher that serves a **fully draft-conformant** `/.well-known/sustainability-data`
 document, as defined by
 [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/),
-revision -10 (version 0.8.1 of this package; the older forms are covered in
+revision -10 (version 0.8.2 of this package; the older forms are covered in
 [Migrating from 0.7.x](#migrating-from-07x)).
 
 It ingests metrics from pluggable **source adapters**, normalizes them to the draft's
@@ -475,8 +475,9 @@ Set `server.carbonTxt` (or the `carbonTxt` option on the middleware) to also ser
 [carbon.txt](https://carbontxt.org/) file at the locations that project's own specification
 defines for it, whose first disclosure points back to this origin's
 `/.well-known/sustainability-data` — a two-way link with the Green Web Foundation
-disclosure ecosystem. The declaration is listed as `doc_type = "other"`, carbon.txt's type for
-something that is not a page or a report. (Those paths are carbon.txt's convention, defined by
+disclosure ecosystem. The declaration is listed as `doc_type = "measurement-data"` in a `version = "0.6"` file:
+carbon.txt 0.6's type for quantitative emissions data in a machine-readable format (0.8.2 and later;
+earlier releases wrote `"other"` in a 0.5 file, which stays valid). (Those paths are carbon.txt's convention, defined by
 that project and not in the IANA well-known registry; this specification neither defines nor
 recommends any path for a disclosure index.) `sustainability-publisher --config c.json
 --emit-carbon-txt` prints the file. The `co2js` and `carbontxt-api` adapters and the

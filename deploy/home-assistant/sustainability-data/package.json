@@ -12,9 +12,9 @@
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
-    "sustainability-wellknown-publisher": "^0.8.1"
+    "sustainability-wellknown-publisher": "^0.8.2"
   },
   "devDependencies": {
-    "sustainability-wellknown-consumer": "^0.8.1"
+    "sustainability-wellknown-consumer": "^0.8.2"
   }
 }

@@ -474,7 +474,7 @@ describe("flags, output and exit codes", () => {
 
   it("rejects a malformed --start or --end before any request, with the reason", async () => {
     const { origin, asked } = await startRecording(EXAMPLE_DOC);
-    for (const bad of ["--start=2025-01-01", "--end=2025-02-30T00:00:00Z", "--start=2025-01-01t00:00:00z", "--start=yesterday"]) {
+    for (const bad of ["--start=2025-02-30", "--end=2025-02-30T00:00:00Z", "--start=2025-01-01t00:00:00z", "--start=yesterday"]) {
       const err = stderr();
       expect(await runCli([origin, bad, "--allow-http"]), bad).toBe(2);
       expect(err.join("\n"), bad).toContain(`--${bad.slice(2, bad.indexOf("="))}:`);
@@ -502,6 +502,15 @@ describe("flags, output and exit codes", () => {
     expect(q.get("end")).toBe("2026-01-01T00:00:00Z");
     expect(q.get("granularity")).toBe("yearly");
     expect(q.get("target")).toBe("cli.example");
+  });
+
+  it("sends --start=2025-01 --end=2025-03 as the first quarter in UTC date-times", async () => {
+    const { origin, asked } = await startRecording([EXAMPLE_DOC]);
+    captureStdout();
+    stderr();
+    expect(await runCli([origin, "--allow-http", "--start=2025-01", "--end=2025-03"])).toBe(0);
+    const q = new URL(asked[0], "http://x").searchParams;
+    expect([q.get("start"), q.get("end")]).toEqual(["2025-01-01T00:00:00Z", "2025-04-01T00:00:00Z"]);
   });
 
   it("an empty array prints [] and a note, and exits 0", async () => {

@@ -198,7 +198,7 @@ describe("what the draft recommends is a warning", () => {
   });
 
   it("a personal contact address in provider; a role address passes", () => {
-    for (const role of ["sustain", "sustainability", "esg", "ops", "compliance", "contact", "info", "admin", "support", "security", "ESG"]) {
+    for (const role of ["sustain", "sustainability", "esg", "ops", "compliance", "contact", "info", "admin", "support", "security", "nachhaltigkeit", "data", "registry", "ESG"]) {
       expect(codes({ ...base(), provider: `Acme (${role}@acme.example)` }), role).toEqual([]);
     }
     const r = check({ ...base(), provider: "Acme (jane.doe@acme.example)" });

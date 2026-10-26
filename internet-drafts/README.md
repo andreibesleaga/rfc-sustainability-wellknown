@@ -242,7 +242,7 @@ The bullets above are kept as written on 2026-10-09. Since then:
   token members were still free text. **`-10` (posted 2026-10-24)** is not wire-compatible with `-09`: the bounds of
   `period` are RFC 3339 date-times, and `measurement-method`, `functional-unit`, `carbon-unit` and the `upstream` `role`
   take one of a listed set. The data model is still 7 mandatory and 19 optional members (26 total).
-- **Libraries:** `0.7.x` implemented `-07`; the current releases, publisher `0.8.1` and consumer `0.8.1`, implement
+- **Libraries:** `0.7.x` implemented `-07`; the current releases, publisher `0.8.2` and consumer `0.8.2`, implement
   `-10`. The consumer reads the forms of `-08` and `-09` by default and reports what it converted or disregarded; the
   publisher's `upgrade` command converts a declaration file. The gateway is at `0.2.0`. The schemas in
   `schemas-validators/` follow `-10`.

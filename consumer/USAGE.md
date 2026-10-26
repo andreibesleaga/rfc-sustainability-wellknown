@@ -1,6 +1,6 @@
 # Using `sustainability-wellknown-consumer`
 
-Version 0.8.1, for revision -10 of the draft. The package is used at **three tiers**, all from the
+Version 0.8.2, for revision -10 of the draft. The package is used at **three tiers**, all from the
 same package: pick whichever fits, or mix them (the one-call function in a quick script, the client
 class in a long-running service).
 

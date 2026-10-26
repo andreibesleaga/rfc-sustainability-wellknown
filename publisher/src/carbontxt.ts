@@ -13,7 +13,7 @@
  *   - `parseCarbonTxt()`    — parse a carbon.txt with the TOML parser.
  *   - `discoverCarbonTxt()` — HTTP lookup precedence (root → well-known → header → www/non-www).
  *
- * Spec: https://carbontxt.org/  ·  v0.5 syntax.
+ * Spec: https://carbontxt.org/  ·  v0.6 syntax (v0.5 files are still parsed).
  */
 import { parse as parseToml } from "@iarna/toml";
 import { readBodyCapped } from "./util";
@@ -41,14 +41,15 @@ export interface CarbonTxtDocument {
 export interface EmitCarbonTxtOptions {
   /** Absolute URL of this origin's `/.well-known/sustainability-data` document. */
   sustainabilityUrl: string;
-  /** carbon.txt schema version to declare. Default "0.5". */
+  /** carbon.txt schema version to declare. Default "0.6", the first with the "measurement-data" type. */
   version?: string;
   /** ISO date (YYYY-MM-DD) for `last_updated`. */
   lastUpdated?: string;
   /**
-   * doc_type for the sustainability disclosure entry. Default "other": the
-   * declaration is a machine-readable data file, and carbon.txt's other types
-   * (web-page, sustainability-page, annual-report, ...) describe documents.
+   * doc_type for the sustainability disclosure entry. Default "measurement-data",
+   * carbon.txt 0.6's type for "any quantitative information, measured or
+   * estimated, about your organization's carbon emissions" in a machine-readable
+   * format (carbontxt.org/faq). Give "other" with `version: "0.5"` for a 0.5 file.
    */
   docType?: string;
   /** Title for the sustainability disclosure entry. */
@@ -83,10 +84,10 @@ function emitInlineTable(obj: Record<string, unknown>): string {
  * `/.well-known/sustainability-data` document as a disclosure (plus any extras).
  */
 export function emitCarbonTxt(opts: EmitCarbonTxtOptions): string {
-  const version = opts.version ?? "0.5";
+  const version = opts.version ?? "0.6";
   const disclosures: CarbonTxtDisclosure[] = [
     {
-      doc_type: opts.docType ?? "other",
+      doc_type: opts.docType ?? "measurement-data",
       url: opts.sustainabilityUrl,
       ...(opts.domain ? { domain: opts.domain } : {}),
       ...(opts.title ? { title: opts.title } : { title: "Machine-readable sustainability metrics" }),

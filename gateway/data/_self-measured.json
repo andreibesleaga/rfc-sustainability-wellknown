@@ -1,9 +1,24 @@
 {
   "months": {
+    "2026-07": {
+      "watts": 0.0143,
+      "source": "Railway usage for 2026-07: 0.1516983 vCPU-minutes and 93.83801215313034 GB-minutes over 2880 minutes, i.e. average CPU 0.00005267 vCPU (taken as fully used), average memory 0.03258 GB, network egress 0.000416757 GB; converted with the Cloud Carbon Footprint coefficients (GCP median 0.71-4.26 W per vCPU, 0.392 W per GB of memory, 0.001 kWh per GB of egress) and a PUE of 1.1. Read from the Railway usage API (GraphQL usage: CPU_USAGE, MEMORY_USAGE_GB, NETWORK_TX_GB) on 2026-10-26 for the calendar range in UTC, 2026-07-30 (go-live) to 2026-08-01",
+      "entered": "2026-10-26T09:51:28Z"
+    },
+    "2026-08": {
+      "watts": 0.0155,
+      "source": "Railway usage for 2026-08: 0.23404585 vCPU-minutes and 1599.8617132552226 GB-minutes over 44640 minutes, i.e. average CPU 0.000005243 vCPU (taken as fully used), average memory 0.03584 GB, network egress 0.002476452 GB; converted with the Cloud Carbon Footprint coefficients (GCP median 0.71-4.26 W per vCPU, 0.392 W per GB of memory, 0.001 kWh per GB of egress) and a PUE of 1.1. Read from the Railway usage API (GraphQL usage: CPU_USAGE, MEMORY_USAGE_GB, NETWORK_TX_GB) on 2026-10-26 for the calendar range in UTC, the whole month",
+      "entered": "2026-10-26T09:51:10Z"
+    },
     "2026-09": {
       "watts": 0.0149,
       "source": "Railway usage for 2026-09: 0.83 vCPU-minutes and 1486.7 GB-minutes over 43200 minutes, i.e. average CPU 0.00001921 vCPU (taken as fully used), average memory 0.03441 GB, network egress 0.01 GB; converted with the Cloud Carbon Footprint coefficients (GCP median 0.71-4.26 W per vCPU, 0.392 W per GB of memory, 0.001 kWh per GB of egress) and a PUE of 1.1",
       "entered": "2026-10-02T00:00:00Z"
+    },
+    "2026-10": {
+      "watts": 0.0192,
+      "source": "Railway usage for 2026-10: 0.7833099166666666 vCPU-minutes and 1593.4989369684374 GB-minutes over 36000 minutes, i.e. average CPU 0.00002176 vCPU (taken as fully used), average memory 0.04426 GB, network egress 0.023142469 GB; converted with the Cloud Carbon Footprint coefficients (GCP median 0.71-4.26 W per vCPU, 0.392 W per GB of memory, 0.001 kWh per GB of egress) and a PUE of 1.1. Read from the Railway usage API (GraphQL usage: CPU_USAGE, MEMORY_USAGE_GB, NETWORK_TX_GB) on 2026-10-26 for the calendar range in UTC, 2026-10-01 to 2026-10-26 (the month in progress; re-entered when it closes)",
+      "entered": "2026-10-26T09:51:28Z"
     }
   }
 }

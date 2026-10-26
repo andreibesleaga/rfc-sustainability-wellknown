@@ -167,8 +167,7 @@ describe("operator-entered monthly power for the self report", () => {
   });
 
   it("the days of a small measured month add up to the month, as SERVED", async () => {
-    // 0.0149 W: a day is 0.3576 Wh. In kWh the library's four-decimal rounding
-    // would publish 0.0004 (+12%); in Wh the served days sum to the served month.
+    // 0.0149 W: a day is 0.3576 Wh, at four significant figures; the served days sum to the served month.
     const all = await held({ "2026-09": 0.0149 }, { start: MONTH, end: NEXT });
     const month = at(all, MONTH, NEXT);
     const days = all.filter((d) => d.period.end !== NEXT || d.period.start !== MONTH);

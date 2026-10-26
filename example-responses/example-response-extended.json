@@ -19,7 +19,7 @@
   "scope-3": 1.1,
   "sci-score": 0.0000354,
   "functional-unit": "per-gigabyte-hour",
-  "carbon-intensity-gCO2e-per-kWh": 267,
+  "carbon-intensity-gCO2e-per-kWh": 175,
   "estimated-annual-emissions-kgCO2e": 1168,
   "renewable-energy": 45,
   "verifiable-attestation-uri": "https://verify.example/vc/storage",

@@ -91,7 +91,7 @@ DEMO_OBJECTS = [
         "energy-unit": "kWh",
         "carbon-footprint": 380 + d * 5,
         "carbon-unit": "gCO2e",
-        "sci-score": 12,
+        "sci-score": 0.012,
         "functional-unit": "per-request",
     }
     for d in range(1, 6)

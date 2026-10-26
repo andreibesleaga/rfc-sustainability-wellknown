@@ -39,6 +39,7 @@ export {
   DEFAULT_MAX_BYTES,
   DEFAULT_MAX_OBJECTS,
   resolveWellKnownUrl,
+  queryBound,
 } from "./fetch";
 export type { FetchOptions } from "./fetch";
 export { verifyJws, verifyDeclarationJws, algForKey, algsForKey, DECLARATION_CTY, VC_JWT_MEDIA_TYPE } from "./jws";

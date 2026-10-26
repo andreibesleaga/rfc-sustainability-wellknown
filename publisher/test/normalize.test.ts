@@ -28,6 +28,21 @@ describe("figures are published as given", () => {
     expect(normalize({ ...raw, energy: { value: 0.0000144, unit: "kWh" } })["energy-consumption"]).toBe(0.0000144);
   });
 
+  it("writes a figure it computes without binary noise, and a given figure as given", () => {
+    // 72 Wh x 245 gCO2e/kWh is 17.64 g; IEEE 754 arithmetic gives 17.639999999999997.
+    const derived = normalize({ ...raw, energy: { value: 72, unit: "Wh" }, carbonIntensity: 245 });
+    expect(derived["carbon-footprint"]).toBe(17.64);
+    expect(derived["energy-consumption"]).toBe(72);
+    const converted = normalize({ ...raw, energy: { value: 72, unit: "Wh" }, carbonIntensity: 245 }, { energyUnit: "kWh", carbonUnit: "kgCO2e" });
+    expect(converted["energy-consumption"]).toBe(0.072);
+    expect(converted["carbon-footprint"]).toBe(0.01764);
+    expect(normalize({ ...raw, energyJoules: 0.3 * 3_600_000 })["energy-consumption"]).toBe(0.3);
+    const scopes = normalize({ ...raw, carbon: { value: 0.3, unit: "kgCO2e" }, scope1: 0.1, scope2: 0.2 }, { carbonUnit: "gCO2e" });
+    expect([scopes["carbon-footprint"], scopes["scope-1"], scopes["scope-2"]]).toEqual([300, 100, 200]);
+    // A figure given in the unit it is published in is never touched.
+    expect(normalize({ ...raw, carbon: { value: 0.1 + 0.2, unit: "gCO2e" } })["carbon-footprint"]).toBe(0.30000000000000004);
+  });
+
   it("refuses an older carbon unit and names the upgrade tool", () => {
     expect(() => normalize({ ...raw, carbon: { value: 1, unit: "mtCO2e" as never } })).toThrow(/sustainability-publisher upgrade/);
   });

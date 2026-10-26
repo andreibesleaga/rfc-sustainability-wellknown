@@ -367,11 +367,36 @@ describe("the request", () => {
     expect(new URL(seen[0], "http://x").searchParams.get("start")).toBe("2025-01-01T00:00:00Z");
   });
 
-  it("refuses a start or end that is not an RFC 3339 date-time before any request, and a granularity that is not a token", async () => {
+  it("sends a calendar date, month or year as UTC date-times: start its first instant, end the instant after it", async () => {
+    // The draft's grammar has no date on the wire, and a server ignores one; the
+    // client converts it, as it converts an offset. An end date is included.
+    const cases: [string, string, string, string][] = [
+      ["2025-01-01", "2025-01-31", "2025-01-01T00:00:00Z", "2025-02-01T00:00:00Z"],
+      ["2025-03", "2025-05", "2025-03-01T00:00:00Z", "2025-06-01T00:00:00Z"],
+      ["2025", "2025", "2025-01-01T00:00:00Z", "2026-01-01T00:00:00Z"],
+      ["2024-02-29", "2025-01-01T12:00:00+02:00", "2024-02-29T00:00:00Z", "2025-01-01T10:00:00Z"],
+      ["9999-12-31", "9999-12-31T12:00:00Z", "9999-12-31T00:00:00Z", "9999-12-31T12:00:00Z"],
+    ];
+    for (const [start, end, wantStart, wantEnd] of cases) {
+      const seen: string[] = [];
+      const result = await fetchSustainability(await serveJson([month(1)], MEDIA_TYPE, seen), { ...ALLOW_INSECURE, start, end });
+      const url = new URL(seen[0], "http://x");
+      expect([url.searchParams.get("start"), url.searchParams.get("end")]).toEqual([wantStart, wantEnd]);
+      expect(result.status).toBe("ok");
+    }
+  });
+
+  it("refuses a start or end that is neither a date-time nor a real calendar date before any request, and a granularity that is not a token", async () => {
     const seen: string[] = [];
     const origin = await serveJson(DOC, MEDIA_TYPE, seen);
-    await expect(fetchSustainability(origin, { ...ALLOW_INSECURE, start: "2025-01-01" })).rejects.toThrow(/start is not an RFC 3339 date-time/);
+    for (const start of ["2025-02-30", "2025-13", "2025-1-1", "2025-01-01t00:00:00z", "2025-01-01T00:00Z", "20250101"]) {
+      await expect(fetchSustainability(origin, { ...ALLOW_INSECURE, start })).rejects.toThrow(/start is not an RFC 3339 date-time or a calendar date/);
+    }
     await expect(fetchSustainability(origin, { ...ALLOW_INSECURE, end: "yesterday" })).rejects.toThrow(RangeError);
+    // What the wire cannot carry is refused, never sent as another value (draft -10 section 2.2).
+    await expect(fetchSustainability(origin, { ...ALLOW_INSECURE, start: "2025-12-31T23:59:60Z" })).rejects.toThrow(/leap second/);
+    await expect(fetchSustainability(origin, { ...ALLOW_INSECURE, end: "9999-12-31T23:59:59-01:00" })).rejects.toThrow(/years 0000 to 9999/);
+    await expect(fetchSustainability(origin, { ...ALLOW_INSECURE, end: "9999" })).rejects.toThrow(/after 9999-12-31/);
     await expect(fetchSustainability(origin, { ...ALLOW_INSECURE, granularity: "weekly" as never })).rejects.toThrow(/granularity/);
     expect(seen).toEqual([]);
   });

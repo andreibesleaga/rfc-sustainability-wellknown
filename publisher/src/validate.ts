@@ -86,7 +86,8 @@ const NON_NEGATIVE_FIELDS = [
 const URI_MEMBERS = ["methodology-uri", "verifiable-attestation-uri", "disclosure-uri"] as const;
 
 /** Local parts of an address in `provider` that name a role, not a person (draft §Privacy Considerations). */
-const ROLE_ADDRESSES = ["sustainability", "sustain", "esg", "ops", "compliance", "contact", "info", "admin", "support", "security"];
+// Role local parts the examples use: "data", "registry", and "nachhaltigkeit" (German, sustainability).
+const ROLE_ADDRESSES = ["sustainability", "sustain", "nachhaltigkeit", "esg", "ops", "compliance", "contact", "info", "admin", "support", "security", "data", "registry"];
 
 /**
  * One schema error as a sentence. A member outside a closed set names the

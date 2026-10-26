@@ -102,12 +102,28 @@ used. They count no share of the idle power of the machine it runs on, and for a
 one that share is most of the real energy. The measured figure is therefore a lower bound and the 3 W
 assumption a generous upper bound; the true figure lies between them. For September 2026 the entered
 figure is 0.0149 W (10.73 Wh, 2.63 gCO2e at the factor below), against 2,160 Wh under the assumption.
+July (from go-live), August and October 2026 (to the 26th) were entered on 2026-10-26 from Railway's usage
+API, read for the exact calendar range in UTC: 0.0143 W, 0.0155 W and 0.0192 W. October is re-entered when
+the month closes. Read that way, September gives about 0.018 W, 20% above its entered figure, which came
+from the "Project Cost" view, whose billing period is not the calendar month; the entered figure stands.
 
-The self report states its energy in **watt-hours**. At a fraction of a watt a
-day is about 0.36 Wh, and the publisher library rounds every member to four
-decimal places, so in kWh a day would be published as 0.0004 (+12%) and the
-days of a month would no longer add up to the month. In Wh they do, to within
-0.1%. Every period carries the same `provider` text, naming the months whose
+To read a month from the usage API (the Railway CLI, logged in to the project; the totals of all entries
+returned are the month's vCPU-minutes, GB-minutes and egress GB):
+
+```
+railway api 'query u($p:String!,$s:DateTime!,$e:DateTime!){ usage(projectId:$p, startDate:$s, endDate:$e,
+  measurements:[CPU_USAGE,MEMORY_USAGE_GB,NETWORK_TX_GB], groupBy:[SERVICE_ID]){ measurement value } }' \
+  --variables '{"p":"<project id from railway status --json>","s":"2026-10-01T00:00:00Z","e":"2026-11-01T00:00:00Z"}'
+node scripts/self-watts.mjs 2026-10 --vcpu-minutes <CPU_USAGE> --memory-gb-minutes <MEMORY_USAGE_GB> --egress-gb <NETWORK_TX_GB>
+```
+
+Give `--minutes` when the range is not the whole month (the go-live month, or a month in progress).
+
+The self report states its energy in **watt-hours**, to four significant figures. At a fraction of a
+watt a day is about 0.36 Wh, which reads more plainly than 0.00036 kWh, and the days of a month add up
+to the month to within 0.1%. The carbon figure is the energy times the grid factor; from publisher
+0.8.2 it is written without binary rounding noise (0.8.1 wrote 72 Wh at 245 gCO2e/kWh as
+17.639999999999997 g rather than 17.64 g). Every period carries the same `provider` text, naming the months whose
 power was entered, so the objects of a trend agree and a year names the same
 publisher and method as its months.
 

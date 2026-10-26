@@ -1,6 +1,6 @@
 {
   "name": "sustainability-wellknown-consumer",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Reference client for /.well-known/sustainability-data (draft-besleaga-sustainability-wellknown -10): fetch, validate, verify the embedded signature, walk upstream declarations, and transform. Complements sustainability-wellknown-publisher.",
   "license": "BSD-3-Clause",
   "author": "Andrei Nicolae Besleaga",

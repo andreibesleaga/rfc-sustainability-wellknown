@@ -104,7 +104,8 @@ const NON_NEGATIVE_FIELDS = [
 ] as const;
 
 /** Local parts of an address in `provider` that name a role, not a person (draft -10 §Privacy Considerations). */
-const ROLE_ADDRESSES = ["sustainability", "sustain", "esg", "ops", "compliance", "contact", "info", "admin", "support", "security"];
+// Role local parts the examples use: "data", "registry", and "nachhaltigkeit" (German, sustainability).
+const ROLE_ADDRESSES = ["sustainability", "sustain", "nachhaltigkeit", "esg", "ops", "compliance", "contact", "info", "admin", "support", "security", "data", "registry"];
 
 // The characters a URI holds (RFC 3986): the unreserved and reserved characters,
 // and "%" only as a percent-encoded octet. No space, no control character, no

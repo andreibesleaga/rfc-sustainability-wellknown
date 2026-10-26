@@ -34,7 +34,7 @@ import { FetchParams, FetchResult, Honored, SignatureResult, SustainabilityDocum
 import { CompatReport, readDocument } from "./sentinel";
 import { validateDocument } from "./validate";
 import { DEFAULT_MAX_DEPTH, parseBody } from "./body";
-import { compareDateTimes, comparePeriodStart, dateTimeError, isWholeCalendarPeriod, toUtcQueryValue } from "./period";
+import { compareDateTimes, comparePeriodStart, dateTimeError, hasLeapSecond, isDateTime, isWholeCalendarPeriod, periodFromReportingPeriod, toUtcQueryValue, UTC_DATE_TIME_RE } from "./period";
 import { isGranularity } from "./tokens";
 import { AddressLookup, BodyTooLargeError, discardBody, isAbortOrTimeout, readBodyCapped, secureGet } from "./transport";
 import { ACCEPT_HEADER, classifyMediaType } from "./media-type";
@@ -188,15 +188,57 @@ export interface FetchOptions extends FetchParams {
   upstreamMaxRetrievals?: number;
 }
 
+/**
+ * A `start` or `end` as the request carries it: a `utc-date-time` (draft -10
+ * §Query Parameters, "a client converts other offsets first"). A date-time in
+ * any offset is sent as the same instant in UTC with `Z`. A calendar date,
+ * month or year (`2025-01-31`, `2025-01`, `2025`) is read as that whole day,
+ * month or year in UTC: as `start` its first instant, as `end` the first
+ * instant after it, so `start: "2025-01-01", end: "2025-01-31"` asks for all of
+ * January. The draft's grammar has no date on the wire, and a server ignores
+ * one rather than read it as a date-time, so the conversion is the client's.
+ * What the wire cannot carry is refused, never sent as another value: a leap
+ * second, or an instant outside years 0000 to 9999 in UTC.
+ */
+export function queryBound(name: "start" | "end", value: string): string {
+  let sent: string;
+  if (isDateTime(value)) {
+    // A :60 bound would be read as :59, another value; a server ignores one (draft -10 section 2.2).
+    if (hasLeapSecond(value)) throw new RangeError(`${name} names a leap second, which a request cannot carry: ${JSON.stringify(value)}`);
+    sent = toUtcQueryValue(value);
+  } else {
+    sent = calendarBound(name, value);
+  }
+  if (!UTC_DATE_TIME_RE.test(sent)) {
+    throw new RangeError(`${name} ${JSON.stringify(value)} falls outside years 0000 to 9999 in UTC, which a request cannot carry`);
+  }
+  return sent;
+}
+
+/** The first instant of a calendar date, month or year in UTC (`start`), or the first instant after it (`end`). */
+function calendarBound(name: "start" | "end", value: string): string {
+  const label = /^([0-9]{4})(?:-([0-9]{2})(?:-([0-9]{2}))?)?$/.exec(value);
+  const first = label ? `${label[1]}-${label[2] ?? "01"}-${label[3] ?? "01"}T00:00:00Z` : undefined;
+  if (first === undefined || !isDateTime(first)) {
+    throw new RangeError(
+      `${name} is not an RFC 3339 date-time or a calendar date, month or year (YYYY-MM-DD, YYYY-MM, YYYY): ` +
+        `${JSON.stringify(value)}${first === undefined ? ` (${dateTimeError(value)})` : ""}`,
+    );
+  }
+  if (name === "start") return first;
+  try {
+    return periodFromReportingPeriod(value).end;
+  } catch {
+    throw new RangeError(`end ${JSON.stringify(value)} ends after 9999-12-31, which a request cannot carry; give a date-time`);
+  }
+}
+
 /** The query of a request: `start` and `end` are written in UTC with `Z`, whatever offset they were given in. */
 function applyQuery(url: URL, options: FetchParams): void {
   if (options.target !== undefined) url.searchParams.set("target", options.target);
   for (const name of ["start", "end"] as const) {
     const value = options[name];
-    if (value === undefined) continue;
-    const error = dateTimeError(value);
-    if (error !== undefined) throw new RangeError(`${name} is not an RFC 3339 date-time: ${error}`);
-    url.searchParams.set(name, toUtcQueryValue(value));
+    if (value !== undefined) url.searchParams.set(name, toUtcQueryValue(value));
   }
   if (options.granularity !== undefined) {
     if (!isGranularity(options.granularity)) throw new RangeError(`granularity is not yearly, monthly or daily: ${JSON.stringify(options.granularity)}`);
@@ -260,7 +302,13 @@ function targetNamesOrigin(target: unknown, url: URL): boolean {
   return t === url.host.toLowerCase() || t === url.hostname.toLowerCase() || t === url.origin.toLowerCase();
 }
 
-export async function fetchSustainability(origin: string, options: FetchOptions = {}): Promise<FetchResult> {
+export async function fetchSustainability(origin: string, given: FetchOptions = {}): Promise<FetchResult> {
+  // The bounds as sent, so that what is compared with the answer is what was asked.
+  const options: FetchOptions = {
+    ...given,
+    ...(given.start === undefined ? {} : { start: queryBound("start", given.start) }),
+    ...(given.end === undefined ? {} : { end: queryBound("end", given.end) }),
+  };
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
   const maxObjects = options.maxObjects ?? DEFAULT_MAX_OBJECTS;

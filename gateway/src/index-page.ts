@@ -764,7 +764,10 @@ either may be left out); <code>granularity</code> = <code>yearly</code>, <code>m
 (the whole years, months or days); <code>target</code> = <code>${bdi(doc.self.target)}</code>. The answer is
 an array of the objects held that satisfy them, since go-live
 (<code>${escapeHtml(doc.self["live-since"])}</code>): whole days of the most recent 120 days, every
-whole month and year, and the months at either end so far. No parameters: the last complete month, as one object.</li>
+whole month and year, and the months at either end so far. No parameters: the last complete month, as one object.
+A date alone, such as <code>2026-09-01</code>, does not match the draft's grammar and is ignored: write
+<code>2026-09-01T00:00:00Z</code>. The consumer library and <code>sustainability-fetch</code> (0.8.2 and later)
+convert a date, month or year for you: <code>--start=2026-09 --end=2026-09</code> asks for September.</li>
 <li><strong>Nothing is repaired.</strong> A value that does not match, a parameter given twice and a name the draft
 does not define are ignored, and the answer is the one for no parameter. A range that selects nothing, or a
 <code>target</code> the gateway does not report, is <code>200</code> with an empty array.</li>

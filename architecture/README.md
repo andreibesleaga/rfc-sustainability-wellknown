@@ -236,7 +236,7 @@ The normative artifact is the Internet-Draft (`internet-drafts/`).
 > a parameter it does not support, or a value that does not match the grammar, is ignored (there is no `400` and no
 > `404` for a query); `measurement-method`, `functional-unit`, `carbon-unit` (`gCO2e`, `kgCO2e`, `tCO2e`), `target-type`
 > and the `upstream` `role` are closed sets; the signature algorithm is `Ed25519` (or `ES256`); URI-valued members are
-> URI references. The reference codebase (`publisher/` 0.8.1, `consumer/` 0.8.1, `gateway/` 0.2.0,
+> URI references. The reference codebase (`publisher/` 0.8.2, `consumer/` 0.8.2, `gateway/` 0.2.0,
 > `schemas-validators/`) implements `-10`. The paragraphs and diagrams below that describe `-07` query rules (the
 > seven-step procedure, `400`/`404` cases, aggregation) are the record of `-07`; the publisher's 366-object cap is a
 > deployment safeguard, not a requirement of the draft.
@@ -270,7 +270,7 @@ revisions **-05** (posted 2026-07-28), **-04** (URI suffix renamed to
 (posted 2026-07-23) are prior history; the schema label was `2.0` from `-03`
 through `-06` and is removed entirely in `-07`. The prose below
 describes the `-07` wire protocol where it says so; the diagrams and the reference codebase
-(`publisher/` 0.8.1, `consumer/` 0.8.1, `schemas-validators/`, the gateway 0.2.0)
+(`publisher/` 0.8.2, `consumer/` 0.8.2, `schemas-validators/`, the gateway 0.2.0)
 follow `-10`, as the note at the top of this section says. Two habits of the implementations are not `-07` requirements
 and are labelled as such where they appear: the publisher keeps a defensive
 366-object cap, and the servers still send `X-Content-Type-Options: nosniff`.

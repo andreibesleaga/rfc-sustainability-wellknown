@@ -45,7 +45,7 @@ the media type and the schema; `schemas-validators/check-live.py` runs the same 
 | <https://patterns.agenticsystemcore.com/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-26: 200, `application/sustainability-data+json`, schema-valid (`-10`) |
 | <https://agenticsystempatterns.com/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-26: 200, `application/sustainability-data+json`, schema-valid (`-10`) |
 | <https://medicine-finder.up.railway.app/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-26: 200, `application/sustainability-data+json`, schema-valid (`-10`) |
-| <https://zfeeder.up.railway.app/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-26: 200, `application/sustainability-data+json`; the `-10` file is committed but not yet deployed, so the origin still serves the `-08` form (`reporting-period`, `EdDSA`) |
+| <https://zfeeder.up.railway.app/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-26: 200, `application/sustainability-data+json`, schema-valid (`-10`) |
 
 No independent deployment is known on 2026-10-26.
 

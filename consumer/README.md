@@ -10,7 +10,7 @@ validated against the draft's schema and prose rules, and only then handed to yo
 Every API is one line to call from a script (a cron job, a crawler, a carbon-aware
 scheduler) and fails loudly and legibly on bad input.
 
-> **Version 0.8.1 implements revision -10 of the draft.** It reads -10 documents, and
+> **Version 0.8.2 implements revision -10 of the draft.** It reads -10 documents, and
 > by default it also reads the forms of -08 and -09 that -10 replaced (see "Upgrading
 > from 0.7.x"). Requires Node.js 22.13 or newer.
 
@@ -65,6 +65,13 @@ const r = await fetchSustainability("https://example.org", {
 if (r.status === "ok" && r.notAsRequested) console.warn(r.notAsRequested); // the server ignored a parameter
 ```
 
+A bound may also be a calendar date, month or year (0.8.2 and later): `start: "2026-01-01", end: "2026-01-31"`
+is all of January, and `start: "2026-01", end: "2026-03"` the first quarter. The consumer sends the UTC
+date-times they stand for (`start=2026-01-01T00:00:00Z&end=2026-02-01T00:00:00Z`): `start` is the first
+instant of the day, month or year, and `end` the first instant after it, so an end date is included. The
+draft's grammar has no date on the wire, and a server ignores `?start=2026-01-01` rather than read it as a
+date-time, so the conversion is the client's; `queryBound(name, value)` exposes it.
+
 A server may ignore any query parameter, so the consumer compares the `period` and `target` of every
 object received with what was asked for and reports the difference in `notAsRequested`. What a
 response covers is in `covers`; never record a response as covering more than that.
@@ -74,9 +81,10 @@ response covers is in `covers`; never record a response as covering more than th
 A declaration object names the `target` it is about and the `period` it covers as an object with
 `start` and `end` (RFC 3339 date-times, `end` exclusive). There is no `reporting-period` label.
 Energy is in `energy-unit` (`Wh`, `kWh`, `MWh`, `GWh`), carbon in `carbon-unit` (`gCO2e`, `kgCO2e`,
-`tCO2e`). A server that supports the query parameters (`capabilities: "extended"`) answers a request
-with no parameter with what it holds as an array, in ascending order of `period.start`; a Basic
-server or a static file may answer with one object. An empty array is a valid answer and means
+`tCO2e`). The draft does not say what a request with no parameter returns. The reference publisher, when
+Extended, answers it by default with what it holds as an array, in ascending order of `period.start`; a
+deployment may answer one current object instead, as the reference gateway does for its own report; a
+Basic server or a static file may answer with one object. An empty array is a valid answer and means
 nothing was selected.
 
 ## Upgrading from 0.7.x

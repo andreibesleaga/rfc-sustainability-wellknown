@@ -1,12 +1,11 @@
 /** M2M CLI: fetch (and optionally conformance-check) a /.well-known/sustainability-data origin. */
 import { readBodyCapped, secureGet } from "./transport";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { fetchSustainability } from "./fetch";
+import { fetchSustainability, queryBound } from "./fetch";
 import { toCsvRows, toNdjson, total, TotalPreconditionError } from "./transform";
 import { runConformanceChecks } from "./conformance";
 import { verifyAttestation, AttestationResult } from "./attestation";
 import { fetchDisclosure } from "./disclosure";
-import { dateTimeError } from "./period";
 import { GRANULARITIES } from "./tokens";
 import { PublicJwk } from "./jws";
 import type { SignaturePolicy } from "./signature";
@@ -31,7 +30,10 @@ const USAGE =
   "                Ask for the objects whose period overlaps the range. Each is an\n" +
   "                RFC 3339 date-time; any offset is accepted and sent in UTC with\n" +
   "                Z, e.g. --start=2025-01-01T00:00:00Z --end=2026-01-01T00:00:00Z\n" +
-  "                (end excluded). An origin may ignore them: every object is\n" +
+  "                (end excluded). A date, month or year is the whole of it in UTC\n" +
+  "                and is sent as date-times: --start=2025-01 --end=2025-03 is the\n" +
+  "                first quarter (end included); a server reads no date itself.\n" +
+  "                An origin may ignore them: every object is\n" +
   "                reported with the period it names, never the one asked for.\n" +
   "  --target=     Ask for the objects of one target (a host, or a path prefix\n" +
   "                that begins with /).\n" +
@@ -389,8 +391,13 @@ export async function runCli(argv: string[]): Promise<number> {
   const maxRetrievals = positiveInteger(opts, "max-retrievals", problems);
   const timeoutSeconds = positiveInteger(opts, "timeout", problems);
   for (const name of ["start", "end"] as const) {
-    const error = typeof opts[name] === "string" ? dateTimeError(opts[name]) : undefined;
-    if (error) problems.push(`--${name}: ${error}`);
+    const value = opts[name];
+    if (typeof value !== "string") continue;
+    try {
+      queryBound(name, value);
+    } catch (e) {
+      problems.push(`--${name}: ${(e as Error).message}`);
+    }
   }
   if (typeof opts.granularity === "string" && !(GRANULARITIES as readonly string[]).includes(opts.granularity)) {
     problems.push(`--granularity must be one of ${GRANULARITIES.join(", ")}, not "${opts.granularity}"`);

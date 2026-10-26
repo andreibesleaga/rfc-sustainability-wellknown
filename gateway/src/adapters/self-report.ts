@@ -238,9 +238,8 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
       methodologyUri: config.methodologyUri,
       measurementMethod: "third-party-modeled",
       period,
-      // Watt-hours, not kWh: the publisher library rounds every member to four
-      // decimal places, and a measured day at a fraction of a watt is ~0.0004 kWh,
-      // so in kWh a day would be published 12% high. In Wh it is 0.3576.
+      // Watt-hours, not kWh: a measured day at a fraction of a watt is 0.3576 Wh,
+      // which reads more plainly than 0.0003576 kWh; four significant figures either way.
       energy: { value: significant(wattHours(span, now)), unit: "Wh" },
       gridIntensity: config.gridIntensity,
       carbonAccounting: "location-based",

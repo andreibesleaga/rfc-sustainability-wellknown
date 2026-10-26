@@ -14,7 +14,7 @@
   "carbon-footprint": 37,
   "carbon-unit": "tCO2e",
   "carbon-accounting": "market-based",
-  "carbon-intensity-gCO2e-per-kWh": 400,
+  "carbon-intensity-gCO2e-per-kWh": 368,
   "scope-1": 0,
   "scope-2": 34,
   "scope-3": 3,

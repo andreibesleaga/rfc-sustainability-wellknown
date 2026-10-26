@@ -1,7 +1,6 @@
 /** Tier 2: a client for repeated polling, with conditional-request caching (ETag and Last-Modified). */
-import { fetchSustainability, FetchOptions } from "./fetch";
+import { fetchSustainability, FetchOptions, queryBound } from "./fetch";
 import { FetchParams, FetchResult, Honored, SignatureResult, SustainabilityDocument, SustainabilityMetrics } from "./types";
-import { toUtcQueryValue } from "./period";
 import { Granularity } from "./tokens";
 import { MediaTypeClassification } from "./media-type";
 import { Period } from "./period";
@@ -84,16 +83,16 @@ export class SustainabilityClient {
     this.maxCacheEntries = options.maxCacheEntries ?? 256;
   }
 
-  /** `Z`, `+00:00` and `.000Z` spellings of one bound share an entry: the request goes out as UTC. */
+  /** `Z`, `+00:00`, `.000Z` and calendar-date spellings of one bound share an entry: the request goes out as UTC. */
   private cacheKey(origin: string, params: FetchParams): string {
-    const bound = (value: string | undefined): string | undefined => {
+    const bound = (name: "start" | "end", value: string | undefined): string | undefined => {
       try {
-        return value === undefined ? undefined : toUtcQueryValue(value);
+        return value === undefined ? undefined : queryBound(name, value);
       } catch {
         return value;
       }
     };
-    return JSON.stringify({ origin, target: params.target, start: bound(params.start), end: bound(params.end), granularity: params.granularity });
+    return JSON.stringify({ origin, target: params.target, start: bound("start", params.start), end: bound("end", params.end), granularity: params.granularity });
   }
 
   /** Fetch, automatically revalidating a held reading: its ETag goes out as If-None-Match and its Last-Modified as If-Modified-Since. */

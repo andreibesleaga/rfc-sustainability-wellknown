@@ -10,8 +10,7 @@ implementations published to npm: `sustainability-wellknown-publisher` and
 |---|---|---|
 | `sustainability-wellknown-publisher` | 0.8.x | Yes |
 | `sustainability-wellknown-consumer` | 0.8.x | Yes |
-| both | 0.7.x | Yes, for security fixes only — `0.8.x` tracks draft `-10` and `0.7.x` tracks `-07` |
-| both | 0.6.x and earlier | No — upgrade to 0.8.x |
+| both | 0.7.x and earlier | No — upgrade to 0.8.x (`0.8.x` tracks draft `-10`; `0.7.x` tracked `-07`) |
 
 These are reference implementations of a draft specification, offered under the Revised BSD
 License with no warranty. They are maintained on a best-effort basis by one author.

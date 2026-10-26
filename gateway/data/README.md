@@ -187,7 +187,7 @@ figure's source and retrieval date are recorded.
 |---|---|
 | Source (`methodology-uri`) | <https://akasus-wp-objectstore.us-ord-1.linodeobjects.com/uploads/20260708171857/FY-2025-Climate-Related-Financial-Disclosure-Report-IFRS-S2-with-TCFD.pdf> |
 | Metrics addendum (energy, clean-energy %) | <https://akamaisustainability.com/governance/metrics-addendum/> |
-| Attestation (`verifiable-attestation-uri`) | <https://akasus-wp-objectstore.us-ord-1.linodeobjects.com/uploads/20260723123132/Akamai-2025-GHG-Verification-Statement.pdf> |
+| Attestation (`verifiable-attestation-uri`) | <https://akasus-wp-objectstore.us-ord-1.linodeobjects.com/uploads/20260723123132/Akamai-2025-GHG-Verification-Statement.pdf> (404 on 2026-10-26; retrieved 2026-07-28) |
 | Disclosure index | <https://www.akamaisustainability.com/> |
 | Retrieved | 2026-07-28 / 2026-07-29 |
 | Scope 1 / 2 (MB) / 3 | 70 / 173,000 / 180,350 tCO2e — all read |
@@ -623,7 +623,7 @@ on a live endpoint. 1,860 MWh × 373 gCO2e/kWh = 693.78 tCO2e. Source: none —
 
 A synthetic cloud provider reporting what it **states it delivered to one
 customer** in `2025`: `target-type: "tenant"` and an opaque tenant identifier
-(`t-7f3a9c41`) as `target`, which is the shape draft -07 §Upstream Declarations
+(`t-7f3a9c41`) as `target`, which is the shape draft -10 Section 3.5 (Upstream Declarations)
 describes for an upstream that reports per customer. The identifier is
 deliberately opaque: naming the customer in the provider's public declaration
 would disclose the commercial relationship to every reader.

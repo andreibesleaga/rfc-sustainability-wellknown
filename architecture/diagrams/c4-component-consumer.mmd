@@ -9,7 +9,7 @@ flowchart TB
         SCH2["schema.ts<br/>embedded RESPONSE_JTD_SCHEMA<br/>(byte-equal to schemas-validators/, CI-checked)"]
         SENT["sentinel.ts — legacy compatibility<br/>isNotReported(): negative in non-negative member (or<br/>renewable > 100) reads as 'not reported';<br/>scopes exempt (may be negative)"]
         UNITS["units.ts<br/>convertEnergy / convertCarbon"]
-        TRANS["transform.ts<br/>toCsvRows · toNdjson · flatten (one row/metric,<br/>default units kWh/gCO2e) · aggregate (sum/average,<br/>unit-normalized)"]
+        TRANS["transform.ts<br/>toCsvRows · toNdjson · flatten (one row/metric,<br/>default units kWh/gCO2e) · total (sum over non-overlapping periods of one target,<br/>unit-normalized; aggregate kept as an alias)"]
         CLIENT2["client.ts — SustainabilityClient<br/>ETag cache per origin+params (bounded 256);<br/>304 ⇒ replay cached document; getTrend()"]
         CONF["conformance.ts — runConformanceChecks()<br/>12 checks: basic declaration · media type (application/sustainability-data+json) ·<br/>embedded signed member (OPTIONAL) absent or verifiable · signature algorithm ·<br/>ETag · fresh ETag ⇒ 304 · POST ⇒ 405+Allow · ignored query values ·<br/>empty range ⇒ 200 · capabilities extended when honored · extended range ·<br/>calendar periods; legacyCompat OFF (sees the declaration as served)"]
         DISC["disclosure.ts<br/>resolveDisclosureLinks (passive — never auto-fetches);<br/>fetchDisclosure only on explicit opt-in"]

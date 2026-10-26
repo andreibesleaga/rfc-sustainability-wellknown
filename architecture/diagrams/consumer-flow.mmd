@@ -27,5 +27,5 @@ flowchart TD
     OK --> USE["Downstream use"]
     USE --> T1["toCsvRows / toNdjson"]
     USE --> T2["flatten — one row per metric,<br/>default units kWh / gCO2e,<br/>out-of-range values skipped as 'not reported'<br/>(negative scopes kept: real net accounting)"]
-    USE --> T3["aggregate — sum/average trend,<br/>unit-normalized"]
+    USE --> T3["total — sum over non-overlapping periods of one target,<br/>unit-normalized (aggregate kept as an alias)"]
     USE --> T4["resolveDisclosureLinks — passive;<br/>disclosure/attestation URIs never auto-fetched"]

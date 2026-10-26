@@ -18,7 +18,7 @@ is [GUIDE.md](GUIDE.md).
 cd gateway
 npm install
 npm run build
-npm test          # 730 tests; everything must be green before you deploy
+npm test          # 737 tests; everything must be green before you deploy
 node dist/index.js &
 until curl -sf http://127.0.0.1:8080/healthz >/dev/null; do sleep 1; done   # boot fetches live upstreams first
 curl -sSI http://127.0.0.1:8080/wikimedia.org/.well-known/sustainability-data
@@ -80,7 +80,7 @@ railway redeploy              # after changing data/ and pushing
 ## Path B — Railway dashboard
 
 1. Push the branch containing `gateway/` to GitHub.
-2. <https://railway.app> → **New Project** → **Deploy from GitHub repo** →
+2. <https://railway.com> → **New Project** → **Deploy from GitHub repo** →
    pick `rfc-sustainability-wellknown` → authorize the repo if prompted.
 3. Open the created service → **Settings**:
    - **Root Directory**: `gateway`

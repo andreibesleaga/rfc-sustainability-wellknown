@@ -349,7 +349,7 @@ so that what they do — and do not — establish is on record.
 
 The signature is a member of the declaration, not a resource of its
 own: each declaration object the self report emits carries `signed`, a JWS
-Compact Serialization (RFC 7515 §7.1, EdDSA/Ed25519, `cty:
+Compact Serialization (RFC 7515 §7.1, `alg` `Ed25519` (RFC 9864), `cty:
 sustainability-data+json`) whose payload is that same object without `signed`.
 It travels inside the body, so a cache that serves a re-encoded copy cannot
 separate the two, and **every** representation is signed — the parameterless

@@ -5,7 +5,7 @@ deliberately in step, so which one you are changing determines how to proceed.
 
 ## Requirements
 
-**Node.js 22.13 or newer** for all three packages and for everything that loads them (the SFC checker in `sfc-compliance/` still needs only 22.12), at runtime too. The publisher and consumer 0.8.0 declare 22.13 as their floor. Since 0.6.5 the publisher
+**Node.js 22.13 or newer** for all three packages and for everything that loads them, at runtime too. The publisher and consumer 0.8.0 declare 22.13 as their floor. Since 0.6.5 the publisher
 and consumer load `jose` (an ES module) through `require()`, which Node supports unflagged
 from 22.12, and the test runner (Vitest 5) requires 22.12 as well, so an older Node will install and build yet fail to
 run the tests.

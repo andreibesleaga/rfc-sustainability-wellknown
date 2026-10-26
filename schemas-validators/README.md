@@ -72,7 +72,7 @@ Only once `cddl --help` works will the CDDL leg of `./validate-all.sh` pass.
 `{ "id": "I06", "path": "invalid/period-bound-not-string.json", "cddl": false, "jtd": false, ... }`.
 `path` is relative to `examples/`; `cddl` and `jtd` are the verdicts expected of
 `validator-cddl.py` and `validator-json.py` (true = the file is accepted). The
-four directories mean:
+six directories mean:
 
 | Directory | Meaning |
 |---|---|
@@ -80,13 +80,15 @@ four directories mean:
 | `tolerated/` | Declarations a consumer reads with a warning: day floor, offsets, leap second, U-label host, scopes that differ from the footprint, URI forms, order; the schemas accept or refuse them as the manifest records |
 | `invalid/` | Declarations the schemas refuse |
 | `prose/` | Rules no schema states (start before end, non-negative numbers, at least one metric or link, a real calendar date, ...); the manifest records which schema happens to catch them anyway |
+| `signed/` | Signed declarations (Ed25519, ES256, the legacy `EdDSA` identifier) and the refusals in `signed/bad/` |
+| `legacy/` | `in/` files in the -08 and -09 forms and their `out/` conversions by `sustainability-publisher upgrade` |
 
 The verdict of each validator is recorded per file rather than inferred from the
 directory name, because the engines differ on a few files (for example, the CDDL
 date-time rule checks the form only and accepts `2025-02-30T00:00:00Z`, which the
 JTD `timestamp` type refuses). `validate-all.sh` fails when a verdict differs from
 the manifest in either direction, so it also fails if an engine starts agreeing on
-a file recorded as differing. Every file in the four directories must be listed.
+a file recorded as differing. Every file in these directories must be listed.
 
 ## Usage
 

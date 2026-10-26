@@ -100,7 +100,7 @@ server, your DNS zone, your certificate or your signing key, are outside what a 
 | Static-site template with Deploy-to-Netlify / Vercel buttons | `one-click/static-site/` | reviewed 2026-10-03 |
 | WordPress plugin "Sustainability Data (well-known)" (GPLv2-or-later; settings page with validation, signed output, multisite, translation-ready, no external calls) | `wordpress/` | **CI**: WordPress coding standards and PHP 8.1 compatibility, offline tests, output validated and signature verified with the consumer, and the plugin run in a real WordPress (7.1.2 on 2026-10-03) and checked in strict mode |
 | GitHub Action: validate a file or a live origin in CI | `github-action/` | **CI** (this repository runs it on itself: `self-check.yml`) |
-| Initializer `create-sustainability-data`: seven questions, the file and the host's configuration | `../tools/create-sustainability-data/` | **CI** (tests, including the bin run through a symlink as `npx` runs it) |
+| Initializer `create-sustainability-data`: a few questions, the file and the host's configuration | `../tools/create-sustainability-data/` | **CI** (tests, including the bin run through a symlink as `npx` runs it) |
 | Home Assistant add-on: metered monthly energy from the Energy dashboard's sensor, one signed object per month (`hardware-metered`) | `home-assistant/` | **CI** (fake Core API); not yet run in a real instance |
 
 ## Verify any deployment

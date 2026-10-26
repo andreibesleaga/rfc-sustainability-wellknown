@@ -36,8 +36,8 @@ script to the new file.
 (cd ../publisher && npm ci && npm run build)
 (cd ../consumer  && npm ci && npm run build)
 (cd ../gateway   && npm ci && npm run build)
-# until publisher and consumer 0.8.0 are on npm, the gateway's lockfile still names 0.7, so
-# replace the gateway line above with this one (installs the local builds, then builds the gateway):
+# to test unreleased library changes, replace the gateway line above with this one
+# (installs the local builds, then builds the gateway):
 #   (cd .. && bash scripts/overlay-source-libs.sh)
 npm ci
 npm run all          # traceability check, then the scenarios

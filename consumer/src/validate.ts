@@ -303,15 +303,20 @@ function textChecks(rec: Record<string, unknown>, errors: string[], warnings: Va
   if (rec["provider"] === "") errors.push("/provider must not be empty");
   if (rec["target"] === "") errors.push("/target must not be empty (it names what the object is about)");
   if (typeof rec["provider"] === "string") {
-    // One linear split into address-shaped words; the local part is what precedes the first "@".
+    // One linear pass: words split on the characters an address cannot contain, then each `local@domain` pair
+    // inside a word, left to right and non-overlapping, exactly as the former regular expression matched.
     for (const word of rec["provider"].split(/[\s()<>,;]+/)) {
-      const [local, domain] = word.split("@");
-      if (!local || !domain) continue;
-      if (!ROLE_ADDRESSES.includes(local.toLowerCase())) {
+      const parts = word.split("@");
+      for (let i = 0; i + 1 < parts.length; i += 1) {
+        const local = parts[i];
+        if (!local || !parts[i + 1]) continue;
+        i += 1;
+        if (!ROLE_ADDRESSES.includes(local.toLowerCase())) {
         warnings.push({
           code: "provider-personal-contact",
           message: `/provider holds the address ${isolate(`${local}@…`)}; a role address is better than a personal one (draft, Privacy Considerations)`,
         });
+        }
       }
     }
   }

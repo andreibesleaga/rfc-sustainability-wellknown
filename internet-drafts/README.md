@@ -22,8 +22,8 @@ Individual submission on the IETF **Independent Submission Stream** (Information
   the `period` query parameter with `start`, `end` and `granularity`, made the URI-valued members URI references, allowed
   an empty array, and restructured the document into the four parts the Editor described. A `-08` document is not a valid
   `-09` document. See the draft's own "Since -08" changelog appendix.
-- **`-08`** is an earlier posted revision (posted 2026-10-09, under ISE review; editorial: an RFC 7942 Implementation Status appendix, the worked example aligned with the live deployment, a mention of DIST, and the answers to the ART-area early review of `-07`: a Terminology section, one term *subject*, Section 2.2 citing RFC 9110 instead of restating it, the query-envelope ABNF removed, the unknown-member rule stated once, `target-type` first among the optional members, a shorter body; no change to the format). It is built and checked by CI like every revision.
-- **`-07`** is the prior posted revision (posted 2026-09-17; sources in this
+- **`-08`** is an earlier posted revision (posted 2026-10-09; editorial: an RFC 7942 Implementation Status appendix, the worked example aligned with the live deployment, a mention of DIST, and the answers to the ART-area early review of `-07`: a Terminology section, one term *subject*, Section 2.2 citing RFC 9110 instead of restating it, the query-envelope ABNF removed, the unknown-member rule stated once, `target-type` first among the optional members, a shorter body; no change to the format). It is built and checked by CI like every revision.
+- **`-07`** is an earlier posted revision (posted 2026-09-17; sources in this
   directory: `draft-besleaga-sustainability-wellknown-07.{md,xml,txt}`); `-06` is an earlier posted
   revision. `-07` withdraws the companion
   `/.well-known/sustainability-data.jws` resource and the detached signature entirely (no legacy
@@ -242,7 +242,7 @@ The bullets above are kept as written on 2026-10-09. Since then:
   token members were still free text. **`-10` (posted 2026-10-24)** is not wire-compatible with `-09`: the bounds of
   `period` are RFC 3339 date-times, and `measurement-method`, `functional-unit`, `carbon-unit` and the `upstream` `role`
   take one of a listed set. The data model is still 7 mandatory and 19 optional members (26 total).
-- **Libraries:** `0.7.x` implemented `-07`; the current releases, publisher `0.8.0` and consumer `0.8.0`, implement
+- **Libraries:** `0.7.x` implemented `-07`; the current releases, publisher `0.8.1` and consumer `0.8.1`, implement
   `-10`. The consumer reads the forms of `-08` and `-09` by default and reports what it converted or disregarded; the
   publisher's `upgrade` command converts a declaration file. The gateway is at `0.2.0`. The schemas in
   `schemas-validators/` follow `-10`.

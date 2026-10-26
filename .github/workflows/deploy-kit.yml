@@ -53,6 +53,12 @@ jobs:
       - name: Home Assistant add-on tests (fake Core API)
         working-directory: deploy/home-assistant/sustainability-data
         run: npm ci --no-audit --no-fund && npm test
+      - name: The two container images build and load the publisher (the one-click node and the Home Assistant add-on)
+        run: |
+          docker build -q -t one-click-node deploy/one-click/railway
+          docker run --rm --entrypoint node one-click-node -e "require('sustainability-wellknown-publisher'); console.log('one-click node: publisher loads on Node ' + process.versions.node)"
+          docker build -q -t ha-addon deploy/home-assistant/sustainability-data
+          docker run --rm --entrypoint node ha-addon -e "require('sustainability-wellknown-publisher'); console.log('add-on: publisher loads on Node ' + process.versions.node)"
       - name: Initializer tests (including the bin run through a symlink, as npx runs it), against the source publisher
         run: |
           (cd publisher && npm ci --no-audit --no-fund && npm run build)

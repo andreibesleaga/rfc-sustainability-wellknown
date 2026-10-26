@@ -3,7 +3,7 @@
 A reference publisher that serves a **fully draft-conformant** `/.well-known/sustainability-data`
 document, as defined by
 [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/),
-revision -10 (version 0.8.0 of this package; the older forms are covered in
+revision -10 (version 0.8.1 of this package; the older forms are covered in
 [Migrating from 0.7.x](#migrating-from-07x)).
 
 It ingests metrics from pluggable **source adapters**, normalizes them to the draft's

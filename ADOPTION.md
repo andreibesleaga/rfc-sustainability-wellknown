@@ -8,8 +8,8 @@
 > is that of `-07`, it is out of date; the text is kept as written. `-09` was posted on 2026-10-16 and `-10` on 2026-10-24.
 > Both change the wire format (`reporting-period` became the `period` object, whose bounds are RFC 3339 date-times in `-10`;
 > the `period` query parameter became `start`, `end` and `granularity`; four token members became closed sets; the
-> Internationalization Considerations section was removed). The reference publisher and consumer `0.8.0` and the gateway
-> `0.2.0` implement `-10`. The "366 objects", "aggregation" and `400`/`404` query rules described above for `-06` and
+> Internationalization Considerations section was removed). The reference publisher and consumer `0.8.1` and the gateway
+> `0.2.0` implement `-10`. The "366 objects", "aggregation" and `400`/`404` query rules described below for `-06` and
 > `-07` are gone since `-09`: a server returns what it holds and a value it cannot read is ignored. Issue #103 (carbon.txt) was
 > closed by the registry maintainer on 2026-10-21 as completed, with no registration; wherever it is described below as
 > open, declined as filed, or "waiting for input", that is the record up to 2026-10-03.

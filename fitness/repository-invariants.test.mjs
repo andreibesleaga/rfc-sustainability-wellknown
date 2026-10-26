@@ -104,6 +104,14 @@ test("no public document states the extension-name rules that -10 removed", () =
   assert.deepEqual(offenders, []);
 });
 
+test("no public document shows the 0.7.x `reportingPeriod` option as current (the publisher README's upgrade table excepted)", () => {
+  const offenders = publicTextFiles()
+    .filter((p) => p.endsWith(".md") && !/CHANGELOG/i.test(p) && !rel(p).startsWith("internet-drafts/") && rel(p) !== "publisher/README.md")
+    .filter((p) => /reportingPeriod:/.test(readFileSync(p, "utf8")))
+    .map(rel);
+  assert.deepEqual(offenders, []);
+});
+
 test("the packages that use the libraries ask for the version in this repository", () => {
   const publisher = packageJson("publisher").version;
   const consumer = packageJson("consumer").version;

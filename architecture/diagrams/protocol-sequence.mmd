@@ -17,7 +17,7 @@ sequenceDiagram
 
     Note over C,S: 4 — Extended service: trend query
     C->>S: GET /.well-known/sustainability-data?start=2025-01-01T00:00:00Z&end=2026-01-01T00:00:00Z&granularity=monthly
-    S-->>C: 200 OK · JSON array (ascending period.start, as instants; the objects the server holds, none computed —<br/>no server-side size cap, the consumer bounds what it accepts)
+    S-->>C: 200 OK · JSON array (ascending period.start, as instants, the objects the server holds, none computed —<br/>no server-side size cap, the consumer bounds what it accepts)
 
     Note over C,S: 5 — Extended service: one target
     C->>S: GET ...?target=/api/v1

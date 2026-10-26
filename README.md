@@ -20,7 +20,7 @@ Presented at the IRTF Sustainability Research Group (IETF 126, July 2026); Indep
 > origin-wide case they coincide (the origin's host), but `target` may equally name
 > an organization, a path, a cloud tenant, a device, or a data source.
 
-A universal `/.well-known/sustainability-data` URI that allows any organization to publish reports, through a web server or digital service, with aggregated energy consumption and carbon footprint metrics, in a human and machine-readable, minimal, backward and forward compatible, extensible, JSON format.
+A universal `/.well-known/sustainability-data` URI that allows any organization to publish reports, through a web server or digital service, declaring energy consumption and carbon footprint for a stated subject and period, in a human and machine-readable, minimal, backward and forward compatible, extensible, JSON format.
 
 **Not limited to conventional websites, and not limited to a server's own electricity bill.**
 
@@ -83,7 +83,7 @@ tested the way its platform expects. Details and the verification status of each
 | A web server or proxy (nginx, Apache or LiteSpeed via `.htaccess`, Caddy, HAProxy, Envoy, Traefik, IIS) | the few lines in [`deploy/proxies/`](deploy/proxies/) | nginx, Apache and Caddy started and checked in strict mode in CI; HAProxy configuration-checked |
 | An application (Express, Fastify, Koa, Next.js, Nuxt, SvelteKit, Astro; Flask, FastAPI, Django; PHP, Laravel, Symfony; Go; Spring Boot; ASP.NET Core; Rails; Axum) | one route in [`deploy/frameworks/`](deploy/frameworks/), or the publisher library for a signed, Extended service | ten servers started in CI, each checked for every MUST of the draft, `405` with `Allow`, `HEAD` like `GET`, `ETag`/`304` |
 | WordPress | the plugin [Sustainability Data (well-known)](deploy/wordpress/): a settings page that checks what you enter, a signed declaration, multisite, translation-ready, no external calls (GPLv2-or-later) | WordPress coding standards, PHP 8.1 compatibility, offline tests, and a run in a real WordPress in Docker checked by the consumer |
-| Nothing yet | `npx create-sustainability-data` (`0.2.0`, writes the `-10` form): a few questions, the file and your host's configuration ([`tools/create-sustainability-data/`](tools/create-sustainability-data/)) | tests, including the command run the way `npx` runs it |
+| Nothing yet | `create-sustainability-data` (`0.2.0`, writes the `-10` form; not yet on npm, run it from a clone as its README says, `npx create-sustainability-data` once published): a few questions, the file and your host's configuration ([`tools/create-sustainability-data/`](tools/create-sustainability-data/)) | tests, including the command run the way `npx` runs it |
 | A container platform (Railway or any other) | the one-click node in [`deploy/one-click/railway/`](deploy/one-click/railway/): figures from environment variables, served and signed by the publisher library | tests; the image built and run |
 | A home energy meter | the Home Assistant add-on in [`deploy/home-assistant/`](deploy/home-assistant/): a signed monthly `hardware-metered` declaration from the Energy dashboard's sensor, never a partial month | tests against a simulated Home Assistant; not yet run on a real instance |
 | A spreadsheet or an ESG tool's export | the publisher's `csvAdapter`: one row per period, every cell checked, an unusable row reported and never published | publisher tests |
@@ -101,7 +101,7 @@ tested the way its platform expects. Details and the verification status of each
 
 [publisher/](publisher/) publishes a draft-conformant `/.well-known/sustainability-data` document. It is on npm as
 **[`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)**; the
-current release, **`0.8.0`**, implements draft `-10`.
+current release, **`0.8.1`**, implements draft `-10`.
 
 - **What it does:** takes figures from pluggable adapters, normalises them to the draft's members, validates every
   document against this repository's JTD and CDDL schemas before serving it (nothing invalid is published), and
@@ -117,11 +117,11 @@ current release, **`0.8.0`**, implements draft `-10`.
 
 [consumer/](consumer/) reads `/.well-known/sustainability-data` from any origin. It is on npm as
 **[`sustainability-wellknown-consumer`](https://www.npmjs.com/package/sustainability-wellknown-consumer)**; the
-current release, **`0.8.0`**, implements draft `-10`; by default it also reads the `-08` and `-09` forms that `-10` replaced.
+current release, **`0.8.1`**, implements draft `-10`; by default it also reads the `-08` and `-09` forms that `-10` replaced.
 
 - **What it does:** fetches, validates defensively (schema plus this package's prose checks: start before end, at-least-one-metric, the sci-score dependency, the day floor and the URI forms), verifies the embedded
   `signed` member, walks `upstream` declarations (depth three at most, no URI twice), and transforms a document to
-  CSV, NDJSON, one row per metric, or trend aggregates.
+  CSV, NDJSON or one row per metric, and totals non-overlapping periods (`total()`).
 - **How to use it:** one function call, a client class for repeated polling, or the `sustainability-fetch` CLI, whose
   `--strict` mode is a conformance checker for any implementation. API, CLI and the version history:
   [consumer/README.md](consumer/README.md) and [consumer/USAGE.md](consumer/USAGE.md).
@@ -168,7 +168,7 @@ rfc-sustainability-wellknown/
 ├── publisher/                  # Reference publisher (TypeScript): adapters → conformant /.well-known/sustainability-data
 ├── consumer/                   # Reference client (TypeScript): fetch, validate, verify a /.well-known/sustainability-data document
 ├── gateway/                    # Reference multi-subject gateway (the live deployment: Extended self report, signed, attested)
-├── tools/report-to-declaration/ # Demonstration: a published report → a candidate declaration, verbatim quotes, human approval
+├── tools/                      # create-sustainability-data (initializer) and report-to-declaration (a published report → a candidate declaration)
 ├── deploy/                     # Copy-paste deployment recipes for hosts, servers and frameworks, each CI-run one validated in strict mode
 ├── bdd/                        # Behaviour scenarios for every normative sentence of the draft (cucumber-js), with the traceability check
 ├── fitness/                    # Architecture fitness functions: cross-package rules kept as tests
@@ -209,7 +209,7 @@ git history. The full revision history is in [internet-drafts/README.md](interne
 
 **Compatibility between revisions.** `-07` and `-08` have the same wire format. `-09` replaced `reporting-period` with a
 `period` object of two full-dates, and `-10` changed it again: a `-09` document is not a valid `-10` document (the bounds
-of `period` are date-times, and a token outside its set is no longer allowed). The current library releases (`0.8.0`)
+of `period` are date-times, and a token outside its set is no longer allowed). The current library releases (`0.8.1`)
 implement `-10`; the consumer also reads the `-08` and `-09` forms by default and reports what it converted, and
 `sustainability-publisher upgrade` converts a file. The consumer still accepts the generic `application/json` while the media
 type registration is pending, and the publisher can emit it with `mediaType: "json"` (not conformant). What earlier revisions
@@ -223,7 +223,7 @@ changed, and which library releases implemented them, is in [internet-drafts/REA
 
 | File | Description |
 |---|---|
-| `example-response.json` | Basic service — single object, aggregate host metrics |
+| `example-response.json` | Basic service — single object, host-level metrics |
 | `example-response-extended.json` | Extended service — single day of a path (`target-type: "path"`), every optional field but `upstream` and `signed`, including GHG scopes, `verifiable-attestation-uri`, `disclosure-uri` (market-based) and a URI-keyed `extensions` object |
 | `example-response_yearly.json` | Extended service — array of 12 monthly objects for a full year trend (location-based) |
 | `example-response-yearly-monthly-target.json` | Extended service — two monthly objects of the path `/api/v1`, named in the mandatory `target` member |
@@ -306,9 +306,9 @@ Server-side security middleware implementing the operational safeguards from the
 
 | Safeguard | Detail |
 |---|---|
-| **DoS protection** | As of `-07`, the specification bounds only the *consumer* (it MUST limit the bytes and objects it accepts); the earlier `-06` server-side "cap at 366 objects" MUST/RECOMMENDED rule is removed. `security.py`/`.js`/`.php` still refuse a held set above 366 entries (one leap year of daily data), never truncating an answer, as a server-side defense-in-depth measure, not a spec requirement |
+| **DoS protection** | Since `-07` (and in `-10`), the specification bounds only the *consumer* (it MUST limit the bytes and objects it accepts); the earlier `-06` server-side "cap at 366 objects" MUST/RECOMMENDED rule is removed. `security.py`/`.js`/`.php` still refuse a held set above 366 entries (one leap year of daily data), never truncating an answer, as a server-side defense-in-depth measure, not a spec requirement |
 | **Traffic analysis prevention** | Drop (or warn about) objects whose period is shorter than a calendar day or whose bounds are not the first instant of a calendar day in their own offset (the draft: a period SHOULD be a calendar day or longer; real-time telemetry is NOT RECOMMENDED) |
-| **Anti-fingerprinting** (optional) | ~1% multiplicative (sign-preserving) noise on `energy-consumption`, `carbon-footprint`, `scope-1/2/3`, applied once at generation time, deterministic per reporting period, consistent across related fields — non-negative members stay non-negative, and negative scope values keep their sign |
+| **Anti-fingerprinting** (optional) | ~1% multiplicative (sign-preserving) noise on `energy-consumption`, `carbon-footprint`, `scope-1/2/3`, applied once at generation time, deterministic per period, consistent across related fields — non-negative members stay non-negative, and negative scope values keep their sign |
 
 ---
 

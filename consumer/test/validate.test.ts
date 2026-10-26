@@ -356,6 +356,12 @@ describe("the text members", () => {
     expect(codes(u.warnings)).toEqual(["origin-u-label"]);
     expect(codes(validateDocument(object({ provider: "Example (jane.doe@example.com)" })).warnings)).toEqual(["provider-personal-contact"]);
     expect(validateDocument(object({ provider: "Example (esg@example.com)" })).warnings).toEqual([]);
+    // Every local@domain pair in a word is seen, left to right: a handle with a leading "@", two addresses run together.
+    expect(codes(validateDocument(object({ provider: "Example @jane@mastodon.social" })).warnings)).toEqual(["provider-personal-contact"]);
+    // The second pair is seen too: a role address first, then a personal one (each code is reported once).
+    expect(codes(validateDocument(object({ provider: "esg@a.example@bob@b.example" })).warnings)).toEqual(["provider-personal-contact"]);
+    expect(validateDocument(object({ provider: "esg@a.example@bob@b.example" })).warnings[0].message).toContain("bob@");
+    expect(validateDocument(object({ provider: "Example a@@b" })).warnings).toEqual([]);
   });
 
   it("isolates a value from the document in the message that quotes it", () => {

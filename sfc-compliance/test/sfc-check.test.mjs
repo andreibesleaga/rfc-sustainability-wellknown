@@ -124,6 +124,15 @@ describe("fixture: non-conformant", () => {
   });
 });
 
+describe("fixture: invalid-method", () => {
+  it("fails draft conformance on a measurement-method outside the four of -10, and exits non zero", async () => {
+    const result = await checkDocument(fixture("invalid-method.json"));
+    expect(result.conformant).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect(statusOf(result, "draft-conformance")).toEqual(["FAIL"]);
+  });
+});
+
 describe("fixture: http-uri", () => {
   // -10 no longer restricts URI members to https (the -07 consumer warned), so the
   // consumer says nothing here and the document stays valid.

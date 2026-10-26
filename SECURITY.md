@@ -2,7 +2,7 @@
 
 This repository contains an Internet-Draft (`internet-drafts/`) and two reference
 implementations published to npm: `sustainability-wellknown-publisher` and
-`sustainability-wellknown-consumer`, plus a reference gateway (`gateway/`, not published).
+`sustainability-wellknown-consumer`, plus a reference gateway (`gateway/`, not on npm; its container image is on ghcr.io).
 
 ## Supported versions
 
@@ -10,7 +10,7 @@ implementations published to npm: `sustainability-wellknown-publisher` and
 |---|---|---|
 | `sustainability-wellknown-publisher` | 0.8.x | Yes |
 | `sustainability-wellknown-consumer` | 0.8.x | Yes |
-| both | 0.7.x | Yes, for security fixes only — `0.8.0` tracks draft `-10` and `0.7.x` tracks `-07` |
+| both | 0.7.x | Yes, for security fixes only — `0.8.x` tracks draft `-10` and `0.7.x` tracks `-07` |
 | both | 0.6.x and earlier | No — upgrade to 0.8.x |
 
 These are reference implementations of a draft specification, offered under the Revised BSD
@@ -37,7 +37,7 @@ If 90 days pass without a fix or a good reason, treat yourself as free to disclo
 ## Scope
 
 In scope: anything in `publisher/`, `consumer/`, `gateway/`, `sfc-compliance/`,
-`example-scripts/` and `server-configurations/` — for example a way to make a consumer parse a hostile document
+`example-scripts/`, `server-configurations/`, `tools/` and `deploy/` (the WordPress plugin, the GitHub Action, the one-click and Home Assistant kits) — for example a way to make a consumer parse a hostile document
 unsafely, to make a publisher emit a document that violates the draft's requirements, or to
 exhaust memory or CPU through the query parameters.
 

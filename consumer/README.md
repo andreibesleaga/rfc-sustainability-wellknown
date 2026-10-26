@@ -10,7 +10,7 @@ validated against the draft's schema and prose rules, and only then handed to yo
 Every API is one line to call from a script (a cron job, a crawler, a carbon-aware
 scheduler) and fails loudly and legibly on bad input.
 
-> **Version 0.8.0 implements revision -10 of the draft.** It reads -10 documents, and
+> **Version 0.8.1 implements revision -10 of the draft.** It reads -10 documents, and
 > by default it also reads the forms of -08 and -09 that -10 replaced (see "Upgrading
 > from 0.7.x"). Requires Node.js 22.13 or newer.
 

@@ -206,6 +206,10 @@ describe("what the draft recommends is a warning", () => {
     expect(r.warnings[0].message).toContain("jane.doe@");
     expect(codes({ ...base(), provider: "Acme plc" })).toEqual([]);
     expect(codes({ ...base(), provider: "Acme (ops@acme.example, jane@acme.example)" })).toEqual(["provider-personal-contact"]);
+    // Every local@domain pair in a word is seen, left to right: a handle with a leading "@", two addresses run together.
+    expect(codes({ ...base(), provider: "Acme @jane@mastodon.social" })).toEqual(["provider-personal-contact"]);
+    expect(codes({ ...base(), provider: "ann@a.example@bob@b.example" })).toEqual(["provider-personal-contact", "provider-personal-contact"]);
+    expect(codes({ ...base(), provider: "Acme a@@b" })).toEqual([]);
   });
 
   it("a URI-valued member that is not a URI reference; any scheme and any relative reference is fine", () => {

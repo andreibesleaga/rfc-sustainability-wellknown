@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: andreibesleaga/sustainability-data-check@v1   # once published to the Marketplace
+      - uses: andreibesleaga/rfc-sustainability-wellknown/deploy/github-action@<commit-sha>   # Marketplace name `sustainability-data-check@v1` once published
         with:
           file: public/.well-known/sustainability-data       # or:  origin: https://example.com
 ```

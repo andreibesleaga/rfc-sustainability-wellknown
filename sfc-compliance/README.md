@@ -6,7 +6,7 @@ profile), and a checker for it.
 | File | What it is |
 |---|---|
 | [`PROFILE.md`](PROFILE.md) | The normative profile, version 1.1 (2026-10-03). Four criteria, two declaration levels, four extension names (the fourth, `ledger-evidence`, new in 1.1), six rules a publisher can get wrong, and what a conformance statement may claim. Section 11 lists the changes from 1.0, among them the C1 boundary and "net zero" explained as an offset-coverage position. |
-| [`PROFILE-1.0.md`](PROFILE-1.0.md) | Version 1.0 (2026-09-16), superseded by `PROFILE.md`, kept unchanged. Every 1.0 declaration stays valid under 1.1. |
+| [`PROFILE-1.0.md`](PROFILE-1.0.md) | Version 1.0 (2026-09-16), superseded by `PROFILE.md`, kept unchanged. A 1.0 declaration keeps its meaning under 1.1, but it was written for draft -07 (`reporting-period`); convert it with `sustainability-publisher upgrade` before checking it (see below). |
 | [`SFC.md`](SFC.md) | The older non normative note on how the framework and the specification fit together. Kept as written, with stale facts corrected. |
 | [`examples/`](examples) | Two reference declarations, one network level and one operator level. Both validate against the JTD schema, the CDDL schema and the consumer library. |
 | `sfc-check.mjs` | The checker. |

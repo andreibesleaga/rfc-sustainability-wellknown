@@ -32,6 +32,6 @@
     "directory": "tools/create-sustainability-data"
   },
   "dependencies": {
-    "sustainability-wellknown-publisher": "^0.8.0"
+    "sustainability-wellknown-publisher": "^0.8.1"
   }
 }

@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "sustainability-wellknown-consumer": "^0.8.0"
+    "sustainability-wellknown-consumer": "^0.8.1"
   },
   "devDependencies": {
     "vitest": "^5.0.0"

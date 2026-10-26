@@ -20,7 +20,7 @@ classDiagram
         +provider : string — entity operating the origin
         +measurement-method : "hardware-metered" | "hardware-estimated" | "cloud-billing" | "third-party-modeled"
         +methodology-uri : string — link to calculation methodology
-        +period : object { start, end } — RFC 3339 date-times, start included, end excluded
+        +period : object (start, end) — RFC 3339 date-times, start included, end excluded
         +target : string — reporting subject: origin host, path prefix, entity, tenant, product
     }
     note for SustainabilityMetrics "-06 and earlier also required an 8th mandatory

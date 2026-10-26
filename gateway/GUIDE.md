@@ -123,7 +123,7 @@ they hold that satisfy them, as an array in ascending order of `period.start`
 | Route | Behaviour |
 |---|---|
 | `GET\|HEAD /{domain}/.well-known/sustainability-data` | The subject's declaration. `200` + the dedicated `application/sustainability-data+json` media type (or the generic `application/json`, per [Configuration reference](#configuration-reference)), or `404` if the subject is unknown. |
-| `GET\|HEAD /.well-known/sustainability-data` | The gateway's own report, `target-type: "service"`, `capabilities: "extended"`: `?start=`, `?end=` (UTC date-times such as `2026-09-01T00:00:00Z`), `?granularity=yearly\|monthly\|daily` and `?target=` honoured; a request that names none of them is answered with one object, the most recently completed month, and one that names any is answered with an array, empty (`200` and `[]`) when nothing is held for it. When `SUSTAINABILITY_SIGNING_KEY` is set, every object it returns carries a `signed` member — there is no separate signature resource. |
+| `GET\|HEAD /.well-known/sustainability-data` | The gateway's own report, `target-type: "service"`, `capabilities: "extended"`: `?start=`, `?end=` (UTC date-times such as `2026-09-01T00:00:00Z`), `?granularity=yearly\|monthly\|daily` and `?target=` honoured; a request that names none of them is answered with one object, the latest whole month whose power was entered, and one that names any is answered with an array, empty (`200` and `[]`) when nothing is held for it. When `SUSTAINABILITY_SIGNING_KEY` is set, every object it returns carries a `signed` member — there is no separate signature resource. |
 | a query value outside the grammar of the draft, or a parameter given twice, on a route that honours the parameters | Ignored, never an error: the parameter is read as absent and the answer is the one the request would get without it (draft §Query Parameters). |
 | `?target=…` on a route that honours the parameters | An array of the objects whose `target` equals the value, compared as the draft says; for the gateway's own report that is its one `target`, any other value selects nothing and the answer is `200` and `[]`. |
 | `GET\|HEAD /` | HTML index: every subject and the honesty notice. |
@@ -619,9 +619,9 @@ injects.
 | `SELF_PROVIDER` | operator contact | `provider` of the gateway's own report; prefer a role address. |
 | `SELF_METHODOLOGY_URI` | `gateway/METHODOLOGY.md` on GitHub | Must resolve publicly. |
 | `SELF_DISCLOSURE_URI` | `gateway/` on GitHub | Disclosure index for the gateway. |
-| `SELF_PERIOD_START`, `SELF_PERIOD_END` | last completed calendar month | Pin the period of the gateway's own answer to a request that names no parameter. Both are UTC date-times such as `2026-09-01T00:00:00Z` and are set together; one without the other stops the start. |
+| `SELF_PERIOD_START`, `SELF_PERIOD_END` | latest entered whole calendar month | Pin the period of the gateway's own answer to a request that names no parameter. Both are UTC date-times such as `2026-09-01T00:00:00Z` and are set together; one without the other stops the start. |
 | `VALIDATOR_EXCLUDE` | *(empty)* | Comma-separated host names that the public validator and badge never fetch (an operator asked not to be checked); such a request is answered `400` before any lookup. |
-| `SELF_WATTS` | `3` | Modelled average container power draw. |
+| `data/_self-measured.json` | the entered months | Not a variable: the average power per month, entered with `scripts/self-watts.mjs` from the platform's usage metrics. A month without an entry is not reported (`METHODOLOGY.md`). |
 | `SELF_GRID_INTENSITY` | `245` | gCO2e/kWh: the Netherlands, 2024 (EEA, CC BY 4.0), where this deployment runs; sourced and caveated in METHODOLOGY.md. Set it to your own region's figure. |
 | `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When the gateway went live (RFC 3339). The self model counts no hours before it; a range wholly before it selects nothing and is answered `200` and `[]`. |
 | `SELF_MODEL_CHANGED_AT` | `2026-10-02T00:00:00Z` | When the self model's figures were last restated (RFC 3339). A complete period that ended earlier states this instant as `updated`, because its figures were recomputed then. |
@@ -680,7 +680,7 @@ service. It exercises every optional part of the draft:
   A value outside the grammar of the draft, or a parameter given twice, is
   ignored and the answer is the one without it. `?target=` selects by equality
   with the report's own `target`; any other value selects nothing. The
-  parameterless declaration is still one object, the most recently completed month.
+  parameterless declaration is still one object, the latest whole calendar month whose power was entered.
 - **Signature, embedded in the declaration.** With `SUSTAINABILITY_SIGNING_KEY`
   set (a private JWK as `sustainability-publisher keygen --out` writes it), the
   publisher library inserts a `signed` member into every declaration object the

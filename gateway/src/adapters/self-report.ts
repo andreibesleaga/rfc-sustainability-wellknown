@@ -7,10 +7,13 @@
  * carry.
  *
  * The figures are an ENGINEERING ESTIMATE, not a measurement: the container's
- * average power draw is modelled, not metered. Every assumption, and the source
- * of the grid intensity factor, is stated in `gateway/METHODOLOGY.md`, which is
- * what `methodology-uri` points at. `measurement-method` is therefore
- * `third-party-modeled` and not `hardware-metered`.
+ * average power per month is entered by the operator from the hosting
+ * platform's usage metrics, converted with published coefficients, not
+ * metered. A month without an entered figure is not reported: no object exists
+ * for it. The source of the grid intensity factor and the conversion are
+ * stated in `gateway/METHODOLOGY.md`, which is what `methodology-uri` points
+ * at. `measurement-method` is therefore `third-party-modeled` and not
+ * `hardware-metered`.
  *
  * Service level: EXTENDED. The model is closed-form (watts x hours), so the
  * adapter can state the objects it HOLDS and leave the selection to the
@@ -18,7 +21,7 @@
  * that satisfy the parameters, and computes no aggregate). Only the hours
  * inside `[liveSince, now)` count, with `now` the start of the current UTC day.
  *
- * The held set:
+ * The held set, among the periods whose every month has an entered figure:
  *
  *  - every whole day of the most recent {@link HELD_DAYS} days of the live window;
  *  - every whole calendar month and every whole calendar year of the live window;
@@ -34,13 +37,12 @@
  *
  * The `target` parameter selects by exact match against the report's own
  * `target`; any other value selects nothing. A request that names no parameter
- * is answered with one object, the most recently completed month (the publisher
- * option `representation: "single"`). When the deployment holds a key, every
+ * is answered with one object, the latest whole calendar month whose figure is
+ * entered (the publisher option `representation: "single"`). When the deployment holds a key, every
  * object it serves carries its own embedded `signed` member.
  */
 import {
   computedAdapter,
-  lastFullMonthPeriod,
   NotFoundError,
   toUtcQueryValue,
   type Period,
@@ -54,16 +56,15 @@ export interface SelfReportConfig {
   provider: string;
   methodologyUri: string;
   disclosureUri: string;
-  /** A pinned period for the request that names no parameter. Defaults to the most recently completed month. */
+  /** A pinned period for the request that names no parameter. Default: the latest whole calendar month whose power was entered. */
   period?: Period;
-  /** Modelled average power draw of the running container, watts. */
-  watts: number;
   /**
    * Average power per calendar month ("YYYY-MM" -> watts) that the operator
    * entered from the platform's own metrics (data/_self-measured.json). A
-   * month listed here uses its own figure; every other month uses `watts`.
+   * period is held only when every month it touches is listed here; a month
+   * without an entry is not reported.
    */
-  wattsByMonth?: Record<string, number>;
+  wattsByMonth: Record<string, number>;
   /** When each entered month ("YYYY-MM") was entered (RFC 3339); the objects that cover it are not older. */
   enteredAtByMonth?: Record<string, string>;
   /** The instant the model's figures were last restated (RFC 3339); an earlier period is not older. */
@@ -192,7 +193,7 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
   const liveSince = epochMs(config.liveSince);
   if (Number.isNaN(liveSince)) throw new Error(`self-report: liveSince is not a date-time ("${config.liveSince}")`);
 
-  const byMonth = config.wattsByMonth ?? {};
+  const byMonth = config.wattsByMonth;
   const measuredMonths = Object.keys(byMonth).sort();
   // One provider text for every period and granularity, so that the objects of
   // a trend agree and a year names the same publisher and method as its months.
@@ -200,16 +201,21 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
     measuredMonths.length === 0
       ? config.provider
       : `${config.provider}. Average power for ${measuredMonths.join(", ")} was entered by the operator from ` +
-        `the hosting platform's own metrics; every other month uses the ${config.watts} W assumption ` +
-        `(see methodology-uri)`;
-  const wattsFor = (month: string): number => byMonth[month] ?? config.watts;
+        `the hosting platform's own metrics; a month without an entry is not reported (see methodology-uri)`;
 
-  /** Watt-hours of a span: each month's hours inside the live window and the span, at that month's power. */
-  const wattHours = (span: Span, now: number): number => {
+  /**
+   * Watt-hours of a span: each month's hours inside the live window and the span,
+   * at that month's entered power; `undefined` when a month with hours has no entry.
+   */
+  const wattHours = (span: Span, now: number): number | undefined => {
     let sum = 0;
     for (let t = monthStart(span.start); t < span.end; t = monthStart(t, 1)) {
       const inside = { start: Math.max(t, span.start), end: Math.min(monthStart(t, 1), span.end) };
-      sum += overlapHours(inside, liveSince, now) * wattsFor(dateTimeOf(t).slice(0, 7));
+      const hours = overlapHours(inside, liveSince, now);
+      if (hours <= 0) continue;
+      const watts = byMonth[dateTimeOf(t).slice(0, 7)];
+      if (watts === undefined) return undefined;
+      sum += hours * watts;
     }
     return sum;
   };
@@ -232,6 +238,8 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
   /** One report for one period, via the published computed adapter. */
   const report = async (span: Span, now: number): Promise<RawMetrics | undefined> => {
     if (overlapHours(span, liveSince, now) <= 0) return undefined;
+    const energy = wattHours(span, now);
+    if (energy === undefined) return undefined;
     const period = periodOf(span);
     const inner = computedAdapter({
       provider: providerText,
@@ -240,7 +248,7 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
       period,
       // Watt-hours, not kWh: a measured day at a fraction of a watt is 0.3576 Wh,
       // which reads more plainly than 0.0003576 kWh; four significant figures either way.
-      energy: { value: significant(wattHours(span, now)), unit: "Wh" },
+      energy: { value: significant(energy), unit: "Wh" },
       gridIntensity: config.gridIntensity,
       carbonAccounting: "location-based",
       capabilities: "extended",
@@ -265,10 +273,12 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
       // representation, its ETag and its Last-Modified move in step.
       const now = startOfDay(clock().getTime());
       const asked = query.target !== undefined || query.start !== undefined || query.end !== undefined || query.granularity !== undefined;
+      // The spans held: those of the live window whose months are all entered.
+      const held = heldSpans(liveSince, now).filter((span) => wattHours(span, now) !== undefined);
 
       if (!asked) {
         // No parameter: the one current object.
-        const span = config.period ? { start: epochMs(config.period.start), end: epochMs(config.period.end) } : currentSpan(liveSince, now);
+        const span = config.period ? { start: epochMs(config.period.start), end: epochMs(config.period.end) } : currentSpan(held, now);
         const one = span && (await report(span, now));
         if (!one) throw new NotFoundError();
         return one;
@@ -279,7 +289,7 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
       const from = query.start === undefined ? -Infinity : epochMs(query.start);
       const to = query.end === undefined ? Infinity : epochMs(query.end);
       const reports: RawMetrics[] = [];
-      for (const span of heldSpans(liveSince, now)) {
+      for (const span of held) {
         if (!(span.start < to && span.end > from)) continue;
         const r = await report(span, now);
         if (r) reports.push(r);
@@ -290,18 +300,12 @@ export function selfReportAdapter(config: SelfReportConfig): SourceAdapter {
 }
 
 /**
- * The period of the request that names no parameter: the most recently
- * completed month once the gateway has been live for one; the go-live month so
- * far when that month began before go-live; else the newest object held.
+ * The span of the parameterless answer among the spans held: the latest whole
+ * calendar month (never the month in progress, nor the go-live month when it is
+ * not whole; a year ending with its December loses to the month). None before
+ * the first whole entered month: the request is then "no data".
  */
-function currentSpan(liveSince: number, now: number): Span | undefined {
-  const first = startOfDay(liveSince);
-  const month = lastFullMonthPeriod(new Date(now));
-  const span = { start: epochMs(month.start), end: epochMs(month.end) };
-  if (span.start >= first) return span;
-  // The month began before go-live: its object states the hours from the day the gateway went live.
-  if (span.end > first) return { start: first, end: span.end };
-  // Live for less than a month: the newest object held.
-  const held = heldSpans(liveSince, now);
-  return held.length > 0 ? held[held.length - 1] : undefined;
+function currentSpan(held: Span[], now: number): Span | undefined {
+  const months = held.filter((s) => s.end <= monthStart(now) && s.start === monthStart(s.start) && s.end === monthStart(s.start, 1));
+  return months.length > 0 ? months.reduce((best, s) => (s.end > best.end ? s : best)) : undefined;
 }

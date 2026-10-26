@@ -84,8 +84,8 @@ subject never carries a `signed` member of the declaration it copies).
 
 Instead of one period's figures, a credential can attest the **model** — the
 constants and formula that produce every document a publisher issues under it
-— so one credential covers many reporting periods and nothing needs re-issuing
-each month. This is not a copy of any single declaration object; it names the
+— so one credential covers many reporting periods; it is re-issued when the
+model's inputs change, such as when a month's power is entered. This is not a copy of any single declaration object; it names the
 inputs and the formula instead, and a consumer checks that a given declaration's
 figures follow from them. It is the shape `gateway/scripts/issue-attestation.mjs`
 issues for the reference gateway today.
@@ -96,10 +96,10 @@ issues for the reference gateway today.
   "id": "https://andreibesleaga.com/attestations/sustainability-data-gateway-2026.vc.jwt",
   "type": ["VerifiableCredential", "SustainabilityDataModelAttestation"],
   "issuer": "https://andreibesleaga.com",
-  "validFrom": "2026-09-15T10:00:00Z",
-  "validUntil": "2031-09-15T10:00:00Z",
+  "validFrom": "2026-10-26T10:00:00Z",
+  "validUntil": "2031-10-26T10:00:00Z",
   "name": "Attestation of the reporting model of the Sustainability Data Reference Gateway",
-  "description": "The issuer attests that the gateway's own /.well-known/sustainability-data document is derived by the model below, from the stated constants, for each reporting period since the gateway went live. The issuer and the gateway operator are the same person; this credential demonstrates the attestation mechanism of draft-besleaga-sustainability-wellknown and is not independent assurance.",
+  "description": "The issuer attests that the gateway's own /.well-known/sustainability-data document is derived by the model below, from the stated constants and the entered months, for each reporting period since the gateway went live. The issuer and the gateway operator are the same person; this credential demonstrates the attestation mechanism of draft-besleaga-sustainability-wellknown and is not independent assurance.",
   "credentialSubject": {
     "id": "https://sustainability.up.railway.app/.well-known/sustainability-data",
     "target": "sustainability-data-gateway",
@@ -108,13 +108,14 @@ issues for the reference gateway today.
     "methodology-uri": "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/METHODOLOGY.md",
     "live-since": "2026-07-30T00:00:00Z",
     "model": {
-      "constant-draw-watts": 3,
-      "grid-intensity-gCO2e-per-kWh": 373,
+      "entered-watts-by-month": { "2026-07": 0.0143, "2026-08": 0.0155, "2026-09": 0.0149, "2026-10": 0.0192 },
+      "grid-intensity-gCO2e-per-kWh": 245,
       "carbon-accounting": "location-based",
-      "reporting-period": "the most recently completed calendar month (parameterless); any period since live-since on request",
+      "period": "the latest entered whole calendar month for a request that names no parameter; on request, every whole day of the last 120 days, every whole month and year since live-since whose months are all entered, and the two partial months at the edges",
       "hours": "hours of the period inside [live-since, now)",
-      "energy-kWh": "constant-draw-watts × hours / 1000",
-      "carbon-gCO2e": "energy-kWh × grid-intensity-gCO2e-per-kWh"
+      "watts(month)": "entered-watts-by-month[month]; a month without an entry is not reported",
+      "energy-Wh": "sum over the period's months of watts(month) × that month's hours, to four significant figures",
+      "carbon-gCO2e": "energy-Wh / 1000 × grid-intensity-gCO2e-per-kWh"
     }
   }
 }
@@ -145,8 +146,8 @@ The hosted file is the compact serialization `BASE64URL(header).BASE64URL(creden
   **figures**: a copy of one declaration object, so a consumer compares it
   directly against the served (and, if present, verified) document for that
   period. Example 2 attests the **model** instead — the constants and the
-  formula that produce every monthly document, so one credential covers five
-  years of documents and nothing needs re-issuing; a consumer then checks that
+  formula that produce every monthly document, so one credential covers the
+  documents of five years and is re-issued only when an input changes; a consumer then checks that
   the served figures follow from the model rather than comparing an embedded
   copy.
 * **validFrom / validUntil** — the validity window (VC 2.0). A consumer treats

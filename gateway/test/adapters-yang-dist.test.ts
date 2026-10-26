@@ -6,7 +6,7 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Publisher, validateDocument, yearPeriod, type RawMetrics, type ServiceQuery, type SustainabilityMetrics } from "sustainability-wellknown-publisher";
+import { NotFoundError, Publisher, validateDocument, yearPeriod, type RawMetrics, type ServiceQuery, type SustainabilityMetrics } from "sustainability-wellknown-publisher";
 import { describe, expect, it } from "vitest";
 import { GWF_DIST_FIXTURE, distReplayAdapter, summarizeDist, type DistDocument } from "../src/adapters/dist";
 import { selfReportAdapter } from "../src/adapters/self-report";
@@ -129,8 +129,13 @@ describe("dist adapter", () => {
 describe("operator-entered monthly power for the self report", () => {
   const cfg = {
     target: "gw", provider: "op", methodologyUri: "https://example.com/m", disclosureUri: "https://example.com/d",
-    watts: 3, gridIntensity: 373, liveSince: "2026-07-30T00:00:00Z", clock: () => new Date("2026-11-15T00:00:00Z"),
+    gridIntensity: 373, liveSince: "2026-07-30T00:00:00Z", clock: () => new Date("2026-11-15T00:00:00Z"),
+    // Every month of the live window entered at 3 W; a test overrides what it needs.
+    wattsByMonth: { "2026-07": 3, "2026-08": 3, "2026-09": 3, "2026-10": 3, "2026-11": 3 },
   };
+  const THREE = cfg.wattsByMonth;
+  const single = async (wattsByMonth: Record<string, number>, clock = cfg.clock) =>
+    (await new Publisher(selfReportAdapter({ ...cfg, clock, wattsByMonth }), { normalize: { target: "gw" }, representation: "single" }).getDocument({})) as SustainabilityMetrics;
   /** The objects the self report holds that satisfy `query`, as the publisher selects them. */
   const held = async (wattsByMonth: Record<string, number>, query: ServiceQuery) => {
     const pub = new Publisher(selfReportAdapter({ ...cfg, wattsByMonth }), { normalize: { target: "gw" } });
@@ -142,20 +147,20 @@ describe("operator-entered monthly power for the self report", () => {
   const NEXT = "2026-10-01T00:00:00Z";
 
   it("uses the entered figure for its month only, and says so in one text shared by every period", async () => {
-    const months = await held({ "2026-09": 0.5 }, { granularity: "monthly" });
+    const months = await held({ ...THREE, "2026-09": 0.5 }, { granularity: "monthly" });
     const sep = at(months, MONTH, NEXT);
     expect([sep["energy-consumption"], sep["energy-unit"]]).toEqual([360, "Wh"]); // 0.5 W x 720 h
-    expect(sep.provider).toMatch(/Average power for 2026-09 was entered by the operator/);
-    expect(sep.provider).toMatch(/every other month uses the 3 W assumption/);
+    expect(sep.provider).toMatch(/Average power for 2026-07, 2026-08, 2026-09, 2026-10, 2026-11 was entered by the operator/);
+    expect(sep.provider).toMatch(/a month without an entry is not reported/);
     const oct = at(months, NEXT, "2026-11-01T00:00:00Z");
     expect(oct["energy-consumption"]).toBe(2232); // 3 W x 744 h, unchanged
     // The same text for every period, so a trend is uniform and a year agrees with its months.
     expect(oct.provider).toBe(sep.provider);
-    expect(new Set((await held({ "2026-09": 0.5 }, { target: "gw" })).map((d) => d.provider)).size).toBe(1);
+    expect(new Set((await held({ ...THREE, "2026-09": 0.5 }, { target: "gw" })).map((d) => d.provider)).size).toBe(1);
   });
 
   it("a day takes its month's figure, an edge month counts its own hours, and the days add up to the month", async () => {
-    const all = await held({ "2026-09": 0.5 }, { target: "gw" });
+    const all = await held({ ...THREE, "2026-09": 0.5 }, { target: "gw" });
     expect(at(all, "2026-09-10T00:00:00Z", "2026-09-11T00:00:00Z")["energy-consumption"]).toBe(12); // 0.5 W x 24 h
     // 30 July to the end of the month at 3 W, and 1 to 15 November so far.
     expect(at(all, "2026-07-30T00:00:00Z", "2026-08-01T00:00:00Z")["energy-consumption"]).toBe(144);
@@ -176,6 +181,45 @@ describe("operator-entered monthly power for the self report", () => {
     expect(days[0]["energy-consumption"]).toBe(0.3576);
     const sum = days.reduce((s, d) => s + d["energy-consumption"]!, 0);
     expect(Math.abs(sum - month["energy-consumption"]!) / month["energy-consumption"]!).toBeLessThan(0.001);
+  });
+
+  it("holds nothing for a month without an entry: no object, an empty range, and the latest entered whole month as the parameterless answer", async () => {
+    const entered = { "2026-07": 3, "2026-08": 3, "2026-09": 0.5 }; // October and November not entered
+    const all = await held(entered, { target: "gw" });
+    expect(all.length).toBeGreaterThan(0);
+    expect(all.every((d) => d.period.end <= NEXT)).toBe(true);
+    expect(all.some((d) => d.period.start === "2026-07-30T00:00:00Z")).toBe(true);
+    expect(await held(entered, { start: NEXT, end: "2026-12-01T00:00:00Z" })).toEqual([]);
+    const one = await single(entered);
+    expect(one.period).toEqual({ start: MONTH, end: NEXT }); // September: the latest entered whole month, not October
+    expect(one["energy-consumption"]).toBe(360);
+  });
+
+  it("holds a whole year only when every one of its months is entered, and answers the month rather than the year", async () => {
+    const clock = () => new Date("2028-01-10T00:00:00Z");
+    const full: Record<string, number> = {};
+    for (let m = 7; m <= 12; m += 1) full[`2026-${String(m).padStart(2, "0")}`] = 3;
+    for (let m = 1; m <= 12; m += 1) full[`2027-${String(m).padStart(2, "0")}`] = 3;
+    const year = { start: "2027-01-01T00:00:00Z", end: "2028-01-01T00:00:00Z" };
+    const yearly = async (wattsByMonth: Record<string, number>) =>
+      (await new Publisher(selfReportAdapter({ ...cfg, clock, wattsByMonth }), { normalize: { target: "gw" } }).getDocument({ granularity: "yearly" })) as SustainabilityMetrics[];
+    expect((await yearly(full)).map((d) => d.period)).toEqual([year]);
+    const { "2027-12": _december, ...noDecember } = full;
+    expect(await yearly(noDecember)).toEqual([]);
+    expect((await single(full, clock)).period).toEqual({ start: "2027-12-01T00:00:00Z", end: "2028-01-01T00:00:00Z" });
+  });
+
+  it("answers the parameterless request with no data while only the month in progress is entered, and still holds its days", async () => {
+    const clock = () => new Date("2026-10-26T00:00:00Z");
+    const october = { "2026-10": 0.0192 };
+    await expect(single(october, clock)).rejects.toThrow(NotFoundError);
+    const days = (await new Publisher(selfReportAdapter({ ...cfg, clock, wattsByMonth: october }), { normalize: { target: "gw" } }).getDocument({ granularity: "daily" })) as SustainabilityMetrics[];
+    expect(days.map((d) => d.period.start.slice(0, 10))).toEqual([...Array(25).keys()].map((i) => `2026-10-${String(i + 1).padStart(2, "0")}`));
+  });
+
+  it("holds nothing before the first entry: the parameterless request is 'no data' and a query is the empty array", async () => {
+    await expect(single({})).rejects.toThrow(NotFoundError);
+    expect(await held({}, { target: "gw" })).toEqual([]);
   });
 
   it("states a restatement or entry as `updated`, never later than the evaluation day", async () => {

@@ -484,7 +484,7 @@ describe("a query route (an Extended subject with a range)", () => {
   });
 });
 
-describe("self-report month rollover (this deployment: most recently completed month)", () => {
+describe("self-report month rollover (this deployment: the latest entered whole month)", () => {
   it("regenerates the unpinned self report when the month rolls over", async () => {
     const { loadConfig } = await import("../src/config");
     const { createGateway, route } = await import("../src/app");
@@ -495,6 +495,7 @@ describe("self-report month rollover (this deployment: most recently completed m
     config.self.liveSince = "2026-01-01T00:00:00Z";
     // NOT pinning config.self.period: this test is about the default path.
     config.self.measured = false;
+    config.self.wattsByMonth = Object.fromEntries([...Array(12).keys()].map((m) => [`2026-${String(m + 1).padStart(2, "0")}`, 3]));
     const gw = await createGateway({
       config,
       log: () => undefined,

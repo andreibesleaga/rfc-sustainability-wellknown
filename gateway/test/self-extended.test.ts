@@ -323,11 +323,13 @@ describe("the same report with the clock moved", () => {
     }
   });
 
-  it("a gateway live for part of its first month holds that month so far, as the parameterless answer", async () => {
+  it("a gateway live for part of its first month holds that month so far, but answers the parameterless request with no data until a whole month is entered", async () => {
     const srv = await startGateway({ now: new Date("2026-08-05T12:00:00Z") });
     try {
-      const doc = await (await fetch(`${srv.base}${SELF}`)).json();
-      // July is the last completed month, and the gateway was live for two days of it.
+      expect((await fetch(`${srv.base}${SELF}`)).status).toBe(404);
+      // July is held for a query: the gateway was live for two days of it.
+      const held = await (await fetch(`${srv.base}${SELF}?end=2026-08-01T00:00:00Z`)).json();
+      const doc = held.find((o: { period: Period }) => o.period.start === "2026-07-30T00:00:00Z" && o.period.end === "2026-08-01T00:00:00Z");
       expect(doc.period).toEqual({ start: "2026-07-30T00:00:00Z", end: "2026-08-01T00:00:00Z" });
       expect(doc["energy-consumption"]).toBe(144);
     } finally {
@@ -381,6 +383,23 @@ describe("a gateway less than one day past go-live", () => {
       }
       expect((await fetch(`${srv.base}/index.json`)).status).toBe(200);
       expect((await fetch(`${srv.base}/healthz`)).status).toBe(200);
+    } finally {
+      await srv.close();
+    }
+  });
+});
+
+describe("a month without an entered figure", () => {
+  it("is not held: the parameterless answer is the latest entered whole month, and a range over it is []", async () => {
+    // July and August entered, September and October not: at the fixed clock (17 Oct) the current report is August.
+    const srv = await startGateway({ wattsByMonth: { "2026-07": 3, "2026-08": 3 } });
+    try {
+      const doc = await (await fetch(`${srv.base}${SELF}`)).json();
+      expect(doc.period).toEqual({ start: "2026-08-01T00:00:00Z", end: "2026-09-01T00:00:00Z" });
+      expect(doc.provider).toMatch(/a month without an entry is not reported/);
+      expect(await (await fetch(`${srv.base}${SELF}?start=2026-09-01T00:00:00Z`)).json()).toEqual([]);
+      const held = await (await fetch(`${srv.base}${SELF}?target=sustainability-data-gateway`)).json();
+      expect(held.every((o: { period: Period }) => o.period.end <= "2026-09-01T00:00:00Z")).toBe(true);
     } finally {
       await srv.close();
     }

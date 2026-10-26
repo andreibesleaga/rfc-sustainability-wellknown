@@ -186,7 +186,7 @@ When("the consumer retrieves the gateway's credential", async function () {
 
 Then("the credential subject carries the derivation model, its constants and formulas, and the entered months", function () {
   const model = mine(this).payload.credentialSubject.model;
-  for (const constant of ["constant-draw-watts", "grid-intensity-gCO2e-per-kWh"]) assert.equal(typeof model[constant], "number", `the model has no ${constant}`);
+  assert.equal(typeof model["grid-intensity-gCO2e-per-kWh"], "number", "the model has no grid-intensity-gCO2e-per-kWh");
   for (const formula of ["energy-Wh", "carbon-gCO2e"]) assert.equal(typeof model[formula], "string", `the model has no formula ${formula}`);
   const months = model["entered-watts-by-month"];
   assert.ok(months && Object.keys(months).length > 0, "the credential states no entered month");

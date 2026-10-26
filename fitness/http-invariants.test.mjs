@@ -35,6 +35,8 @@ before(async () => {
     signingKeyJwk: JSON.stringify(await publisher.exportPrivateJwk(key)),
   });
   config.self.measured = false;
+  // 3 W entered for every month from go-live: a month without an entry is not reported.
+  config.self.wattsByMonth = Object.fromEntries([...Array(15).keys()].flatMap((i) => [...Array(12).keys()].map((m) => [`${2026 + i}-${String(m + 1).padStart(2, "0")}`, 3])).filter(([k]) => k >= "2026-07"));
   gw = await app.createGateway({ config, log: () => undefined, now: NOW, clock: () => NOW, fetchImpl: null, env: {} });
   await new Promise((r) => gw.server.listen(0, "127.0.0.1", r));
   base = `http://127.0.0.1:${gw.server.address().port}`;

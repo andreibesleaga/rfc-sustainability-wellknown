@@ -19,7 +19,8 @@ describe("self-report adapter (computedAdapter)", () => {
       methodologyUri: "https://example.com/methodology",
       disclosureUri: "https://example.com/disclosures",
       period,
-      watts: 3,
+      // 3 W entered for every month the pinned periods touch.
+      wattsByMonth: Object.fromEntries([...Array(15).keys()].map((i) => [`${2025 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`, 3])),
       gridIntensity: 373,
       liveSince: "2020-01-01T00:00:00Z",
       clock: () => new Date("2026-03-10T00:00:00Z"),

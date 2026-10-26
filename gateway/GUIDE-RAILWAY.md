@@ -119,8 +119,8 @@ default; set them under **Variables** (dashboard) or with
 | `SELF_PROVIDER` | `Andrei Besleaga, operator of this reference gateway` | `provider` of the gateway's own report. Use a role address. |
 | `SELF_METHODOLOGY_URI` | this repo's `gateway/METHODOLOGY.md` on GitHub | **Must resolve publicly.** Point it at wherever you actually publish `METHODOLOGY.md`. |
 | `SELF_DISCLOSURE_URI` | this repo's `gateway/` on GitHub | Disclosure index for the gateway. |
-| `SELF_PERIOD_START`, `SELF_PERIOD_END` | last completed calendar month | Pin the period of the gateway's own answer to a request that names no parameter; UTC date-times such as `2026-09-01T00:00:00Z`, set together. |
-| `SELF_WATTS` | `3` | Modelled average container power draw. |
+| `SELF_PERIOD_START`, `SELF_PERIOD_END` | latest entered whole calendar month | Pin the period of the gateway's own answer to a request that names no parameter; UTC date-times such as `2026-09-01T00:00:00Z`, set together. |
+| `data/_self-measured.json` | the entered months | Not a variable: the average power per month, entered with `scripts/self-watts.mjs` from the platform's usage metrics. A month without an entry is not reported (`METHODOLOGY.md`). |
 | `SELF_GRID_INTENSITY` | `245` | gCO2e/kWh: the Netherlands, 2024 (EEA). Set your service's region. Cited in `METHODOLOGY.md`. |
 | `SELF_LIVE_SINCE` | `2026-07-30T00:00:00Z` | When this gateway went live; the self model counts no hours before it. |
 | `SELF_MODEL_CHANGED_AT` | `2026-10-02T00:00:00Z` | When the self model's figures were last restated; earlier complete periods state it as `updated`. |

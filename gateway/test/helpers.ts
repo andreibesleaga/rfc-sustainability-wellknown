@@ -35,11 +35,18 @@ export interface StartOptions {
   baseUrl?: string;
   /** Directory of the subject files; default is the gateway's own data directory. */
   dataDir?: string;
+  /** The self report's entered average power per month; default {@link TEST_WATTS}. */
+  wattsByMonth?: Record<string, number>;
   /** Directory of the wire-format example files; default is the gateway's own examples directory. */
   examplesDir?: string;
   /** The validator's dependencies; unset disables it (tests never reach the network). */
   validator?: import("../src/validate").ValidatorDeps | null;
 }
+
+/** 3 W entered for every month from go-live (July 2026) to the end of 2040, as far as any suite moves the clock: independent of the operator's file. */
+export const TEST_WATTS: Record<string, number> = Object.fromEntries(
+  [...Array(15).keys()].flatMap((i) => [...Array(12).keys()].map((m) => [`${2026 + i}-${String(m + 1).padStart(2, "0")}`, 3])).filter(([k]) => k >= "2026-07"),
+);
 
 export async function startGateway(opts: StartOptions = {}): Promise<TestServer> {
   const config = loadConfig({
@@ -60,6 +67,7 @@ export async function startGateway(opts: StartOptions = {}): Promise<TestServer>
   // The model tests must not depend on the operator's entered monthly figures
   // (data/_self-measured.json); those have their own tests.
   config.self.measured = false;
+  config.self.wattsByMonth = opts.wattsByMonth ?? TEST_WATTS;
   config.self.verifiableAttestationUri = opts.attestationUri;
   // fetchImpl: null — live upstreams are DISABLED in tests; every adapter
   // demonstration boots from its recorded fixture (deterministic, offline).

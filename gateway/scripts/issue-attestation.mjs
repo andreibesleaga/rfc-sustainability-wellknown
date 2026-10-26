@@ -10,9 +10,9 @@
  *        --issuer https://andreibesleaga.com --gateway https://sustainability.up.railway.app --out ...
  *   node scripts/issue-attestation.mjs --declaration served.json --out attestation.vc.jwt
  *
- * The credential attests the model (constants and formula), valid for five
- * years, so every monthly declaration derived from it is covered and nothing
- * needs re-issuing. It says, in its own description, that the issuer and the
+ * The credential attests the model (constants, entered months and formula),
+ * valid for five years; it is re-issued when a month is entered, so that every
+ * declaration derived from it is covered. It says, in its own description, that the issuer and the
  * gateway operator are the same person: the credential demonstrates the
  * mechanism of draft-besleaga-sustainability-wellknown and is not
  * independent assurance.
@@ -56,7 +56,6 @@ export const DEFAULTS = {
   target: "sustainability-data-gateway",
   methodologyUri:
     "https://github.com/andreibesleaga/rfc-sustainability-wellknown/blob/main/gateway/METHODOLOGY.md",
-  watts: 3,
   // Netherlands 2024, European Environment Agency ENER038 (CC BY 4.0); see METHODOLOGY.md.
   gridIntensity: 245,
   // Average power per month entered from the host's usage metrics; read from
@@ -98,7 +97,7 @@ export function buildCredential(opts = {}) {
     name: "Attestation of the reporting model of the Sustainability Data Reference Gateway",
     description:
       "The issuer attests that the gateway's own /.well-known/sustainability-data declaration is " +
-      "derived by the model below, from the stated constants, for each reporting period since " +
+      "derived by the model below, from the stated constants and the entered months, for each reporting period since " +
       "the gateway went live. The issuer and the gateway operator are the same person; this " +
       "credential demonstrates the attestation mechanism of " +
       "draft-besleaga-sustainability-wellknown and is not independent assurance.",
@@ -113,15 +112,14 @@ export function buildCredential(opts = {}) {
       // without `signed`. Absent unless the caller passed one.
       ...(o.declaration ? { declaration: declarationCopy(o.declaration) } : {}),
       model: {
-        "constant-draw-watts": o.watts,
         // Months whose average power the operator entered from the host's metrics;
-        // every other month uses constant-draw-watts.
+        // a month without an entry is not reported.
         "entered-watts-by-month": o.wattsByMonth ?? {},
         "grid-intensity-gCO2e-per-kWh": o.gridIntensity,
         "carbon-accounting": "location-based",
-        "period": "the most recently completed calendar month for a request that names no parameter; on request, every whole day of the last 120 days and every whole month and year since live-since, and the two partial months at the edges",
+        "period": "the latest entered whole calendar month for a request that names no parameter; on request, every whole day of the last 120 days, every whole month and year since live-since whose months are all entered, and the two partial months at the edges",
         "hours": "hours of the period inside [live-since, now)",
-        "watts(month)": "entered-watts-by-month[month] when present, else constant-draw-watts",
+        "watts(month)": "entered-watts-by-month[month]; a month without an entry is not reported",
         "energy-Wh": "sum over the period's months of watts(month) × that month's hours, to four significant figures",
         "carbon-gCO2e": "energy-Wh / 1000 × grid-intensity-gCO2e-per-kWh",
       },
@@ -166,7 +164,6 @@ function parseArgs(argv) {
     else if (a === "--gateway") out.gateway = take();
     else if (a === "--target") out.target = take();
     else if (a === "--methodology-uri") out.methodologyUri = take();
-    else if (a === "--watts") out.watts = takeNumber();
     else if (a === "--measured") out.measuredFile = take();
     else if (a === "--grid-intensity") out.gridIntensity = takeNumber();
     else if (a === "--live-since") out.liveSince = take();

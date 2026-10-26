@@ -185,7 +185,7 @@ describe("with a key and an attestation URI", () => {
     const { loadConfig } = await import("../src/config");
     const { createGateway, route } = await import("../src/app");
     const { DATA_DIR } = await import("./helpers");
-    let nowMs = Date.parse("2026-08-15T12:00:00Z");
+    let nowMs = Date.parse("2026-09-02T12:00:00Z");
     const config = loadConfig({
       port: 0,
       host: "127.0.0.1",
@@ -194,6 +194,8 @@ describe("with a key and an attestation URI", () => {
       signingKeyJwk: JSON.stringify(await exportPrivateJwk(await generateSigningKey("ES256"))),
     });
     config.rateLimit.perMinute = 0;
+    config.self.measured = false;
+    config.self.wattsByMonth = { "2026-07": 3, "2026-08": 3, "2026-09": 3, "2026-10": 3 };
     const gw = await createGateway({
       config,
       log: () => undefined,
@@ -203,13 +205,12 @@ describe("with a key and an attestation URI", () => {
       env: {},
       validator: null,
     });
-    config.self.measured = false;
     const d1 = JSON.parse((await route(gw, "GET", SELF)).body);
-    expect(d1.period).toEqual({ start: "2026-07-30T00:00:00Z", end: "2026-08-01T00:00:00Z" }); // the gateway went live on 30 July
+    expect(d1.period).toEqual({ start: "2026-08-01T00:00:00Z", end: "2026-09-01T00:00:00Z" }); // the first whole month after go-live (30 July)
     expect((await verifyEmbeddedSignature(d1)).result).toMatchObject({ status: "verified", alg: "ES256" });
-    nowMs = Date.parse("2026-09-02T00:00:00Z");
+    nowMs = Date.parse("2026-10-02T00:00:00Z");
     const d2 = JSON.parse((await route(gw, "GET", SELF)).body);
-    expect(d2.period).toEqual({ start: "2026-08-01T00:00:00Z", end: "2026-09-01T00:00:00Z" });
+    expect(d2.period).toEqual({ start: "2026-09-01T00:00:00Z", end: "2026-10-01T00:00:00Z" });
     expect(d2.signed).not.toBe(d1.signed);
     expect((await verifyEmbeddedSignature(d2)).result).toMatchObject({ status: "verified" });
     // The older signature does not cover the newer declaration.

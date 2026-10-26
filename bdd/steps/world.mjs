@@ -393,6 +393,8 @@ export async function startGateway(options = {}) {
   });
   if (options.selfPeriod) config.self.period = options.selfPeriod;
   config.self.measured = false;
+  // 3 W entered for every month the scenarios' clocks reach: a month without an entry is not reported.
+  config.self.wattsByMonth = Object.fromEntries([...Array(15).keys()].flatMap((i) => [...Array(12).keys()].map((m) => [`${2026 + i}-${String(m + 1).padStart(2, "0")}`, 3])).filter(([k]) => k >= "2026-07"));
   config.self.verifiableAttestationUri = options.attestationUri ?? "https://attestation.example.com/gateway-model.vc.jwt";
   const handle = { now: options.now ?? GATEWAY_NOW, setNow(date) { handle.now = date; } };
   // The rate-limit library reads Date.now() itself, so a limited gateway gets a scoped override that follows

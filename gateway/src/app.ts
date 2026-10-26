@@ -68,7 +68,7 @@ export interface Gateway {
   self: Subject;
   /**
    * Returns the self subject for the CURRENT reporting period. This
-   * deployment's parameterless report is the most recently completed month
+   * deployment's parameterless report is the latest entered whole calendar month
    * (the draft leaves the choice to the publisher), so when the month rolls over (and
    * no fixed SELF_PERIOD is pinned) the self report is regenerated instead of
    * freezing at whatever month the process booted in.
@@ -457,8 +457,9 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
 
   // ---- Worked adapter example #1: the gateway's own report, produced by the
   // published `computedAdapter` rather than hand-written. ----
-  const selfMeasured = config.self.measured ? loadSelfMeasured(config.dataDir) : {};
-  const selfEnteredAt = config.self.measured ? loadSelfEnteredAt(config.dataDir) : {};
+  const fromFile = config.self.wattsByMonth === undefined && config.self.measured;
+  const selfMeasured = config.self.wattsByMonth ?? (fromFile ? loadSelfMeasured(config.dataDir) : {});
+  const selfEnteredAt = fromFile ? loadSelfEnteredAt(config.dataDir) : {};
   const selfAdapter = (period: Period | undefined) =>
     selfReportAdapter({
       target: config.self.target,
@@ -466,7 +467,6 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
       methodologyUri: config.self.methodologyUri,
       disclosureUri: config.self.disclosureUri,
       period,
-      watts: config.self.watts,
       wattsByMonth: selfMeasured,
       enteredAtByMonth: selfEnteredAt,
       gridIntensity: config.self.gridIntensity,
@@ -530,7 +530,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     env: opts.env ?? process.env,
     now: () => opts.now ?? clock(),
   });
-  const specs: LiveSpec[] = demoSpecs({ config, crawlBytes, wattsByMonth: selfMeasured });
+  const specs: LiveSpec[] = demoSpecs({ config, crawlBytes, wattsByMonth: selfMeasured, now: opts.now ?? clock() });
   for (const spec of specs) {
     if (subjects.has(spec.domain)) {
       throw new Error(`gateway: ${spec.domain} is both a data file and an adapter demo`);
@@ -595,7 +595,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
   let indexJson = JSON.stringify(index, null, 2) + "\n";
 
   // The self report names a reporting period; with no pinned SELF_PERIOD that
-  // default is the last completed month, which goes stale in a long-lived
+  // default is the latest entered whole month, which goes stale in a long-lived
   // process. Regenerate lazily on the first request after a month rolls over.
   // (The index is period-independent — it carries only the self path/target —
   // so only the subject itself is rebuilt.)

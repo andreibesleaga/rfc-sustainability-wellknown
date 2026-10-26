@@ -14,7 +14,7 @@ import { demoSpecs, NESO_FIXTURE_INTENSITY } from "../src/adapters/demo-specs";
 import { loadConfig } from "../src/config";
 import { WIRE_CASES } from "../src/examples";
 import { LiveRegistry } from "../src/live";
-import { startGateway, type TestServer } from "./helpers";
+import { startGateway, TEST_WATTS, type TestServer } from "./helpers";
 
 const EXAMPLES_DIR = resolve(__dirname, "..", "examples");
 const CANONICAL_DIR = resolve(__dirname, "..", "..", "example-responses");
@@ -433,7 +433,7 @@ describe("live mode with an injected upstream", () => {
       env: {},
       now: () => FIXED,
     });
-    const grid = demoSpecs({ config, crawlBytes: 100_000 }).find(
+    const grid = demoSpecs({ config, crawlBytes: 100_000, wattsByMonth: TEST_WATTS, now: FIXED }).find(
       (s) => s.domain === "grid-intensity-demo.example",
     )!;
     await reg.init([grid]);
@@ -453,7 +453,7 @@ describe("live mode with an injected upstream", () => {
       throw new Error("connect ECONNREFUSED");
     }) as unknown as typeof fetch;
     const reg = new LiveRegistry({ fetchImpl: failing, env: {}, now: () => FIXED });
-    const grid = demoSpecs({ config, crawlBytes: 100_000 }).find(
+    const grid = demoSpecs({ config, crawlBytes: 100_000, wattsByMonth: TEST_WATTS, now: FIXED }).find(
       (s) => s.domain === "grid-intensity-demo.example",
     )!;
     await reg.init([grid]);
@@ -475,7 +475,7 @@ describe("live mode with an injected upstream", () => {
       return nesoFetch(intensity)(input, init);
     }) as typeof fetch;
     const reg = new LiveRegistry({ fetchImpl, env: {}, now: () => FIXED });
-    const grid = demoSpecs({ config, crawlBytes: 100_000 }).find(
+    const grid = demoSpecs({ config, crawlBytes: 100_000, wattsByMonth: TEST_WATTS, now: FIXED }).find(
       (s) => s.domain === "grid-intensity-demo.example",
     )!;
     await reg.init([grid]);

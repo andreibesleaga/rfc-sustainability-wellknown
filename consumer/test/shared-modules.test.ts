@@ -79,5 +79,6 @@ describe("calendar and instant arithmetic lives in period.ts", () => {
     );
     expect(declarations).toContain("export declare function parsePeriod");
     expect(declarations).not.toMatch(/Temporal/);
-  });
+    // The TypeScript compiler runs in-process: seconds on a loaded machine, so the default 5 s is not enough.
+  }, 60_000);
 });

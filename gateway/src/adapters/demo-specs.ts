@@ -44,7 +44,7 @@ import {
   watershedAdapter,
   type SourceAdapter,
 } from "sustainability-wellknown-publisher";
-import { compareDateTimes, lastFullMonthPeriod, yearPeriod, type Period, type RawMetrics } from "sustainability-wellknown-publisher";
+import { compareDateTimes, lastFullMonthPeriod, monthPeriod, yearPeriod, type Period, type RawMetrics } from "sustainability-wellknown-publisher";
 import { PUBLIC_BASE_URL, type GatewayConfig } from "../config";
 import type { LiveDeps, LiveSpec } from "../live";
 import { SFC_LEDGER_DEMO_DOMAIN, deepCheck, sfcLedgerBridgeAdapter, shallowCheck } from "./sfc-ledger-bridge";
@@ -57,7 +57,7 @@ import {
   YANG_FIXTURE_START,
   yangPowerEnergyReplayAdapter,
 } from "./yang-power-energy";
-import { dateTimeOf, monthKey, periodHours, startOfDay } from "./self-report";
+import { dateTimeOf, periodHours, startOfDay } from "./self-report";
 
 /**
  * Stamp a deterministic `updated` on whatever the adapter produces (the close
@@ -141,8 +141,9 @@ function gridDemoAdapter(
   retrievedAt: string,
   wattsByMonth: Record<string, number> = {},
 ): SourceAdapter {
-  const period = lastFullMonthPeriod(deps.now());
-  const kwh = gatewayMonthKwh(config, wattsByMonth, period);
+  const latest = gatewayLatestMonth(config, wattsByMonth, deps.now());
+  if (!latest) return noEnteredMonth("grid-intensity demo");
+  const { period, kwh } = latest;
   return withUpdated(
     computedAdapter({
     provider:
@@ -279,9 +280,10 @@ export const CLIMATIQ_FIXTURE = {
   },
 };
 
-function climatiqDemoAdapter(config: GatewayConfig, deps: LiveDeps, apiKey?: string): SourceAdapter {
-  const period = lastFullMonthPeriod(deps.now());
-  const kwh = (config.self.watts * periodHours(period)) / 1000;
+function climatiqDemoAdapter(config: GatewayConfig, deps: LiveDeps, wattsByMonth: Record<string, number>, apiKey?: string): SourceAdapter {
+  const latest = gatewayLatestMonth(config, wattsByMonth, deps.now());
+  if (!latest) return noEnteredMonth("climatiq demo");
+  const { period, kwh } = latest;
   const live = apiKey !== undefined;
   return withUpdated(
     climatiqAdapter({
@@ -437,20 +439,48 @@ export interface DemoSpecOptions {
   crawlBytes: number;
   /** Operator-entered average power per month (data/_self-measured.json), as the self report uses it. */
   wattsByMonth?: Record<string, number>;
+  /** The boot instant: the demos that state the gateway's own energy are served only once a whole entered month exists. */
+  now?: Date;
 }
 
-/** This gateway's energy for a calendar month, by the same rule as its self report. */
-function gatewayMonthKwh(config: GatewayConfig, wattsByMonth: Record<string, number>, period: Period): number {
-  const watts = wattsByMonth[monthKey(period.start)] ?? config.self.watts;
-  return Number(((watts * periodHours(period)) / 1000).toPrecision(4));
+/**
+ * This gateway's energy for the latest whole calendar month whose power the
+ * operator entered, by the same rule as its self report; `undefined` before
+ * the first entry.
+ */
+function gatewayLatestMonth(config: GatewayConfig, wattsByMonth: Record<string, number>, now: Date): { period: Period; kwh: number } | undefined {
+  const complete = lastFullMonthPeriod(now).end;
+  for (const month of Object.keys(wattsByMonth).sort().reverse()) {
+    const [y, m] = month.split("-").map(Number);
+    const period = monthPeriod(y, m);
+    // A whole month that has ended and that the gateway was live for from its first day.
+    if (period.end > complete || compareDateTimes(period.start, config.self.liveSince) < 0) continue;
+    return { period, kwh: Number(((wattsByMonth[month] * periodHours(period)) / 1000).toPrecision(4)) };
+  }
+  return undefined;
+}
+
+/** A demo that needs the gateway's own monthly energy, reached without a whole entered month: it fails by name. */
+function noEnteredMonth(demo: string): SourceAdapter {
+  return {
+    name: "no-entered-month",
+    capabilities: "basic",
+    async fetch() {
+      throw new Error(`${demo}: the self report has no entered month yet (node scripts/self-watts.mjs <YYYY-MM> ...)`);
+    },
+  };
 }
 
 export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
   const { config, crawlBytes } = opts;
   const wattsByMonth = opts.wattsByMonth ?? {};
   const greencheckDomain = config.baseUrl ? new URL(config.baseUrl).hostname : undefined;
+  // The grid-intensity and Climatiq demos state this gateway's energy for its latest entered month:
+  // without one they are not served (a month without an entry is not reported).
+  const ownEnergy = gatewayLatestMonth(config, wattsByMonth, opts.now ?? new Date()) !== undefined;
+  const needsOwnEnergy = new Set(["grid-intensity-demo.example", "climatiq-demo.example"]);
 
-  return [
+  const specs: LiveSpec[] = [
     {
       // The package's kepler-prometheus adapter against a recorded Prometheus
       // response. Replay-only: no publicly queryable Prometheus with Kepler
@@ -585,7 +615,7 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       // Replay only, even when CLIMATIQ_API_KEY is set: Climatiq's terms restrict
       // redistribution, and this deployment publishes only what a licence lets
       // it republish. The adapter itself runs live for a licensed operator.
-      fixture: (deps) => climatiqDemoAdapter(config, deps),
+      fixture: (deps) => climatiqDemoAdapter(config, deps, wattsByMonth),
       labelLive: "adapter:climatiq",
       labelFixture: "adapter:climatiq (synthetic response in Climatiq's documented shape, replay)",
       upstream: "Climatiq estimate API (replay only here: its terms restrict redistribution)",
@@ -740,4 +770,5 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
       },
     },
   ];
+  return specs.filter((spec) => ownEnergy || !needsOwnEnergy.has(spec.domain));
 }

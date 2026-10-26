@@ -168,13 +168,17 @@ export interface GatewayConfig {
     disclosureUri: string;
     /**
      * The `period` of the gateway's own report for a request that names no
-     * parameter. Default: the most recently completed full calendar month.
+     * parameter. Default: the latest whole calendar month whose power was entered.
      * Pinning it (`SELF_PERIOD_START` and `SELF_PERIOD_END`, together) makes
      * the document byte-stable, which is what tests do.
      */
     period?: Period;
-    /** Modelled average power draw of the gateway container, in watts. */
-    watts: number;
+    /**
+     * The entered average power per month, given in code: the suites and an
+     * embedding use it instead of `data/_self-measured.json`. A month without
+     * an entry is not reported.
+     */
+    wattsByMonth?: Record<string, number>;
     /** Read the operator's monthly figures from data/_self-measured.json (default true). */
     measured: boolean;
     /** Grid carbon intensity used for the estimate, gCO2e/kWh. */
@@ -255,7 +259,6 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
         "https://github.com/andreibesleaga/rfc-sustainability-wellknown/tree/main/gateway",
       ),
       period: envPeriod("SELF_PERIOD"),
-      watts: envNum("SELF_WATTS", 3),
       measured: true,
       gridIntensity: envNum("SELF_GRID_INTENSITY", 245),
       liveSince: envInstant("SELF_LIVE_SINCE", "2026-07-30T00:00:00Z"),

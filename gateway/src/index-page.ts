@@ -332,7 +332,7 @@ export function liveRequests(doc: IndexDocument): LiveRequest[] {
   // tenant-demo.example is the worked upstream pair of the specification's own example; prefer it, whatever the registry order.
   const downstream = withUpstream.find((s) => s.domain === "tenant-demo.example") ?? withUpstream[0];
   const out: LiveRequest[] = [
-    { href: self.path, what: "the gateway's own report, parameterless", expect: "200, one object: the most recently completed month" },
+    { href: self.path, what: "the gateway's own report, parameterless", expect: "200, one object: the latest whole month whose power was entered" },
     { href: goLiveMonth, what: "Extended: a range, the month of go-live", expect: "200, an array: the objects held that overlap the range, ascending" },
     { href: monthly, what: "Extended: granularity alone", expect: "200, an array: every whole month held" },
     { href: daily, what: "Extended: the days", expect: "200, an array: the most recent whole days held" },
@@ -754,8 +754,8 @@ ${doc["wire-format-examples"].entries.map(exampleRow).join("\n")}
 <p>At <a href="${escapeHtml(doc.self.path)}"><code>${escapeHtml(doc.self.path)}</code></a>
 (<code>target</code> <code>${bdi(doc.self.target)}</code>). <strong>A model, not a measurement</strong>
 (<code>third-party-modeled</code>): average power × hours live × a cited grid intensity. Power is
-a fixed assumption, except months the operator entered from the host's usage metrics, which the
-report's <code>provider</code> field lists. Every constant is in the
+the average the operator entered for each month from the host's usage metrics, listed in the
+report's <code>provider</code> field; a month without an entry is not reported. Every constant is in the
 <a href="${REPO_DOCS}/gateway/METHODOLOGY.md" rel="noopener noreferrer">methodology</a>.</p>
 <ul>
 <li><strong>Queries (Extended service).</strong> <code>start</code> and <code>end</code> = a UTC date-time
@@ -799,8 +799,7 @@ ${
 <a href="${escapeHtml(doc.self.attestation.uri)}" rel="noopener noreferrer"><code>${escapeHtml(doc.self.attestation.uri)}</code></a>
 (<code>verifiable-attestation-uri</code>): a W3C Verifiable Credential 2.0 (<code>vc+jwt</code>,
 five years) attesting the <em>model</em>: its constants and the months with entered power, by
-name. A new month on the assumed power needs no new credential; the credential is re-issued
-whenever an entered month or a constant changes. <strong>Operator and issuer are the same
+name. The credential is re-issued whenever a month is entered or a constant changes. <strong>Operator and issuer are the same
 person</strong>: it shows the mechanism, it is not independent assurance (<a href="${REPO_DOCS}/SIGNING-AND-ATTESTATION.md" rel="noopener noreferrer">how</a>).</li>`
     : `<li><strong>Attestation.</strong> None: no third-party statement about this report exists.</li>`
 }

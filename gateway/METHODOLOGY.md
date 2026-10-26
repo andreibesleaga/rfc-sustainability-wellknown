@@ -60,7 +60,7 @@ figure. Publishing `hardware-metered` here would be false.
 ### Derivation
 
 ```
-energy-consumption (Wh)   = watts x hours(period), four significant figures
+energy-consumption (Wh)   = sum over the period's months of watts(month) x hours(month), four significant figures
 carbon-footprint  (gCO2e) = energy-consumption (Wh) / 1000 x carbon-intensity-gCO2e-per-kWh
 ```
 
@@ -71,21 +71,22 @@ a complete period after go-live that is the whole period (a 30-day month is
 go-live month it is the hours from go-live to the month's end (July 2026: 48 h,
 live since 2026-07-30); for a period in progress it is the hours to date; for a
 period wholly before go-live it is zero, and no object is held for it (a request
-for such a range is answered with an empty array). The document is fully determined by the period,
-the live window, and the two constants below.
+for such a range is answered with an empty array). `watts(month)` is the average power the operator
+entered for that calendar month (next section); a period that touches a month without an entry is not
+reported. The document is fully determined by the period, the live window, the entered months and the
+constants below.
 
 | Input | Default | Environment variable | Basis |
 |---|---|---|---|
-| Average power draw | 3 W | `SELF_WATTS` | Assumption. A single always-on Node.js process serving small cached JSON documents, on a shared vCPU slice. Set this to your platform's figure if you have one. |
+| Average power per month | the entered figures in `data/_self-measured.json` | (a file, not a variable) | Entered by the operator from the hosting platform's usage metrics (next section). A month without an entry is not reported. |
 | Grid carbon intensity | 245 gCO2e/kWh | `SELF_GRID_INTENSITY` | Netherlands, 2024: the European Environment Agency's greenhouse-gas emission intensity of electricity generation (CC BY 4.0) — see below. The gateway runs in Railway's Netherlands region. |
-| Period of the parameterless answer | most recently completed calendar month | `SELF_PERIOD_START` and `SELF_PERIOD_END` | A request that names no parameter is answered with this one object; the objects the gateway holds for other periods since go-live are available through the Extended parameters below. |
+| Period of the parameterless answer | the latest entered whole calendar month | `SELF_PERIOD_START` and `SELF_PERIOD_END` | A request that names no parameter is answered with this one object; the objects the gateway holds for other periods since go-live are available through the Extended parameters below. |
 | Live since | 2026-07-30T00:00:00Z | `SELF_LIVE_SINCE` | The earliest surviving deployment record of the reference gateway. No hours before it are counted. |
 
 ### Measured months: entering the platform's own figures
 
-The 3 W figure is an assumption. For any month the operator can replace it
-with an average power derived from the hosting platform's own metrics, in
-`data/_self-measured.json`, written by `scripts/self-watts.mjs`:
+The average power of each month is entered from the hosting platform's own
+metrics into `data/_self-measured.json`, written by `scripts/self-watts.mjs`:
 
 ```
 node scripts/self-watts.mjs 2026-09 --vcpu 0.02 --memory-gb 0.15 --egress-gb 0.4
@@ -99,12 +100,13 @@ are accumulated per minute over the billing period, and divides them by the mont
 
 **Read the result for what it is.** These coefficients count only the CPU and memory the service actually
 used. They count no share of the idle power of the machine it runs on, and for a service as small as this
-one that share is most of the real energy. The measured figure is therefore a lower bound and the 3 W
-assumption a generous upper bound; the true figure lies between them. For September 2026 the entered
-figure is 0.0149 W (10.73 Wh, 2.63 gCO2e at the factor below), against 2,160 Wh under the assumption.
+one that share is most of the real energy. The entered figure is therefore a lower bound. For September
+2026 it is 0.0149 W (10.73 Wh, 2.63 gCO2e at the factor below); a flat 3 W guess, which the gateway used
+for months without an entry until 26 October 2026, would have given 2,160 Wh.
 July (from go-live), August and October 2026 (to the 26th) were entered on 2026-10-26 from Railway's usage
 API, read for the exact calendar range in UTC: 0.0143 W, 0.0155 W and 0.0192 W. October is re-entered when
-the month closes. Read that way, September gives about 0.018 W, 20% above its entered figure, which came
+the month closes; until then its whole-month object, once the month has ended, applies the average entered
+to date to the whole month. Read that way, September gives about 0.018 W, 20% above its entered figure, which came
 from the "Project Cost" view, whose billing period is not the calendar month; the entered figure stands.
 
 To read a month from the usage API (the Railway CLI, logged in to the project; the totals of all entries
@@ -139,27 +141,30 @@ multiplied by a PUE of 1.1 (`--pue` to change it). The result is still a model
 (`third-party-modeled`), but one fed by the platform's measured utilisation
 rather than a flat guess.
 
-A measured month uses its own figure; every other month keeps the assumption,
-so entering a month never changes the figures already published for the
-others. A year or a monthly trend adds the months up; a day takes its month's
-figure. Every document that uses an entered figure says so in its `provider`
-member. A malformed file stops the gateway at boot.
+A month without an entry is not reported: no object exists for it, a range over
+it is answered with `[]`, and the parameterless answer is the latest entered
+whole month. Entering a month never changes the figures already published for
+the others. A year is held only when every month of it is entered, and adds the
+months up; a day takes its month's figure. The `provider` member of every object
+names the entered months. A malformed file stops the gateway at boot; before the
+first entry the gateway holds no object about itself.
 
 ### Extended parameters and the live window
 
 The self report declares `capabilities: "extended"` and honours all four of the
 draft's query parameters, `start`, `end`, `granularity` and `target`. A request
-that names none of them is answered with one object, the most recently completed
-calendar month. A request that names any of them is answered with the array of
+that names none of them is answered with one object, the latest whole calendar
+month whose power was entered. A request that names any of them is answered with the array of
 the objects the gateway **holds** that satisfy every parameter given, in ascending
 order of `period.start`; when it holds none, the answer is `200` and `[]`. The
 gateway computes no aggregate and cuts no selection.
 
-**The held set** is closed-form, because the model is: whole days for the most
-recent 120 days since go-live, every whole calendar month and every whole calendar
-year since go-live, and the two partial months at the edges (the go-live month,
-from go-live to the month's end, and the month in progress, from its first day to
-now), each only when it holds at least one whole day. The two partial months are
+**The held set** is closed-form, because the model is: among the periods whose
+every month has an entered figure, whole days for the most recent 120 days since
+go-live, every whole calendar month and every whole calendar year since go-live,
+and the two partial months at the edges (the go-live month, from go-live to the
+month's end, and the month in progress, from its first day to now), each only
+when it holds at least one whole day. The two partial months are
 not whole, so `granularity=monthly` does not select them. The set has at most 200
 objects at any clock. Only hours inside the live window `[live-since, now)`
 count, with `now` the start of the current UTC day.
@@ -279,8 +284,8 @@ index's "Adapter demonstrations" section — run every upstream-backed adapter s
 end, plus three adapters that live in this gateway (described at the end of this section). Three of them point their `methodology-uri` at this document (the third, `sfc-ledger-demo.example`, is described with the gateway's own adapters below):
 
 - **`grid-intensity-demo.example`** (`computed` adapter) uses the gateway's own
-  monthly energy exactly as §2 states it — the entered figure for a measured
-  month, the assumption otherwise — but takes its grid intensity from the **NESO (GB) Carbon
+  monthly energy exactly as §2 states it, for the latest entered whole month,
+  but takes its grid intensity from the **NESO (GB) Carbon
   Intensity API** (keyless, CC BY 4.0), fetched at boot and refreshed daily.
   When the live API is unreachable it serves a recorded value (103 gCO2/kWh,
   retrieved 2026-07-30) and says so in band. Applying a GB grid factor to a
@@ -392,10 +397,9 @@ the same holder signed the earlier declaration — and not of identity.
 
 `verifiable-attestation-uri` points at a W3C Verifiable Credential (Data Model
 2.0) secured as `vc+jwt`, issued with `scripts/issue-attestation.mjs` and hosted
-by the issuer. It attests the **model** of §2 — the grid intensity, the 3 W
-power assumption, the live window and the formula — for five years, so every
-declaration derived from the assumption is covered and nothing is re-issued
-monthly. Months whose power was entered from the platform's metrics are named in
+by the issuer. It attests the **model** of §2 — the grid intensity, the entered
+months, the live window and the formula — for five years, and is re-issued when
+a month is entered, so that every declaration derived from it is covered. Months whose power was entered from the platform's metrics are named in
 the model (`entered-watts-by-month`), so a verifier recomputing any month from
 the credential's constants gets the served figure. The credential is re-issued
 whenever an entered month or a constant changes; the current one was issued on

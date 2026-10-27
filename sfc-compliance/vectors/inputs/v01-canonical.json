@@ -1,0 +1,17 @@
+{
+  "id": "v01-canonical",
+  "scenarios": [
+    {
+      "name": "rfc8785-shapes",
+      "fn": "canonical",
+      "values": [
+        {"peach":"This sorting order","péché":"is wrong according to French","pêche":"but canonicalization MUST","sin":"Imagine in addition to the above"},
+        {"":"private use","😀":"emoji sorts before U+E000 in UTF-16 code unit order","é":"e acute","e":"e"},
+        {"b":[1,2,{"z":null,"a":true}],"a":"Zürich ☃ \"quoted\" back\\slash\n\u0001\u001f","c":false},
+        {"numbers":[12.5,100,0.000001,123456789.123456,0.1,1e+21,333333333.3333333,0,4.5e-7,1e-7,5,0]},
+        [],
+        {}
+      ]
+    }
+  ]
+}

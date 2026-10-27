@@ -1,0 +1,569 @@
+{
+  "id": "v27-rollback",
+  "scenarios": {
+    "checkpoint-verified": {
+      "rows": [
+        {
+          "id": "D4.checkpoint",
+          "result": "PASS",
+          "scope": "checkpoint",
+          "detail": "verified"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "2 events"
+        }
+      ],
+      "summary": {
+        "PASS": 7,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "lower-version-than-an-earlier-verified-entry": {
+      "rows": [
+        {
+          "id": "D2.rollback",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example",
+          "detail": "rollback"
+        },
+        {
+          "id": "D4.checkpoint",
+          "result": "PASS",
+          "scope": "checkpoint",
+          "detail": "verified"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "2 events"
+        }
+      ],
+      "summary": {
+        "PASS": 7,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "verified-checkpoint-without-a-ledger-digest": {
+      "rows": [
+        {
+          "id": "D4.checkpoint",
+          "result": "PASS",
+          "scope": "checkpoint",
+          "detail": "verified"
+        },
+        {
+          "id": "D4.info",
+          "result": "INFO",
+          "scope": "checkpoint",
+          "detail": "commit instants not authenticated: no ledger-digest"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "2 events"
+        }
+      ],
+      "summary": {
+        "PASS": 7,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "registry-digest-mismatch": {
+      "rows": [
+        {
+          "id": "D4.checkpoint",
+          "result": "FAIL",
+          "scope": "checkpoint",
+          "detail": "mismatch: registry-digest"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "2 events"
+        }
+      ],
+      "summary": {
+        "PASS": 6,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "ledger-digest-mismatch": {
+      "rows": [
+        {
+          "id": "D4.checkpoint",
+          "result": "FAIL",
+          "scope": "checkpoint",
+          "detail": "mismatch: ledger-digest"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "2 events"
+        }
+      ],
+      "summary": {
+        "PASS": 6,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "voids-digest-over-an-excerpt-that-omits-a-void": {
+      "rows": [
+        {
+          "id": "D4.checkpoint",
+          "result": "FAIL",
+          "scope": "checkpoint",
+          "detail": "mismatch: voids-digest"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "2 events"
+        }
+      ],
+      "summary": {
+        "PASS": 6,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "void-acts-present-without-a-voids-digest": {
+      "rows": [
+        {
+          "id": "D4.checkpoint",
+          "result": "PASS",
+          "scope": "checkpoint",
+          "detail": "verified"
+        },
+        {
+          "id": "D4.info",
+          "result": "INFO",
+          "scope": "checkpoint",
+          "detail": "void acts not authenticated"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "2 events"
+        }
+      ],
+      "summary": {
+        "PASS": 7,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "checkpoint-lists-a-chain-the-excerpt-omits": {
+      "rows": [
+        {
+          "id": "D4.checkpoint",
+          "result": "PASS",
+          "scope": "checkpoint",
+          "detail": "verified"
+        },
+        {
+          "id": "D4.info",
+          "result": "INFO",
+          "scope": "checkpoint",
+          "detail": "chain of did:web:op-b.example Carbon not in read"
+        },
+        {
+          "id": "D4.info",
+          "result": "INFO",
+          "scope": "checkpoint",
+          "detail": "commit instants not authenticated: no ledger-digest"
+        },
+        {
+          "id": "D5",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "L9 not evaluable: chain of did:web:op-b.example Carbon not in read"
+        },
+        {
+          "id": "D5",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "L9 not evaluable: chain of did:web:op-b.example Carbon not in read"
+        },
+        {
+          "id": "D5",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "L9 not evaluable: chain of did:web:op-b.example Carbon not in read"
+        },
+        {
+          "id": "D5",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "L9 not evaluable: chain of did:web:op-b.example Carbon not in read"
+        },
+        {
+          "id": "D5",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "L9 not evaluable: chain of did:web:op-b.example Carbon not in read"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 5,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 2
+      }
+    },
+    "checkpoint-signed-under-a-former-key": {
+      "rows": [
+        {
+          "id": "D4.checkpoint",
+          "result": "FAIL",
+          "scope": "checkpoint",
+          "detail": "mismatch: signature"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "2 events"
+        }
+      ],
+      "summary": {
+        "PASS": 6,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "checkpoint-of-another-network": {
+      "rows": [
+        {
+          "id": "D4.checkpoint",
+          "result": "FAIL",
+          "scope": "checkpoint",
+          "detail": "mismatch: network or read-at"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "2 events"
+        }
+      ],
+      "summary": {
+        "PASS": 6,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    }
+  }
+}

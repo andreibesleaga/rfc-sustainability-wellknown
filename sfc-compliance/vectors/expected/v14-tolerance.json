@@ -1,0 +1,394 @@
+{
+  "id": "v14-tolerance",
+  "scenarios": {
+    "figure-limits": {
+      "result": [
+        {
+          "ok": true
+        },
+        {
+          "ok": false
+        },
+        {
+          "ok": false
+        },
+        {
+          "ok": true
+        },
+        {
+          "ok": true
+        },
+        {
+          "ok": false
+        },
+        {
+          "ok": false
+        },
+        {
+          "ok": true
+        },
+        {
+          "ok": false
+        }
+      ]
+    },
+    "round-half-even": {
+      "result": [
+        {
+          "rounded": "1.234568"
+        },
+        {
+          "rounded": "1.234566"
+        },
+        {
+          "rounded": "2"
+        },
+        {
+          "rounded": "4"
+        },
+        {
+          "rounded": "-1.234568"
+        },
+        {
+          "rounded": "0"
+        },
+        {
+          "rounded": "0.000002"
+        }
+      ]
+    },
+    "events-at-the-digit-limit": {
+      "rows": [
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy 2026-02-03T12:02:00Z",
+          "detail": "L8; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-c.example Energy 2026-02-03T12:04:00Z",
+          "detail": "L8; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-d.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-e.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-e.example Energy 2026-02-03T12:08:00Z",
+          "detail": "L8; skipped"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 6,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "half-even-published-correctly": {
+      "rows": [
+        {
+          "id": "S6.b",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.b",
+          "result": "PASS",
+          "scope": "node.op-b.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "PASS",
+          "scope": "node.op-b.example 2026-01-01..2026-02-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "half-even-published-in-the-wrong-direction": {
+      "rows": [
+        {
+          "id": "S6.b",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.b",
+          "result": "PASS",
+          "scope": "node.op-b.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "top:energy-consumption"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "FAIL",
+          "scope": "node.op-b.example 2026-01-01..2026-02-01 market-based",
+          "detail": "top:energy-consumption"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "three-operator-sum-edge": {
+      "rows": [
+        {
+          "id": "S6.b",
+          "result": "PASS",
+          "scope": "edge-pass.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.b",
+          "result": "FAIL",
+          "scope": "edge-fail.example 2025-01-01..2026-01-01 market-based",
+          "detail": "energy-consumption"
+        },
+        {
+          "id": "S6.b",
+          "result": "PASS",
+          "scope": "exact.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "coarse-rounding": {
+      "rows": [
+        {
+          "id": "S6.b",
+          "result": "FAIL",
+          "scope": "coarse-fail.example 2025-01-01..2026-01-01 market-based",
+          "detail": "scope-2"
+        },
+        {
+          "id": "S6.b",
+          "result": "PASS",
+          "scope": "fine-pass.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "footprint-with-and-without-ledger": {
+      "rows": [
+        {
+          "id": "S6.c",
+          "result": "INFO",
+          "scope": "no-ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "not derivable: difference 0.4 > tolerance 0.15"
+        },
+        {
+          "id": "S6.c",
+          "result": "FAIL",
+          "scope": "with-ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "difference 0.4 > tolerance 0.0000015"
+        },
+        {
+          "id": "S6.c",
+          "result": "PASS",
+          "scope": "no-ledger-ok.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "intensity-quotient": {
+      "rows": [
+        {
+          "id": "S6.d",
+          "result": "PASS",
+          "scope": "quotient-pass.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.d",
+          "result": "FAIL",
+          "scope": "quotient-fail.example 2025-01-01..2026-01-01 market-based",
+          "detail": "difference exceeds tolerance"
+        },
+        {
+          "id": "S6.d",
+          "result": "PASS",
+          "scope": "tiny-energy-inside.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.d",
+          "result": "FAIL",
+          "scope": "tiny-energy-outside.example 2025-01-01..2026-01-01 market-based",
+          "detail": "difference exceeds tolerance"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "published-figure-over-the-limit": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "FAIL",
+          "scope": "over-limit.example 2025-01-01..2026-01-01 market-based",
+          "detail": "figure:energy-consumption; figure:scope-3"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "wrong-typed-optional-members": {
+      "rows": [
+        {
+          "id": "S6.a",
+          "result": "PASS",
+          "scope": "mistyped-plain.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.a.info",
+          "result": "INFO",
+          "scope": "mistyped-plain.example 2025-01-01..2026-01-01 market-based",
+          "detail": "member hardware-lifecycle.expected-service-life-years has the wrong type"
+        },
+        {
+          "id": "S6.a.info",
+          "result": "INFO",
+          "scope": "mistyped-plain.example 2025-01-01..2026-01-01 market-based",
+          "detail": "member carbon-neutrality.offsets-retired-tCO2e has the wrong type"
+        },
+        {
+          "id": "S6.a",
+          "result": "PASS",
+          "scope": "mistyped-ledger.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.a.info",
+          "result": "INFO",
+          "scope": "mistyped-ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "member carbon-neutrality.offset-registry-uri has the wrong type"
+        },
+        {
+          "id": "S6.a.info",
+          "result": "INFO",
+          "scope": "mistyped-ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "member network-topology.nakamoto-coefficient has the wrong type"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 4
+      }
+    },
+    "mixed-topology-levels-with-and-without-ledger-evidence": {
+      "rows": [
+        {
+          "id": "S6.a",
+          "result": "FAIL",
+          "scope": "mixed-ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "network-topology.mixed-levels"
+        },
+        {
+          "id": "S6.a",
+          "result": "PASS",
+          "scope": "mixed-plain.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.a.info",
+          "result": "INFO",
+          "scope": "mixed-plain.example 2025-01-01..2026-01-01 market-based",
+          "detail": "network-topology.mixed-levels"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    }
+  }
+}

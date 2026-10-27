@@ -1,0 +1,40 @@
+{
+  "id": "v16-noncanonical-signature",
+  "scenarios": {
+    "encoding": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "4 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-02-03T12:00:00Z",
+          "detail": "encoding"
+        },
+        {
+          "id": "D3.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-03-03T12:00:00Z",
+          "detail": "encoding"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 3,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    }
+  }
+}

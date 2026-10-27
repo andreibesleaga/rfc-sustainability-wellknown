@@ -1,0 +1,39 @@
+{
+  "id": "v01-canonical",
+  "scenarios": {
+    "rfc8785-shapes": {
+      "result": [
+        {
+          "canonical": "{\"peach\":\"This sorting order\",\"péché\":\"is wrong according to French\",\"pêche\":\"but canonicalization MUST\",\"sin\":\"Imagine in addition to the above\"}",
+          "bytesHex": "7b227065616368223a225468697320736f7274696e67206f72646572222c2270c3a96368c3a9223a2269732077726f6e67206163636f7264696e6720746f204672656e6368222c2270c3aa636865223a226275742063616e6f6e6963616c697a6174696f6e204d555354222c2273696e223a22496d6167696e6520696e206164646974696f6e20746f207468652061626f7665227d",
+          "sha256": "2dd93232e665d0e96b1df5af0050ec3b4721d2f47faed9ec3ca915c93617f1d5"
+        },
+        {
+          "canonical": "{\"e\":\"e\",\"é\":\"e acute\",\"😀\":\"emoji sorts before U+E000 in UTF-16 code unit order\",\"\":\"private use\"}",
+          "bytesHex": "7b2265223a2265222c22c3a9223a2265206163757465222c22f09f9880223a22656d6f6a6920736f727473206265666f726520552b4530303020696e205554462d313620636f646520756e6974206f72646572222c22ee8080223a227072697661746520757365227d",
+          "sha256": "9241b95d665819cb410335a04844f65681b0123b72daa7f6324e4320f588fc6f"
+        },
+        {
+          "canonical": "{\"a\":\"Zürich ☃ \\\"quoted\\\" back\\\\slash\\n\\u0001\\u001f\",\"b\":[1,2,{\"a\":true,\"z\":null}],\"c\":false}",
+          "bytesHex": "7b2261223a225ac3bc7269636820e29883205c2271756f7465645c22206261636b5c5c736c6173685c6e5c75303030315c7530303166222c2262223a5b312c322c7b2261223a747275652c227a223a6e756c6c7d5d2c2263223a66616c73657d",
+          "sha256": "886d34b02ccde61fd31f7044c4094ca5cdd781a73c696ce4f2a4a7d28273cdb8"
+        },
+        {
+          "canonical": "{\"numbers\":[12.5,100,0.000001,123456789.123456,0.1,1e+21,333333333.3333333,0,4.5e-7,1e-7,5,0]}",
+          "bytesHex": "7b226e756d62657273223a5b31322e352c3130302c302e3030303030312c3132333435363738392e3132333435362c302e312c31652b32312c3333333333333333332e333333333333332c302c342e35652d372c31652d372c352c305d7d",
+          "sha256": "6490bf40a94800d840d5c2c382bf8b779810da84b6592424a4ae777996e937df"
+        },
+        {
+          "canonical": "[]",
+          "bytesHex": "5b5d",
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "canonical": "{}",
+          "bytesHex": "7b7d",
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        }
+      ]
+    }
+  }
+}

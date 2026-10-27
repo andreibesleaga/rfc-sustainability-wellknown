@@ -8,11 +8,15 @@
  * a changed meaning mints a new path), and the bridge, the two checks and the
  * fixture all take the descriptor as a parameter.
  *
- * Sources: SFC ledger profile 1.2 (Supplement A of the SFC ledger-bridge paper,
- * published as SFC_COMPLIANCE.md v1.2), §A.1 hashing and signatures, §A.3 event
- * schema, §A.4 the offset-coverage rule, §A.5 hardware classes, §A.8 mapping,
- * §A.9 the `ledger-evidence` extension; the SFC disclosure profile
- * (`sfc-compliance/PROFILE.md`, version 1.1) for the four extension names.
+ * Two descriptors live here. `SFC_LEDGER_PROFILE_1_2` is the frozen 1.x reading
+ * (SFC ledger profile 1.2, greentech commit edb7e71, and the SFC disclosure profile
+ * 1.1 for the four extension names; the 2.0 text maps every 1.x item in its
+ * Appendix C and reads 1.x events by its section 12.1), which the frozen demo
+ * `sfc-ledger-demo.example` still uses. `SFC_LEDGER_PROFILE_2_0` describes SFC
+ * profile 2.0, the one normative text:
+ * https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md
+ * (sections 3.3 arithmetic, 5 ledger records, 7 publication, 8 extensions,
+ * 10 limits).
  *
  * What is deliberately NOT here: any rule of the draft itself (the publisher
  * and consumer libraries own those), any figure, and the signature suite,
@@ -53,11 +57,11 @@ export interface SfcLedgerProfile {
     readonly networkTopology: string;
     readonly ledgerEvidence: string;
   };
-  /** The event `type` tokens (§A.3). */
+  /** The event `type` tokens (spec 5.2). */
   readonly eventTypes: { readonly energy: string; readonly carbon: string };
-  /** The `type` token of a signed retirement allocation (§A.1, §A.4). */
+  /** The `type` token of a signed retirement allocation (1.x only: spec Appendix C). */
   readonly allocationType: string;
-  /** Payload member names (§A.3), so a renamed field is a one-line change here. */
+  /** Payload member names (spec 5.3, 5.4; 12.1 rule 1 for the 1.x names), so a renamed field is a one-line change here. */
   readonly payload: {
     readonly period: string;
     readonly nodeCount: string;
@@ -73,7 +77,7 @@ export interface SfcLedgerProfile {
     /** The offset-coverage flag; the v1.1 name `netZero` is kept by decision K3. */
     readonly coverageFlag: string;
   };
-  /** Members of the `ledger-evidence` extension value (§A.9.2), in emission order. */
+  /** Members of the `ledger-evidence` extension value (1.x; the 2.0 form is spec 8.5), in emission order. */
   readonly evidence: {
     readonly profileVersion: string;
     readonly ledgerAccessUri: string;
@@ -85,7 +89,7 @@ export interface SfcLedgerProfile {
     readonly networkOffsetCoverage: string;
     readonly anchor: string;
   };
-  /** Members of one `operators[]` entry (§A.9.2), in emission order. */
+  /** Members of one `operators[]` entry (1.x; the 2.0 form is spec 8.5), in emission order. */
   readonly operatorEntry: {
     readonly operator: string;
     readonly energyHead: string;
@@ -109,16 +113,16 @@ export interface SfcLedgerProfile {
   readonly hardware: {
     readonly generalPurpose: string;
     readonly singleUseAsicRequired: string;
-    /** Registry `nodeProfile` classes that count as general-purpose (§A.5). */
+    /** Registry `nodeProfile` classes that count as general-purpose (spec 5.1, 8.2). */
     readonly allowedClasses: readonly string[];
   };
   /** The one member of `network-topology` an operator declaration carries (disclosure profile §5.4). */
   readonly topology: { readonly memberOfNetwork: string };
-  /** `scope2Method` tokens (§A.3.3; the draft's `carbon-accounting`). */
+  /** `scope2Method` tokens (spec 12.1 rule 1; the draft's `carbon-accounting`). */
   readonly scope2Methods: readonly string[];
   /** Decimal places of the figures the bridge derives (tonnes, intensity): the publisher library's rounding. */
   readonly derivedPlaces: number;
-  /** Tolerances of the shallow coherence rows (§A.9.3 step 5). */
+  /** Tolerances of the 1.x shallow coherence rows (the 2.0 rule is spec 3.3 rule 4). */
   readonly tolerances: {
     /** Absolute, in the profile's unit (kWh / kgCO2e), per the publisher's four-place rounding. */
     readonly figure: number;
@@ -216,4 +220,116 @@ export function supportedProfileVersions(): string[] {
 /** The descriptor that reads a `profile-version`, or undefined when none does. */
 export function profileFor(version: unknown): SfcLedgerProfile | undefined {
   return typeof version === "string" ? SFC_LEDGER_DESCRIPTORS.find((p) => p.supportedVersions.includes(version)) : undefined;
+}
+
+// ---------------------------------------------------------------------------
+// SFC profile 2.0
+// ---------------------------------------------------------------------------
+
+/** The limits of section 10 (defaults of the profile, not of the draft). */
+export interface SfcLimits {
+  readonly declarationBytes: number;
+  readonly readBytes: number;
+  readonly nesting: number;
+  readonly operators: number;
+  readonly registryEntries: number;
+  readonly eventsPerChain: number;
+  readonly retirements: number;
+  readonly literalChars: number;
+  readonly stringBytes: number;
+  readonly eventBytes: number;
+  readonly arrayItems: number;
+  readonly checkpointChains: number;
+  readonly voids: number;
+  readonly parameterArray: number;
+  readonly declarationObjects: number;
+  /** MAX_READ_AGE, in seconds (24 hours). */
+  readonly maxReadAgeSeconds: number;
+  /** Clock skew, in seconds (5 minutes). */
+  readonly skewSeconds: number;
+  /** The time limit of one check, in seconds. */
+  readonly secondsPerCheck: number;
+}
+
+/** SFC profile 2.0: names, closed lists, the cap and the limits the 2.0 reader and checks depend on. */
+export interface SfcLedger2Profile {
+  readonly version: string;
+  /** `profile-version` values read by this descriptor: `2.<digits>` (12.2 rule 3). */
+  readonly versionPattern: RegExp;
+  readonly excerptVersion: number;
+  readonly namespace: string;
+  readonly extensions: {
+    readonly hardwareLifecycle: string;
+    readonly carbonNeutrality: string;
+    readonly networkTopology: string;
+    readonly ledgerEvidence2: string;
+    /** Superseded by `ledger-evidence-2`; read as "profile 1.1 evidence" (12.1 rule 3). */
+    readonly ledgerEvidenceSuperseded: string;
+  };
+  readonly eventTypes: { readonly energy: string; readonly carbon: string };
+  readonly signatureAlgorithm: string;
+  /** `measurementMethod` values, most direct first (5.3). */
+  readonly measurementMethods: readonly string[];
+  /** Registry `hardwareClass` (5.1), closed for all 2.x. */
+  readonly hardwareClasses: readonly string[];
+  readonly reusePolicies: readonly string[];
+  readonly netZeroStatuses: readonly string[];
+  /** `platform.mechanism` values of 7.6 (C-SFC-6 test 1); `crash-fault-tolerant` covers Raft and notary clusters. */
+  readonly mechanisms: readonly string[];
+  /** CAP, in kWh (3.4). */
+  readonly capKwh: number;
+  readonly graceDays: number;
+  /** Decimal places of every published figure (3.3 rule 3). */
+  readonly publishedPlaces: number;
+  readonly limits: SfcLimits;
+}
+
+/** SFC profile 2.0 (https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md). */
+export const SFC_LEDGER_PROFILE_2_0: SfcLedger2Profile = {
+  version: "2.0",
+  versionPattern: /^2\.[0-9]+$/,
+  excerptVersion: 2,
+  namespace: NS,
+  extensions: {
+    hardwareLifecycle: NS + "hardware-lifecycle",
+    carbonNeutrality: NS + "carbon-neutrality",
+    networkTopology: NS + "network-topology",
+    ledgerEvidence2: NS + "ledger-evidence-2",
+    ledgerEvidenceSuperseded: NS + "ledger-evidence",
+  },
+  eventTypes: { energy: "EnergyAttested", carbon: "CarbonAttested" },
+  signatureAlgorithm: "Ed25519",
+  measurementMethods: ["hardware-metered", "hardware-estimated", "cloud-billing", "third-party-modeled"],
+  hardwareClasses: ["general-purpose-x86", "arm64-server", "rpi-cluster", "cloud-instance", "accelerator-server"],
+  reusePolicies: ["donate-to-education", "resell-refurbished", "recycle-WEEE-certified"],
+  netZeroStatuses: ["achieved", "partial", "not-achieved"],
+  mechanisms: ["proof-of-work", "proof-of-stake", "proof-of-authority", "dag", "hybrid", "bft", "crash-fault-tolerant"],
+  capKwh: 1_000_000,
+  graceDays: 5,
+  publishedPlaces: 6,
+  limits: {
+    declarationBytes: 1_048_576,
+    readBytes: 67_108_864,
+    nesting: 32,
+    operators: 1000,
+    registryEntries: 1000,
+    eventsPerChain: 10_000,
+    retirements: 100,
+    literalChars: 32,
+    stringBytes: 4096,
+    eventBytes: 65_536,
+    arrayItems: 100,
+    checkpointChains: 2000,
+    voids: 10_000,
+    parameterArray: 1000,
+    declarationObjects: 16,
+    maxReadAgeSeconds: 86_400,
+    skewSeconds: 300,
+    secondsPerCheck: 600,
+  },
+};
+
+/** The 2.0 descriptor that reads a `profile-version`, or undefined. */
+export function profile2For(version: unknown): SfcLedger2Profile | undefined {
+  return typeof version === "string" && SFC_LEDGER_PROFILE_2_0.versionPattern.test(version) ? SFC_LEDGER_PROFILE_2_0 : undefined;
 }

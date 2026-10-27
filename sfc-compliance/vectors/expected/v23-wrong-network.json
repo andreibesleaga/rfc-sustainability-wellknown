@@ -1,0 +1,78 @@
+{
+  "id": "v23-wrong-network",
+  "scenarios": {
+    "replayed-event": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-03-03T12:00:00Z",
+          "detail": "L1"
+        },
+        {
+          "id": "D3",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy 2026-02-03T12:02:00Z",
+          "detail": "L1"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "INFO",
+          "scope": "did:web:op-a.example Energy 2026-03-03T12:00:00Z",
+          "detail": "skipped (see D3)"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "INFO",
+          "scope": "did:web:op-b.example Energy 2026-02-03T12:02:00Z",
+          "detail": "skipped (see D3)"
+        }
+      ],
+      "summary": {
+        "PASS": 3,
+        "FAIL": 4,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 2
+      },
+      "effective": [
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2026-01-01T00:00:00Z",
+          "hash": "e64e172630880f228711ccf737b7ad0cf6c72f314c6097b9fb0989b8e733abe0"
+        }
+      ]
+    }
+  }
+}

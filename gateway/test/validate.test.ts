@@ -107,6 +107,34 @@ describe("Validator", () => {
     }
   });
 
+  it("tells the requester nothing about the address that was refused, and logs it on the server only", async () => {
+    const logged: string[] = [];
+    const v = new Validator({ lookup: async () => ["10.0.0.1"], clock: () => new Date("2026-03-10T12:00:00Z"), onRefusal: (host, status, detail) => logged.push(`${host} ${status} ${detail}`) });
+    const out = (await v.check("private.example.com")) as ValidationOutcome;
+    expect(out.status).toBe("unreachable");
+    expect(out.detail).toBe("refused: this service does not contact that address");
+    expect(JSON.stringify(out)).not.toContain("10.0.0.1");
+    expect(JSON.stringify(out)).not.toContain("private.example.com/");
+    expect(logged).toHaveLength(1);
+    expect(logged[0]).toContain("10.0.0.1");
+    expect(logged[0]).toContain("refused-uri");
+    expect(badgeSvg(out)).not.toContain("10.0.0.1");
+  });
+
+  it("answers a refused address with the same fixed words over /validate and in the badge title", async () => {
+    const t = await startGateway({ validator: { lookup: async () => ["10.0.0.1"] } });
+    try {
+      const body = await (await fetch(`${t.base}/validate?origin=https://private.example.com`)).text();
+      expect(body).toContain("this service does not contact that address");
+      expect(body).not.toContain("10.0.0.1");
+      const badge = await (await fetch(`${t.base}/badge/private2.example.com.svg`)).text();
+      expect(badge).not.toContain("10.0.0.1");
+      expect(badge).not.toContain("private2.example.com resolves");
+    } finally {
+      await t.close();
+    }
+  });
+
   it("refuses a redirect that points at a private address, even from a fetch it was given", async () => {
     const fetchImpl = (async () => new Response(null, { status: 302, headers: { Location: "https://10.0.0.7/.well-known/sustainability-data" } })) as typeof fetch;
     const v = new Validator({ fetchImpl, lookup: publicLookup, clock: () => new Date("2026-03-10T12:00:00Z") });
@@ -233,6 +261,7 @@ describe.skipIf(!existsSync(resolve(CORPUS, "manifest.json")))("the outcomes of 
     const out = (await v.check("fake.example.com")) as ValidationOutcome;
     expect(out.status).toBe("unreachable");
     expect(out.detail).toMatch(/refused/);
+    expect(out.detail).not.toContain("fake.example.com");
   });
 });
 

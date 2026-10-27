@@ -1,0 +1,104 @@
+{
+  "id": "v26-operator-no-membership",
+  "scenarios": {
+    "no-member-of-network": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "member-of-network"
+        },
+        {
+          "id": "S6.a",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "network-topology.member-of-network"
+        },
+        {
+          "id": "D2.network",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "member-of-network missing"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "member-of-network missing"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "claimed-network-without-a-pin": {
+      "rows": [
+        {
+          "id": "D2.network",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "claimed, not authenticated"
+        },
+        {
+          "id": "D2.entry",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example",
+          "detail": "registrar key not pinned"
+        },
+        {
+          "id": "D2.entry",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example",
+          "detail": "registrar key not pinned"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "consistent but not authenticated"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 4,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "membership-pinned": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "D2.network",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 3,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    }
+  }
+}

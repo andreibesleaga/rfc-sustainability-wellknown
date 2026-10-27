@@ -279,9 +279,13 @@ badges them `synthetic`.
 
 ## 4. The adapter demonstrations
 
-Ten further `.example` subjects — with `kepler-demo.example` above, the
-index's "Adapter demonstrations" section — run every upstream-backed adapter shipped by the published publisher package end to
-end, plus three adapters that live in this gateway (described at the end of this section). Three of them point their `methodology-uri` at this document (the third, `sfc-ledger-demo.example`, is described with the gateway's own adapters below):
+Further `.example` subjects, listed in the index's "Adapter demonstrations" section
+together with `kepler-demo.example` above, run every upstream-backed adapter shipped by the
+published publisher package end to end, plus the adapters that live in this gateway
+(described at the end of this section). Of these, `grid-intensity-demo.example` and
+`sfc-ledger-demo.example` point their `methodology-uri` at this document (as
+`kepler-demo.example` does); the SFC profile 2.0 subjects point it at
+`sfc-compliance/examples/METHODOLOGY.md`.
 
 - **`grid-intensity-demo.example`** (`computed` adapter) uses the gateway's own
   monthly energy exactly as §2 states it, for the latest entered whole month,
@@ -308,7 +312,7 @@ and run in the modes documented in GUIDE.md, "Wiring an adapter": live where
 an upstream's license permits attributed republication, replay of a recorded
 response otherwise, always saying which in band.
 
-Three adapters are this gateway's own (`src/adapters/`), not the publisher package's:
+These adapters are this gateway's own (`src/adapters/`), not the publisher package's:
 
 - **`yang-energy-demo.example`** (`yang-power-energy`) reads the IETF GREEN
   working group's Power and Energy YANG module (`ietf-power-and-energy`,
@@ -341,7 +345,7 @@ Three adapters are this gateway's own (`src/adapters/`), not the publisher packa
   reduced by credits; the retired credits allocated to the month go, in tonnes,
   into `carbon-neutrality`, and the chain heads, event counts, sums and the
   offset-coverage result into the `ledger-evidence` extension (SFC disclosure
-  profile 1.1 §5.5). It
+  profile 1.1; spec 12.1 rule 3 (the superseded ledger-evidence form)). It
   refuses to publish when a hash, signature, `prev` link, timestamp, allocation
   or `netZero` flag fails its own check, and publishes a failed or silent month
   with `offset-coverage-every-period: false` (a silent month also drops the
@@ -353,12 +357,127 @@ Three adapters are this gateway's own (`src/adapters/`), not the publisher packa
   signature in it, the declaration's included, uses the public RFC 8032 test
   key, so it demonstrates the checks and nothing about who signed. The excerpt
   is served at `/sfc-ledger-demo.example/input`, which is also the declaration's
-  `ledger-access-uri`, so the deep check can be run by anyone
+  `ledger-access-uri`, so the deep check of its 1.x rules can be run by anyone
   (`node scripts/sfc-ledger-check.mjs <url>`); the gateway runs both checks on
   the served document at boot and refuses to start if either fails. The
   disclosure profile 1.1 defines the extension and lets a publisher emit it;
   the bridge is labelled experimental because it is one synthetic operator in
   replay, and no public ledger exists. The document is `target-type: "origin"`.
+
+- **`sfc-ledger-demo-2.example`** (`sfc-ledger-bridge`, EXPERIMENTAL) is the same
+  bridge for [SFC profile 2.0](https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md):
+  a recorded read of a synthetic three-operator ledger (excerpt format 2, fifteen
+  months, from the profile's test vectors) becomes the signed market-based network
+  declaration for 2025, with the `ledger-evidence-2`, `hardware-lifecycle`,
+  `carbon-neutrality` and `network-topology` extensions. The code is in
+  `src/adapters/sfc-ledger-2/`. The excerpt is served at
+  `/sfc-ledger-demo-2.example/input`, which is the declaration's `ledger-access-uri`.
+  The gateway runs the shallow and deep checks on the served document at boot and
+  refuses to start if either fails; a check already passed for the same document
+  in the same process is not run again. `target-type: "service"`.
+- **`sfc-network-2.example`** relays, unchanged, the market-based primary object of
+  the profile's reference network declaration (`sfc-compliance/examples/sfc-network.example.json`).
+  Only that object is served: a gateway subject relays one object, so the paired
+  location-based object stays in the example file. Same boot checks.
+- **`sfc-operator-2.example`** relays the profile's reference operator declaration
+  (`sfc-compliance/examples/sfc-operator.example.json`, one operator, January 2025).
+  Same boot checks, `target-type: "origin"`.
+
+### Running the 2.0 checks on these three demos
+
+The checks are the same ones the gateway runs at boot, run from outside. Save the
+served read of the ledger, then give it to the script with the methodology parameters
+and the registrar's key, pinned out of band (the value below is the `x` of the
+first `registrar-keys` entry in `sfc-compliance/examples/sfc-parameters.example.json`). Run `npm run build` first. `<host>` is the
+gateway's address (`https://sustainability.up.railway.app` for the reference
+deployment; for a local instance use `http://127.0.0.1:<port>` and add `--allow-http`).
+
+```sh
+curl -s <host>/sfc-ledger-demo-2.example/input -o read-demo-2.json
+node scripts/sfc-ledger-check.mjs <host>/sfc-ledger-demo-2.example/.well-known/sustainability-data \
+  --excerpt read-demo-2.json \
+  --parameters ../sfc-compliance/examples/sfc-parameters.example.json \
+  --registrar-key 11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo --network ledger.example \
+  --at 2026-05-02T00:10:00Z
+```
+
+Measured: no row FAILs, exit 0. PASS 44, INFO 6, DECLARED 5, COMPLETE 1,
+NOT-EVALUABLE 2. The two NOT-EVALUABLE rows are `D4.chain` for the first operator's
+energy chain (the chain itself starts at `prev: null`; the example parameters file lists a
+takeover of an older ledger, `old-ledger.example`, for that operator's energy chain, and this
+tool reads no old ledger, so the part before the takeover cannot be checked: "old ledger
+unreachable"; with a parameters file that lists no takeover, the row is PASS) and D8 ("not
+performed"). Neither is one of the six criteria rows, so no criteria row is NOT-EVALUABLE.
+One of the INFO rows is `S4.info` "target differs from retrieval host": the declaration's
+`target` is the synthetic network `ledger.example`, the document is served by the gateway's host.
+
+```sh
+curl -s <host>/sfc-network-2.example/input -o read-network-2.json
+node scripts/sfc-ledger-check.mjs <host>/sfc-network-2.example/.well-known/sustainability-data \
+  --excerpt read-network-2.json \
+  --parameters ../sfc-compliance/examples/sfc-parameters.example.json \
+  --registrar-key 11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo --network ledger.example \
+  --at 2026-05-02T00:10:00Z
+```
+
+Measured: no row FAILs, exit 0. The same counts as the previous run: PASS 44,
+INFO 6, DECLARED 5, COMPLETE 1, NOT-EVALUABLE 2.
+
+```sh
+curl -s <host>/sfc-operator-2.example/input -o read-operator-2.json
+node scripts/sfc-ledger-check.mjs <host>/sfc-operator-2.example/.well-known/sustainability-data \
+  --excerpt read-operator-2.json \
+  --parameters ../sfc-compliance/examples/sfc-parameters.example.json \
+  --registrar-key 11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo --network ledger.example \
+  --at 2026-05-02T00:10:00Z
+```
+
+Measured: no row FAILs, exit 0. PASS 43 (one of them `D2.signed`: the operator's
+`signed` member verified under its Registry key valid at T), DECLARED 4, COMPLETE 1,
+INFO 4, NOT-EVALUABLE 2 (the same two rows as above; an operator declaration is not a
+network object, so no retrieval-host note).
+
+`--excerpt` is required for `sfc-network-2.example` and `sfc-operator-2.example`:
+their `ledger-access-uri` is `https://ledger.example/sfc/read`, a reserved name that
+does not resolve. For `sfc-ledger-demo-2.example` it is optional (its
+`ledger-access-uri` is the served `/input`), and the run above is the same either
+way. With `--at` alone, and no `--parameters` and `--registrar-key`, the run
+reports NOT-EVALUABLE on the rows that need them and is not a pass (spec 9.1). The
+registrar key is bound to the network named by `--network` (required with
+`--registrar-key`), not to the network the read claims: a read of another network gets no
+key and its Registry stays "claimed, not authenticated". The 1.x demo
+`sfc-ledger-demo.example` is the one whose deep check needs no pins:
+`node scripts/sfc-ledger-check.mjs <url>` is enough for it. The exit status is 0 when no
+row FAILs, 1 when a row FAILs, and 2 when a stage stopped (an ERROR row; the run is
+incomplete, so 0 would read as clean) or on a usage error.
+
+The script is not a full SFC 2 verifier. The served declaration and the read are checked
+as text (I-JSON, section 10 of the spec): duplicate member names, lone surrogates and
+number literals are seen; an in-process caller that hands the checks objects alone cannot
+have duplicates detected. For each fetch (of the declaration, and of the
+`ledger-access-uri`, a URI taken from the checked declaration) the host is resolved in the
+lookup of the connection itself, and the socket connects only to an address that passed the
+consumer library's test (an approximation of the IANA Globally Reachable list; section 10
+of the spec asks a verifier to state its rule), so a name that resolves differently a moment
+later cannot change the answer after the check. `--allow-http` also admits loopback, for a
+local instance. It does not pin or report the address the connection then uses. After the
+closing sentence it prints the D9 record: whether the registrar key (and for which network)
+and the methodology document were pinned, that the Registry records (D8) were not checked,
+the address rule, and that figures, the operator set and the readings are not established.
+
+### How the gateway's 2.0 code relates to the reference checker
+
+`src/adapters/sfc-ledger-2/` is a port of the reference checker in
+`sfc-compliance/lib/` (canonical text, decimals, Ed25519, replay, shallow and deep
+checks), written against the same spec. The two are kept in step by one test:
+`test/sfc-ledger-2-vectors.test.ts` runs the vectors in `sfc-compliance/vectors`
+through the gateway code and requires the expected rows exactly. A change to a rule
+therefore starts in the spec, then the reference checker and the vectors, then here.
+
+Both verify an Ed25519 `signed` under a pinned Ed25519 key and an ES256 `signed`
+(RFC 7518 section 3.4) under a pinned P-256 key; a pinned key of the other type is
+not a candidate for the signature's algorithm. The gateway's own tests cover ES256
+(`test/adapters-sfc-ledger-2.test.ts`).
 
 ## 5. Signature and attestation
 
@@ -422,7 +541,8 @@ in its own words, on its index page and in the credential's description.
 
 The relayed declarations are not signed and carry no attestation: the gateway
 can vouch for its own bytes, never for another organization's figures. (The
-synthetic `sfc-ledger-demo.example` is the stated exception: it is signed with
+synthetic `sfc-ledger-demo.example`, `sfc-ledger-demo-2.example`, `sfc-network-2.example`
+and `sfc-operator-2.example` are the stated exceptions: they are signed with
 the public RFC 8032 test key, which is nobody's statement.) The draft
 defines one resource and no signature path, so a request for a `.jws` path is an
 ordinary `404`, at the root and under a subject alike.
@@ -490,12 +610,12 @@ minted for these two files so that the draft's own `urn:uuid:16c36135…` name
 above keeps its one meaning (`packaging-recycled-percent`): a name is compared
 as a string, and one name never carries two definitions.
 
-### `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle`, `.../carbon-neutrality`, `.../network-topology` and `.../ledger-evidence`
+### `https://andreibesleaga.com/sfc/extensions/hardware-lifecycle`, `.../carbon-neutrality`, `.../network-topology`, `.../ledger-evidence` and `.../ledger-evidence-2`
 
-Four names minted under a domain the gateway operator controls and carried by
-the synthetic `sfc-network.example`, `sfc-operator.example` and `sfc-ledger-demo.example` documents. Their
+Five names minted under a domain the gateway operator controls and carried by
+the synthetic `sfc-network.example`, `sfc-operator.example`, `sfc-ledger-demo.example` and the three SFC 2.0 documents (`sfc-ledger-demo-2.example`, `sfc-network-2.example`, `sfc-operator-2.example`). Their
 normative definitions are in
-[`sfc-compliance/PROFILE.md`](../sfc-compliance/PROFILE.md), not in this
+[SFC profile 2.0](https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md), not in this
 document; what each document here actually carries is listed in
 [`data/README.md`](data/README.md#extension-names-served-here).
 
@@ -504,22 +624,26 @@ document; what each document here actually carries is listed in
   `expected-service-life-years` (years), `embodied-carbon-in-scope-3` (boolean —
   the emissions of making that hardware are inside the same object's `scope-3`
   figure), `reuse-and-recycling-policy-uri` (absolute `https` URI).
-- **`.../carbon-neutrality`** — the subject's own neutrality claim and the
-  evidence behind it: `net-zero-status`, `renewable-procurement`,
+- **`.../carbon-neutrality`** — the offset-coverage position (retired credits set
+  against gross emissions; never a neutrality claim, SFC profile 2.0, sections 8.3 and 11)
+  and what backs it: `net-zero-status` (`achieved`, `partial` or `not-achieved`;
+  label it "offset coverage" and show it beside the gross `carbon-footprint`),
+  `renewable-procurement` (`on-site-generation`, `power-purchase-agreements`,
+  `unbundled-certificates`, `supplier-tariff`, `grid-average` or `mixed`),
   `residual-emissions-tCO2e` (metric tonnes CO2e remaining after reductions),
   `offsets-retired-tCO2e` (metric tonnes CO2e), `offset-registry-uri`,
-  `offsets-attested-by` (the party that issued the statement at
-  `verifiable-attestation-uri` — the profile's rule 6 is to say *attested*, never
-  *verified*); the gross figures stay in the top-level members, which
-  a neutrality claim never reduces.
+  `offsets-attested-by` (the issuer of the statement at
+  `verifiable-attestation-uri`; say *attested*, never *verified*, SFC profile 2.0,
+  section 11). The gross figures stay in the top-level members, which offset
+  coverage never reduces.
 - **`.../network-topology`** — how a many-party network is constituted:
   `consensus-mechanism`, `validated-node-count`,
   `node-count-validation-method`, `per-transaction-energy-Wh` (watt-hours),
   `nakamoto-coefficient`, `geographic-regions`; and, at operator level, the
   membership members `member-of-network` and `network-declaration`, which
   `upstream` cannot express because a network is not a supplier
-  (`network-declaration` is defined by the profile but carried by neither
-  document here).
+  (`network-declaration` is defined by the profile and carried only by
+  `sfc-operator-2.example`).
 - **`.../ledger-evidence`** (new in disclosure profile 1.1; its members are those
   of SFC ledger profile 1.2) — where to read the ledger and what the declaration rests on:
   `profile-version`, `ledger-access-uri`, `hash-algorithm`, `event-encoding`,
@@ -528,7 +652,17 @@ document; what each document here actually carries is listed in
   `energy-events`, `carbon-events`, `kwh` (kWh), `scope2-kgco2e`,
   `scope3-kgco2e`, `offsets-kgco2e` (kgCO2e), `offset-coverage-every-period`
   (boolean); at network level also `network-offset-coverage`. Carried only by
-  `sfc-ledger-demo.example`, generated in code (§4).
+  `sfc-ledger-demo.example`, generated in code (§4). Superseded by `.../ledger-evidence-2` in
+  profile 2.0, which calls it the superseded form (spec 12.1 rule 3) and reads it as profile 1.1 evidence (spec 12.1 rule 3b).
+- **`.../ledger-evidence-2`** (SFC profile 2.0, section 8.5) — the 2.0 form of the same
+  evidence: `profile-version`, `ledger-access-uri`, and per counted operator `operator`,
+  `origin`, `energy-head` and `carbon-head` (64-hex, or null when the chain has no event
+  up to the period's end), `energy-events`, `carbon-events`, `kwh`, `scope1-kgco2e`,
+  `scope2-kgco2e`, `scope3-kgco2e`, `offsets-kgco2e`, `offset-coverage-every-period`;
+  at network level also `network-offset-coverage`. It has no period members: the object's
+  `period` is the evidence period. Carried by `sfc-ledger-demo-2.example`,
+  `sfc-network-2.example` and `sfc-operator-2.example` (§4); the 1.x name is never
+  redefined, so `sfc-ledger-demo.example` keeps `ledger-evidence`.
 
 ### The six `https://greenhost.example/esg/extensions/…` names
 

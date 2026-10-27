@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/andreibesleaga/rfc-sustainability-wellknown/main/sfc-compliance/schemas/ext-hardware-lifecycle.json",
+  "title": "SFC 2 hardware-lifecycle extension value",
+  "description": "The value of the `hardware-lifecycle` extension (section 8.2). Unknown members are allowed. A wrong JSON type of a member makes this schema fail; the verifier then reads the member as absent (8.1).",
+  "type": "object",
+  "required": [
+    "general-purpose-hardware",
+    "single-use-asic-required"
+  ],
+  "properties": {
+    "general-purpose-hardware": {
+      "type": "boolean"
+    },
+    "single-use-asic-required": {
+      "type": "boolean"
+    },
+    "expected-service-life-years": {
+      "type": "number",
+      "minimum": 0
+    },
+    "embodied-carbon-in-scope-3": {
+      "type": "boolean"
+    },
+    "reuse-and-recycling-policy-uri": {
+      "$ref": "#/$defs/httpsUri"
+    }
+  },
+  "$defs": {
+    "httpsUri": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^https://\\S+$",
+      "description": "An absolute URI with scheme https (3.5 https-uri)."
+    }
+  }
+}

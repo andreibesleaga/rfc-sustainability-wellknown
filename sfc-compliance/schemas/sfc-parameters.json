@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/andreibesleaga/rfc-sustainability-wellknown/main/sfc-compliance/schemas/sfc-parameters.json",
+  "title": "SFC 2 methodology parameters",
+  "description": "The methodology parameters object of section 7.6: the items the checks read from the methodology document. An item is required only when a check that reads it applies; the `platform` items depend on `access`. Unknown members are allowed.",
+  "type": "object",
+  "properties": {
+    "registrar-keys": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": [
+          "jwk",
+          "status"
+        ],
+        "properties": {
+          "jwk": {
+            "$ref": "#/$defs/jwk"
+          },
+          "status": {
+            "enum": [
+              "current",
+              "former"
+            ]
+          },
+          "retired": {
+            "$ref": "#/$defs/fullDate"
+          }
+        }
+      },
+      "minItems": 1,
+      "contains": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "const": "current"
+          }
+        }
+      }
+    },
+    "retirement-registries": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/httpsUri"
+      }
+    },
+    "reference-forms": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": [
+          "registry",
+          "rules"
+        ],
+        "properties": {
+          "registry": {
+            "$ref": "#/$defs/httpsUri"
+          },
+          "rules": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "upper-case",
+                "lower-case",
+                "no-leading-zeros",
+                "no-surrounding-space",
+                "range-first-last"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "takeovers": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": [
+          "operator",
+          "type",
+          "ledger",
+          "tip"
+        ],
+        "properties": {
+          "operator": {
+            "$ref": "#/$defs/did"
+          },
+          "type": {
+            "enum": [
+              "EnergyAttested",
+              "CarbonAttested"
+            ]
+          },
+          "ledger": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tip": {
+            "$ref": "#/$defs/hex64"
+          }
+        }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "required": [
+        "access",
+        "mechanism"
+      ],
+      "properties": {
+        "hot-path": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "access": {
+          "enum": [
+            "public",
+            "permissioned"
+          ]
+        },
+        "mechanism": {
+          "type": "string",
+          "description": "One of proof-of-work, proof-of-stake, proof-of-authority, dag, hybrid, bft, crash-fault-tolerant after the 7.6 comparison (ASCII lower-casing, trimming, runs of spaces, underscores and hyphens to one hyphen; pow is proof-of-work). Another value is read as not naming the mechanism."
+        },
+        "assessment": {
+          "type": "object",
+          "required": [
+            "publisher",
+            "uri",
+            "period",
+            "figure",
+            "unit",
+            "method"
+          ],
+          "properties": {
+            "publisher": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "uri": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "period": {
+              "type": "object",
+              "required": [
+                "start",
+                "end"
+              ],
+              "properties": {
+                "start": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+                },
+                "end": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+                }
+              },
+              "description": "`end` is exactly 12 calendar months after `start`; the schema cannot tell, C-SFC-6 does."
+            },
+            "figure": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit": {
+              "enum": [
+                "Wh",
+                "kWh",
+                "MWh",
+                "GWh"
+              ]
+            },
+            "method": {
+              "type": "string",
+              "maxLength": 4096
+            }
+          }
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "p-watts": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "o": {
+          "type": "number",
+          "minimum": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "access": {
+                "const": "public"
+              }
+            },
+            "required": [
+              "access"
+            ]
+          },
+          "then": {
+            "required": [
+              "assessment"
+            ],
+            "properties": {
+              "assessment": true
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "access": {
+                "const": "permissioned"
+              }
+            },
+            "required": [
+              "access"
+            ]
+          },
+          "then": {
+            "required": [
+              "n",
+              "p-watts",
+              "o"
+            ],
+            "properties": {
+              "n": true,
+              "p-watts": true,
+              "o": true
+            }
+          }
+        }
+      ]
+    },
+    "registry-1x-digests": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": [
+          "operator",
+          "sha256"
+        ],
+        "properties": {
+          "operator": {
+            "$ref": "#/$defs/did"
+          },
+          "sha256": {
+            "$ref": "#/$defs/hex64"
+          }
+        }
+      }
+    },
+    "beneficiaries": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": [
+          "beneficiary",
+          "operator"
+        ],
+        "properties": {
+          "beneficiary": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "operator": {
+            "$ref": "#/$defs/did"
+          }
+        }
+      }
+    },
+    "void-requesters": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/did"
+      }
+    },
+    "scope2-basis-1x": {
+      "enum": [
+        "market-based",
+        "location-based"
+      ]
+    }
+  },
+  "$defs": {
+    "hex64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "64 lower-case hexadecimal characters (3.5 hex64)."
+    },
+    "did": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^did:[a-z0-9]+:(?:(?:[A-Za-z0-9._-]|%[0-9A-Fa-f]{2})*:)*(?:[A-Za-z0-9._-]|%[0-9A-Fa-f]{2})+$",
+      "description": "A DID string, DID Core section 3.1 syntax (3.5 did)."
+    },
+    "httpsUri": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^https://\\S+$",
+      "description": "An absolute URI with scheme https (3.5 https-uri)."
+    },
+    "fullDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$",
+      "description": "RFC 3339 full-date (3.5 full-date)."
+    },
+    "jwk": {
+      "type": "object",
+      "required": [
+        "kty",
+        "crv",
+        "x"
+      ],
+      "properties": {
+        "kty": {
+          "const": "OKP"
+        },
+        "crv": {
+          "const": "Ed25519"
+        },
+        "x": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$",
+          "description": "The 43-character b64url public key."
+        }
+      }
+    }
+  }
+}

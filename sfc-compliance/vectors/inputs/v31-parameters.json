@@ -1,0 +1,848 @@
+{
+  "id": "v31-parameters",
+  "scenarios": [
+    {
+      "name": "every-item",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example permissioned ledger",
+          "access": "permissioned",
+          "mechanism": "proof-of-authority",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        },
+        "takeovers": [
+          {
+            "operator": "did:web:op-a.example",
+            "type": "EnergyAttested",
+            "ledger": "old-ledger.example",
+            "tip": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "registry-1x-digests": [
+          {
+            "operator": "did:web:op-b.example",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "beneficiaries": [
+          {
+            "beneficiary": "Operator A Example Ltd",
+            "operator": "did:web:op-a.example"
+          }
+        ],
+        "void-requesters": ["did:web:op-a.example"],
+        "scope2-basis-1x": "market-based"
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["D5","C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "retirement-registries-missing",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example permissioned ledger",
+          "access": "permissioned",
+          "mechanism": "proof-of-authority",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["D5"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "mechanism-spellings",
+      "fn": "mechanism",
+      "values": [
+        "proof-of-work",
+        "Proof of Work",
+        "pow",
+        " PoW ",
+        "proof_of_work",
+        "Proof-Of-Stake",
+        "proof-of-stak",
+        "BFT",
+        "dag",
+        "Hybrid",
+        "proof of authority",
+        "",
+        "crash-fault-tolerant",
+        "Crash Fault Tolerant",
+        "crash_fault_tolerant"
+      ]
+    },
+    {
+      "name": "mechanism-crash-fault-tolerant",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example chain",
+          "access": "permissioned",
+          "mechanism": "crash-fault-tolerant",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "consensus-mechanism-text-in-the-list",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example chain",
+          "access": "permissioned",
+          "mechanism": "crash-fault-tolerant",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network and not a real measurement. Role contact: sustainability@ledger.example. Every figure is invented.","methodology-uri":"https://ledger.example/sustainability/METHODOLOGY.md","period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"target":"ledger.example","target-type":"service","energy-consumption":1,"energy-unit":"MWh","scope-2":0.3,"scope-3":0.2,"carbon-footprint":0.5,"carbon-unit":"tCO2e","carbon-accounting":"market-based","carbon-intensity-gCO2e-per-kWh":300,"measurement-method":"hardware-metered","disclosure-uri":"https://ledger.example/sustainability/disclosures.json","extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved","offsets-retired-tCO2e":1,"renewable-procurement":"power-purchase-agreements","offset-registry-uri":"https://registry.example/retirements"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"crash-fault-tolerant","validated-node-count":3,"node-count-validation-method":"maximum over the months of the period of the sum of the operators' monthly peak node counts"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://ledger.example/sfc/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"e64e172630880f228711ccf737b7ad0cf6c72f314c6097b9fb0989b8e733abe0","carbon-head":"48db55863e0e763a8702367e97fb85ab6ed314db6e4fff28c5269b87476feec1","energy-events":1,"carbon-events":1,"kwh":1000,"scope1-kgco2e":0,"scope2-kgco2e":300,"scope3-kgco2e":200,"offsets-kgco2e":1000,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MC41LCJjYXJib24taW50ZW5zaXR5LWdDTzJlLXBlci1rV2giOjMwMCwiY2FyYm9uLXVuaXQiOiJ0Q08yZSIsImRpc2Nsb3N1cmUtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zdXN0YWluYWJpbGl0eS9kaXNjbG9zdXJlcy5qc29uIiwiZW5lcmd5LWNvbnN1bXB0aW9uIjoxLCJlbmVyZ3ktdW5pdCI6Ik1XaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQiLCJvZmZzZXQtcmVnaXN0cnktdXJpIjoiaHR0cHM6Ly9yZWdpc3RyeS5leGFtcGxlL3JldGlyZW1lbnRzIiwib2Zmc2V0cy1yZXRpcmVkLXRDTzJlIjoxLCJyZW5ld2FibGUtcHJvY3VyZW1lbnQiOiJwb3dlci1wdXJjaGFzZS1hZ3JlZW1lbnRzIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zZmMvcmVhZCIsIm5ldHdvcmstb2Zmc2V0LWNvdmVyYWdlIjp0cnVlLCJvcGVyYXRvcnMiOlt7ImNhcmJvbi1ldmVudHMiOjEsImNhcmJvbi1oZWFkIjoiNDhkYjU1ODYzZTBlNzYzYTg3MDIzNjdlOTdmYjg1YWI2ZWQzMTRkYjZlNGZmZjI4YzUyNjliODc0NzZmZWVjMSIsImVuZXJneS1ldmVudHMiOjEsImVuZXJneS1oZWFkIjoiZTY0ZTE3MjYzMDg4MGYyMjg3MTFjY2Y3MzdiN2FkMGNmNmM3MmYzMTRjNjA5N2I5ZmIwOTg5YjhlNzMzYWJlMCIsImt3aCI6MTAwMCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjEwMDAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1hLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWEuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjMwMCwic2NvcGUzLWtnY28yZSI6MjAwfV0sInByb2ZpbGUtdmVyc2lvbiI6IjIuMCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9uZXR3b3JrLXRvcG9sb2d5Ijp7ImNvbnNlbnN1cy1tZWNoYW5pc20iOiJjcmFzaC1mYXVsdC10b2xlcmFudCIsIm5vZGUtY291bnQtdmFsaWRhdGlvbi1tZXRob2QiOiJtYXhpbXVtIG92ZXIgdGhlIG1vbnRocyBvZiB0aGUgcGVyaW9kIG9mIHRoZSBzdW0gb2YgdGhlIG9wZXJhdG9ycycgbW9udGhseSBwZWFrIG5vZGUgY291bnRzIiwidmFsaWRhdGVkLW5vZGUtY291bnQiOjN9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvTUVUSE9ET0xPR1kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMi0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yayBhbmQgbm90IGEgcmVhbCBtZWFzdXJlbWVudC4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUBsZWRnZXIuZXhhbXBsZS4gRXZlcnkgZmlndXJlIGlzIGludmVudGVkLiIsInNjb3BlLTIiOjAuMywic2NvcGUtMyI6MC4yLCJ0YXJnZXQiOiJsZWRnZXIuZXhhbXBsZSIsInRhcmdldC10eXBlIjoic2VydmljZSIsInVwZGF0ZWQiOiIyMDI2LTAyLTEwVDA5OjAwOjAwWiJ9.FG_o1wwkC7UpMWMW_CFXpJ-tWHDYxXFt3BY_C8RkC5u3R4n9pH2bgFVynIiBt5FDMIYqWgz_HSsYTIie_jBqDg"}
+      ],
+      "select": ["C-SFC-6"],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true]
+      },
+      "excerptRef": "x1"
+    },
+    {
+      "name": "consensus-mechanism-text-outside-the-list",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example chain",
+          "access": "permissioned",
+          "mechanism": "crash-fault-tolerant",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network and not a real measurement. Role contact: sustainability@ledger.example. Every figure is invented.","methodology-uri":"https://ledger.example/sustainability/METHODOLOGY.md","period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"target":"ledger.example","target-type":"service","energy-consumption":1,"energy-unit":"MWh","scope-2":0.3,"scope-3":0.2,"carbon-footprint":0.5,"carbon-unit":"tCO2e","carbon-accounting":"market-based","carbon-intensity-gCO2e-per-kWh":300,"measurement-method":"hardware-metered","disclosure-uri":"https://ledger.example/sustainability/disclosures.json","extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved","offsets-retired-tCO2e":1,"renewable-procurement":"power-purchase-agreements","offset-registry-uri":"https://registry.example/retirements"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"Raft (crash-fault-tolerant)","validated-node-count":3,"node-count-validation-method":"maximum over the months of the period of the sum of the operators' monthly peak node counts"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://ledger.example/sfc/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"e64e172630880f228711ccf737b7ad0cf6c72f314c6097b9fb0989b8e733abe0","carbon-head":"48db55863e0e763a8702367e97fb85ab6ed314db6e4fff28c5269b87476feec1","energy-events":1,"carbon-events":1,"kwh":1000,"scope1-kgco2e":0,"scope2-kgco2e":300,"scope3-kgco2e":200,"offsets-kgco2e":1000,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MC41LCJjYXJib24taW50ZW5zaXR5LWdDTzJlLXBlci1rV2giOjMwMCwiY2FyYm9uLXVuaXQiOiJ0Q08yZSIsImRpc2Nsb3N1cmUtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zdXN0YWluYWJpbGl0eS9kaXNjbG9zdXJlcy5qc29uIiwiZW5lcmd5LWNvbnN1bXB0aW9uIjoxLCJlbmVyZ3ktdW5pdCI6Ik1XaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQiLCJvZmZzZXQtcmVnaXN0cnktdXJpIjoiaHR0cHM6Ly9yZWdpc3RyeS5leGFtcGxlL3JldGlyZW1lbnRzIiwib2Zmc2V0cy1yZXRpcmVkLXRDTzJlIjoxLCJyZW5ld2FibGUtcHJvY3VyZW1lbnQiOiJwb3dlci1wdXJjaGFzZS1hZ3JlZW1lbnRzIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zZmMvcmVhZCIsIm5ldHdvcmstb2Zmc2V0LWNvdmVyYWdlIjp0cnVlLCJvcGVyYXRvcnMiOlt7ImNhcmJvbi1ldmVudHMiOjEsImNhcmJvbi1oZWFkIjoiNDhkYjU1ODYzZTBlNzYzYTg3MDIzNjdlOTdmYjg1YWI2ZWQzMTRkYjZlNGZmZjI4YzUyNjliODc0NzZmZWVjMSIsImVuZXJneS1ldmVudHMiOjEsImVuZXJneS1oZWFkIjoiZTY0ZTE3MjYzMDg4MGYyMjg3MTFjY2Y3MzdiN2FkMGNmNmM3MmYzMTRjNjA5N2I5ZmIwOTg5YjhlNzMzYWJlMCIsImt3aCI6MTAwMCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjEwMDAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1hLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWEuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjMwMCwic2NvcGUzLWtnY28yZSI6MjAwfV0sInByb2ZpbGUtdmVyc2lvbiI6IjIuMCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9uZXR3b3JrLXRvcG9sb2d5Ijp7ImNvbnNlbnN1cy1tZWNoYW5pc20iOiJSYWZ0IChjcmFzaC1mYXVsdC10b2xlcmFudCkiLCJub2RlLWNvdW50LXZhbGlkYXRpb24tbWV0aG9kIjoibWF4aW11bSBvdmVyIHRoZSBtb250aHMgb2YgdGhlIHBlcmlvZCBvZiB0aGUgc3VtIG9mIHRoZSBvcGVyYXRvcnMnIG1vbnRobHkgcGVhayBub2RlIGNvdW50cyIsInZhbGlkYXRlZC1ub2RlLWNvdW50IjozfX0sIm1lYXN1cmVtZW50LW1ldGhvZCI6ImhhcmR3YXJlLW1ldGVyZWQiLCJtZXRob2RvbG9neS11cmkiOiJodHRwczovL2xlZGdlci5leGFtcGxlL3N1c3RhaW5hYmlsaXR5L01FVEhPRE9MT0dZLm1kIiwicGVyaW9kIjp7ImVuZCI6IjIwMjYtMDItMDFUMDA6MDA6MDBaIiwic3RhcnQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiJ9LCJwcm92aWRlciI6IlNZTlRIRVRJQyBFWEFNUExFLCBub3QgYSByZWFsIG5ldHdvcmsgYW5kIG5vdCBhIHJlYWwgbWVhc3VyZW1lbnQuIFJvbGUgY29udGFjdDogc3VzdGFpbmFiaWxpdHlAbGVkZ2VyLmV4YW1wbGUuIEV2ZXJ5IGZpZ3VyZSBpcyBpbnZlbnRlZC4iLCJzY29wZS0yIjowLjMsInNjb3BlLTMiOjAuMiwidGFyZ2V0IjoibGVkZ2VyLmV4YW1wbGUiLCJ0YXJnZXQtdHlwZSI6InNlcnZpY2UiLCJ1cGRhdGVkIjoiMjAyNi0wMi0xMFQwOTowMDowMFoifQ.JwdzvZDBjnKyU249SnoP3NwUvw0CjP6ULPdvT0X75vgsgaMKB-ZfAmxk0CZcCBWykV9CrDGEmhMI4W6oBsKHCQ"}
+      ],
+      "select": ["C-SFC-6"],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true]
+      },
+      "excerptRef": "x1"
+    },
+    {
+      "name": "assessment-with-fraction-bounds",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example public chain",
+          "access": "public",
+          "mechanism": "proof-of-stake",
+          "assessment": {
+            "publisher": "Example Assessor",
+            "uri": "https://assessor.example/report",
+            "period": {
+              "start": "2025-06-01T00:00:00.000Z",
+              "end": "2026-06-01T00:00:00.000Z"
+            },
+            "figure": 0.5,
+            "unit": "GWh",
+            "method": "synthetic"
+          }
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "assessment-bounds-differ-by-a-fraction",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example public chain",
+          "access": "public",
+          "mechanism": "proof-of-stake",
+          "assessment": {
+            "publisher": "Example Assessor",
+            "uri": "https://assessor.example/report",
+            "period": {
+              "start": "2025-06-01T00:00:00.5Z",
+              "end": "2026-06-01T00:00:00Z"
+            },
+            "figure": 0.5,
+            "unit": "GWh",
+            "method": "synthetic"
+          }
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "mechanism-Proof-of-Work",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example chain",
+          "access": "permissioned",
+          "mechanism": "Proof of Work",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "mechanism-pow",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example chain",
+          "access": "permissioned",
+          "mechanism": "pow",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "mechanism-misspelt",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example chain",
+          "access": "permissioned",
+          "mechanism": "proof-of-stak",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "assessment-of-11-months",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example public chain",
+          "access": "public",
+          "mechanism": "proof-of-stake",
+          "assessment": {
+            "publisher": "Example Assessor",
+            "uri": "https://assessor.example/report",
+            "period": {
+              "start": "2025-06-01T00:00:00Z",
+              "end": "2026-05-01T00:00:00Z"
+            },
+            "figure": 0.5,
+            "unit": "GWh",
+            "method": "synthetic"
+          }
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "assessment-of-12-months",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example public chain",
+          "access": "public",
+          "mechanism": "proof-of-stake",
+          "assessment": {
+            "publisher": "Example Assessor",
+            "uri": "https://assessor.example/report",
+            "period": {
+              "start": "2025-06-01T00:00:00Z",
+              "end": "2026-06-01T00:00:00Z"
+            },
+            "figure": 0.5,
+            "unit": "GWh",
+            "method": "synthetic"
+          }
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "assessment-in-MWh-below-cap",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example public chain",
+          "access": "public",
+          "mechanism": "proof-of-stake",
+          "assessment": {
+            "publisher": "Example Assessor",
+            "uri": "https://assessor.example/report",
+            "period": {
+              "start": "2025-06-01T00:00:00Z",
+              "end": "2026-06-01T00:00:00Z"
+            },
+            "figure": 900,
+            "unit": "MWh",
+            "method": "synthetic"
+          }
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "assessment-in-MWh-at-cap",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example public chain",
+          "access": "public",
+          "mechanism": "proof-of-stake",
+          "assessment": {
+            "publisher": "Example Assessor",
+            "uri": "https://assessor.example/report",
+            "period": {
+              "start": "2025-06-01T00:00:00Z",
+              "end": "2026-06-01T00:00:00Z"
+            },
+            "figure": 1000,
+            "unit": "MWh",
+            "method": "synthetic"
+          }
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "permissioned-without-o",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example chain",
+          "access": "permissioned",
+          "mechanism": "proof-of-authority",
+          "n": 30,
+          "p-watts": 500
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "permissioned-node-bound-at-cap",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example chain",
+          "access": "permissioned",
+          "mechanism": "proof-of-authority",
+          "n": 1000,
+          "p-watts": 1000,
+          "o": 1
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["C-SFC-6"],
+      "excerptRef": "x1"
+    }
+  ],
+  "excerpts": {
+    "x1": {
+      "excerpt-version": 2,
+      "profile-version": "2.0",
+      "network": "ledger.example",
+      "read-at": "2026-05-02T00:10:00Z",
+      "registrar": {
+        "jwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+        }
+      },
+      "registry": [
+        {"operator":"did:web:op-a.example","origin":"node.op-a.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"5RAXfr6Yx-sSJMzjLaPP3LzIk7lGwHTj8ynlLxIpxr3ebzPuU2K0xY0La61zJHr354gB80_Fdj52GyW_Gk9xDg"}}
+      ],
+      "ledger": [
+        {"commit":"2026-02-03T12:00:00Z","hash":"e64e172630880f228711ccf737b7ad0cf6c72f314c6097b9fb0989b8e733abe0","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":1000,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"AG_laEZkSRD4fGndzJly6h9eG0QzD-bBn95kGs4LfKBd0RRFuOV8DxdtgnZIFXOdTIUmuOuaHwGScAmM4gtsBg"}}},
+        {"commit":"2026-02-03T12:01:00Z","hash":"48db55863e0e763a8702367e97fb85ab6ed314db6e4fff28c5269b87476feec1","event":{"type":"CarbonAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"scope2KgCO2e":300,"scope3KgCO2e":200,"gridIntensityRef":"Electricity Maps zone XX, 2025, annual average","retirements":[{"registry":"https://registry.example","reference":"RET-31-A","tonnesRetired":1,"retiredAt":"2026-02-02T00:00:00Z","kg":1000}],"offsetsKgCO2e":1000,"netZero":true,"evidence":"https://ledger.example/evidence/carbon-example"},"sig":{"alg":"Ed25519","value":"o0Ms6fI0FeTYJUNn0sURuo2DemdNpx8TGjefjYF0tiqmsmB9wKJlERD20LSJMYbxLXqhe4sknYtt0-33oKwUAg"}}}
+      ]
+    }
+  }
+}

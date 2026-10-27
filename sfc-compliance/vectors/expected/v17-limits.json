@@ -1,0 +1,1268 @@
+{
+  "id": "v17-limits",
+  "scenarios": {
+    "number-literal-of-35-characters": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: characters in a number literal"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: characters in a number literal"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "limit: characters in a number literal"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: characters in a number literal"
+        }
+      ],
+      "summary": {
+        "PASS": 5,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 4,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "string-of-4097-bytes": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: bytes in a string value"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy 2026-02-03T12:02:00Z",
+          "detail": "limit: bytes in a string value"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: bytes in a string value"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "limit: bytes in a string value"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: bytes in a string value"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 6,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "nesting-depth-35": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: JSON nesting depth"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy 2026-02-03T12:02:00Z",
+          "detail": "limit: JSON nesting depth"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: JSON nesting depth"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "limit: JSON nesting depth"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: JSON nesting depth"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 6,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "101-items-in-one-array": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: items in one array"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy 2026-02-03T12:02:00Z",
+          "detail": "limit: items in one array"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: items in one array"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "limit: items in one array"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: items in one array"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 6,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "101-retirements-in-one-event": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: retirements per event"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example Carbon 2026-02-03T12:01:00Z",
+          "detail": "limit: retirements per event"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: retirements per event"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "limit: retirements per event"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: retirements per event"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 6,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "21-events-of-one-month-in-a-chain": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "21 events"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "21 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-02-03T12:00:20Z",
+          "detail": "L12; skipped"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "event-over-1300-bytes": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: bytes per event"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy 2026-02-03T12:02:00Z",
+          "detail": "limit: bytes per event"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: bytes per event"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "limit: bytes per event"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: bytes per event"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 6,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "4-events-in-a-chain-of-at-most-3": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: events per chain"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "3-operators-in-a-read-of-at-most-2": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: operators in a read"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: operators in a read"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "limit: operators in a read"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: operators in a read"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 4,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "3-entries-in-a-Registry-of-at-most-2": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: entries in the Registry"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "2-void-acts-of-at-most-1": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: entries in voids"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "4-chains-in-a-checkpoint-of-at-most-2": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: entries in checkpoint.chains"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: entries in checkpoint.chains"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "limit: entries in checkpoint.chains"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: entries in checkpoint.chains"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 4,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "read-over-3000-bytes": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: bytes per read"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "2-entries-in-a-parameters-array-of-at-most-1": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "limit: entries in each parameters array"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: entries in each parameters array"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "limit: entries in each parameters array"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "limit: entries in each parameters array"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 4,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "3-objects-in-a-declaration-of-at-most-2": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "NOT-EVALUABLE",
+          "detail": "limit: objects in a declaration array"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "relative-references-with-a-base": {
+      "rows": [
+        {
+          "id": "URI",
+          "result": "INFO",
+          "scope": "relative.example 2025-01-01..2026-01-01 market-based",
+          "detail": "methodology-uri resolved to https://relative.example/.well-known/methodology.md"
+        },
+        {
+          "id": "URI",
+          "result": "INFO",
+          "scope": "relative.example 2025-01-01..2026-01-01 market-based",
+          "detail": "disclosure-uri resolved to https://relative.example/sustainability/disclosures.json"
+        },
+        {
+          "id": "URI",
+          "result": "INFO",
+          "scope": "relative.example 2025-01-01..2026-01-01 market-based",
+          "detail": "verifiable-attestation-uri resolved to https://relative.example/vc/example.jwt"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 3
+      }
+    },
+    "relative-references-without-a-base": {
+      "rows": [
+        {
+          "id": "URI",
+          "result": "NOT-EVALUABLE",
+          "scope": "relative.example 2025-01-01..2026-01-01 market-based",
+          "detail": "relative reference, no base: methodology-uri"
+        },
+        {
+          "id": "URI",
+          "result": "NOT-EVALUABLE",
+          "scope": "relative.example 2025-01-01..2026-01-01 market-based",
+          "detail": "relative reference, no base: disclosure-uri"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "userinfo-in-a-uri": {
+      "rows": [
+        {
+          "id": "URI",
+          "result": "NOT-EVALUABLE",
+          "scope": "relative.example 2025-01-01..2026-01-01 market-based",
+          "detail": "userinfo in URI: disclosure-uri"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "event-evidence-that-is-not-absolute": {
+      "rows": [
+        {
+          "id": "URI",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example Energy 2026-02-03T12:00:00Z",
+          "detail": "not an absolute URI: evidence"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "excerpt-profile-version-of-another-major": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "profile-version not read"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "declaration-profile-version-not-read": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "profile-version"
+        },
+        {
+          "id": "S6",
+          "result": "INFO",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "profile 3.0 not read"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "profile-version not read"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "number-literal-of-500-digits-in-the-read": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "limit: characters in a number literal"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "limit: characters in a number literal"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "number-out-of-binary64-range-in-the-read": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "read is not valid JSON: JSON syntax: number out of I-JSON range at 2262"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "read is not valid JSON: JSON syntax: number out of I-JSON range at 2262"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "read-nested-20000-deep": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "limit: JSON nesting depth"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "limit: JSON nesting depth"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "declaration-nested-20000-deep": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "NOT-EVALUABLE",
+          "detail": "limit: JSON nesting depth"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "number-literal-of-500-digits-in-a-declaration": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "NOT-EVALUABLE",
+          "detail": "limit: characters in a number literal"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "number-out-of-binary64-range-in-a-declaration": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "FAIL",
+          "detail": "not valid JSON: JSON syntax: number out of I-JSON range at 429"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "energy-unit-named-constructor": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "S2"
+        },
+        {
+          "id": "S6.a",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.b",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "energy-consumption unit"
+        },
+        {
+          "id": "S6.c",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.e",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.f",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.g",
+          "result": "DECLARED",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "net-zero-status"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "top:energy-consumption"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 3,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 1,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "carbon-unit-named-toString": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "S2"
+        },
+        {
+          "id": "S6.a",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.b",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "scope-2 unit; scope-3 unit"
+        },
+        {
+          "id": "S6.c",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "carbon-unit absent"
+        },
+        {
+          "id": "S6.e",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.f",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.g",
+          "result": "DECLARED",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "net-zero-status"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "top:carbon-footprint; top:scope-2; top:scope-3"
+        }
+      ],
+      "summary": {
+        "PASS": 3,
+        "FAIL": 3,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 1,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "units-named-__proto__-and-hasOwnProperty": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "S2"
+        },
+        {
+          "id": "S6.a",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.b",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "energy-consumption unit; scope-2 unit; scope-3 unit"
+        },
+        {
+          "id": "S6.c",
+          "result": "NOT-EVALUABLE",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "carbon-unit absent"
+        },
+        {
+          "id": "S6.e",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.f",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "S6.g",
+          "result": "DECLARED",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "net-zero-status"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "top:carbon-footprint; top:energy-consumption; top:scope-2; top:scope-3"
+        }
+      ],
+      "summary": {
+        "PASS": 3,
+        "FAIL": 3,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 1,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "read-network-named-constructor-with-a-pin-for-the-real-host": {
+      "rows": [
+        {
+          "id": "D2.entry",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example",
+          "detail": "registrar key not pinned"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "pin-named-for-the-network-of-the-read": {
+      "rows": [
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-a.example"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "pin-named-for-another-network-than-the-read": {
+      "rows": [
+        {
+          "id": "D2.entry",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example",
+          "detail": "registrar key not pinned"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "limit-hit-after-a-fail": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger.example 2026-01-01..2026-02-01 market-based",
+          "detail": "limit: bytes in a string value"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-02-03T12:00:00Z",
+          "detail": "hash"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example Energy 2026-02-03T12:02:00Z",
+          "detail": "limit: bytes in a string value"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "FAIL",
+          "scope": "ledger.example 2026-01-01..2026-02-01 market-based",
+          "detail": "D3 did:web:op-a.example Energy; D3.event did:web:op-a.example Energy 2026-02-03T12:00:00Z"
+        }
+      ],
+      "summary": {
+        "PASS": 3,
+        "FAIL": 3,
+        "NOT-EVALUABLE": 3,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    }
+  }
+}

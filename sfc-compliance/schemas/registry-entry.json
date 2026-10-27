@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/andreibesleaga/rfc-sustainability-wellknown/main/sfc-compliance/schemas/registry-entry.json",
+  "title": "SFC 2 Registry entry",
+  "description": "A signed Registry entry of a 2.0 ledger (section 5.1). Unknown members are allowed (readers ignore them, 3.6 rule 3). Rules that need more than one member or more than one document (L4 to L12, Registry uniqueness, ledger order) are not stated here.",
+  "type": "object",
+  "required": [
+    "operator",
+    "origin",
+    "network",
+    "active",
+    "keys",
+    "nodeProfile",
+    "sig"
+  ],
+  "properties": {
+    "operator": {
+      "$ref": "#/$defs/did"
+    },
+    "origin": {
+      "$ref": "#/$defs/host"
+    },
+    "network": {
+      "$ref": "#/$defs/host"
+    },
+    "active": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/$defs/monthBound"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/monthBound"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "keys": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": [
+          "jwk",
+          "validFromCommit",
+          "validToCommit"
+        ],
+        "properties": {
+          "jwk": {
+            "$ref": "#/$defs/jwk"
+          },
+          "validFromCommit": {
+            "$ref": "#/$defs/instant"
+          },
+          "validToCommit": {
+            "$ref": "#/$defs/instantOrNull"
+          }
+        }
+      }
+    },
+    "nodeProfile": {
+      "type": "object",
+      "required": [
+        "hardwareClass",
+        "asicForbidden",
+        "purchasedAt",
+        "expectedRetireAt",
+        "reusePolicy"
+      ],
+      "properties": {
+        "hardwareClass": {
+          "enum": [
+            "general-purpose-x86",
+            "arm64-server",
+            "rpi-cluster",
+            "cloud-instance",
+            "accelerator-server"
+          ]
+        },
+        "asicForbidden": {
+          "const": true
+        },
+        "purchasedAt": {
+          "$ref": "#/$defs/fullDate"
+        },
+        "expectedRetireAt": {
+          "$ref": "#/$defs/fullDate"
+        },
+        "reusePolicy": {
+          "enum": [
+            "donate-to-education",
+            "resell-refurbished",
+            "recycle-WEEE-certified"
+          ]
+        },
+        "serviceLifeMonths": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "profile2From": {
+      "$ref": "#/$defs/monthBound"
+    },
+    "sig": {
+      "$ref": "#/$defs/sig"
+    },
+    "commit": false,
+    "target": false,
+    "read-at": false,
+    "chains": false
+  },
+  "$defs": {
+    "hex64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "64 lower-case hexadecimal characters (3.5 hex64)."
+    },
+    "did": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^did:[a-z0-9]+:(?:(?:[A-Za-z0-9._-]|%[0-9A-Fa-f]{2})*:)*(?:[A-Za-z0-9._-]|%[0-9A-Fa-f]{2})+$",
+      "description": "A DID string, DID Core section 3.1 syntax (3.5 did)."
+    },
+    "host": {
+      "type": "string",
+      "maxLength": 253,
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$",
+      "description": "A host name in A-label form, no scheme, port or path; upper case is accepted as input (3.5 host)."
+    },
+    "instant": {
+      "type": "string",
+      "maxLength": 64,
+      "format": "date-time",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d+)?(Z|[+-]([01]\\d|2[0-3]):[0-5]\\d)$",
+      "description": "An RFC 3339 date-time with upper-case T and Z, numeric offsets and fractions allowed (3.2 instant). Second 60 is rejected by this pattern and by the verifier (3.2)."
+    },
+    "instantOrNull": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/instant"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "monthBound": {
+      "type": "string",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-01T00:00:00Z$",
+      "description": "The first instant of a month: YYYY-MM-01T00:00:00Z (3.5 month-bound)."
+    },
+    "fullDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$",
+      "description": "RFC 3339 full-date (3.5 full-date)."
+    },
+    "sig": {
+      "type": "object",
+      "required": [
+        "alg",
+        "value"
+      ],
+      "properties": {
+        "alg": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{86}$",
+          "description": "base64url without padding, 86 characters (64 bytes). Only the canonical encoding is valid; the schema cannot tell, row 'encoding' of D3 or D2 does."
+        }
+      },
+      "description": "{alg, value} (3.6). Ed25519 is the only algorithm; another alg fails L5 or D2."
+    },
+    "jwk": {
+      "type": "object",
+      "required": [
+        "kty",
+        "crv",
+        "x"
+      ],
+      "properties": {
+        "kty": {
+          "const": "OKP"
+        },
+        "crv": {
+          "const": "Ed25519"
+        },
+        "x": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$",
+          "description": "The 43-character b64url public key."
+        }
+      }
+    }
+  }
+}

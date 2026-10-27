@@ -1,0 +1,11 @@
+{
+  "notice": "SYNTHETIC EXAMPLE. A small index of the reports filed by the invented network ledger.example, the file that disclosure-uri names in the SFC profile 2.0 demonstrations (spec section 7.2 rule 4: an index of filed reports, not one report). Every name, date and figure is invented. This file begins with an underscore, so the gateway does not load it as a subject; it is published as a file of the repository.",
+  "network": "ledger.example",
+  "reports": [
+    {
+      "period": { "start": "2025-01-01T00:00:00Z", "end": "2026-01-01T00:00:00Z" },
+      "declaration": "https://sustainability.up.railway.app/sfc-ledger-demo-2.example/.well-known/sustainability-data",
+      "ledger-read": "https://sustainability.up.railway.app/sfc-ledger-demo-2.example/input"
+    }
+  ]
+}

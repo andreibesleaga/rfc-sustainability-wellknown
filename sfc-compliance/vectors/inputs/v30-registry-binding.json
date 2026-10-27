@@ -1,0 +1,106 @@
+{
+  "id": "v30-registry-binding",
+  "scenarios": [
+    {
+      "name": "shared-operator-and-origin-and-unordered-intervals",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example permissioned ledger",
+          "access": "permissioned",
+          "mechanism": "proof-of-authority",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        },
+        "registry-1x-digests": [
+          {
+            "operator": "did:web:op-f.example",
+            "sha256": "444e24afe37e253bd867645e6fc4939078b10c893d32c0e1ab600c5e2dbb4475"
+          }
+        ]
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network and not a real measurement. Role contact: sustainability@ledger.example. Every figure is invented.","methodology-uri":"https://ledger.example/sustainability/METHODOLOGY.md","period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"target":"ledger.example","target-type":"service","measurement-method":"hardware-metered","disclosure-uri":"https://ledger.example/sustainability/disclosures.json","extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"partial","renewable-procurement":"power-purchase-agreements","offset-registry-uri":"https://registry.example/retirements"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://ledger.example/sfc/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"e64e172630880f228711ccf737b7ad0cf6c72f314c6097b9fb0989b8e733abe0","carbon-head":"611e9becc7c14312d837c289d769285686c1042305ab1f97122d7cccb710df37","energy-events":1,"carbon-events":1,"kwh":1000,"scope1-kgco2e":0,"scope2-kgco2e":300,"scope3-kgco2e":200,"offsets-kgco2e":1000,"offset-coverage-every-period":true},{"operator":"did:web:op-a.example","origin":"node.op-a2.example","energy-head":"e64e172630880f228711ccf737b7ad0cf6c72f314c6097b9fb0989b8e733abe0","carbon-head":"611e9becc7c14312d837c289d769285686c1042305ab1f97122d7cccb710df37","energy-events":1,"carbon-events":1,"kwh":1000,"scope1-kgco2e":0,"scope2-kgco2e":300,"scope3-kgco2e":200,"offsets-kgco2e":1000,"offset-coverage-every-period":true},{"operator":"did:web:op-b.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":false},{"operator":"did:web:op-c.example","origin":"somewhere-else.example","energy-head":"6c9d0b7fd2f217e34ededc5300d3cbb73ed20301222f89c4afb788089246e863","carbon-head":"8cbdec105c7362927dd14595bf43c8ab7e5338924bea070513e8bd05549dae93","energy-events":1,"carbon-events":1,"kwh":1000,"scope1-kgco2e":0,"scope2-kgco2e":300,"scope3-kgco2e":200,"offsets-kgco2e":1000,"offset-coverage-every-period":true},{"operator":"did:web:op-d.example","origin":"node.op-d.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":false},{"operator":"did:web:op-e.example","origin":"node.op-e.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":false},{"operator":"did:web:op-f.example","origin":"node.op-f.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":false}],"network-offset-coverage":false}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImRpc2Nsb3N1cmUtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zdXN0YWluYWJpbGl0eS9kaXNjbG9zdXJlcy5qc29uIiwiZXh0ZW5zaW9ucyI6eyJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9jYXJib24tbmV1dHJhbGl0eSI6eyJuZXQtemVyby1zdGF0dXMiOiJwYXJ0aWFsIiwib2Zmc2V0LXJlZ2lzdHJ5LXVyaSI6Imh0dHBzOi8vcmVnaXN0cnkuZXhhbXBsZS9yZXRpcmVtZW50cyIsInJlbmV3YWJsZS1wcm9jdXJlbWVudCI6InBvd2VyLXB1cmNoYXNlLWFncmVlbWVudHMifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbGVkZ2VyLWV2aWRlbmNlLTIiOnsibGVkZ2VyLWFjY2Vzcy11cmkiOiJodHRwczovL2xlZGdlci5leGFtcGxlL3NmYy9yZWFkIiwibmV0d29yay1vZmZzZXQtY292ZXJhZ2UiOmZhbHNlLCJvcGVyYXRvcnMiOlt7ImNhcmJvbi1ldmVudHMiOjEsImNhcmJvbi1oZWFkIjoiNjExZTliZWNjN2MxNDMxMmQ4MzdjMjg5ZDc2OTI4NTY4NmMxMDQyMzA1YWIxZjk3MTIyZDdjY2NiNzEwZGYzNyIsImVuZXJneS1ldmVudHMiOjEsImVuZXJneS1oZWFkIjoiZTY0ZTE3MjYzMDg4MGYyMjg3MTFjY2Y3MzdiN2FkMGNmNmM3MmYzMTRjNjA5N2I5ZmIwOTg5YjhlNzMzYWJlMCIsImt3aCI6MTAwMCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjEwMDAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1hLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWEuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjMwMCwic2NvcGUzLWtnY28yZSI6MjAwfSx7ImNhcmJvbi1ldmVudHMiOjEsImNhcmJvbi1oZWFkIjoiNjExZTliZWNjN2MxNDMxMmQ4MzdjMjg5ZDc2OTI4NTY4NmMxMDQyMzA1YWIxZjk3MTIyZDdjY2NiNzEwZGYzNyIsImVuZXJneS1ldmVudHMiOjEsImVuZXJneS1oZWFkIjoiZTY0ZTE3MjYzMDg4MGYyMjg3MTFjY2Y3MzdiN2FkMGNmNmM3MmYzMTRjNjA5N2I5ZmIwOTg5YjhlNzMzYWJlMCIsImt3aCI6MTAwMCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjEwMDAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1hLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWEyLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjozMDAsInNjb3BlMy1rZ2NvMmUiOjIwMH0seyJjYXJib24tZXZlbnRzIjowLCJjYXJib24taGVhZCI6bnVsbCwiZW5lcmd5LWV2ZW50cyI6MCwiZW5lcmd5LWhlYWQiOm51bGwsImt3aCI6MCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6ZmFsc2UsIm9mZnNldHMta2djbzJlIjowLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYi5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1hLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjowLCJzY29wZTMta2djbzJlIjowfSx7ImNhcmJvbi1ldmVudHMiOjEsImNhcmJvbi1oZWFkIjoiOGNiZGVjMTA1YzczNjI5MjdkZDE0NTk1YmY0M2M4YWI3ZTUzMzg5MjRiZWEwNzA1MTNlOGJkMDU1NDlkYWU5MyIsImVuZXJneS1ldmVudHMiOjEsImVuZXJneS1oZWFkIjoiNmM5ZDBiN2ZkMmYyMTdlMzRlZGVkYzUzMDBkM2NiYjczZWQyMDMwMTIyMmY4OWM0YWZiNzg4MDg5MjQ2ZTg2MyIsImt3aCI6MTAwMCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjEwMDAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1jLmV4YW1wbGUiLCJvcmlnaW4iOiJzb21ld2hlcmUtZWxzZS5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6MzAwLCJzY29wZTMta2djbzJlIjoyMDB9LHsiY2FyYm9uLWV2ZW50cyI6MCwiY2FyYm9uLWhlYWQiOm51bGwsImVuZXJneS1ldmVudHMiOjAsImVuZXJneS1oZWFkIjpudWxsLCJrd2giOjAsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOmZhbHNlLCJvZmZzZXRzLWtnY28yZSI6MCwib3BlcmF0b3IiOiJkaWQ6d2ViOm9wLWQuZXhhbXBsZSIsIm9yaWdpbiI6Im5vZGUub3AtZC5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6MCwic2NvcGUzLWtnY28yZSI6MH0seyJjYXJib24tZXZlbnRzIjowLCJjYXJib24taGVhZCI6bnVsbCwiZW5lcmd5LWV2ZW50cyI6MCwiZW5lcmd5LWhlYWQiOm51bGwsImt3aCI6MCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6ZmFsc2UsIm9mZnNldHMta2djbzJlIjowLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtZS5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1lLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjowLCJzY29wZTMta2djbzJlIjowfSx7ImNhcmJvbi1ldmVudHMiOjAsImNhcmJvbi1oZWFkIjpudWxsLCJlbmVyZ3ktZXZlbnRzIjowLCJlbmVyZ3ktaGVhZCI6bnVsbCwia3doIjowLCJvZmZzZXQtY292ZXJhZ2UtZXZlcnktcGVyaW9kIjpmYWxzZSwib2Zmc2V0cy1rZ2NvMmUiOjAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1mLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWYuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjAsInNjb3BlMy1rZ2NvMmUiOjB9XSwicHJvZmlsZS12ZXJzaW9uIjoiMi4wIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL25ldHdvcmstdG9wb2xvZ3kiOnsiY29uc2Vuc3VzLW1lY2hhbmlzbSI6InByb29mLW9mLWF1dGhvcml0eSJ9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvTUVUSE9ET0xPR1kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMi0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yayBhbmQgbm90IGEgcmVhbCBtZWFzdXJlbWVudC4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUBsZWRnZXIuZXhhbXBsZS4gRXZlcnkgZmlndXJlIGlzIGludmVudGVkLiIsInRhcmdldCI6ImxlZGdlci5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJzZXJ2aWNlIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.czrxjBzMF5UTUXhASez4O16MzkbJPM7NFivZVWPAMYiJNVZWBLX88Kixh4ACDXSePmWIJGlSaxtuRFJo9m0uAw"}
+      ],
+      "select": ["D2.unique","D2.operator-set","C-SFC-7"],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true]
+      },
+      "excerptRef": "x1"
+    }
+  ],
+  "excerpts": {
+    "x1": {
+      "excerpt-version": 2,
+      "profile-version": "2.0",
+      "network": "ledger.example",
+      "read-at": "2026-05-02T00:10:00Z",
+      "registrar": {
+        "jwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+        }
+      },
+      "registry": [
+        {"operator":"did:web:op-a.example","origin":"node.op-a.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"5RAXfr6Yx-sSJMzjLaPP3LzIk7lGwHTj8ynlLxIpxr3ebzPuU2K0xY0La61zJHr354gB80_Fdj52GyW_Gk9xDg"}},
+        {"operator":"did:web:op-c.example","origin":"node.op-c.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"SPC5YgojebRSuniMSXhqkWnU8r092eeCbTQQ8ohVfT4CCQVvng0QorQ2AWakflsSJB1JcUMPeObyq-1QOF-PAg"}},
+        {"operator":"did:web:op-b.example","origin":"node.op-a.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"MrY9shLc5o8_ym1Ytd4KnEsoWaRdZoaJWmghCtGh9HUb43um0m2PmDQVa1t2IxFJYmn5AK0enK54ljXUyDqVDA"}},
+        {"operator":"did:web:op-a.example","origin":"node.op-a2.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"zdw4bDxwEsUGQyBvVw2kGgapyvvLcdJBVtKFLlfzNzLl77cfboiJ1V_9p_DrHH7BRENN8aVVfEqd8F9XWMrQDg"}},
+        {"operator":"did:web:op-d.example","origin":"node.op-d.example","network":"ledger.example","active":[{"from":"2025-12-01T00:00:00Z","to":"2026-02-01T00:00:00Z"},{"from":"2025-11-01T00:00:00Z","to":"2025-12-01T00:00:00Z"}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"8W2RehRXP8pH_qSrAAkFPf6QJurVp4V1HuyaHiXoWCOcmt_6safWGIQ2IvihgnTGfKIM9NdjyxopoQrh9taCDw"}},
+        {"operator":"did:web:op-e.example","origin":"node.op-e.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":"2026-03-01T00:00:00Z"},{"from":"2026-01-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"_AsMXgi0I7qnlP2qGUEfZdciFUr_XPPJHkuKOjTL_RhD7iZxfckJjxL4qwYwWGf3uWW2VE-8QVs9enoXbbAwBQ"}},
+        {"operator":"did:web:op-f.example","origin":"node.op-f.example","active":[{"from":"2025-12-01","to":null},{"from":"2025-11-01","to":"2025-11-30"}],"keys":[{"public-jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"valid-from-commit":"2024-01-01T00:00:00Z","valid-to-commit":null}]}
+      ],
+      "ledger": [
+        {"commit":"2026-02-03T12:02:00Z","hash":"6c9d0b7fd2f217e34ededc5300d3cbb73ed20301222f89c4afb788089246e863","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-c.example","actor":"did:web:op-c.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":1000,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"WnAgaodQorDpDFi1MtjwFYgERtWu5mbSCL8GpmUw0BULugZwD-sJ99a6uc_ZZoc5nneeGDj9qpPExL4zj0zBBA"}}},
+        {"commit":"2026-02-03T12:03:00Z","hash":"8cbdec105c7362927dd14595bf43c8ab7e5338924bea070513e8bd05549dae93","event":{"type":"CarbonAttested","network":"ledger.example","subject":"did:web:op-c.example","actor":"did:web:op-c.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"scope2KgCO2e":300,"scope3KgCO2e":200,"gridIntensityRef":"Electricity Maps zone XX, 2025, annual average","retirements":[{"registry":"https://registry.example","reference":"RET-30-C","tonnesRetired":1,"retiredAt":"2026-02-02T00:00:00Z","kg":1000}],"offsetsKgCO2e":1000,"netZero":true,"evidence":"https://ledger.example/evidence/carbon-example"},"sig":{"alg":"Ed25519","value":"QKLXUpR3MS9C3Zi6i9j3pwJELaauloChwGt6zJvJIhBGWqKWEPVUJbX9iXpJhtvWsHDSX4QmqYF-6wRRWfAMBw"}}},
+        {"commit":"2026-02-03T12:06:00Z","hash":"e64e172630880f228711ccf737b7ad0cf6c72f314c6097b9fb0989b8e733abe0","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":1000,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"AG_laEZkSRD4fGndzJly6h9eG0QzD-bBn95kGs4LfKBd0RRFuOV8DxdtgnZIFXOdTIUmuOuaHwGScAmM4gtsBg"}}},
+        {"commit":"2026-02-03T12:07:00Z","hash":"611e9becc7c14312d837c289d769285686c1042305ab1f97122d7cccb710df37","event":{"type":"CarbonAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"scope2KgCO2e":300,"scope3KgCO2e":200,"gridIntensityRef":"Electricity Maps zone XX, 2025, annual average","retirements":[{"registry":"https://registry.example","reference":"RET-30-A","tonnesRetired":1,"retiredAt":"2026-02-02T00:00:00Z","kg":1000}],"offsetsKgCO2e":1000,"netZero":true,"evidence":"https://ledger.example/evidence/carbon-example"},"sig":{"alg":"Ed25519","value":"5FY8wEEUs_zG9zY6em1p8XAgblZXvBnVUTCH5Wc8lms7AADXifa_qjZFP80LRPlZkZqglcT4xNcAEJgViS_NDg"}}}
+      ]
+    }
+  }
+}

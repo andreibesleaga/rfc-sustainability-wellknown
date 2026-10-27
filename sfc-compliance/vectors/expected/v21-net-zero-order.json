@@ -1,0 +1,300 @@
+{
+  "id": "v21-net-zero-order",
+  "scenarios": {
+    "all-zero-emissions-and-offsets": {
+      "rows": [
+        {
+          "id": "S6.f",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        },
+        {
+          "id": "D6.info",
+          "result": "INFO",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based",
+          "detail": "no emissions to cover"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-01-01..2026-02-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      },
+      "derived": [
+        {
+          "spec": {
+            "period": {
+              "start": "2026-01-01T00:00:00Z",
+              "end": "2026-03-01T00:00:00Z"
+            },
+            "cutoff": "2026-04-15T00:00:00Z",
+            "level": "network",
+            "energyUnit": "kWh",
+            "carbonUnit": "kgCO2e",
+            "consensus": "proof-of-authority"
+          },
+          "incomplete": {
+            "energy": false,
+            "carbon": false
+          },
+          "silent": [],
+          "evidence": {
+            "profile-version": "2.0",
+            "ledger-access-uri": "https://ledger.example/sfc/read",
+            "operators": [
+              {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"96da20addac78d0a300b550936bb14db2aeaf483092423910c35f699311e801d","carbon-head":"f738ceb62aa89a78fcf6d55129491c11921c65c9d3f2a15aa5ea71071e6eccf1","energy-events":2,"carbon-events":2,"kwh":200,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}
+            ],
+            "network-offset-coverage": true
+          },
+          "top": {
+            "measurement-method": "hardware-metered",
+            "energy-consumption": 200,
+            "energy-unit": "kWh",
+            "scope-2": 0,
+            "scope-3": 0,
+            "carbon-footprint": 0,
+            "carbon-unit": "kgCO2e",
+            "carbon-accounting": "market-based",
+            "carbon-intensity-gCO2e-per-kWh": 0
+          },
+          "carbonNeutrality": {
+            "net-zero-status": "achieved",
+            "offsets-retired-tCO2e": 0
+          },
+          "networkTopology": {
+            "consensus-mechanism": "proof-of-authority",
+            "validated-node-count": 3,
+            "node-count-validation-method": "maximum over the months of the period of the sum of the operators' monthly peak node counts"
+          },
+          "location": null
+        },
+        {
+          "spec": {
+            "period": {
+              "start": "2026-01-01T00:00:00Z",
+              "end": "2026-02-01T00:00:00Z"
+            },
+            "cutoff": "2026-04-15T00:00:00Z",
+            "level": "operator",
+            "energyUnit": "kWh",
+            "carbonUnit": "kgCO2e",
+            "consensus": "proof-of-authority",
+            "operator": "did:web:op-a.example",
+            "updated": "2026-04-15T00:00:00Z",
+            "target": "node.op-a.example",
+            "hardware": false
+          },
+          "incomplete": {
+            "energy": false,
+            "carbon": false
+          },
+          "silent": [],
+          "evidence": {
+            "profile-version": "2.0",
+            "ledger-access-uri": "https://ledger.example/sfc/read",
+            "operators": [
+              {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"e3f8bd6588c1694710e92f562d5054111faecebe65932a1f8a55a69df264c846","carbon-head":"abb124f3e84263b7e2b4f22e01363291cc781075a4846aa0dd43bcaa9a925532","energy-events":1,"carbon-events":1,"kwh":100,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}
+            ]
+          },
+          "top": {
+            "measurement-method": "hardware-metered",
+            "energy-consumption": 100,
+            "energy-unit": "kWh",
+            "scope-2": 0,
+            "scope-3": 0,
+            "carbon-footprint": 0,
+            "carbon-unit": "kgCO2e",
+            "carbon-accounting": "market-based",
+            "carbon-intensity-gCO2e-per-kWh": 0
+          },
+          "carbonNeutrality": {
+            "net-zero-status": "achieved",
+            "offsets-retired-tCO2e": 0
+          },
+          "networkTopology": {},
+          "location": null
+        }
+      ]
+    },
+    "silent-carbon-month-with-offsets": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "PASS",
+          "scope": "read"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "derived": [
+        {
+          "spec": {
+            "period": {
+              "start": "2026-01-01T00:00:00Z",
+              "end": "2026-03-01T00:00:00Z"
+            },
+            "cutoff": "2026-04-15T00:00:00Z",
+            "level": "network",
+            "energyUnit": "kWh",
+            "carbonUnit": "kgCO2e",
+            "consensus": "proof-of-authority"
+          },
+          "incomplete": {
+            "energy": false,
+            "carbon": true
+          },
+          "silent": ["did:web:op-a.example 2026-02 CarbonAttested"],
+          "evidence": {
+            "profile-version": "2.0",
+            "ledger-access-uri": "https://ledger.example/sfc/read",
+            "operators": [
+              {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"96da20addac78d0a300b550936bb14db2aeaf483092423910c35f699311e801d","carbon-head":"3f2752829df79266b6e1f2ea0523dadb02176ec581e0923d6befd9d09932af19","energy-events":2,"carbon-events":1,"kwh":200,"scope1-kgco2e":0,"scope2-kgco2e":100,"scope3-kgco2e":100,"offsets-kgco2e":1000,"offset-coverage-every-period":false}
+            ],
+            "network-offset-coverage": false
+          },
+          "top": {
+            "measurement-method": "hardware-metered",
+            "energy-consumption": 200,
+            "energy-unit": "kWh"
+          },
+          "carbonNeutrality": {
+            "net-zero-status": "partial"
+          },
+          "networkTopology": {
+            "consensus-mechanism": "proof-of-authority",
+            "validated-node-count": 3,
+            "node-count-validation-method": "maximum over the months of the period of the sum of the operators' monthly peak node counts"
+          },
+          "location": null
+        }
+      ]
+    },
+    "silent-carbon-month-without-offsets": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "PASS",
+          "scope": "read"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "derived": [
+        {
+          "spec": {
+            "period": {
+              "start": "2026-01-01T00:00:00Z",
+              "end": "2026-03-01T00:00:00Z"
+            },
+            "cutoff": "2026-04-15T00:00:00Z",
+            "level": "network",
+            "energyUnit": "kWh",
+            "carbonUnit": "kgCO2e",
+            "consensus": "proof-of-authority"
+          },
+          "incomplete": {
+            "energy": false,
+            "carbon": true
+          },
+          "silent": ["did:web:op-a.example 2026-02 CarbonAttested"],
+          "evidence": {
+            "profile-version": "2.0",
+            "ledger-access-uri": "https://ledger.example/sfc/read",
+            "operators": [
+              {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"96da20addac78d0a300b550936bb14db2aeaf483092423910c35f699311e801d","carbon-head":"b159e4b29e342078e2a4c5d0e58fa6d4cd5b7008cfd27b05c5d9c1451af275f3","energy-events":2,"carbon-events":1,"kwh":200,"scope1-kgco2e":0,"scope2-kgco2e":100,"scope3-kgco2e":100,"offsets-kgco2e":0,"offset-coverage-every-period":false}
+            ],
+            "network-offset-coverage": false
+          },
+          "top": {
+            "measurement-method": "hardware-metered",
+            "energy-consumption": 200,
+            "energy-unit": "kWh"
+          },
+          "carbonNeutrality": {
+            "net-zero-status": "not-achieved"
+          },
+          "networkTopology": {
+            "consensus-mechanism": "proof-of-authority",
+            "validated-node-count": 3,
+            "node-count-validation-method": "maximum over the months of the period of the sum of the operators' monthly peak node counts"
+          },
+          "location": null
+        }
+      ]
+    },
+    "no-ledger-derivation": {
+      "rows": [
+        {
+          "id": "S6.f",
+          "result": "INFO",
+          "scope": "zero-explicit.example 2025-01-01..2026-01-01 market-based",
+          "detail": "consistent; no emissions to cover"
+        },
+        {
+          "id": "S6.f",
+          "result": "INFO",
+          "scope": "zero-footprint-offsets-absent.example 2025-01-01..2026-01-01 market-based",
+          "detail": "consistent; no emissions to cover"
+        },
+        {
+          "id": "S6.f",
+          "result": "INFO",
+          "scope": "covered.example 2025-01-01..2026-01-01 market-based",
+          "detail": "consistent"
+        },
+        {
+          "id": "S6.f",
+          "result": "INFO",
+          "scope": "partly-covered.example 2025-01-01..2026-01-01 market-based",
+          "detail": "consistent"
+        },
+        {
+          "id": "S6.f",
+          "result": "INFO",
+          "scope": "not-covered.example 2025-01-01..2026-01-01 market-based",
+          "detail": "consistent"
+        },
+        {
+          "id": "S6.f",
+          "result": "INFO",
+          "scope": "no-footprint.example 2025-01-01..2026-01-01 market-based",
+          "detail": "not derivable: no carbon-footprint"
+        },
+        {
+          "id": "S6.f",
+          "result": "INFO",
+          "scope": "mislabelled.example 2025-01-01..2026-01-01 market-based",
+          "detail": "expected achieved"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 7
+      }
+    }
+  }
+}

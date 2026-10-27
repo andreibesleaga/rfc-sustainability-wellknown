@@ -51,21 +51,24 @@ bash scripts/overlay-source-publisher.sh tools/create-sustainability-data
 (cd fitness && npm test)
 ```
 
-`sfc-compliance/` is the fourth area with a test suite. It depends on exactly one package,
-the published consumer, and deliberately carries **no lockfile**, so it installs with
-`npm install`, never `npm ci`:
+`sfc-compliance/` is the fourth area with a test suite. It holds the checker, schemas, test
+vectors and examples of [SFC profile 2.0](https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md);
+the profile text itself is not in this repository.
 
 ```bash
 cd sfc-compliance
-npm install
+npm ci
 npm test
-node sfc-check.mjs examples/sfc-network.example.json
+npm run check
+python3 vectors/crosscheck.py
 ```
 
 Each area has its own workflow (`publisher.yml`, `consumer.yml`, `gateway.yml`, `bdd.yml`, `draft.yml`, `deploy-kit.yml`,
 `example-scripts.yml`, `sfc-compliance.yml`), run on every push and pull request that touches its paths.
-`.github/workflows/full-verify.yml` runs all of the above together weekly, by hand from the Actions tab, and on changes to
-the schema corpus or the report-to-declaration tool, which no other workflow covers; its gateway job uses the source
+`.github/workflows/full-verify.yml` runs the draft, tools, bdd-and-fitness, schemas, publisher, consumer, gateway and
+example-scripts areas together weekly, by hand from the Actions tab, and on changes to the schema corpus or the
+report-to-declaration tool, which no other workflow covers. It has no job for `sfc-compliance/` or the deploy kit: those run in their own workflows (`sfc-compliance.yml`,
+`deploy-kit.yml`), and `scripts/test-everything.sh` also runs `sfc-compliance/`. The full-verify gateway job uses the source
 builds of the two libraries, and `gateway.yml` runs the gateway against the registry versions on changes under `gateway/`.
 The library jobs run on Node 22 and 24, which must pass, and on Node 26, which is reported and does not block.
 The workflows a change triggers are the checks to satisfy before opening a PR; `full-verify.yml` can be run by hand.

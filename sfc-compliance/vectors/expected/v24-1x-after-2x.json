@@ -1,0 +1,82 @@
+{
+  "id": "v24-1x-after-2x",
+  "scenarios": {
+    "order-of-forms": {
+      "rows": [
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-a.example",
+          "detail": "1.x entry authenticated by digest"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-b.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "FAIL",
+          "scope": "did:web:op-c.example",
+          "detail": "profile2From"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy 2026-02-03T03:00:00Z",
+          "detail": "L11b; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-02-03T01:00:00Z",
+          "detail": "L11; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-02-03T02:00:00Z",
+          "detail": "L11; skipped"
+        },
+        {
+          "id": "D5.1x",
+          "result": "INFO",
+          "scope": "did:web:op-a.example Carbon 2026-02-03T02:00:00Z",
+          "detail": "retirement rules L8b to L10 not applied"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "1 events"
+        }
+      ],
+      "summary": {
+        "PASS": 3,
+        "FAIL": 7,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    }
+  }
+}

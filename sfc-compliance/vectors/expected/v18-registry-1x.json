@@ -1,0 +1,217 @@
+{
+  "id": "v18-registry-1x",
+  "scenarios": {
+    "1x-entry-with-digest": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-p.example",
+          "detail": "1.x entry authenticated by digest"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-q.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "FAIL",
+          "scope": "did:web:op-r.example",
+          "detail": "network"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-p.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-p.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-q.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-q.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-r.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-r.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-3",
+          "result": "NOT-DECLARED",
+          "scope": "2025-04..2026-03",
+          "detail": "did:web:op-p.example"
+        }
+      ],
+      "summary": {
+        "PASS": 9,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 1,
+        "INFO": 0
+      }
+    },
+    "1x-entry-without-digest": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D2.entry",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-p.example",
+          "detail": "unsigned Registry entry not authenticated"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-q.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "FAIL",
+          "scope": "did:web:op-r.example",
+          "detail": "network"
+        },
+        {
+          "id": "D3",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-p.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-p.example Energy 2026-02-03T12:00:00Z",
+          "detail": "L5 entry not authenticated"
+        },
+        {
+          "id": "D3",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-p.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-p.example Carbon 2026-02-03T12:01:00Z",
+          "detail": "L5 entry not authenticated"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-q.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-q.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-r.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-r.example Carbon",
+          "detail": "1 events"
+        }
+      ],
+      "summary": {
+        "PASS": 6,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 5,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "conversion-to-2.0-form": {
+      "result": {
+        "active": [
+          {
+            "from": "2025-01-01T00:00:00Z",
+            "to": "2025-07-01T00:00:00Z"
+          },
+          {
+            "from": "2025-08-01T00:00:00Z",
+            "to": null
+          }
+        ],
+        "keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "validFromCommit": "2024-01-01T00:00:00Z",
+            "validToCommit": null
+          }
+        ],
+        "activeMonths1x": [
+          "2025-01-01T00:00:00Z",
+          "2025-02-01T00:00:00Z",
+          "2025-03-01T00:00:00Z",
+          "2025-04-01T00:00:00Z",
+          "2025-05-01T00:00:00Z",
+          "2025-06-01T00:00:00Z",
+          "2025-08-01T00:00:00Z",
+          "2025-09-01T00:00:00Z",
+          "2025-10-01T00:00:00Z",
+          "2025-11-01T00:00:00Z",
+          "2025-12-01T00:00:00Z",
+          "2026-01-01T00:00:00Z"
+        ],
+        "activeMonths20": [
+          "2025-01-01T00:00:00Z",
+          "2025-02-01T00:00:00Z",
+          "2025-03-01T00:00:00Z",
+          "2025-04-01T00:00:00Z",
+          "2025-05-01T00:00:00Z",
+          "2025-06-01T00:00:00Z",
+          "2025-08-01T00:00:00Z",
+          "2025-09-01T00:00:00Z",
+          "2025-10-01T00:00:00Z",
+          "2025-11-01T00:00:00Z",
+          "2025-12-01T00:00:00Z",
+          "2026-01-01T00:00:00Z"
+        ],
+        "same": true
+      }
+    }
+  }
+}

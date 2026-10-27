@@ -1,0 +1,143 @@
+{
+  "id": "v32-ledger-order",
+  "scenarios": {
+    "commit-instants-do-not-increase": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "FAIL",
+          "scope": "ledger",
+          "detail": "ledger order: commit instants do not strictly increase"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-03-03T12:01:00Z",
+          "detail": "L4; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-02-03T12:01:00Z",
+          "detail": "L4; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-01-03T12:01:00Z",
+          "detail": "L4; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-03-03T12:00:00Z",
+          "detail": "L4; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-02-03T12:00:00Z",
+          "detail": "L4; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-01-03T12:00:00Z",
+          "detail": "L4; skipped"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 9,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "a-hash-repeats": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "FAIL",
+          "scope": "ledger",
+          "detail": "ledger order: commit instants do not strictly increase; hash repeats"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-01-03T12:01:00Z",
+          "detail": "L4; L6; skipped"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 3,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "a-void-commit-equals-a-ledger-commit": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "FAIL",
+          "scope": "ledger",
+          "detail": "ledger order: void commit not distinct"
+        },
+        {
+          "id": "D2.void",
+          "result": "INFO",
+          "scope": "void @2026-02-03T12:01:00Z",
+          "detail": "void ignored: commit"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "3 events"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    }
+  }
+}

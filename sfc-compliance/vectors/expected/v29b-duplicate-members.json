@@ -1,0 +1,374 @@
+{
+  "id": "v29b-duplicate-members",
+  "scenarios": {
+    "duplicate-target-claims-sfc-pinned": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based",
+          "detail": "duplicate member or lone surrogate"
+        },
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "duplicate-target-claims-sfc-unpinned": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based",
+          "detail": "duplicate member or lone surrogate"
+        },
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "duplicate-in-the-second-object-only": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "PASS",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based",
+          "detail": "verified under a pinned key"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "dup-plain.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed payload differs"
+        },
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "duplicate-in-the-first-object-only": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based",
+          "detail": "duplicate member or lone surrogate"
+        },
+        {
+          "id": "S3",
+          "result": "PASS",
+          "scope": "dup-plain.example 2025-01-01..2026-01-01 market-based",
+          "detail": "verified under a pinned key"
+        },
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "body-is-a-string": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "FAIL",
+          "detail": "body is not a declaration object or an array of them"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "body-is-a-number": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "FAIL",
+          "detail": "body is not a declaration object or an array of them"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "body-is-null": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "FAIL",
+          "detail": "body is not a declaration object or an array of them"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "body-is-true": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "FAIL",
+          "detail": "body is not a declaration object or an array of them"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "body-is-an-array-of-numbers": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "FAIL",
+          "detail": "item 0 is not an object"
+        },
+        {
+          "id": "S2",
+          "result": "FAIL",
+          "detail": "item 1 is not an object"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "body-is-an-array-with-one-object": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "FAIL",
+          "detail": "item 0 is not an object"
+        },
+        {
+          "id": "S2",
+          "result": "PASS",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "body-is-an-empty-array": {
+      "rows": [],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "duplicate-target-plain-pinned": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "dup-plain.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed payload differs"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "duplicate-target-plain-unpinned": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "dup-plain.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed payload differs"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "duplicate-in-the-decoded-payload-claims-sfc": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based",
+          "detail": "duplicate member or lone surrogate"
+        },
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "duplicate-in-the-decoded-payload-plain": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "dup-plain.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed payload differs"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "lone-surrogate-claims-sfc": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based",
+          "detail": "duplicate member or lone surrogate"
+        },
+        {
+          "id": "C-SFC-5",
+          "result": "FAIL",
+          "scope": "dup.example 2025-01-01..2026-01-01 market-based",
+          "detail": "S2"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "lone-surrogate-plain": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "dup-plain.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed payload differs"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "duplicate-extensions-member-carrying-ledger-evidence-2": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "dup-ext.example 2025-01-01..2026-01-01 market-based",
+          "detail": "duplicate member or lone surrogate"
+        },
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "dup-ext.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    }
+  }
+}

@@ -22,9 +22,6 @@ coverage/
 !publisher/test/fixtures/*.pem
 !consumer/test/fixtures/tls/*.pem
 
-# sfc-compliance has no lockfile by design (its CI job runs npm install against the registry)
-sfc-compliance/package-lock.json
-
 # deploy/e2e/run.sh scratch files
 deploy/e2e/.go-bin
 deploy/e2e/.Caddyfile

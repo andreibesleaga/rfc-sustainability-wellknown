@@ -47,8 +47,24 @@ import {
 import { compareDateTimes, lastFullMonthPeriod, monthPeriod, yearPeriod, type Period, type RawMetrics } from "sustainability-wellknown-publisher";
 import { PUBLIC_BASE_URL, type GatewayConfig } from "../config";
 import type { LiveDeps, LiveSpec } from "../live";
-import { SFC_LEDGER_DEMO_DOMAIN, deepCheck, sfcLedgerBridgeAdapter, shallowCheck } from "./sfc-ledger-bridge";
-import { SFC_LEDGER_FIXTURE, SFC_LEDGER_PROVIDER, SFC_LEDGER_TEST_PRIVATE_JWK, SFC_LEDGER_TEST_PUBLIC_JWK } from "./sfc-ledger-fixture";
+import { SFC_LEDGER_DEMO_2_DOMAIN, SFC_LEDGER_DEMO_DOMAIN, SFC_NETWORK_2_DOMAIN, SFC_OPERATOR_2_DOMAIN, deepCheck, sfcLedgerBridgeAdapter, shallowCheck, type CheckReport } from "./sfc-ledger-bridge";
+import { toRawMetrics } from "./sfc-ledger-2/bridge";
+import {
+  SFC_LEDGER_2_DISCLOSURE_URI,
+  SFC_LEDGER_2_FIXTURE,
+  SFC_LEDGER_2_METHODOLOGY_URI,
+  SFC_LEDGER_2_PARAMETERS,
+  SFC_LEDGER_2_PERIOD,
+  SFC_LEDGER_2_PINS,
+  SFC_LEDGER_2_PROVIDER,
+  SFC_LEDGER_2_UPDATED,
+  SFC_LEDGER_FIXTURE,
+  SFC_LEDGER_PROVIDER,
+  SFC_LEDGER_TEST_PRIVATE_JWK,
+  SFC_LEDGER_TEST_PUBLIC_JWK,
+  SFC_NETWORK_2_EXAMPLE,
+  SFC_OPERATOR_2_EXAMPLE,
+} from "./sfc-ledger-fixture";
 import { KEPLER_FIXTURE_2025, keplerReplayAdapter } from "./kepler-replay";
 import { GWF_DIST_FIXTURE, GWF_DIST_URL, distLiveAdapter, distReplayAdapter, fetchGwfDist } from "./dist";
 import {
@@ -471,6 +487,51 @@ function noEnteredMonth(demo: string): SourceAdapter {
   };
 }
 
+/**
+ * The SFC demonstrations' shared parts. The ledger-access-uri of a bridged declaration must be an
+ * https URI (spec 8.5): a local http BASE_URL would make the served document point at the reference
+ * deployment instead.
+ */
+const sfcInputUri = (config: GatewayConfig, domain: string): string =>
+  `${(/^https:/.test(config.baseUrl) ? config.baseUrl : PUBLIC_BASE_URL).replace(/\/+$/, "")}/${domain}/input`;
+
+/** The failing rows of a report, as lines for a boot error. */
+const failingRows = (...reports: CheckReport[]): string[] =>
+  reports.flatMap((r) => r.rows).filter((r) => r.status === "FAIL").map((r) => `${r.id}${r.scope ? ` (${r.scope})` : ""}: ${r.detail}`);
+
+/** A reference declaration of SFC profile 2.0, relayed unchanged: the adapter hands the publisher exactly its members. */
+function sfcStaticExampleAdapter(document: Record<string, unknown>): SourceAdapter {
+  const { signed: _signed, ...unsigned } = document;
+  return { name: "sfc-reference-declaration", capabilities: "basic", fetch: async () => toRawMetrics(unsigned) };
+}
+
+/** Verdicts of the 2.0 self-check by document text: a gateway booted again in one process (the test suites do) checks each recorded document once. */
+const SELF_CHECK_2_DONE = new Map<string, Promise<void>>();
+
+/**
+ * The 2.0 checks run on a served declaration at boot: the shallow check, and the deep check against the recorded read.
+ * The guarantee is unchanged (a failing document stops every boot that serves it); only a repeat of a passed check is skipped.
+ */
+function sfcSelfCheck2(document: unknown): Promise<void> {
+  const key = JSON.stringify(document);
+  const known = SELF_CHECK_2_DONE.get(key);
+  if (known) return known;
+  const run = runSfcSelfCheck2(document);
+  SELF_CHECK_2_DONE.set(key, run);
+  run.catch(() => SELF_CHECK_2_DONE.delete(key));
+  return run;
+}
+
+async function runSfcSelfCheck2(document: unknown): Promise<void> {
+  const readAt = SFC_LEDGER_2_FIXTURE["read-at"];
+  // the served text is what is checked, so the body is read as I-JSON (the gateway builds the object itself, so no duplicate can arise; the path is the real one)
+  const declarationText = JSON.stringify(document);
+  const shallow = await shallowCheck(document, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK], T: readAt, declarationText });
+  const deep = deepCheck(document, SFC_LEDGER_2_FIXTURE, { T: readAt, parameters: SFC_LEDGER_2_PARAMETERS, pins: SFC_LEDGER_2_PINS, declarationText });
+  const bad = failingRows(shallow, deep);
+  if (bad.length > 0) throw new Error(`sfc-ledger-bridge (profile 2.0) self-check failed:\n  ${bad.join("\n  ")}`);
+}
+
 export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
   const { config, crawlBytes } = opts;
   const wattsByMonth = opts.wattsByMonth ?? {};
@@ -745,9 +806,7 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
           mode: "operator",
           provider: SFC_LEDGER_PROVIDER,
           methodologyUri: config.self.methodologyUri,
-          // ledger-access-uri must be an https URI (profile §A.9.2): a local http BASE_URL
-          // would make the served document point at the reference deployment instead.
-          ledgerAccessUri: `${(/^https:/.test(config.baseUrl) ? config.baseUrl : PUBLIC_BASE_URL).replace(/\/+$/, "")}/${SFC_LEDGER_DEMO_DOMAIN}/input`,
+          ledgerAccessUri: sfcInputUri(config, SFC_LEDGER_DEMO_DOMAIN),
         }),
       signingJwk: SFC_LEDGER_TEST_PRIVATE_JWK,
       selfCheck: async (subject) => {
@@ -767,6 +826,84 @@ export function demoSpecs(opts: DemoSpecOptions): LiveSpec[] {
           "CarbonAttested events for January to April 2026, its Registry key and its signed allocation of one " +
           "retired tonne. Every figure is invented; every signature uses the public RFC 8032 test key. The " +
           "declaration's ledger-evidence extension points here, so a reader can run the deep check.",
+      },
+    },
+    {
+      // SFC profile 2.0 (spec: https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md).
+      // The bridge turns a recorded three-operator ledger read (excerpt format 2, from the profile's
+      // test vectors) into the signed market-based network declaration for 2025: ledger-evidence-2,
+      // hardware-lifecycle, carbon-neutrality and network-topology (spec 7.4, 8). Replay only, signed with
+      // the public RFC 8032 test key. Both depths of the checks run on the served document at boot.
+      // The paired location-based object (spec 7.3) is left off: a gateway subject relays one object.
+      domain: SFC_LEDGER_DEMO_2_DOMAIN,
+      target: SFC_LEDGER_2_FIXTURE.network,
+      targetType: "service",
+      fixture: () =>
+        sfcLedgerBridgeAdapter({
+          excerpt: SFC_LEDGER_2_FIXTURE,
+          mode: "network",
+          provider: SFC_LEDGER_2_PROVIDER,
+          methodologyUri: SFC_LEDGER_2_METHODOLOGY_URI,
+          ledgerAccessUri: sfcInputUri(config, SFC_LEDGER_DEMO_2_DOMAIN),
+          disclosureUri: SFC_LEDGER_2_DISCLOSURE_URI,
+          period: SFC_LEDGER_2_PERIOD,
+          updated: SFC_LEDGER_2_UPDATED,
+          target: SFC_LEDGER_2_FIXTURE.network,
+          energyUnit: "MWh",
+          carbonUnit: "tCO2e",
+          consensusMechanism: "proof-of-authority",
+          renewableEnergy: 82,
+          parameters: SFC_LEDGER_2_PARAMETERS,
+          pins: SFC_LEDGER_2_PINS,
+        }),
+      signingJwk: SFC_LEDGER_TEST_PRIVATE_JWK,
+      selfCheck: (subject) => sfcSelfCheck2(subject.document),
+      labelFixture: "adapter:sfc-ledger-bridge (SFC profile 2.0, recorded ledger read, replay, experimental)",
+      labelLive: "adapter:sfc-ledger-bridge",
+      upstream: "SFC profile 2.0 attestation events of a three-operator network (recorded synthetic read; no public ledger; replay)",
+      attribution: "synthetic figures; events, Registry and declaration signed with the public RFC 8032 test key",
+      input: {
+        body: SFC_LEDGER_2_FIXTURE,
+        note:
+          "A recorded ledger read (SFC profile 2.0 excerpt, format 2) of a synthetic network: three operators, fifteen months of " +
+          "signed EnergyAttested and CarbonAttested events, their Registry entries and the registrar key. Every figure is invented; " +
+          "every signature uses the public RFC 8032 test key. The declaration's ledger-evidence-2 extension points here, so a reader " +
+          "can run the deep check.",
+      },
+    },
+    {
+      // The reference network declaration of SFC profile 2.0 (sfc-compliance/examples/sfc-network.example.json,
+      // its first object, the market-based primary), relayed unchanged and signed with the public test key.
+      domain: SFC_NETWORK_2_DOMAIN,
+      target: SFC_NETWORK_2_EXAMPLE.target,
+      targetType: "service",
+      fixture: () => sfcStaticExampleAdapter(SFC_NETWORK_2_EXAMPLE),
+      signingJwk: SFC_LEDGER_TEST_PRIVATE_JWK,
+      selfCheck: (subject) => sfcSelfCheck2(subject.document),
+      labelFixture: "adapter:sfc-reference-declaration (SFC profile 2.0 example, replay)",
+      labelLive: "adapter:sfc-reference-declaration",
+      upstream: "SFC profile 2.0 reference network declaration (sfc-compliance/examples; synthetic)",
+      attribution: "synthetic figures; signed with the public RFC 8032 test key",
+      input: {
+        body: SFC_LEDGER_2_FIXTURE,
+        note: "The recorded ledger read this reference declaration recomputes from (the three-operator network of the SFC 2.0 test vectors). Every figure is invented.",
+      },
+    },
+    {
+      // The reference operator declaration of SFC profile 2.0 (sfc-compliance/examples/sfc-operator.example.json): one operator, January 2025.
+      domain: SFC_OPERATOR_2_DOMAIN,
+      target: SFC_OPERATOR_2_EXAMPLE.target,
+      targetType: "origin",
+      fixture: () => sfcStaticExampleAdapter(SFC_OPERATOR_2_EXAMPLE),
+      signingJwk: SFC_LEDGER_TEST_PRIVATE_JWK,
+      selfCheck: (subject) => sfcSelfCheck2(subject.document),
+      labelFixture: "adapter:sfc-reference-declaration (SFC profile 2.0 example, replay)",
+      labelLive: "adapter:sfc-reference-declaration",
+      upstream: "SFC profile 2.0 reference operator declaration (sfc-compliance/examples; synthetic)",
+      attribution: "synthetic figures; signed with the public RFC 8032 test key",
+      input: {
+        body: SFC_LEDGER_2_FIXTURE,
+        note: "The recorded ledger read this reference declaration recomputes from (the three-operator network of the SFC 2.0 test vectors). Every figure is invented.",
       },
     },
   ];

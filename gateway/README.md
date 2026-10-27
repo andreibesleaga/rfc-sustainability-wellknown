@@ -54,6 +54,11 @@ disables both routes.
   [`data/README.md`](data/README.md).
 - A **worked example** of generating these documents from a publisher adapter
   rather than by hand — see [GUIDE.md](GUIDE.md#wiring-an-adapter).
+- Four synthetic **SFC demonstrations**, all signed with the public RFC 8032 test key and checked at boot:
+  `sfc-ledger-demo.example` (SFC ledger profile 1.2) and, for
+  [SFC profile 2.0](https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md),
+  `sfc-ledger-demo-2.example`, `sfc-network-2.example` and `sfc-operator-2.example`.
+  See [METHODOLOGY.md](METHODOLOGY.md#4-the-adapter-demonstrations).
 - A **complete publication** for its own report: the Extended service
   (`start`, `end` and `granularity`, since go-live), the OPTIONAL `signed` member embedded
   in every declaration object it emits, a linked Verifiable Credential
@@ -130,7 +135,7 @@ Anything invented lives under a reserved `.example` name (RFC 2606), says
 ```bash
 npm install
 npm run build
-npm test                       # 737 tests
+npm test                       # full gateway suite (vitest)
 node dist/index.js             # 0.0.0.0:8080
 curl -sS http://127.0.0.1:8080/index.json | jq '.subjects[].domain'
 ```

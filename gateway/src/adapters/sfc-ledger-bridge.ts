@@ -1,19 +1,32 @@
 /**
- * The SFC ledger bridge — EXPERIMENTAL gateway-local adapter.
+ * The SFC ledger bridge: a gateway-local adapter, EXPERIMENTAL.
  *
- * What it reads: a *ledger excerpt* — one operator's (or every operator's)
- * signed monthly `EnergyAttested` and `CarbonAttested` events as a ledger
- * committed them, the Registry's keys and activity intervals, and the signed
- * allocations of retired credits (SFC ledger profile 1.2: §A.1 hashing
- * and signatures, §A.3 the events, §A.4 the offset-coverage rule).
+ * Two readings live side by side, each behind its own profile descriptor
+ * (`sfc-ledger-profile.ts`), so a profile version is a descriptor and never an
+ * edit of the bridge:
  *
- * What it writes: one declaration of the draft. Energy and the two scopes are the
- * sums of the period's effective attestations; `carbon-footprint` is their
- * gross sum and is never reduced by credits (disclosure profile rule 1); the
- * credits allocated to the period go, in tonnes, into `carbon-neutrality`; the
- * chain heads, event counts, exact sums and the rule's result go into the
- * `ledger-evidence` extension (disclosure profile 1.1 §5.5; Supplement A §A.9), so that anyone with the excerpt
- * can recompute the declaration.
+ *  - SFC profile 2.0, the one normative text
+ *    (https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md):
+ *    excerpt format 2 (5.8), the acceptance rules and replay (5.5, 5.6), the
+ *    mapping to the draft (7.1 to 7.5), the extensions (8) and the checks (9).
+ *    Its code is in `sfc-ledger-2/`; this file wires it in: `sfcLedgerBridgeAdapter`
+ *    takes a 2.0 excerpt, `shallowCheck` and `deepCheck` take a declaration that
+ *    carries `ledger-evidence-2`.
+ *  - The 1.x reading below, frozen for `sfc-ledger-demo.example` (external material cites this exact document, so its bytes never change; a test pins their SHA-256): excerpt format 1, ledger profile 1.2 events (spec 12.1 and
+ *    Appendix C map every 1.x item), and the `ledger-evidence` extension of
+ *    disclosure profile 1.1 (spec 12.1 rule 3).
+ *
+ * What the 1.x reader does. It reads a ledger excerpt: one operator's (or every
+ * operator's) signed monthly `EnergyAttested` and `CarbonAttested` events as a
+ * ledger committed them, the Registry's keys and activity intervals, and the signed
+ * allocations of retired credits (hashing and signatures: spec 3.6; the events:
+ * 5.2 to 5.5; the offset-coverage rule: 6). It writes one declaration of the draft.
+ * Energy and the two scopes are the sums of the period's effective attestations;
+ * `carbon-footprint` is their gross sum and is never reduced by credits (spec 7.4);
+ * the credits allocated to the period go, in tonnes, into `carbon-neutrality`
+ * (8.3); the chain heads, event counts, exact sums and the rule's result go into
+ * the `ledger-evidence` extension, so that anyone with the excerpt can recompute
+ * the declaration.
  *
  * It refuses rather than guesses. A hash that does not recompute, a signature
  * that does not verify under the key the Registry held at COMMIT time, a `prev`
@@ -24,21 +37,22 @@
  * figures stops publication with an error naming the rule
  * (`[E-…]`, listed with `BridgeCode`). A month that failed the rule with a
  * CORRECT flag, or a silent month, is published, with
- * `offset-coverage-every-period: false` and the unknown figures omitted.
+ * `offset-coverage-every-period: false` and the unknown figures omitted. (The 2.0
+ * reading differs here on purpose: a silent month gives an INCOMPLETE object, spec
+ * 7.5, and a rule-breaking event is skipped, 5.6.)
  *
  * The other direction, two checks a reader can run on a served declaration:
  * `shallowCheck` (validate, verify `signed` with a pinned key, internal
  * coherence) and `deepCheck` (recompute everything from the excerpt). Neither
  * establishes that a reading was true; the words in their rows say exactly
- * what was established (§A.9.5).
+ * what was established (spec 11, "What the checks do not show").
  *
- * Every name, token and bound comes from the profile descriptor
- * (`sfc-ledger-profile.ts`), so a later profile version is a second descriptor,
- * not an edit here. Members the descriptor does not name are ignored
- * everywhere (they still enter every hash and signature, which are computed
- * over the whole object), so an excerpt that adds an optional field keeps
- * working. The excerpt FORMAT is versioned separately (`fixture-version`), with
- * one reader per version.
+ * Every name, token and bound of the 1.x reading comes from its profile descriptor, so
+ * members the descriptor does not name are ignored everywhere (they still enter
+ * every hash and signature, which are computed over the whole object), and an
+ * excerpt that adds an optional field keeps working. The excerpt FORMAT is
+ * versioned separately (`fixture-version` for format 1, `excerpt-version` for 2),
+ * with one reader per version.
  *
  * Libraries are imported by package name only; `node:crypto` does the hashing
  * and Ed25519 verification.
@@ -63,12 +77,17 @@ import {
 } from "sustainability-wellknown-publisher";
 import { epochMs } from "./self-report";
 import {
-  convertCarbon,
   convertEnergy,
   validateDocument,
   verifyEmbeddedSignature,
   type PublicJwk,
 } from "sustainability-wellknown-consumer";
+import type { PinnedKey } from "./sfc-ledger-2/ledger";
+import { bridge2, checkBridge2Config, type Bridge2Options } from "./sfc-ledger-2/bridge";
+import { excerptFormatOf, readExcerptV2 } from "./sfc-ledger-2/excerpt";
+import { fetchRow, recordRow, runDeepChecks, runShallowChecks, summaryOf, type RunInput } from "./sfc-ledger-2/check";
+import { claimsSfc, extOf, objectsOf } from "./sfc-ledger-2/decl";
+import type { Row as Row2 } from "./sfc-ledger-2/primitives";
 import {
   HASH_ALGORITHMS,
   SFC_LEDGER_DESCRIPTORS,
@@ -79,7 +98,13 @@ import {
   type SfcLedgerProfile,
 } from "./sfc-ledger-profile";
 
+/** The frozen demonstration: excerpt format 1, ledger profile 1.2, the document external material cites, so its bytes never change; a test pins their SHA-256. */
 export const SFC_LEDGER_DEMO_DOMAIN = "sfc-ledger-demo.example";
+/** The SFC 2.0 demonstration served by the bridge from a 2.0 excerpt (three operators). */
+export const SFC_LEDGER_DEMO_2_DOMAIN = "sfc-ledger-demo-2.example";
+/** The SFC 2.0 reference declarations: served by the static relay `sfcStaticExampleAdapter` in demo-specs.ts, from the copies SFC_NETWORK_2_EXAMPLE and SFC_OPERATOR_2_EXAMPLE in sfc-ledger-fixture.ts. */
+export const SFC_NETWORK_2_DOMAIN = "sfc-network-2.example";
+export const SFC_OPERATOR_2_DOMAIN = "sfc-operator-2.example";
 
 // ---------------------------------------------------------------------------
 // The excerpt: the adapter's input format (local to this gateway; the profile
@@ -99,7 +124,7 @@ export interface RegistryKey {
   "valid-to-commit": string | null;
 }
 
-/** Registry `nodeProfile` (§A.5); members beyond the first two are read by nobody here. */
+/** Registry `nodeProfile` (spec 5.1, 8.2); members beyond the first two are read by nobody here. */
 export interface NodeProfile {
   hardwareClass: string;
   asicForbidden: boolean;
@@ -119,7 +144,7 @@ export interface RegistryEntry {
   nodeProfile?: NodeProfile;
 }
 
-/** The signed allocation of a retirement to months (§A.1, §A.4; encoding local to this gateway). */
+/** The signed allocation of a retirement to months (1.x only: spec 12.1 and Appendix C, which replace it with `retirements`; encoding local to this gateway). */
 export interface RetirementAllocation {
   type: string;
   operator: string;
@@ -200,7 +225,7 @@ function refuse(code: BridgeCode, what: string): never {
 }
 
 // ---------------------------------------------------------------------------
-// Canonical form, hashing, signatures (§A.1)
+// Canonical form, hashing, signatures (spec 3.6; 12.1 rule 2 for a 1.x event)
 // ---------------------------------------------------------------------------
 
 /**
@@ -244,7 +269,7 @@ const PUBLIC_KEYS = new Map<string, ReturnType<typeof createPublicKey>>();
 /** Ed25519 over the canonical form of the object WITHOUT `sig`; `value` is base64url. */
 function signatureVerifies(signed: { sig: { alg: string; value: string } }, jwk: PublicJwkOkp): boolean {
   const { sig, ...unsigned } = signed;
-  // base64url without padding, as §A.1 writes it: 64 bytes are exactly 86 characters.
+  // base64url without padding, as spec 3.6 writes it: 64 bytes are exactly 86 characters.
   if (typeof sig.value !== "string" || !/^[A-Za-z0-9_-]{86}$/.test(sig.value)) return false;
   const signature = Buffer.from(sig.value, "base64url");
   try {
@@ -261,7 +286,7 @@ function signatureVerifies(signed: { sig: { alg: string; value: string } }, jwk:
 }
 
 // ---------------------------------------------------------------------------
-// Exact decimal arithmetic over the numbers as their canonical form writes them (§A.9.2)
+// Exact decimal arithmetic over the numbers as their canonical form writes them (spec 3.3)
 // ---------------------------------------------------------------------------
 
 /** A decimal: `n / 10^scale`. */
@@ -623,7 +648,7 @@ export function readExcerpt(raw: unknown, opts: { bounds?: boolean } = {}): Read
 }
 
 // ---------------------------------------------------------------------------
-// P3–P4: hashes, signatures and the chain rules (§A.3.1)
+// P3–P4: hashes, signatures and the chain rules (spec 12.1 rule 2: the ledger profile 1.2 rules a 1.x event is judged by)
 // ---------------------------------------------------------------------------
 
 export type EventKind = "energy" | "carbon";
@@ -706,7 +731,7 @@ function checkPayload(payload: Record<string, unknown>, kind: EventKind, who: st
 
 /**
  * P3–P4: recompute every hash, then walk the ledger in commit order enforcing
- * the seven rules of §A.3.1 and the key-at-commit rule of §A.1. Takes an
+ * the seven rules of ledger profile 1.2 (spec 12.1 rule 2) and the key-at-commit rule (spec 5.5 L5). Takes an
  * excerpt `readExcerpt` has read (P1). Throws the first refusal; an excerpt
  * that returns is internally consistent.
  */
@@ -808,7 +833,7 @@ export interface BridgeOptions {
   /** Absolute https URI of the disclosure index; required in network mode (C-SFC-5). */
   disclosureUri?: string;
   /**
-   * The Scope 2 method "stated in the methodology document" (§A.3.3), applied to
+   * The Scope 2 method "stated in the methodology document" (spec 12.1 rule 1, Scope 2 basis), applied to
    * an effective CarbonAttested that carries no `scope2Method` (a v1.1 event).
    */
   scope2MethodDefault?: CarbonAccounting;
@@ -886,7 +911,7 @@ function checkAllocations(v: VerifiedLedger, operator: RegistryEntry, months: st
     const who = `${a["registry-uri"]} (${operator.operator})`;
     if (a.type !== v.profile.allocationType) refuse("E-ALLOCATION", `type ${JSON.stringify(a.type)} is not ${v.profile.allocationType}: ${who}`);
     if (a.beneficiary !== operator.operator) refuse("E-ALLOCATION", `beneficiary ${a.beneficiary} is not the operator: ${who}`);
-    // An allocation carries no commit time, so the key rule of §A.1 cannot select one key: any
+    // An allocation carries no commit time, so the key rule of spec 5.5 L5 cannot select one key: any
     // key the Registry holds for the operator may have signed it.
     if (!operator.keys.some((k) => signatureVerifies(a, k["public-jwk"]))) refuse("E-ALLOCATION", `signature verifies under no Registry key of the operator: ${who}`);
     const total = decSum(a.parts.map((p) => dec(p.kg, `part ${p.period} of ${who}`)));
@@ -917,7 +942,7 @@ function operatorEntry(v: VerifiedLedger, op: RegistryEntry, months: string[], s
   const mine = v.events.filter((e) => e.operator === op.operator);
   const activeMonths = months.filter((m) => activeIn(op.active, m));
 
-  // Heads (§A.9.2): the latest attestation of each kind, in chain order, whose period ends on or before period-end.
+  // Heads (spec 3.2 "head", 8.5): the latest attestation of each kind, in chain order, whose period ends on or before period-end.
   const headOf = (kind: EventKind): string => {
     const h = mine.filter((e) => e.kind === kind && e.periodTo <= end).at(-1);
     if (!h) refuse("E-NOHEAD", `${op.operator} has no ${kind === "energy" ? v.profile.eventTypes.energy : v.profile.eventTypes.carbon} up to ${end}`);
@@ -988,7 +1013,7 @@ function operatorEntry(v: VerifiedLedger, op: RegistryEntry, months: string[], s
   };
 }
 
-/** `net-zero-status` precedence (§A.8): achieved, else not-achieved when nothing was retired, else partial. */
+/** `net-zero-status` precedence (spec 7.4): achieved, else not-achieved when nothing was retired, else partial. */
 function netZeroStatus(entries: { offsetCoverageEveryPeriod: boolean; offsets: Dec }[], profile: SfcLedgerProfile): string {
   const T = profile.neutrality.tokens;
   if (entries.length > 0 && entries.every((e) => e.offsetCoverageEveryPeriod)) return T.achieved;
@@ -1084,7 +1109,7 @@ export function bridge(v: VerifiedLedger, opts: BridgeOptions): BridgeResult {
   if (networkOffsetCoverage !== undefined) evidence[E.networkOffsetCoverage] = networkOffsetCoverage;
   extensions[X.ledgerEvidence] = evidence;
 
-  // ---- Top-level members (§A.8). A figure the period cannot state is omitted. ----
+  // ---- Top-level members (spec 7.4). A figure the period cannot state is omitted. ----
   const raw: RawMetrics = {
     provider: opts.provider,
     measurementMethod,
@@ -1123,23 +1148,51 @@ export interface SfcLedgerBridgeConfig extends BridgeOptions {
   excerpt: unknown;
 }
 
+/** The 2.0 adapter's configuration: the bridge options (7.1 to 7.5) and the recorded excerpt, format version 2. */
+export interface SfcLedger2BridgeConfig extends Bridge2Options {
+  /** A ledger read in excerpt format 2 (spec 5.8), exactly as it is also served at `ledgerAccessUri`. */
+  excerpt: unknown;
+}
+
 /**
  * The gateway's `SourceAdapter` for the bridge: `fetch()` verifies the excerpt
  * and builds the declaration; the publisher library then normalises, validates
  * and (when configured) signs it. Configuration errors are refused here, at
- * construction, with [E-CONFIG].
+ * construction, with [E-CONFIG]. An excerpt of format 2 (`excerpt-version`) is
+ * bridged by SFC profile 2.0 (`sfc-ledger-2/bridge.ts`); one of format 1
+ * (`fixture-version`) by the frozen 1.x reading.
  */
-export function sfcLedgerBridgeAdapter(config: SfcLedgerBridgeConfig): SourceAdapter {
-  if (config.mode !== "operator" && config.mode !== "network") refuse("E-CONFIG", `mode must be "operator" or "network"`);
-  if (!isHttpsUri(config.ledgerAccessUri)) refuse("E-CONFIG", `ledgerAccessUri must be an absolute https URI (got ${JSON.stringify(config.ledgerAccessUri)})`);
-  if (config.disclosureUri !== undefined && !isHttpsUri(config.disclosureUri)) refuse("E-CONFIG", "disclosureUri must be an absolute https URI");
-  if (config.mode === "network" && !config.disclosureUri) refuse("E-DISCLOSURE", "a network declaration must carry disclosure-uri (C-SFC-5); configure disclosureUri");
-  const { excerpt: _excerpt, ...opts } = config;
+export function sfcLedgerBridgeAdapter(config: SfcLedgerBridgeConfig | SfcLedger2BridgeConfig): SourceAdapter {
+  if (excerptFormatOf(config.excerpt) === 2) return sfcLedger2Adapter(config as SfcLedger2BridgeConfig);
+  const c = config as SfcLedgerBridgeConfig;
+  if (c.mode !== "operator" && c.mode !== "network") refuse("E-CONFIG", `mode must be "operator" or "network"`);
+  if (!isHttpsUri(c.ledgerAccessUri)) refuse("E-CONFIG", `ledgerAccessUri must be an absolute https URI (got ${JSON.stringify(c.ledgerAccessUri)})`);
+  if (c.disclosureUri !== undefined && !isHttpsUri(c.disclosureUri)) refuse("E-CONFIG", "disclosureUri must be an absolute https URI");
+  if (c.mode === "network" && !c.disclosureUri) refuse("E-DISCLOSURE", "a network declaration must carry disclosure-uri (C-SFC-5); configure disclosureUri");
+  const { excerpt: _excerpt, ...opts } = c;
   return {
     name: "sfc-ledger-bridge",
     capabilities: "basic",
     async fetch(_query: ServiceQuery): Promise<RawMetrics> {
-      return bridge(verifyLedger(readExcerpt(config.excerpt)), opts).raw;
+      return bridge(verifyLedger(readExcerpt(c.excerpt)), opts).raw;
+    },
+  };
+}
+
+/**
+ * The 2.0 adapter: the primary market-based object, and the paired location-based
+ * object after it when `pairedLocation` is set and 7.3 allows it. A gateway
+ * subject relays one object, so the demonstration leaves `pairedLocation` off.
+ */
+function sfcLedger2Adapter(config: SfcLedger2BridgeConfig): SourceAdapter {
+  const { excerpt, ...opts } = config;
+  checkBridge2Config(opts);
+  return {
+    name: "sfc-ledger-bridge",
+    capabilities: "basic",
+    async fetch(_query: ServiceQuery): Promise<RawMetrics | RawMetrics[]> {
+      const out = bridge2(readExcerptV2(excerpt), opts);
+      return out.rawLocation ? [out.rawPrimary, out.rawLocation] : out.rawPrimary;
     },
   };
 }
@@ -1148,17 +1201,50 @@ export function sfcLedgerBridgeAdapter(config: SfcLedgerBridgeConfig): SourceAda
 // The consuming direction: two checks, rows never exceptions
 // ---------------------------------------------------------------------------
 
-export type CheckStatus = "PASS" | "FAIL" | "REFUSED" | "SKIPPED" | "INFO";
+/**
+ * A row's word. REFUSED and SKIPPED belong to the 1.x checks; the rest are the result
+ * words of spec 9.1 (PASS, FAIL, NOT-EVALUABLE, DECLARED, NOT-DECLARED, INFO) and the
+ * object verdicts (COMPLETE, INCOMPLETE, NOT-APPLICABLE) that a 2.0 check reports.
+ */
+export type CheckStatus = "PASS" | "FAIL" | "REFUSED" | "SKIPPED" | "INFO" | "NOT-EVALUABLE" | "DECLARED" | "NOT-DECLARED" | "COMPLETE" | "INCOMPLETE" | "NOT-APPLICABLE";
 export interface CheckRow {
   id: string;
   status: CheckStatus;
   detail: string;
+  /** The operator, month, window or object a 2.0 row names. */
+  scope?: string;
 }
 export interface CheckReport {
   depth: "shallow" | "deep";
-  /** No FAIL row. */
+  /** No FAIL row and no ERROR row (a 2.0 stage that stopped: the run is incomplete, not a pass). A report with a NOT-EVALUABLE row is not a pass either (spec 9.1): read `summary`. */
   ok: boolean;
   rows: CheckRow[];
+  /** 2.0 only: the rows counted by result word, the line spec 9.1 requires at the end of a report. */
+  summary?: Record<string, number>;
+}
+
+/** A 2.0 row as the report type carries it. */
+function checkRowOf(r: Row2): CheckRow {
+  return { id: r.id, status: r.result as CheckStatus, detail: r.detail ?? "", ...(r.scope !== undefined ? { scope: r.scope } : {}) };
+}
+
+/** What a 1.x row says when a check stops on an unexpected failure. The exception text is never echoed: it may carry hostile input. */
+const NOT_COMPLETED = "the check could not be completed (unexpected internal failure)";
+
+/** A 2.0 stage that stopped: one NOT-EVALUABLE row with the id and fixed words the checks themselves use, never the exception text (spec 9.5: a stage that did not complete is NOT-EVALUABLE, not a pass). */
+const stoppedRow = (stage: string): Row2 => ({ id: "ERROR", result: "NOT-EVALUABLE", detail: `${stage} stopped` });
+
+/** An object with the 1.x `ledger-evidence` and not `ledger-evidence-2`: the frozen 1.x checks read it. */
+const isEvidence1x = (o: Record<string, unknown>): boolean => extOf(o, "ledger-evidence") !== undefined && extOf(o, "ledger-evidence-2") === undefined;
+
+/** Whether a declaration (an object or an array of them) is read by SFC profile 2.0 (3.2, 9.3, 12.1 rule 3d): an object claims SFC, with `ledger-evidence-2` or only the 1.0 extension names, and none is 1.x evidence. The routing predicate of both checks; the command line uses it too. */
+export function isReadUnderSfc2(doc: unknown): boolean {
+  const objs = objectsOf(doc);
+  return objs.some((o) => claimsSfc(o) && !isEvidence1x(o));
+}
+
+function reportOf2(depth: "shallow" | "deep", rows: Row2[], summary: Record<string, number>): CheckReport {
+  return { depth, ok: rows.every((r) => r.result !== "FAIL" && r.id !== "ERROR"), rows: rows.map(checkRowOf), summary };
 }
 
 type Doc = Record<string, unknown>;
@@ -1246,10 +1332,62 @@ export interface ShallowOptions {
    * plain http (a local instance); the row then says so instead of failing.
    */
   fetched?: { url: string; contentType: string | null; httpAllowed?: boolean };
+  /**
+   * 2.0 only. T, the check instant (spec 3.2): the caller's, else the checker's clock when the check
+   * runs. With none, S4 and the `updated` test of C-SFC-5 are not run: this module never reads a clock.
+   */
+  T?: string;
+  /** 2.0 only: the origin host S4 selects the network declaration for; else the first network declaration's target. */
+  network?: string;
+  /** 2.0 only: the retrieval URI, the base of relative references (spec 10, Fetching). */
+  retrievalUri?: string;
+  /**
+   * 2.0 only: the served text of `doc`. With it the body is read as I-JSON, so duplicate member names and lone
+   * surrogates are seen (spec 7.2 rule 2, section 10); a caller that hands objects alone cannot have them detected.
+   */
+  declarationText?: string;
+}
+
+/** A trusted key as the 2.0 check pins it: the public members of the JWK, so an Ed25519 key and a P-256 key each verify only their own algorithm. */
+function pinnedKeyOf(k: { [member: string]: unknown; x: string }): PinnedKey {
+  const key: PinnedKey = { x: k.x };
+  for (const m of ["kty", "crv", "y"] as const) if (typeof k[m] === "string") key[m] = k[m] as string;
+  return key;
+}
+
+/** The pins a 1.x shallow check holds, as the 2.0 check takes them: `trustedKeys` pin both the publisher and the operator keys. */
+function pinsOf(trustedKeys: object[]): { publisherKeys: PinnedKey[]; operatorKeys: PinnedKey[] } {
+  const keys = trustedKeys.filter((k): k is { x: string } => isObject(k) && typeof k.x === "string").map(pinnedKeyOf);
+  return { publisherKeys: keys, operatorKeys: keys };
+}
+
+/** The shallow check of SFC profile 2.0 (spec 9.3): S1 to S7 with C-SFC-2 (disclosure form) and C-SFC-5. Never throws. */
+function shallowCheck2(doc: unknown, opts: ShallowOptions): CheckReport {
+  const rows: Row2[] = [];
+  try {
+    if (opts.fetched) rows.push(fetchRow(opts.fetched));
+    else rows.push({ id: "S1", result: "NOT-EVALUABLE", detail: "the document was supplied by the caller; a reader fetches it over HTTPS and requires application/sustainability-data+json" });
+    const input: RunInput = {
+      declarations: doc,
+      ...(opts.declarationText !== undefined ? { declarationText: opts.declarationText } : {}),
+      pins: pinsOf(opts.trustedKeys),
+      ...(opts.T !== undefined ? { T: opts.T } : {}),
+      ...(opts.network !== undefined ? { network: opts.network } : {}),
+      ...(opts.retrievalUri !== undefined ? { retrievalUri: opts.retrievalUri } : opts.fetched ? { retrievalUri: opts.fetched.url } : {}),
+    };
+    const run = runShallowChecks(input);
+    rows.push(...run.rows);
+    rows.push(recordRow(objectsOf(doc as never), run.rows, opts.T ?? null, undefined));
+  } catch {
+    rows.push(stoppedRow("shallow check"));
+  }
+  return reportOf2("shallow", rows, summaryOf(rows));
 }
 
 /** The `ledger-access-uri` a declaration names, under any extension name this gateway reads. */
 export function ledgerAccessUriOf(doc: unknown): string | undefined {
+  const evidence2 = objectsOf(doc as never).map((o) => extOf(o, "ledger-evidence-2")?.["ledger-access-uri"]).find((u) => typeof u === "string");
+  if (evidence2 !== undefined) return evidence2;
   if (!isObject(doc)) return undefined;
   const ev = evidenceOf(doc);
   const uri = ev?.value[ev.profile.evidence.ledgerAccessUri];
@@ -1257,10 +1395,11 @@ export function ledgerAccessUriOf(doc: unknown): string | undefined {
 }
 
 /**
- * The shallow check (§A.9.3): HTTPS only. In-process it takes the document a
+ * The shallow check (spec 9.3; Appendix C maps the 1.x steps): HTTPS only. In-process it takes the document a
  * caller already fetched, so S1 is SKIPPED. Never throws.
  */
 export async function shallowCheck(doc: unknown, opts: ShallowOptions): Promise<CheckReport> {
+  if (isReadUnderSfc2(doc)) return shallowCheck2(doc, opts);
   const rows: CheckRow[] = [];
   const row = (id: string, status: CheckStatus, detail: string): void => {
     rows.push({ id, status, detail });
@@ -1369,8 +1508,8 @@ export async function shallowCheck(doc: unknown, opts: ShallowOptions): Promise<
 
     const integrity = rows.find((r) => r.id === "S3 signature")?.status === "PASS" ? "integrity verified with the pinned key" : "integrity not verified";
     row("S6 record", "INFO", `attributed to the origin; ${integrity}; figures self-asserted; accuracy unknown`);
-  } catch (err) {
-    row("S0 internal", "FAIL", `the check could not be completed: ${err instanceof Error ? err.message : String(err)}`);
+  } catch {
+    row("S0 internal", "FAIL", NOT_COMPLETED);
   }
   return { depth: "shallow", ok: rows.every((r) => r.status !== "FAIL"), rows };
 }
@@ -1413,7 +1552,7 @@ function declarationDefects(doc: Doc, b: BridgeResult): [CheckStatus, string] {
 /** Which deep row a publishing refusal belongs to. */
 function rowForCode(code: BridgeCode): string {
   switch (code) {
-    // The events themselves: hashes, signatures, keys, and the per-event rules of §A.3.1.
+    // The events themselves: hashes, signatures, keys, and the per-event rules of ledger profile 1.2 (spec 12.1 rule 2).
     case "E-HASH":
     case "E-SIG":
     case "E-KEY":
@@ -1447,12 +1586,51 @@ function rowForCode(code: BridgeCode): string {
   }
 }
 
+/** What a deep check may be given besides the declaration and the read. */
+export interface DeepOptions {
+  /** 1.x only: the Scope 2 method a methodology document states for events that carry none. */
+  scope2MethodDefault?: CarbonAccounting;
+  /** 2.0 only: T, the check instant; with none it is the read's `read-at` (spec 3.2). */
+  T?: string;
+  /** 2.0 only: the checker's clock, which bounds the read's age (spec 5.7). */
+  now?: string;
+  /** 2.0 only: the methodology parameters (spec 7.6) the checker pinned or read. */
+  parameters?: unknown;
+  /** 2.0 only: keys and documents pinned out of band (spec D2), see `Pins`. */
+  pins?: RunInput["pins"];
+  /** 2.0 only: the served text of `doc`; with it duplicate members and lone surrogates are seen (spec 7.2 rule 2, section 10). */
+  declarationText?: string;
+  /** 2.0 only: the text of the read; with it the read is parsed as I-JSON, as section 10 requires (D1 reports a text that cannot be read). */
+  excerptText?: string;
+}
+
+/** The deep check of SFC profile 2.0 (spec 9.4), over a declaration and a read in excerpt format 2; without a read D1 and C-SFC-7 say so. Never throws. */
+function deepCheck2(doc: unknown, excerpt: unknown, opts: DeepOptions): CheckReport {
+  try {
+    const run = runDeepChecks({
+      declarations: doc,
+      ...(opts.declarationText !== undefined ? { declarationText: opts.declarationText } : {}),
+      ...(excerpt !== undefined ? { excerpt } : {}),
+      ...(opts.excerptText !== undefined ? { excerptText: opts.excerptText } : {}),
+      ...(opts.T !== undefined ? { T: opts.T } : {}),
+      ...(opts.now !== undefined ? { now: opts.now } : {}),
+      ...(opts.parameters !== undefined ? { parameters: opts.parameters } : {}),
+      ...(opts.pins !== undefined ? { pins: opts.pins } : {}),
+    });
+    return reportOf2("deep", run.rows, run.summary);
+  } catch {
+    const rows: Row2[] = [stoppedRow("deep check")];
+    return reportOf2("deep", rows, summaryOf(rows));
+  }
+}
+
 /**
- * The deep check (§A.9.4): recompute the declaration from the excerpt and
+ * The deep check (spec 9.4; Appendix C maps the 1.x steps): recompute the declaration from the excerpt and
  * compare, row by row. The excerpt is the caller's (fetched from
  * `ledger-access-uri` or given); it is bounded and never trusted. Never throws.
  */
-export function deepCheck(doc: unknown, excerpt: unknown, opts: { scope2MethodDefault?: CarbonAccounting } = {}): CheckReport {
+export function deepCheck(doc: unknown, excerpt: unknown, opts: DeepOptions = {}): CheckReport {
+  if (isReadUnderSfc2(doc)) return deepCheck2(doc, excerpt, opts);
   const rows: CheckRow[] = [];
   // One row per id: a later verdict on the same row replaces the earlier one.
   const row = (id: string, status: CheckStatus, detail: string): void => {
@@ -1633,8 +1811,8 @@ export function deepCheck(doc: unknown, excerpt: unknown, opts: { scope2MethodDe
       row("D9 retirements", "PASS", `${allocations.length} contributing allocation(s) verify under the operator's keys, allocate no more than the tonnes retired, and give each attested month exactly its ${profile.payload.offsets}`);
     }
     row("D10 record", "INFO", "the declaration agrees with the signed ledger record at the stated heads; nothing shows that the readings were true");
-  } catch (err) {
-    row("D0 internal", "FAIL", `the check could not be completed: ${err instanceof Error ? err.message : String(err)}`);
+  } catch {
+    row("D0 internal", "FAIL", NOT_COMPLETED);
   }
   return done();
 }

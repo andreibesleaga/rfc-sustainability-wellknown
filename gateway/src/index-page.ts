@@ -161,9 +161,11 @@ export interface IndexDocument {
 
 export const DEMO_NOTE =
   "One subject per upstream-backed adapter: the eight of the published " +
-  "sustainability-wellknown-publisher package and three that live in this gateway (DIST, the " +
-  "IETF GREEN power-and-energy YANG model and, experimentally, the SFC ledger bridge, whose synthetic " +
-  "declaration is signed with a public test key), so every adapter runs end to end here. Live subjects fetch a real upstream daily " +
+  "sustainability-wellknown-publisher package, and the adapters that live in this gateway: DIST, the " +
+  "IETF GREEN power-and-energy YANG model and, experimentally, the SFC ledger bridge in two profiles " +
+  "with two relays of the profile's reference declarations (all SFC subjects signed with a public test " +
+  "key), so every adapter runs end to end here. " +
+  "Live subjects fetch a real upstream daily " +
   "(only where the license permits attributed republication; the attribution is in the " +
   "document). Replay subjects run the same adapter code against a recorded response, because " +
   "no free legal live access exists; their figures are synthetic and say so in the document. " +

@@ -1,0 +1,303 @@
+{
+  "id": "v08-fork",
+  "scenarios": {
+    "forks-and-shared-null-starts": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "3 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-d.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-e.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D4.chain",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "fork: shared prev"
+        },
+        {
+          "id": "D4.chain",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "fork: more than one chain start"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-d.example Energy"
+        },
+        {
+          "id": "D4.chain",
+          "result": "FAIL",
+          "scope": "did:web:op-e.example Energy",
+          "detail": "cross-ledger fork"
+        },
+        {
+          "id": "D4.checkpoint",
+          "result": "INFO",
+          "scope": "checkpoint",
+          "detail": "absent: ledger read not authenticated: commit instants and completeness are the source's claim"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-03-03T12:00:00Z",
+          "detail": "L4; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy 2026-02-03T12:02:00Z",
+          "detail": "L4; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-d.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-e.example Energy",
+          "detail": "1 events"
+        }
+      ],
+      "summary": {
+        "PASS": 14,
+        "FAIL": 7,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "takeover-methodology-not-pinned": {
+      "rows": [
+        {
+          "id": "D4.chain",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "fork: shared prev"
+        },
+        {
+          "id": "D4.chain",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "fork: more than one chain start"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon"
+        },
+        {
+          "id": "D4.chain",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-d.example Energy",
+          "detail": "takeover not verified"
+        },
+        {
+          "id": "D4.info",
+          "result": "INFO",
+          "scope": "did:web:op-d.example Energy",
+          "detail": "takeover not verified (methodology document not pinned)"
+        },
+        {
+          "id": "D4.chain",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-e.example Energy",
+          "detail": "takeover not verified"
+        },
+        {
+          "id": "D4.info",
+          "result": "INFO",
+          "scope": "did:web:op-e.example Energy",
+          "detail": "takeover not verified (methodology document not pinned)"
+        },
+        {
+          "id": "D4.checkpoint",
+          "result": "INFO",
+          "scope": "checkpoint",
+          "detail": "absent: ledger read not authenticated: commit instants and completeness are the source's claim"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy 2026-03-03T12:00:00Z",
+          "detail": "L4; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy 2026-02-03T12:02:00Z",
+          "detail": "L4; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "L9 not evaluable: takeover not verified: did:web:op-d.example Energy, did:web:op-e.example Energy"
+        },
+        {
+          "id": "D5",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "L9 not evaluable: takeover not verified: did:web:op-d.example Energy, did:web:op-e.example Energy"
+        },
+        {
+          "id": "D5",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-d.example Energy",
+          "detail": "L9 not evaluable: takeover not verified: did:web:op-d.example Energy, did:web:op-e.example Energy"
+        },
+        {
+          "id": "D5",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-e.example Energy",
+          "detail": "L9 not evaluable: takeover not verified: did:web:op-d.example Energy, did:web:op-e.example Energy"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 6,
+        "NOT-EVALUABLE": 6,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 3
+      }
+    },
+    "takeover-old-ledger-unreachable": {
+      "rows": [
+        {
+          "id": "D4.chain",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "fork: shared prev"
+        },
+        {
+          "id": "D4.chain",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "fork: more than one chain start"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon"
+        },
+        {
+          "id": "D4.chain",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-d.example Energy",
+          "detail": "old ledger unreachable"
+        },
+        {
+          "id": "D4.chain",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-e.example Energy",
+          "detail": "old ledger unreachable"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    }
+  }
+}

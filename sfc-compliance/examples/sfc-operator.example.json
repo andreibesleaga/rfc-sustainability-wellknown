@@ -1,43 +1,50 @@
 {
-  "updated": "2026-02-08T14:30:00Z",
+  "updated": "2025-02-10T09:00:00Z",
   "capabilities": "basic",
-  "provider": "SYNTHETIC EXAMPLE, not a real operator and not a real measurement. Published by the profile author, Andrei Besleaga, as a reserved-name (RFC 2606 .example) reference declaration for the operator level of the SFC profile. Every figure below is invented and describes nothing real.",
-  "measurement-method": "hardware-metered",
-  "methodology-uri": "https://operator7.example/methodology",
+  "provider": "SYNTHETIC EXAMPLE, not a real network and not a real measurement. Role contact: sustainability@ledger.example. Every figure is invented.",
+  "methodology-uri": "https://ledger.example/sustainability/METHODOLOGY.md",
   "period": {
     "start": "2025-01-01T00:00:00Z",
-    "end": "2026-01-01T00:00:00Z"
+    "end": "2025-02-01T00:00:00Z"
   },
-  "target": "validator.operator7.example",
+  "target": "node.op-a.example",
   "target-type": "origin",
-  "energy-consumption": 4820,
+  "energy-consumption": 18000,
   "energy-unit": "kWh",
-  "carbon-footprint": 0.19,
-  "carbon-unit": "tCO2e",
+  "scope-2": 330.25,
+  "scope-3": 215,
+  "carbon-footprint": 545.25,
+  "carbon-unit": "kgCO2e",
   "carbon-accounting": "market-based",
-  "scope-2": 0.19,
-  "carbon-intensity-gCO2e-per-kWh": 39.4,
+  "carbon-intensity-gCO2e-per-kWh": 18.347222,
+  "measurement-method": "hardware-metered",
   "renewable-energy": 90,
-  "disclosure-uri": "https://operator7.example/disclosures",
-  "upstream": [
-    {
-      "declaration": "https://cloud.example/tenants/operator7.json",
-      "role": "cloud"
-    },
-    {
-      "declaration": "https://greenpower.example/.well-known/sustainability-data",
-      "role": "electricity"
-    }
-  ],
+  "disclosure-uri": "https://ledger.example/sustainability/disclosures.json",
   "extensions": {
     "https://andreibesleaga.com/sfc/extensions/hardware-lifecycle": {
       "general-purpose-hardware": true,
       "single-use-asic-required": false,
-      "expected-service-life-years": 6
+      "expected-service-life-years": 6,
+      "embodied-carbon-in-scope-3": true,
+      "reuse-and-recycling-policy-uri": "https://ledger.example/sustainability/hardware-policy.html"
+    },
+    "https://andreibesleaga.com/sfc/extensions/carbon-neutrality": {
+      "net-zero-status": "achieved",
+      "offsets-retired-tCO2e": 1,
+      "renewable-procurement": "power-purchase-agreements",
+      "offset-registry-uri": "https://registry.example/retirements"
     },
     "https://andreibesleaga.com/sfc/extensions/network-topology": {
       "member-of-network": "ledger.example",
       "network-declaration": "https://ledger.example/.well-known/sustainability-data"
+    },
+    "https://andreibesleaga.com/sfc/extensions/ledger-evidence-2": {
+      "profile-version": "2.0",
+      "ledger-access-uri": "https://ledger.example/sfc/read",
+      "operators": [
+        {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"7448157e1992fdc40fb967546cc8237b8f2e6f822b8923723f50e75307ec31c4","carbon-head":"2a9861afc7cb4a9b804959c95e383dc482c5439dd156273a28eefa45ec4d9c19","energy-events":1,"carbon-events":1,"kwh":18000,"scope1-kgco2e":0,"scope2-kgco2e":330.25,"scope3-kgco2e":215,"offsets-kgco2e":1000,"offset-coverage-every-period":true}
+      ]
     }
-  }
+  },
+  "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6NTQ1LjI1LCJjYXJib24taW50ZW5zaXR5LWdDTzJlLXBlci1rV2giOjE4LjM0NzIyMiwiY2FyYm9uLXVuaXQiOiJrZ0NPMmUiLCJkaXNjbG9zdXJlLXVyaSI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvZGlzY2xvc3VyZXMuanNvbiIsImVuZXJneS1jb25zdW1wdGlvbiI6MTgwMDAsImVuZXJneS11bml0Ijoia1doIiwiZXh0ZW5zaW9ucyI6eyJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9jYXJib24tbmV1dHJhbGl0eSI6eyJuZXQtemVyby1zdGF0dXMiOiJhY2hpZXZlZCIsIm9mZnNldC1yZWdpc3RyeS11cmkiOiJodHRwczovL3JlZ2lzdHJ5LmV4YW1wbGUvcmV0aXJlbWVudHMiLCJvZmZzZXRzLXJldGlyZWQtdENPMmUiOjEsInJlbmV3YWJsZS1wcm9jdXJlbWVudCI6InBvd2VyLXB1cmNoYXNlLWFncmVlbWVudHMifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvaGFyZHdhcmUtbGlmZWN5Y2xlIjp7ImVtYm9kaWVkLWNhcmJvbi1pbi1zY29wZS0zIjp0cnVlLCJleHBlY3RlZC1zZXJ2aWNlLWxpZmUteWVhcnMiOjYsImdlbmVyYWwtcHVycG9zZS1oYXJkd2FyZSI6dHJ1ZSwicmV1c2UtYW5kLXJlY3ljbGluZy1wb2xpY3ktdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zdXN0YWluYWJpbGl0eS9oYXJkd2FyZS1wb2xpY3kuaHRtbCIsInNpbmdsZS11c2UtYXNpYy1yZXF1aXJlZCI6ZmFsc2V9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9sZWRnZXItZXZpZGVuY2UtMiI6eyJsZWRnZXItYWNjZXNzLXVyaSI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvc2ZjL3JlYWQiLCJvcGVyYXRvcnMiOlt7ImNhcmJvbi1ldmVudHMiOjEsImNhcmJvbi1oZWFkIjoiMmE5ODYxYWZjN2NiNGE5YjgwNDk1OWM5NWUzODNkYzQ4MmM1NDM5ZGQxNTYyNzNhMjhlZWZhNDVlYzRkOWMxOSIsImVuZXJneS1ldmVudHMiOjEsImVuZXJneS1oZWFkIjoiNzQ0ODE1N2UxOTkyZmRjNDBmYjk2NzU0NmNjODIzN2I4ZjJlNmY4MjJiODkyMzcyM2Y1MGU3NTMwN2VjMzFjNCIsImt3aCI6MTgwMDAsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjoxMDAwLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYS5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1hLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjozMzAuMjUsInNjb3BlMy1rZ2NvMmUiOjIxNX1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJtZW1iZXItb2YtbmV0d29yayI6ImxlZGdlci5leGFtcGxlIiwibmV0d29yay1kZWNsYXJhdGlvbiI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvLndlbGwta25vd24vc3VzdGFpbmFiaWxpdHktZGF0YSJ9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvTUVUSE9ET0xPR1kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNS0wMi0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjUtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yayBhbmQgbm90IGEgcmVhbCBtZWFzdXJlbWVudC4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUBsZWRnZXIuZXhhbXBsZS4gRXZlcnkgZmlndXJlIGlzIGludmVudGVkLiIsInJlbmV3YWJsZS1lbmVyZ3kiOjkwLCJzY29wZS0yIjozMzAuMjUsInNjb3BlLTMiOjIxNSwidGFyZ2V0Ijoibm9kZS5vcC1hLmV4YW1wbGUiLCJ0YXJnZXQtdHlwZSI6Im9yaWdpbiIsInVwZGF0ZWQiOiIyMDI1LTAyLTEwVDA5OjAwOjAwWiJ9.SIMFYKbc8Lir4ubKbDsbcyXt7uthGYmYo9a_yWF_GOQVly__056_WPHJHO4FJbj_qfm12_-anBEeGf_otdGmAA"
 }

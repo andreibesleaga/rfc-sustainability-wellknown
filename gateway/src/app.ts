@@ -652,7 +652,7 @@ export async function createGateway(opts: CreateGatewayOptions): Promise<Gateway
     refreshSelf,
     signingKey,
     rateLimiter: createRateLimiter(config.rateLimit),
-    validator: opts.validator === null ? undefined : new Validator({ clock: opts.clock, exclude: new Set(config.validatorExclude ?? []), ...(opts.validator ?? {}) }),
+    validator: opts.validator === null ? undefined : new Validator({ clock: opts.clock, exclude: new Set(config.validatorExclude ?? []), onRefusal: (host, status, detail) => log({ ts: clock().toISOString(), level: "warn", event: "validate-refused", host, status, detail }), ...(opts.validator ?? {}) }),
   };
 
   gw.server = createServer((req: IncomingMessage, res: ServerResponse) => {

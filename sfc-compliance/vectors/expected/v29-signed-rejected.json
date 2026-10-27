@@ -1,0 +1,341 @@
+{
+  "id": "v29-signed-rejected",
+  "scenarios": {
+    "pinned-key": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-cty-absent.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-cty-absent.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-alg-none.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-alg-none.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-crit-malformed.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-crit-malformed.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-signature-under-another-key.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-signature-under-another-key.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-payload-differs.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed payload differs"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-payload-differs.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed payload differs"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-alg-repeated.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-alg-repeated.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-crit-repeated.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-crit-repeated.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "NOT-EVALUABLE",
+          "scope": "claims-payload-nested-20000-deep.example 2025-01-01..2026-01-01 market-based",
+          "detail": "limit: JSON nesting depth"
+        },
+        {
+          "id": "S3",
+          "result": "NOT-EVALUABLE",
+          "scope": "plain-payload-nested-20000-deep.example 2025-01-01..2026-01-01 market-based",
+          "detail": "limit: JSON nesting depth"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-invalid-utf8-in-the-header.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-invalid-utf8-in-the-payload.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed payload"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-byte-order-mark-before-the-payload.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed payload"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-invalid-utf8-in-the-header.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-invalid-utf8-in-the-payload.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed payload"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-byte-order-mark-before-the-payload.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed payload"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-crit-unknown.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "PASS",
+          "scope": "claims-verified.example 2025-01-01..2026-01-01 market-based",
+          "detail": "verified under a pinned key"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2025-01-01..2026-01-01 market-based",
+          "detail": "operator declaration must use Ed25519"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "node.op-b.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed, not verified against a pinned key"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 12,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 11
+      }
+    },
+    "no-pinned-key": {
+      "rows": [
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-cty-absent.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-cty-absent.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-alg-none.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-alg-none.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-crit-malformed.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-crit-malformed.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "claims-signature-under-another-key.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed, not verified against a pinned key"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-signature-under-another-key.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed, not verified against a pinned key"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-payload-differs.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed payload differs"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-payload-differs.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed payload differs"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-alg-repeated.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-alg-repeated.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-crit-repeated.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-crit-repeated.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "NOT-EVALUABLE",
+          "scope": "claims-payload-nested-20000-deep.example 2025-01-01..2026-01-01 market-based",
+          "detail": "limit: JSON nesting depth"
+        },
+        {
+          "id": "S3",
+          "result": "NOT-EVALUABLE",
+          "scope": "plain-payload-nested-20000-deep.example 2025-01-01..2026-01-01 market-based",
+          "detail": "limit: JSON nesting depth"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-invalid-utf8-in-the-header.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-invalid-utf8-in-the-payload.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed payload"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-byte-order-mark-before-the-payload.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed payload"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-invalid-utf8-in-the-header.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed header"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-invalid-utf8-in-the-payload.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed payload"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "plain-byte-order-mark-before-the-payload.example 2025-01-01..2026-01-01 market-based",
+          "detail": "malformed payload"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "claims-crit-unknown.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signature rejected"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "claims-verified.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed, not verified against a pinned key"
+        },
+        {
+          "id": "S3",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2025-01-01..2026-01-01 market-based",
+          "detail": "operator declaration must use Ed25519"
+        },
+        {
+          "id": "S3",
+          "result": "INFO",
+          "scope": "node.op-b.example 2025-01-01..2026-01-01 market-based",
+          "detail": "signed, not verified against a pinned key"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 11,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 13
+      }
+    }
+  }
+}

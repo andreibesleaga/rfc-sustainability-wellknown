@@ -1,0 +1,300 @@
+{
+  "id": "v10-duplicate-retirement",
+  "scenarios": {
+    "b-commits-first": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "4 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "3 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "4 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-02-04T01:00:00Z",
+          "detail": "L9; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-04-04T01:00:00Z",
+          "detail": "L8b; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon 2026-01-04T02:00:00Z",
+          "detail": "L8b; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-c.example Carbon 2026-01-04T03:00:00Z",
+          "detail": "L8b; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-c.example Carbon 2026-02-04T03:00:00Z",
+          "detail": "L9; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-c.example Carbon 2026-03-04T03:00:00Z",
+          "detail": "L9; skipped"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 9,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "effective": [
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "e0ebef8289ed5bb6326d57e53266bb05d87d0ab851ae4b176c7ee87662e5f809"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2026-02-01T00:00:00Z",
+          "hash": "848bc31646d617e2efbb3158d4bd808ecf226ae7385b42302691f467e8c52123"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2026-01-01T00:00:00Z",
+          "hash": "7f1a26bb9e9fc4a02f051669520463aac91c823c6aff4639b44daa558702494c"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2026-02-01T00:00:00Z",
+          "hash": "fe89cba665c9e97f99cc18974317ff3b94cf2ab55431f99a6d263a5308092ae3"
+        }
+      ]
+    },
+    "c-commits-first": {
+      "rows": [
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "4 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-02-04T01:00:00Z",
+          "detail": "L9; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-04-04T01:00:00Z",
+          "detail": "L8b; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon 2026-01-04T02:00:00Z",
+          "detail": "L8b; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon 2026-02-04T03:00:00Z",
+          "detail": "L9; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-c.example Carbon 2026-01-04T03:00:00Z",
+          "detail": "L8b; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-c.example Carbon 2026-03-04T03:00:00Z",
+          "detail": "L9; skipped"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 9,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "fraction-differs": {
+      "rows": [
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon 2026-01-03T00:00:00Z",
+          "detail": "L9; skipped"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "effective": [
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "0400d22792edf120e31846a6ae4bf28e786e95d05299371350f002038f7540ad"
+        }
+      ]
+    },
+    "fraction-equal": {
+      "rows": [
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "effective": [
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "0400d22792edf120e31846a6ae4bf28e786e95d05299371350f002038f7540ad"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "369b98b1ed0c02921ceef412c23c78aedfec8b4a78baf978b7088788076bdf84"
+        }
+      ]
+    },
+    "fraction-differs-at-tenth-digit": {
+      "rows": [
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon 2026-01-03T00:00:00Z",
+          "detail": "L9; skipped"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "effective": [
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "d03e62a86ac93ce61f2c5eae92fd1b1c43d8715083e8b52b0758ad0de37516d1"
+        }
+      ]
+    }
+  }
+}

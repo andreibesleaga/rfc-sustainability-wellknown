@@ -1,0 +1,501 @@
+{
+  "id": "v14-tolerance",
+  "scenarios": [
+    {
+      "name": "figure-limits",
+      "fn": "figure",
+      "texts": [
+        "999999999.999999",
+        "1000000000.000001",
+        "1000000000000000",
+        "999999999999999",
+        "0",
+        "0.1234567",
+        "1e-7",
+        "12.5",
+        "-1"
+      ]
+    },
+    {
+      "name": "round-half-even",
+      "fn": "round",
+      "cases": [
+        {"value":"1.2345675","places":6},
+        {"value":"1.2345665","places":6},
+        {"value":"2.5","places":0},
+        {"value":"3.5","places":0},
+        {"value":"-1.2345675","places":6},
+        {"value":"0.0000005","places":6},
+        {"value":"0.0000015","places":6}
+      ]
+    },
+    {
+      "name": "events-at-the-digit-limit",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example permissioned ledger",
+          "access": "permissioned",
+          "mechanism": "proof-of-authority",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["D5"],
+      "excerptRef": "x1"
+    },
+    {
+      "name": "half-even-published-correctly",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example permissioned ledger",
+          "access": "permissioned",
+          "mechanism": "proof-of-authority",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network and not a real measurement. Role contact: sustainability@ledger.example. Every figure is invented.","methodology-uri":"https://ledger.example/sustainability/METHODOLOGY.md","period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"target":"node.op-a.example","target-type":"origin","energy-consumption":1.234568,"energy-unit":"MWh","scope-2":300,"scope-3":200,"carbon-footprint":500,"carbon-unit":"kgCO2e","carbon-accounting":"market-based","carbon-intensity-gCO2e-per-kWh":243.000079,"measurement-method":"hardware-metered","disclosure-uri":"https://ledger.example/sustainability/disclosures.json","extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved","offsets-retired-tCO2e":1,"renewable-procurement":"power-purchase-agreements","offset-registry-uri":"https://registry.example/retirements"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"member-of-network":"ledger.example","network-declaration":"https://ledger.example/.well-known/sustainability-data"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://ledger.example/sfc/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"8c226cc194826e69b1144ee463db5fc6bd2c9174f79c04802f23d511c4660eac","carbon-head":"b265be8dd83ed6ee977fdc0eae7de0f4b53b8229158706c93c20641d755b01b6","energy-events":1,"carbon-events":1,"kwh":1234.5675,"scope1-kgco2e":0,"scope2-kgco2e":300,"scope3-kgco2e":200,"offsets-kgco2e":1000,"offset-coverage-every-period":true}]}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6NTAwLCJjYXJib24taW50ZW5zaXR5LWdDTzJlLXBlci1rV2giOjI0My4wMDAwNzksImNhcmJvbi11bml0Ijoia2dDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL2xlZGdlci5leGFtcGxlL3N1c3RhaW5hYmlsaXR5L2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjEuMjM0NTY4LCJlbmVyZ3ktdW5pdCI6Ik1XaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQiLCJvZmZzZXQtcmVnaXN0cnktdXJpIjoiaHR0cHM6Ly9yZWdpc3RyeS5leGFtcGxlL3JldGlyZW1lbnRzIiwib2Zmc2V0cy1yZXRpcmVkLXRDTzJlIjoxLCJyZW5ld2FibGUtcHJvY3VyZW1lbnQiOiJwb3dlci1wdXJjaGFzZS1hZ3JlZW1lbnRzIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zZmMvcmVhZCIsIm9wZXJhdG9ycyI6W3siY2FyYm9uLWV2ZW50cyI6MSwiY2FyYm9uLWhlYWQiOiJiMjY1YmU4ZGQ4M2VkNmVlOTc3ZmRjMGVhZTdkZTBmNGI1M2I4MjI5MTU4NzA2YzkzYzIwNjQxZDc1NWIwMWI2IiwiZW5lcmd5LWV2ZW50cyI6MSwiZW5lcmd5LWhlYWQiOiI4YzIyNmNjMTk0ODI2ZTY5YjExNDRlZTQ2M2RiNWZjNmJkMmM5MTc0Zjc5YzA0ODAyZjIzZDUxMWM0NjYwZWFjIiwia3doIjoxMjM0LjU2NzUsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjoxMDAwLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYS5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1hLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjozMDAsInNjb3BlMy1rZ2NvMmUiOjIwMH1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJtZW1iZXItb2YtbmV0d29yayI6ImxlZGdlci5leGFtcGxlIiwibmV0d29yay1kZWNsYXJhdGlvbiI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvLndlbGwta25vd24vc3VzdGFpbmFiaWxpdHktZGF0YSJ9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvTUVUSE9ET0xPR1kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMi0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yayBhbmQgbm90IGEgcmVhbCBtZWFzdXJlbWVudC4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUBsZWRnZXIuZXhhbXBsZS4gRXZlcnkgZmlndXJlIGlzIGludmVudGVkLiIsInNjb3BlLTIiOjMwMCwic2NvcGUtMyI6MjAwLCJ0YXJnZXQiOiJub2RlLm9wLWEuZXhhbXBsZSIsInRhcmdldC10eXBlIjoib3JpZ2luIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.UsYXtKphiiR1cunfRM2uih55FA63JChJV3GLwbfc3HM6hlyv2HILiqh_BXpCOMXbAPzH2L5hC_dKD3pi5NC8AQ"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network and not a real measurement. Role contact: sustainability@ledger.example. Every figure is invented.","methodology-uri":"https://ledger.example/sustainability/METHODOLOGY.md","period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"target":"node.op-b.example","target-type":"origin","energy-consumption":1.234566,"energy-unit":"MWh","scope-2":300,"scope-3":200,"carbon-footprint":500,"carbon-unit":"kgCO2e","carbon-accounting":"market-based","carbon-intensity-gCO2e-per-kWh":243.000276,"measurement-method":"hardware-metered","disclosure-uri":"https://ledger.example/sustainability/disclosures.json","extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved","offsets-retired-tCO2e":1,"renewable-procurement":"power-purchase-agreements","offset-registry-uri":"https://registry.example/retirements"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"member-of-network":"ledger.example","network-declaration":"https://ledger.example/.well-known/sustainability-data"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://ledger.example/sfc/read","operators":[{"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":"ce8a989951bd2ac46a086a439eee984372a1f10715eec013195afcd5e1d315d1","carbon-head":"56155c73c9af6d21d423f1acd4d861373fc8cfa9d2ee0037532cb16aee420907","energy-events":1,"carbon-events":1,"kwh":1234.5665,"scope1-kgco2e":0,"scope2-kgco2e":300,"scope3-kgco2e":200,"offsets-kgco2e":1000,"offset-coverage-every-period":true}]}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6NTAwLCJjYXJib24taW50ZW5zaXR5LWdDTzJlLXBlci1rV2giOjI0My4wMDAyNzYsImNhcmJvbi11bml0Ijoia2dDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL2xlZGdlci5leGFtcGxlL3N1c3RhaW5hYmlsaXR5L2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjEuMjM0NTY2LCJlbmVyZ3ktdW5pdCI6Ik1XaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQiLCJvZmZzZXQtcmVnaXN0cnktdXJpIjoiaHR0cHM6Ly9yZWdpc3RyeS5leGFtcGxlL3JldGlyZW1lbnRzIiwib2Zmc2V0cy1yZXRpcmVkLXRDTzJlIjoxLCJyZW5ld2FibGUtcHJvY3VyZW1lbnQiOiJwb3dlci1wdXJjaGFzZS1hZ3JlZW1lbnRzIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zZmMvcmVhZCIsIm9wZXJhdG9ycyI6W3siY2FyYm9uLWV2ZW50cyI6MSwiY2FyYm9uLWhlYWQiOiI1NjE1NWM3M2M5YWY2ZDIxZDQyM2YxYWNkNGQ4NjEzNzNmYzhjZmE5ZDJlZTAwMzc1MzJjYjE2YWVlNDIwOTA3IiwiZW5lcmd5LWV2ZW50cyI6MSwiZW5lcmd5LWhlYWQiOiJjZThhOTg5OTUxYmQyYWM0NmEwODZhNDM5ZWVlOTg0MzcyYTFmMTA3MTVlZWMwMTMxOTVhZmNkNWUxZDMxNWQxIiwia3doIjoxMjM0LjU2NjUsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjoxMDAwLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYi5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1iLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjozMDAsInNjb3BlMy1rZ2NvMmUiOjIwMH1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJtZW1iZXItb2YtbmV0d29yayI6ImxlZGdlci5leGFtcGxlIiwibmV0d29yay1kZWNsYXJhdGlvbiI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvLndlbGwta25vd24vc3VzdGFpbmFiaWxpdHktZGF0YSJ9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvTUVUSE9ET0xPR1kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMi0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yayBhbmQgbm90IGEgcmVhbCBtZWFzdXJlbWVudC4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUBsZWRnZXIuZXhhbXBsZS4gRXZlcnkgZmlndXJlIGlzIGludmVudGVkLiIsInNjb3BlLTIiOjMwMCwic2NvcGUtMyI6MjAwLCJ0YXJnZXQiOiJub2RlLm9wLWIuZXhhbXBsZSIsInRhcmdldC10eXBlIjoib3JpZ2luIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.F-Qcv2flDNR_CxfwkGKmoHc1N3iOlNesFMLnpsCo-SEBmW1WTa3k98ha7iwhs0eOeHeWwE5JBRJ8uVg_O_xADA"}
+      ],
+      "select": ["S6.b","C-SFC-7"],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true,true]
+      },
+      "excerptRef": "x2"
+    },
+    {
+      "name": "half-even-published-in-the-wrong-direction",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example permissioned ledger",
+          "access": "permissioned",
+          "mechanism": "proof-of-authority",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network and not a real measurement. Role contact: sustainability@ledger.example. Every figure is invented.","methodology-uri":"https://ledger.example/sustainability/METHODOLOGY.md","period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"target":"node.op-a.example","target-type":"origin","energy-consumption":1.234567,"energy-unit":"MWh","scope-2":300,"scope-3":200,"carbon-footprint":500,"carbon-unit":"kgCO2e","carbon-accounting":"market-based","carbon-intensity-gCO2e-per-kWh":243.000079,"measurement-method":"hardware-metered","disclosure-uri":"https://ledger.example/sustainability/disclosures.json","extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved","offsets-retired-tCO2e":1,"renewable-procurement":"power-purchase-agreements","offset-registry-uri":"https://registry.example/retirements"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"member-of-network":"ledger.example","network-declaration":"https://ledger.example/.well-known/sustainability-data"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://ledger.example/sfc/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"8c226cc194826e69b1144ee463db5fc6bd2c9174f79c04802f23d511c4660eac","carbon-head":"b265be8dd83ed6ee977fdc0eae7de0f4b53b8229158706c93c20641d755b01b6","energy-events":1,"carbon-events":1,"kwh":1234.5675,"scope1-kgco2e":0,"scope2-kgco2e":300,"scope3-kgco2e":200,"offsets-kgco2e":1000,"offset-coverage-every-period":true}]}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6NTAwLCJjYXJib24taW50ZW5zaXR5LWdDTzJlLXBlci1rV2giOjI0My4wMDAwNzksImNhcmJvbi11bml0Ijoia2dDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL2xlZGdlci5leGFtcGxlL3N1c3RhaW5hYmlsaXR5L2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjEuMjM0NTY3LCJlbmVyZ3ktdW5pdCI6Ik1XaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQiLCJvZmZzZXQtcmVnaXN0cnktdXJpIjoiaHR0cHM6Ly9yZWdpc3RyeS5leGFtcGxlL3JldGlyZW1lbnRzIiwib2Zmc2V0cy1yZXRpcmVkLXRDTzJlIjoxLCJyZW5ld2FibGUtcHJvY3VyZW1lbnQiOiJwb3dlci1wdXJjaGFzZS1hZ3JlZW1lbnRzIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zZmMvcmVhZCIsIm9wZXJhdG9ycyI6W3siY2FyYm9uLWV2ZW50cyI6MSwiY2FyYm9uLWhlYWQiOiJiMjY1YmU4ZGQ4M2VkNmVlOTc3ZmRjMGVhZTdkZTBmNGI1M2I4MjI5MTU4NzA2YzkzYzIwNjQxZDc1NWIwMWI2IiwiZW5lcmd5LWV2ZW50cyI6MSwiZW5lcmd5LWhlYWQiOiI4YzIyNmNjMTk0ODI2ZTY5YjExNDRlZTQ2M2RiNWZjNmJkMmM5MTc0Zjc5YzA0ODAyZjIzZDUxMWM0NjYwZWFjIiwia3doIjoxMjM0LjU2NzUsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjoxMDAwLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYS5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1hLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjozMDAsInNjb3BlMy1rZ2NvMmUiOjIwMH1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJtZW1iZXItb2YtbmV0d29yayI6ImxlZGdlci5leGFtcGxlIiwibmV0d29yay1kZWNsYXJhdGlvbiI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvLndlbGwta25vd24vc3VzdGFpbmFiaWxpdHktZGF0YSJ9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvTUVUSE9ET0xPR1kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMi0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yayBhbmQgbm90IGEgcmVhbCBtZWFzdXJlbWVudC4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUBsZWRnZXIuZXhhbXBsZS4gRXZlcnkgZmlndXJlIGlzIGludmVudGVkLiIsInNjb3BlLTIiOjMwMCwic2NvcGUtMyI6MjAwLCJ0YXJnZXQiOiJub2RlLm9wLWEuZXhhbXBsZSIsInRhcmdldC10eXBlIjoib3JpZ2luIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.83FnFfYJbNGUgNMn4XzHth48R3dFHwXbwXMK8A1_9bk5GYHMh8YjglEOBxAOQwWcnI9BH5KxpKUkPvGAl54yCg"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network and not a real measurement. Role contact: sustainability@ledger.example. Every figure is invented.","methodology-uri":"https://ledger.example/sustainability/METHODOLOGY.md","period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"target":"node.op-b.example","target-type":"origin","energy-consumption":1.234567,"energy-unit":"MWh","scope-2":300,"scope-3":200,"carbon-footprint":500,"carbon-unit":"kgCO2e","carbon-accounting":"market-based","carbon-intensity-gCO2e-per-kWh":243.000276,"measurement-method":"hardware-metered","disclosure-uri":"https://ledger.example/sustainability/disclosures.json","extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved","offsets-retired-tCO2e":1,"renewable-procurement":"power-purchase-agreements","offset-registry-uri":"https://registry.example/retirements"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"member-of-network":"ledger.example","network-declaration":"https://ledger.example/.well-known/sustainability-data"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://ledger.example/sfc/read","operators":[{"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":"ce8a989951bd2ac46a086a439eee984372a1f10715eec013195afcd5e1d315d1","carbon-head":"56155c73c9af6d21d423f1acd4d861373fc8cfa9d2ee0037532cb16aee420907","energy-events":1,"carbon-events":1,"kwh":1234.5665,"scope1-kgco2e":0,"scope2-kgco2e":300,"scope3-kgco2e":200,"offsets-kgco2e":1000,"offset-coverage-every-period":true}]}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6NTAwLCJjYXJib24taW50ZW5zaXR5LWdDTzJlLXBlci1rV2giOjI0My4wMDAyNzYsImNhcmJvbi11bml0Ijoia2dDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL2xlZGdlci5leGFtcGxlL3N1c3RhaW5hYmlsaXR5L2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjEuMjM0NTY3LCJlbmVyZ3ktdW5pdCI6Ik1XaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQiLCJvZmZzZXQtcmVnaXN0cnktdXJpIjoiaHR0cHM6Ly9yZWdpc3RyeS5leGFtcGxlL3JldGlyZW1lbnRzIiwib2Zmc2V0cy1yZXRpcmVkLXRDTzJlIjoxLCJyZW5ld2FibGUtcHJvY3VyZW1lbnQiOiJwb3dlci1wdXJjaGFzZS1hZ3JlZW1lbnRzIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zZmMvcmVhZCIsIm9wZXJhdG9ycyI6W3siY2FyYm9uLWV2ZW50cyI6MSwiY2FyYm9uLWhlYWQiOiI1NjE1NWM3M2M5YWY2ZDIxZDQyM2YxYWNkNGQ4NjEzNzNmYzhjZmE5ZDJlZTAwMzc1MzJjYjE2YWVlNDIwOTA3IiwiZW5lcmd5LWV2ZW50cyI6MSwiZW5lcmd5LWhlYWQiOiJjZThhOTg5OTUxYmQyYWM0NmEwODZhNDM5ZWVlOTg0MzcyYTFmMTA3MTVlZWMwMTMxOTVhZmNkNWUxZDMxNWQxIiwia3doIjoxMjM0LjU2NjUsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjoxMDAwLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYi5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1iLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjozMDAsInNjb3BlMy1rZ2NvMmUiOjIwMH1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJtZW1iZXItb2YtbmV0d29yayI6ImxlZGdlci5leGFtcGxlIiwibmV0d29yay1kZWNsYXJhdGlvbiI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvLndlbGwta25vd24vc3VzdGFpbmFiaWxpdHktZGF0YSJ9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvTUVUSE9ET0xPR1kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMi0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yayBhbmQgbm90IGEgcmVhbCBtZWFzdXJlbWVudC4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUBsZWRnZXIuZXhhbXBsZS4gRXZlcnkgZmlndXJlIGlzIGludmVudGVkLiIsInNjb3BlLTIiOjMwMCwic2NvcGUtMyI6MjAwLCJ0YXJnZXQiOiJub2RlLm9wLWIuZXhhbXBsZSIsInRhcmdldC10eXBlIjoib3JpZ2luIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.nxII95YZuLnDVdU0fzb-fOZLHUHBYDKSK0uTptketeqHxW9DNRaizqWyXGZ0gBxdt6w77KLShgDZIs_QCS1cDQ"}
+      ],
+      "select": ["S6.b","C-SFC-7"],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true,true]
+      },
+      "excerptRef": "x2"
+    },
+    {
+      "name": "three-operator-sum-edge",
+      "T": "2026-05-02T00:10:00Z",
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "select": ["S6.b"],
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"edge-pass.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":3.0000015,"scope-2":0,"scope-3":0,"carbon-footprint":0,"carbon-intensity-gCO2e-per-kWh":0,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":1,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true},{"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":1,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true},{"operator":"did:web:op-c.example","origin":"node.op-c.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":1,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MCwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjowLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjMuMDAwMDAxNSwiZW5lcmd5LXVuaXQiOiJrV2giLCJleHRlbnNpb25zIjp7Imh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2NhcmJvbi1uZXV0cmFsaXR5Ijp7Im5ldC16ZXJvLXN0YXR1cyI6ImFjaGlldmVkIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9yZWFkIiwibmV0d29yay1vZmZzZXQtY292ZXJhZ2UiOnRydWUsIm9wZXJhdG9ycyI6W3siY2FyYm9uLWV2ZW50cyI6MCwiY2FyYm9uLWhlYWQiOm51bGwsImVuZXJneS1ldmVudHMiOjAsImVuZXJneS1oZWFkIjpudWxsLCJrd2giOjEsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjowLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYS5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1hLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjowLCJzY29wZTMta2djbzJlIjowfSx7ImNhcmJvbi1ldmVudHMiOjAsImNhcmJvbi1oZWFkIjpudWxsLCJlbmVyZ3ktZXZlbnRzIjowLCJlbmVyZ3ktaGVhZCI6bnVsbCwia3doIjoxLCJvZmZzZXQtY292ZXJhZ2UtZXZlcnktcGVyaW9kIjp0cnVlLCJvZmZzZXRzLWtnY28yZSI6MCwib3BlcmF0b3IiOiJkaWQ6d2ViOm9wLWIuZXhhbXBsZSIsIm9yaWdpbiI6Im5vZGUub3AtYi5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6MCwic2NvcGUzLWtnY28yZSI6MH0seyJjYXJib24tZXZlbnRzIjowLCJjYXJib24taGVhZCI6bnVsbCwiZW5lcmd5LWV2ZW50cyI6MCwiZW5lcmd5LWhlYWQiOm51bGwsImt3aCI6MSwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1jLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWMuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjAsInNjb3BlMy1rZ2NvMmUiOjB9XSwicHJvZmlsZS12ZXJzaW9uIjoiMi4wIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL25ldHdvcmstdG9wb2xvZ3kiOnsiY29uc2Vuc3VzLW1lY2hhbmlzbSI6InByb29mLW9mLWF1dGhvcml0eSIsIm5vZGUtY291bnQtdmFsaWRhdGlvbi1tZXRob2QiOiJzeW50aGV0aWMiLCJ2YWxpZGF0ZWQtbm9kZS1jb3VudCI6M319LCJtZWFzdXJlbWVudC1tZXRob2QiOiJoYXJkd2FyZS1tZXRlcmVkIiwibWV0aG9kb2xvZ3ktdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9tZXRob2RvbG9neS5tZCIsInBlcmlvZCI6eyJlbmQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsInN0YXJ0IjoiMjAyNS0wMS0wMVQwMDowMDowMFoifSwicHJvdmlkZXIiOiJTWU5USEVUSUMgRVhBTVBMRSwgbm90IGEgcmVhbCBuZXR3b3JrLiBSb2xlIGNvbnRhY3Q6IHN1c3RhaW5hYmlsaXR5QHRvbGVyYW5jZS5leGFtcGxlLiIsInNjb3BlLTIiOjAsInNjb3BlLTMiOjAsInRhcmdldCI6ImVkZ2UtcGFzcy5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJzZXJ2aWNlIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.On2fUu1v7lZ-j7yYEvmwj6Whg_MNYwQG5gEv0_KkNqP_eqrXqjq6tU7Ik-E4z1Vr3Dq1gkN5cOb3fQOIIChtAQ"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"edge-fail.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":3.000003,"scope-2":0,"scope-3":0,"carbon-footprint":0,"carbon-intensity-gCO2e-per-kWh":0,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":1,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true},{"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":1,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true},{"operator":"did:web:op-c.example","origin":"node.op-c.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":1,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MCwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjowLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjMuMDAwMDAzLCJlbmVyZ3ktdW5pdCI6ImtXaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbGVkZ2VyLWV2aWRlbmNlLTIiOnsibGVkZ2VyLWFjY2Vzcy11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL3JlYWQiLCJuZXR3b3JrLW9mZnNldC1jb3ZlcmFnZSI6dHJ1ZSwib3BlcmF0b3JzIjpbeyJjYXJib24tZXZlbnRzIjowLCJjYXJib24taGVhZCI6bnVsbCwiZW5lcmd5LWV2ZW50cyI6MCwiZW5lcmd5LWhlYWQiOm51bGwsImt3aCI6MSwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1hLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWEuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjAsInNjb3BlMy1rZ2NvMmUiOjB9LHsiY2FyYm9uLWV2ZW50cyI6MCwiY2FyYm9uLWhlYWQiOm51bGwsImVuZXJneS1ldmVudHMiOjAsImVuZXJneS1oZWFkIjpudWxsLCJrd2giOjEsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjowLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYi5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1iLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjowLCJzY29wZTMta2djbzJlIjowfSx7ImNhcmJvbi1ldmVudHMiOjAsImNhcmJvbi1oZWFkIjpudWxsLCJlbmVyZ3ktZXZlbnRzIjowLCJlbmVyZ3ktaGVhZCI6bnVsbCwia3doIjoxLCJvZmZzZXQtY292ZXJhZ2UtZXZlcnktcGVyaW9kIjp0cnVlLCJvZmZzZXRzLWtnY28yZSI6MCwib3BlcmF0b3IiOiJkaWQ6d2ViOm9wLWMuZXhhbXBsZSIsIm9yaWdpbiI6Im5vZGUub3AtYy5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6MCwic2NvcGUzLWtnY28yZSI6MH1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJjb25zZW5zdXMtbWVjaGFuaXNtIjoicHJvb2Ytb2YtYXV0aG9yaXR5Iiwibm9kZS1jb3VudC12YWxpZGF0aW9uLW1ldGhvZCI6InN5bnRoZXRpYyIsInZhbGlkYXRlZC1ub2RlLWNvdW50IjozfX0sIm1lYXN1cmVtZW50LW1ldGhvZCI6ImhhcmR3YXJlLW1ldGVyZWQiLCJtZXRob2RvbG9neS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL21ldGhvZG9sb2d5Lm1kIiwicGVyaW9kIjp7ImVuZCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIiwic3RhcnQiOiIyMDI1LTAxLTAxVDAwOjAwOjAwWiJ9LCJwcm92aWRlciI6IlNZTlRIRVRJQyBFWEFNUExFLCBub3QgYSByZWFsIG5ldHdvcmsuIFJvbGUgY29udGFjdDogc3VzdGFpbmFiaWxpdHlAdG9sZXJhbmNlLmV4YW1wbGUuIiwic2NvcGUtMiI6MCwic2NvcGUtMyI6MCwidGFyZ2V0IjoiZWRnZS1mYWlsLmV4YW1wbGUiLCJ0YXJnZXQtdHlwZSI6InNlcnZpY2UiLCJ1cGRhdGVkIjoiMjAyNi0wMi0xMFQwOTowMDowMFoifQ.IWrb7dxGngV4ExfVubFTcZHLoG4q-DjO2mGW0xawOocccYZBMqVFCSHWD_-k---7Lq8SZY0JtY-RpqT2Xl1fBQ"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"exact.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":3,"scope-2":0,"scope-3":0,"carbon-footprint":0,"carbon-intensity-gCO2e-per-kWh":0,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":1,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true},{"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":1,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true},{"operator":"did:web:op-c.example","origin":"node.op-c.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":1,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MCwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjowLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjMsImVuZXJneS11bml0Ijoia1doIiwiZXh0ZW5zaW9ucyI6eyJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9jYXJib24tbmV1dHJhbGl0eSI6eyJuZXQtemVyby1zdGF0dXMiOiJhY2hpZXZlZCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9sZWRnZXItZXZpZGVuY2UtMiI6eyJsZWRnZXItYWNjZXNzLXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvcmVhZCIsIm5ldHdvcmstb2Zmc2V0LWNvdmVyYWdlIjp0cnVlLCJvcGVyYXRvcnMiOlt7ImNhcmJvbi1ldmVudHMiOjAsImNhcmJvbi1oZWFkIjpudWxsLCJlbmVyZ3ktZXZlbnRzIjowLCJlbmVyZ3ktaGVhZCI6bnVsbCwia3doIjoxLCJvZmZzZXQtY292ZXJhZ2UtZXZlcnktcGVyaW9kIjp0cnVlLCJvZmZzZXRzLWtnY28yZSI6MCwib3BlcmF0b3IiOiJkaWQ6d2ViOm9wLWEuZXhhbXBsZSIsIm9yaWdpbiI6Im5vZGUub3AtYS5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6MCwic2NvcGUzLWtnY28yZSI6MH0seyJjYXJib24tZXZlbnRzIjowLCJjYXJib24taGVhZCI6bnVsbCwiZW5lcmd5LWV2ZW50cyI6MCwiZW5lcmd5LWhlYWQiOm51bGwsImt3aCI6MSwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1iLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWIuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjAsInNjb3BlMy1rZ2NvMmUiOjB9LHsiY2FyYm9uLWV2ZW50cyI6MCwiY2FyYm9uLWhlYWQiOm51bGwsImVuZXJneS1ldmVudHMiOjAsImVuZXJneS1oZWFkIjpudWxsLCJrd2giOjEsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjowLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYy5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1jLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjowLCJzY29wZTMta2djbzJlIjowfV0sInByb2ZpbGUtdmVyc2lvbiI6IjIuMCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9uZXR3b3JrLXRvcG9sb2d5Ijp7ImNvbnNlbnN1cy1tZWNoYW5pc20iOiJwcm9vZi1vZi1hdXRob3JpdHkiLCJub2RlLWNvdW50LXZhbGlkYXRpb24tbWV0aG9kIjoic3ludGhldGljIiwidmFsaWRhdGVkLW5vZGUtY291bnQiOjN9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvbWV0aG9kb2xvZ3kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjUtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yay4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUB0b2xlcmFuY2UuZXhhbXBsZS4iLCJzY29wZS0yIjowLCJzY29wZS0zIjowLCJ0YXJnZXQiOiJleGFjdC5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJzZXJ2aWNlIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.8x2wmzjnXK4MTyhP2ZjN3duZoPQd0vGfDRKbKFFPVu3a1Ht9gS23mwPhxRRBwiOC31vaC3REkQOQtBT0ZXijBA"}
+      ],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true,true,true]
+      }
+    },
+    {
+      "name": "coarse-rounding",
+      "T": "2026-05-02T00:10:00Z",
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "select": ["S6.b"],
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"coarse-fail.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":0,"scope-2":1,"scope-3":0,"carbon-footprint":1,"carbon-intensity-gCO2e-per-kWh":0,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"not-achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":400,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true},{"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":200,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MSwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjowLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjAsImVuZXJneS11bml0Ijoia1doIiwiZXh0ZW5zaW9ucyI6eyJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9jYXJib24tbmV1dHJhbGl0eSI6eyJuZXQtemVyby1zdGF0dXMiOiJub3QtYWNoaWV2ZWQifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbGVkZ2VyLWV2aWRlbmNlLTIiOnsibGVkZ2VyLWFjY2Vzcy11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL3JlYWQiLCJuZXR3b3JrLW9mZnNldC1jb3ZlcmFnZSI6dHJ1ZSwib3BlcmF0b3JzIjpbeyJjYXJib24tZXZlbnRzIjowLCJjYXJib24taGVhZCI6bnVsbCwiZW5lcmd5LWV2ZW50cyI6MCwiZW5lcmd5LWhlYWQiOm51bGwsImt3aCI6MCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1hLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWEuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjQwMCwic2NvcGUzLWtnY28yZSI6MH0seyJjYXJib24tZXZlbnRzIjowLCJjYXJib24taGVhZCI6bnVsbCwiZW5lcmd5LWV2ZW50cyI6MCwiZW5lcmd5LWhlYWQiOm51bGwsImt3aCI6MCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1iLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWIuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjIwMCwic2NvcGUzLWtnY28yZSI6MH1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJjb25zZW5zdXMtbWVjaGFuaXNtIjoicHJvb2Ytb2YtYXV0aG9yaXR5Iiwibm9kZS1jb3VudC12YWxpZGF0aW9uLW1ldGhvZCI6InN5bnRoZXRpYyIsInZhbGlkYXRlZC1ub2RlLWNvdW50IjozfX0sIm1lYXN1cmVtZW50LW1ldGhvZCI6ImhhcmR3YXJlLW1ldGVyZWQiLCJtZXRob2RvbG9neS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL21ldGhvZG9sb2d5Lm1kIiwicGVyaW9kIjp7ImVuZCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIiwic3RhcnQiOiIyMDI1LTAxLTAxVDAwOjAwOjAwWiJ9LCJwcm92aWRlciI6IlNZTlRIRVRJQyBFWEFNUExFLCBub3QgYSByZWFsIG5ldHdvcmsuIFJvbGUgY29udGFjdDogc3VzdGFpbmFiaWxpdHlAdG9sZXJhbmNlLmV4YW1wbGUuIiwic2NvcGUtMiI6MSwic2NvcGUtMyI6MCwidGFyZ2V0IjoiY29hcnNlLWZhaWwuZXhhbXBsZSIsInRhcmdldC10eXBlIjoic2VydmljZSIsInVwZGF0ZWQiOiIyMDI2LTAyLTEwVDA5OjAwOjAwWiJ9.pGvHnY2Bcg3gTCdOK9mNeUORW2IpZSR9Ux_Zp6QmLCj8ZpVASUbav15wCtJZlncLWay3gxzMYLACgJHe9bwgCQ"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"fine-pass.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":0,"scope-2":0.6,"scope-3":0,"carbon-footprint":0.6,"carbon-intensity-gCO2e-per-kWh":0,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"not-achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":400,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true},{"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":200,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MC42LCJjYXJib24taW50ZW5zaXR5LWdDTzJlLXBlci1rV2giOjAsImNhcmJvbi11bml0IjoidENPMmUiLCJkaXNjbG9zdXJlLXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvZGlzY2xvc3VyZXMuanNvbiIsImVuZXJneS1jb25zdW1wdGlvbiI6MCwiZW5lcmd5LXVuaXQiOiJrV2giLCJleHRlbnNpb25zIjp7Imh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2NhcmJvbi1uZXV0cmFsaXR5Ijp7Im5ldC16ZXJvLXN0YXR1cyI6Im5vdC1hY2hpZXZlZCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9sZWRnZXItZXZpZGVuY2UtMiI6eyJsZWRnZXItYWNjZXNzLXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvcmVhZCIsIm5ldHdvcmstb2Zmc2V0LWNvdmVyYWdlIjp0cnVlLCJvcGVyYXRvcnMiOlt7ImNhcmJvbi1ldmVudHMiOjAsImNhcmJvbi1oZWFkIjpudWxsLCJlbmVyZ3ktZXZlbnRzIjowLCJlbmVyZ3ktaGVhZCI6bnVsbCwia3doIjowLCJvZmZzZXQtY292ZXJhZ2UtZXZlcnktcGVyaW9kIjp0cnVlLCJvZmZzZXRzLWtnY28yZSI6MCwib3BlcmF0b3IiOiJkaWQ6d2ViOm9wLWEuZXhhbXBsZSIsIm9yaWdpbiI6Im5vZGUub3AtYS5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6NDAwLCJzY29wZTMta2djbzJlIjowfSx7ImNhcmJvbi1ldmVudHMiOjAsImNhcmJvbi1oZWFkIjpudWxsLCJlbmVyZ3ktZXZlbnRzIjowLCJlbmVyZ3ktaGVhZCI6bnVsbCwia3doIjowLCJvZmZzZXQtY292ZXJhZ2UtZXZlcnktcGVyaW9kIjp0cnVlLCJvZmZzZXRzLWtnY28yZSI6MCwib3BlcmF0b3IiOiJkaWQ6d2ViOm9wLWIuZXhhbXBsZSIsIm9yaWdpbiI6Im5vZGUub3AtYi5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6MjAwLCJzY29wZTMta2djbzJlIjowfV0sInByb2ZpbGUtdmVyc2lvbiI6IjIuMCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9uZXR3b3JrLXRvcG9sb2d5Ijp7ImNvbnNlbnN1cy1tZWNoYW5pc20iOiJwcm9vZi1vZi1hdXRob3JpdHkiLCJub2RlLWNvdW50LXZhbGlkYXRpb24tbWV0aG9kIjoic3ludGhldGljIiwidmFsaWRhdGVkLW5vZGUtY291bnQiOjN9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvbWV0aG9kb2xvZ3kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjUtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yay4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUB0b2xlcmFuY2UuZXhhbXBsZS4iLCJzY29wZS0yIjowLjYsInNjb3BlLTMiOjAsInRhcmdldCI6ImZpbmUtcGFzcy5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJzZXJ2aWNlIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.tWOmxCuO0PHU5PT2U2SX_AT6L9RiD0L7g0vCJH0lZWwwCHGdyJQudcLH6ja22-xmcSXi0CJLAtrhcli38fSlCg"}
+      ],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true,true]
+      }
+    },
+    {
+      "name": "footprint-with-and-without-ledger",
+      "T": "2026-05-02T00:10:00Z",
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "select": ["S6.c"],
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"no-ledger.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":1,"scope-2":4.5,"scope-3":5.5,"carbon-footprint":10.4,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/hardware-lifecycle":{"general-purpose-hardware":true,"single-use-asic-required":false}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MTAuNCwiY2FyYm9uLXVuaXQiOiJ0Q08yZSIsImRpc2Nsb3N1cmUtdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9kaXNjbG9zdXJlcy5qc29uIiwiZW5lcmd5LWNvbnN1bXB0aW9uIjoxLCJlbmVyZ3ktdW5pdCI6ImtXaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvaGFyZHdhcmUtbGlmZWN5Y2xlIjp7ImdlbmVyYWwtcHVycG9zZS1oYXJkd2FyZSI6dHJ1ZSwic2luZ2xlLXVzZS1hc2ljLXJlcXVpcmVkIjpmYWxzZX0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL25ldHdvcmstdG9wb2xvZ3kiOnsiY29uc2Vuc3VzLW1lY2hhbmlzbSI6InByb29mLW9mLWF1dGhvcml0eSIsIm5vZGUtY291bnQtdmFsaWRhdGlvbi1tZXRob2QiOiJzeW50aGV0aWMiLCJ2YWxpZGF0ZWQtbm9kZS1jb3VudCI6M319LCJtZWFzdXJlbWVudC1tZXRob2QiOiJoYXJkd2FyZS1tZXRlcmVkIiwibWV0aG9kb2xvZ3ktdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9tZXRob2RvbG9neS5tZCIsInBlcmlvZCI6eyJlbmQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsInN0YXJ0IjoiMjAyNS0wMS0wMVQwMDowMDowMFoifSwicHJvdmlkZXIiOiJTWU5USEVUSUMgRVhBTVBMRSwgbm90IGEgcmVhbCBuZXR3b3JrLiBSb2xlIGNvbnRhY3Q6IHN1c3RhaW5hYmlsaXR5QHRvbGVyYW5jZS5leGFtcGxlLiIsInNjb3BlLTIiOjQuNSwic2NvcGUtMyI6NS41LCJ0YXJnZXQiOiJuby1sZWRnZXIuZXhhbXBsZSIsInRhcmdldC10eXBlIjoic2VydmljZSIsInVwZGF0ZWQiOiIyMDI2LTAyLTEwVDA5OjAwOjAwWiJ9.14NQbFnJ3bxctCyh5hFF4vhreygoltvgeUIjYbFHD3yvk0ljwI1nozhkqj5Djgx_bSSUf13byjZs8JZWsFl2Bw"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"with-ledger.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":1000,"scope-2":4.5,"scope-3":5.5,"carbon-footprint":10.4,"carbon-intensity-gCO2e-per-kWh":4500,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":1000,"scope1-kgco2e":0,"scope2-kgco2e":4500,"scope3-kgco2e":5500,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MTAuNCwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjo0NTAwLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjEwMDAsImVuZXJneS11bml0Ijoia1doIiwiZXh0ZW5zaW9ucyI6eyJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9jYXJib24tbmV1dHJhbGl0eSI6eyJuZXQtemVyby1zdGF0dXMiOiJhY2hpZXZlZCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9sZWRnZXItZXZpZGVuY2UtMiI6eyJsZWRnZXItYWNjZXNzLXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvcmVhZCIsIm5ldHdvcmstb2Zmc2V0LWNvdmVyYWdlIjp0cnVlLCJvcGVyYXRvcnMiOlt7ImNhcmJvbi1ldmVudHMiOjAsImNhcmJvbi1oZWFkIjpudWxsLCJlbmVyZ3ktZXZlbnRzIjowLCJlbmVyZ3ktaGVhZCI6bnVsbCwia3doIjoxMDAwLCJvZmZzZXQtY292ZXJhZ2UtZXZlcnktcGVyaW9kIjp0cnVlLCJvZmZzZXRzLWtnY28yZSI6MCwib3BlcmF0b3IiOiJkaWQ6d2ViOm9wLWEuZXhhbXBsZSIsIm9yaWdpbiI6Im5vZGUub3AtYS5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6NDUwMCwic2NvcGUzLWtnY28yZSI6NTUwMH1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJjb25zZW5zdXMtbWVjaGFuaXNtIjoicHJvb2Ytb2YtYXV0aG9yaXR5Iiwibm9kZS1jb3VudC12YWxpZGF0aW9uLW1ldGhvZCI6InN5bnRoZXRpYyIsInZhbGlkYXRlZC1ub2RlLWNvdW50IjozfX0sIm1lYXN1cmVtZW50LW1ldGhvZCI6ImhhcmR3YXJlLW1ldGVyZWQiLCJtZXRob2RvbG9neS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL21ldGhvZG9sb2d5Lm1kIiwicGVyaW9kIjp7ImVuZCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIiwic3RhcnQiOiIyMDI1LTAxLTAxVDAwOjAwOjAwWiJ9LCJwcm92aWRlciI6IlNZTlRIRVRJQyBFWEFNUExFLCBub3QgYSByZWFsIG5ldHdvcmsuIFJvbGUgY29udGFjdDogc3VzdGFpbmFiaWxpdHlAdG9sZXJhbmNlLmV4YW1wbGUuIiwic2NvcGUtMiI6NC41LCJzY29wZS0zIjo1LjUsInRhcmdldCI6IndpdGgtbGVkZ2VyLmV4YW1wbGUiLCJ0YXJnZXQtdHlwZSI6InNlcnZpY2UiLCJ1cGRhdGVkIjoiMjAyNi0wMi0xMFQwOTowMDowMFoifQ.Ne9pc7aJVBSw2KKSrc4mZwP-4Ft9jRrs1pfhCLBwowUrIIhnWbB0izO3hw4VBrc8H6328U2xTmbypTVf8wyyAg"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"no-ledger-ok.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":1,"scope-2":4.5,"scope-3":5.5,"carbon-footprint":10,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/hardware-lifecycle":{"general-purpose-hardware":true,"single-use-asic-required":false}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MTAsImNhcmJvbi11bml0IjoidENPMmUiLCJkaXNjbG9zdXJlLXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvZGlzY2xvc3VyZXMuanNvbiIsImVuZXJneS1jb25zdW1wdGlvbiI6MSwiZW5lcmd5LXVuaXQiOiJrV2giLCJleHRlbnNpb25zIjp7Imh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2NhcmJvbi1uZXV0cmFsaXR5Ijp7Im5ldC16ZXJvLXN0YXR1cyI6ImFjaGlldmVkIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2hhcmR3YXJlLWxpZmVjeWNsZSI6eyJnZW5lcmFsLXB1cnBvc2UtaGFyZHdhcmUiOnRydWUsInNpbmdsZS11c2UtYXNpYy1yZXF1aXJlZCI6ZmFsc2V9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9uZXR3b3JrLXRvcG9sb2d5Ijp7ImNvbnNlbnN1cy1tZWNoYW5pc20iOiJwcm9vZi1vZi1hdXRob3JpdHkiLCJub2RlLWNvdW50LXZhbGlkYXRpb24tbWV0aG9kIjoic3ludGhldGljIiwidmFsaWRhdGVkLW5vZGUtY291bnQiOjN9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvbWV0aG9kb2xvZ3kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjUtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yay4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUB0b2xlcmFuY2UuZXhhbXBsZS4iLCJzY29wZS0yIjo0LjUsInNjb3BlLTMiOjUuNSwidGFyZ2V0Ijoibm8tbGVkZ2VyLW9rLmV4YW1wbGUiLCJ0YXJnZXQtdHlwZSI6InNlcnZpY2UiLCJ1cGRhdGVkIjoiMjAyNi0wMi0xMFQwOTowMDowMFoifQ.l2neMa6JJJ-7GroMwCK6-FwY28JfS7rvONKt3lFt-4Sn_kpOHUN3EtSQXv0EL7ZsF2BDviFXkFRUM-Jyk9BbDw"}
+      ],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true,true,true]
+      }
+    },
+    {
+      "name": "intensity-quotient",
+      "T": "2026-05-02T00:10:00Z",
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "select": ["S6.d"],
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"quotient-pass.example","target-type":"service","energy-unit":"MWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":3,"scope-2":100,"scope-3":0,"carbon-footprint":100,"carbon-intensity-gCO2e-per-kWh":33333.333333,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":3000,"scope1-kgco2e":0,"scope2-kgco2e":100000,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MTAwLCJjYXJib24taW50ZW5zaXR5LWdDTzJlLXBlci1rV2giOjMzMzMzLjMzMzMzMywiY2FyYm9uLXVuaXQiOiJ0Q08yZSIsImRpc2Nsb3N1cmUtdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9kaXNjbG9zdXJlcy5qc29uIiwiZW5lcmd5LWNvbnN1bXB0aW9uIjozLCJlbmVyZ3ktdW5pdCI6Ik1XaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbGVkZ2VyLWV2aWRlbmNlLTIiOnsibGVkZ2VyLWFjY2Vzcy11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL3JlYWQiLCJuZXR3b3JrLW9mZnNldC1jb3ZlcmFnZSI6dHJ1ZSwib3BlcmF0b3JzIjpbeyJjYXJib24tZXZlbnRzIjowLCJjYXJib24taGVhZCI6bnVsbCwiZW5lcmd5LWV2ZW50cyI6MCwiZW5lcmd5LWhlYWQiOm51bGwsImt3aCI6MzAwMCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1hLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWEuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjEwMDAwMCwic2NvcGUzLWtnY28yZSI6MH1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJjb25zZW5zdXMtbWVjaGFuaXNtIjoicHJvb2Ytb2YtYXV0aG9yaXR5Iiwibm9kZS1jb3VudC12YWxpZGF0aW9uLW1ldGhvZCI6InN5bnRoZXRpYyIsInZhbGlkYXRlZC1ub2RlLWNvdW50IjozfX0sIm1lYXN1cmVtZW50LW1ldGhvZCI6ImhhcmR3YXJlLW1ldGVyZWQiLCJtZXRob2RvbG9neS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL21ldGhvZG9sb2d5Lm1kIiwicGVyaW9kIjp7ImVuZCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIiwic3RhcnQiOiIyMDI1LTAxLTAxVDAwOjAwOjAwWiJ9LCJwcm92aWRlciI6IlNZTlRIRVRJQyBFWEFNUExFLCBub3QgYSByZWFsIG5ldHdvcmsuIFJvbGUgY29udGFjdDogc3VzdGFpbmFiaWxpdHlAdG9sZXJhbmNlLmV4YW1wbGUuIiwic2NvcGUtMiI6MTAwLCJzY29wZS0zIjowLCJ0YXJnZXQiOiJxdW90aWVudC1wYXNzLmV4YW1wbGUiLCJ0YXJnZXQtdHlwZSI6InNlcnZpY2UiLCJ1cGRhdGVkIjoiMjAyNi0wMi0xMFQwOTowMDowMFoifQ.BkzYvYX60JhfjVM1cLh-iWGCr2UEKPcCf_DaRqM0mjPj-56BFNGEovRW8DHIk9MPAmnivuavQiAErkItDi41Dg"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"quotient-fail.example","target-type":"service","energy-unit":"MWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":3,"scope-2":100,"scope-3":0,"carbon-footprint":100,"carbon-intensity-gCO2e-per-kWh":33333.34,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":3000,"scope1-kgco2e":0,"scope2-kgco2e":100000,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MTAwLCJjYXJib24taW50ZW5zaXR5LWdDTzJlLXBlci1rV2giOjMzMzMzLjM0LCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjMsImVuZXJneS11bml0IjoiTVdoIiwiZXh0ZW5zaW9ucyI6eyJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9jYXJib24tbmV1dHJhbGl0eSI6eyJuZXQtemVyby1zdGF0dXMiOiJhY2hpZXZlZCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9sZWRnZXItZXZpZGVuY2UtMiI6eyJsZWRnZXItYWNjZXNzLXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvcmVhZCIsIm5ldHdvcmstb2Zmc2V0LWNvdmVyYWdlIjp0cnVlLCJvcGVyYXRvcnMiOlt7ImNhcmJvbi1ldmVudHMiOjAsImNhcmJvbi1oZWFkIjpudWxsLCJlbmVyZ3ktZXZlbnRzIjowLCJlbmVyZ3ktaGVhZCI6bnVsbCwia3doIjozMDAwLCJvZmZzZXQtY292ZXJhZ2UtZXZlcnktcGVyaW9kIjp0cnVlLCJvZmZzZXRzLWtnY28yZSI6MCwib3BlcmF0b3IiOiJkaWQ6d2ViOm9wLWEuZXhhbXBsZSIsIm9yaWdpbiI6Im5vZGUub3AtYS5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6MTAwMDAwLCJzY29wZTMta2djbzJlIjowfV0sInByb2ZpbGUtdmVyc2lvbiI6IjIuMCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9uZXR3b3JrLXRvcG9sb2d5Ijp7ImNvbnNlbnN1cy1tZWNoYW5pc20iOiJwcm9vZi1vZi1hdXRob3JpdHkiLCJub2RlLWNvdW50LXZhbGlkYXRpb24tbWV0aG9kIjoic3ludGhldGljIiwidmFsaWRhdGVkLW5vZGUtY291bnQiOjN9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvbWV0aG9kb2xvZ3kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjUtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yay4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUB0b2xlcmFuY2UuZXhhbXBsZS4iLCJzY29wZS0yIjoxMDAsInNjb3BlLTMiOjAsInRhcmdldCI6InF1b3RpZW50LWZhaWwuZXhhbXBsZSIsInRhcmdldC10eXBlIjoic2VydmljZSIsInVwZGF0ZWQiOiIyMDI2LTAyLTEwVDA5OjAwOjAwWiJ9.LTkKjwacn_I2BYkgZgRx-CFSTAI1l6H0bL_JushrGqSxxFXqlwqNOtF63-TVjmN91jCPB43h0-WX9V5bjH3jBw"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"tiny-energy-inside.example","target-type":"service","energy-unit":"MWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":0.000002,"scope-2":0.000001,"scope-3":0,"carbon-footprint":0.000001,"carbon-intensity-gCO2e-per-kWh":800,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0.002,"scope1-kgco2e":0,"scope2-kgco2e":0.001,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MC4wMDAwMDEsImNhcmJvbi1pbnRlbnNpdHktZ0NPMmUtcGVyLWtXaCI6ODAwLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjAuMDAwMDAyLCJlbmVyZ3ktdW5pdCI6Ik1XaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbGVkZ2VyLWV2aWRlbmNlLTIiOnsibGVkZ2VyLWFjY2Vzcy11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL3JlYWQiLCJuZXR3b3JrLW9mZnNldC1jb3ZlcmFnZSI6dHJ1ZSwib3BlcmF0b3JzIjpbeyJjYXJib24tZXZlbnRzIjowLCJjYXJib24taGVhZCI6bnVsbCwiZW5lcmd5LWV2ZW50cyI6MCwiZW5lcmd5LWhlYWQiOm51bGwsImt3aCI6MC4wMDIsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjowLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYS5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1hLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjowLjAwMSwic2NvcGUzLWtnY28yZSI6MH1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJjb25zZW5zdXMtbWVjaGFuaXNtIjoicHJvb2Ytb2YtYXV0aG9yaXR5Iiwibm9kZS1jb3VudC12YWxpZGF0aW9uLW1ldGhvZCI6InN5bnRoZXRpYyIsInZhbGlkYXRlZC1ub2RlLWNvdW50IjozfX0sIm1lYXN1cmVtZW50LW1ldGhvZCI6ImhhcmR3YXJlLW1ldGVyZWQiLCJtZXRob2RvbG9neS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL21ldGhvZG9sb2d5Lm1kIiwicGVyaW9kIjp7ImVuZCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIiwic3RhcnQiOiIyMDI1LTAxLTAxVDAwOjAwOjAwWiJ9LCJwcm92aWRlciI6IlNZTlRIRVRJQyBFWEFNUExFLCBub3QgYSByZWFsIG5ldHdvcmsuIFJvbGUgY29udGFjdDogc3VzdGFpbmFiaWxpdHlAdG9sZXJhbmNlLmV4YW1wbGUuIiwic2NvcGUtMiI6MC4wMDAwMDEsInNjb3BlLTMiOjAsInRhcmdldCI6InRpbnktZW5lcmd5LWluc2lkZS5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJzZXJ2aWNlIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.f-yTZ8dzx53_6HSnktFB8YZNQYk0BjrpyOk8Fz7pyj63D6KP7NtvfEkoAuekMWBvc7nW5dtSEaklj_mQc4r1AQ"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"tiny-energy-outside.example","target-type":"service","energy-unit":"MWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","energy-consumption":0.000002,"scope-2":0.000001,"scope-3":0,"carbon-footprint":0.000001,"carbon-intensity-gCO2e-per-kWh":1500,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0.002,"scope1-kgco2e":0,"scope2-kgco2e":0.001,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MC4wMDAwMDEsImNhcmJvbi1pbnRlbnNpdHktZ0NPMmUtcGVyLWtXaCI6MTUwMCwiY2FyYm9uLXVuaXQiOiJ0Q08yZSIsImRpc2Nsb3N1cmUtdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9kaXNjbG9zdXJlcy5qc29uIiwiZW5lcmd5LWNvbnN1bXB0aW9uIjowLjAwMDAwMiwiZW5lcmd5LXVuaXQiOiJNV2giLCJleHRlbnNpb25zIjp7Imh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2NhcmJvbi1uZXV0cmFsaXR5Ijp7Im5ldC16ZXJvLXN0YXR1cyI6ImFjaGlldmVkIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9yZWFkIiwibmV0d29yay1vZmZzZXQtY292ZXJhZ2UiOnRydWUsIm9wZXJhdG9ycyI6W3siY2FyYm9uLWV2ZW50cyI6MCwiY2FyYm9uLWhlYWQiOm51bGwsImVuZXJneS1ldmVudHMiOjAsImVuZXJneS1oZWFkIjpudWxsLCJrd2giOjAuMDAyLCJvZmZzZXQtY292ZXJhZ2UtZXZlcnktcGVyaW9kIjp0cnVlLCJvZmZzZXRzLWtnY28yZSI6MCwib3BlcmF0b3IiOiJkaWQ6d2ViOm9wLWEuZXhhbXBsZSIsIm9yaWdpbiI6Im5vZGUub3AtYS5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6MC4wMDEsInNjb3BlMy1rZ2NvMmUiOjB9XSwicHJvZmlsZS12ZXJzaW9uIjoiMi4wIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL25ldHdvcmstdG9wb2xvZ3kiOnsiY29uc2Vuc3VzLW1lY2hhbmlzbSI6InByb29mLW9mLWF1dGhvcml0eSIsIm5vZGUtY291bnQtdmFsaWRhdGlvbi1tZXRob2QiOiJzeW50aGV0aWMiLCJ2YWxpZGF0ZWQtbm9kZS1jb3VudCI6M319LCJtZWFzdXJlbWVudC1tZXRob2QiOiJoYXJkd2FyZS1tZXRlcmVkIiwibWV0aG9kb2xvZ3ktdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9tZXRob2RvbG9neS5tZCIsInBlcmlvZCI6eyJlbmQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsInN0YXJ0IjoiMjAyNS0wMS0wMVQwMDowMDowMFoifSwicHJvdmlkZXIiOiJTWU5USEVUSUMgRVhBTVBMRSwgbm90IGEgcmVhbCBuZXR3b3JrLiBSb2xlIGNvbnRhY3Q6IHN1c3RhaW5hYmlsaXR5QHRvbGVyYW5jZS5leGFtcGxlLiIsInNjb3BlLTIiOjAuMDAwMDAxLCJzY29wZS0zIjowLCJ0YXJnZXQiOiJ0aW55LWVuZXJneS1vdXRzaWRlLmV4YW1wbGUiLCJ0YXJnZXQtdHlwZSI6InNlcnZpY2UiLCJ1cGRhdGVkIjoiMjAyNi0wMi0xMFQwOTowMDowMFoifQ.VaRbisCooJk7HQSSUMMRaF4xGTmlwHRhQpSBLPriYpCw1qrL5ipBZBlPxY8xREj2uhQCv6SneEKNRZyRqdwwBg"}
+      ],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true,true,true,true]
+      }
+    },
+    {
+      "name": "published-figure-over-the-limit",
+      "T": "2026-05-02T00:10:00Z",
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "select": ["C-SFC-5"],
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"over-limit.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","scope-2":0,"scope-3":1000000000.000001,"carbon-footprint":1000000000,"carbon-intensity-gCO2e-per-kWh":0,"energy-consumption":123456789012345.12,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved","offsets-retired-tCO2e":0},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MTAwMDAwMDAwMCwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjowLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjEyMzQ1Njc4OTAxMjM0NS4xMiwiZW5lcmd5LXVuaXQiOiJrV2giLCJleHRlbnNpb25zIjp7Imh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2NhcmJvbi1uZXV0cmFsaXR5Ijp7Im5ldC16ZXJvLXN0YXR1cyI6ImFjaGlldmVkIiwib2Zmc2V0cy1yZXRpcmVkLXRDTzJlIjowfSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbGVkZ2VyLWV2aWRlbmNlLTIiOnsibGVkZ2VyLWFjY2Vzcy11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL3JlYWQiLCJuZXR3b3JrLW9mZnNldC1jb3ZlcmFnZSI6dHJ1ZSwib3BlcmF0b3JzIjpbeyJjYXJib24tZXZlbnRzIjowLCJjYXJib24taGVhZCI6bnVsbCwiZW5lcmd5LWV2ZW50cyI6MCwiZW5lcmd5LWhlYWQiOm51bGwsImt3aCI6MCwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjAsIm9wZXJhdG9yIjoiZGlkOndlYjpvcC1hLmV4YW1wbGUiLCJvcmlnaW4iOiJub2RlLm9wLWEuZXhhbXBsZSIsInNjb3BlMS1rZ2NvMmUiOjAsInNjb3BlMi1rZ2NvMmUiOjAsInNjb3BlMy1rZ2NvMmUiOjB9XSwicHJvZmlsZS12ZXJzaW9uIjoiMi4wIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL25ldHdvcmstdG9wb2xvZ3kiOnsiY29uc2Vuc3VzLW1lY2hhbmlzbSI6InByb29mLW9mLWF1dGhvcml0eSIsIm5vZGUtY291bnQtdmFsaWRhdGlvbi1tZXRob2QiOiJzeW50aGV0aWMiLCJ2YWxpZGF0ZWQtbm9kZS1jb3VudCI6M319LCJtZWFzdXJlbWVudC1tZXRob2QiOiJoYXJkd2FyZS1tZXRlcmVkIiwibWV0aG9kb2xvZ3ktdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9tZXRob2RvbG9neS5tZCIsInBlcmlvZCI6eyJlbmQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsInN0YXJ0IjoiMjAyNS0wMS0wMVQwMDowMDowMFoifSwicHJvdmlkZXIiOiJTWU5USEVUSUMgRVhBTVBMRSwgbm90IGEgcmVhbCBuZXR3b3JrLiBSb2xlIGNvbnRhY3Q6IHN1c3RhaW5hYmlsaXR5QHRvbGVyYW5jZS5leGFtcGxlLiIsInNjb3BlLTIiOjAsInNjb3BlLTMiOjEwMDAwMDAwMDAuMDAwMDAxLCJ0YXJnZXQiOiJvdmVyLWxpbWl0LmV4YW1wbGUiLCJ0YXJnZXQtdHlwZSI6InNlcnZpY2UiLCJ1cGRhdGVkIjoiMjAyNi0wMi0xMFQwOTowMDowMFoifQ.yUpnDD4rkFcDSFR9ZChtBynCL3n0UQ4DtRlEP57NFMUv9q8Ju1NZRpWFpPcAOAWuwWNOjhf70LVgLseyZy79CQ"}
+      ],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true]
+      }
+    },
+    {
+      "name": "wrong-typed-optional-members",
+      "T": "2026-05-02T00:10:00Z",
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "select": ["S6.a"],
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"mistyped-plain.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","scope-2":0,"scope-3":0,"carbon-footprint":0,"carbon-intensity-gCO2e-per-kWh":0,"energy-consumption":0,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved","offsets-retired-tCO2e":"12"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic"},"https://andreibesleaga.com/sfc/extensions/hardware-lifecycle":{"general-purpose-hardware":true,"single-use-asic-required":false,"expected-service-life-years":"5"}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MCwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjowLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjAsImVuZXJneS11bml0Ijoia1doIiwiZXh0ZW5zaW9ucyI6eyJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9jYXJib24tbmV1dHJhbGl0eSI6eyJuZXQtemVyby1zdGF0dXMiOiJhY2hpZXZlZCIsIm9mZnNldHMtcmV0aXJlZC10Q08yZSI6IjEyIn0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2hhcmR3YXJlLWxpZmVjeWNsZSI6eyJleHBlY3RlZC1zZXJ2aWNlLWxpZmUteWVhcnMiOiI1IiwiZ2VuZXJhbC1wdXJwb3NlLWhhcmR3YXJlIjp0cnVlLCJzaW5nbGUtdXNlLWFzaWMtcmVxdWlyZWQiOmZhbHNlfSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJjb25zZW5zdXMtbWVjaGFuaXNtIjoicHJvb2Ytb2YtYXV0aG9yaXR5Iiwibm9kZS1jb3VudC12YWxpZGF0aW9uLW1ldGhvZCI6InN5bnRoZXRpYyIsInZhbGlkYXRlZC1ub2RlLWNvdW50IjozfX0sIm1lYXN1cmVtZW50LW1ldGhvZCI6ImhhcmR3YXJlLW1ldGVyZWQiLCJtZXRob2RvbG9neS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL21ldGhvZG9sb2d5Lm1kIiwicGVyaW9kIjp7ImVuZCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIiwic3RhcnQiOiIyMDI1LTAxLTAxVDAwOjAwOjAwWiJ9LCJwcm92aWRlciI6IlNZTlRIRVRJQyBFWEFNUExFLCBub3QgYSByZWFsIG5ldHdvcmsuIFJvbGUgY29udGFjdDogc3VzdGFpbmFiaWxpdHlAdG9sZXJhbmNlLmV4YW1wbGUuIiwic2NvcGUtMiI6MCwic2NvcGUtMyI6MCwidGFyZ2V0IjoibWlzdHlwZWQtcGxhaW4uZXhhbXBsZSIsInRhcmdldC10eXBlIjoic2VydmljZSIsInVwZGF0ZWQiOiIyMDI2LTAyLTEwVDA5OjAwOjAwWiJ9._amaEcRZ9xxvHVfhgqetBfwKxTWQY2CIwLnjJVlZbwTVnD7wySdkfA39Brz9JF2V4kq_At-xuGhUV3cTNK4SBw"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"mistyped-ledger.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","scope-2":0,"scope-3":0,"carbon-footprint":0,"carbon-intensity-gCO2e-per-kWh":0,"energy-consumption":0,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved","offsets-retired-tCO2e":0,"offset-registry-uri":7},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic","nakamoto-coefficient":1.5},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MCwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjowLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjAsImVuZXJneS11bml0Ijoia1doIiwiZXh0ZW5zaW9ucyI6eyJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9jYXJib24tbmV1dHJhbGl0eSI6eyJuZXQtemVyby1zdGF0dXMiOiJhY2hpZXZlZCIsIm9mZnNldC1yZWdpc3RyeS11cmkiOjcsIm9mZnNldHMtcmV0aXJlZC10Q08yZSI6MH0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9yZWFkIiwibmV0d29yay1vZmZzZXQtY292ZXJhZ2UiOnRydWUsIm9wZXJhdG9ycyI6W3siY2FyYm9uLWV2ZW50cyI6MCwiY2FyYm9uLWhlYWQiOm51bGwsImVuZXJneS1ldmVudHMiOjAsImVuZXJneS1oZWFkIjpudWxsLCJrd2giOjAsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjowLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYS5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1hLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjowLCJzY29wZTMta2djbzJlIjowfV0sInByb2ZpbGUtdmVyc2lvbiI6IjIuMCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9uZXR3b3JrLXRvcG9sb2d5Ijp7ImNvbnNlbnN1cy1tZWNoYW5pc20iOiJwcm9vZi1vZi1hdXRob3JpdHkiLCJuYWthbW90by1jb2VmZmljaWVudCI6MS41LCJub2RlLWNvdW50LXZhbGlkYXRpb24tbWV0aG9kIjoic3ludGhldGljIiwidmFsaWRhdGVkLW5vZGUtY291bnQiOjN9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiaGFyZHdhcmUtbWV0ZXJlZCIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vdG9sZXJhbmNlLmV4YW1wbGUvbWV0aG9kb2xvZ3kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjUtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yay4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUB0b2xlcmFuY2UuZXhhbXBsZS4iLCJzY29wZS0yIjowLCJzY29wZS0zIjowLCJ0YXJnZXQiOiJtaXN0eXBlZC1sZWRnZXIuZXhhbXBsZSIsInRhcmdldC10eXBlIjoic2VydmljZSIsInVwZGF0ZWQiOiIyMDI2LTAyLTEwVDA5OjAwOjAwWiJ9.Zpbccf7NcqpXCUgowuKJ_lauhKEsXVWaD4uXqGpFyNA-WpKcPJxPsvvO28klvRn3FHxxNDSoZT2mTf95HDW9Cg"}
+      ],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true,true]
+      }
+    },
+    {
+      "name": "mixed-topology-levels-with-and-without-ledger-evidence",
+      "T": "2026-05-02T00:10:00Z",
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        },
+        "publisherKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ],
+        "operatorKeys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+          }
+        ]
+      },
+      "select": ["S6.a"],
+      "declarations": [
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"mixed-ledger.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","scope-2":0,"scope-3":0,"carbon-footprint":0,"carbon-intensity-gCO2e-per-kWh":0,"energy-consumption":0,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved","offsets-retired-tCO2e":0},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic","member-of-network":"ledger.example"},"https://andreibesleaga.com/sfc/extensions/ledger-evidence-2":{"profile-version":"2.0","ledger-access-uri":"https://tolerance.example/read","operators":[{"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":null,"carbon-head":null,"energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":true}],"network-offset-coverage":true}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MCwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjowLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjAsImVuZXJneS11bml0Ijoia1doIiwiZXh0ZW5zaW9ucyI6eyJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9jYXJib24tbmV1dHJhbGl0eSI6eyJuZXQtemVyby1zdGF0dXMiOiJhY2hpZXZlZCIsIm9mZnNldHMtcmV0aXJlZC10Q08yZSI6MH0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9yZWFkIiwibmV0d29yay1vZmZzZXQtY292ZXJhZ2UiOnRydWUsIm9wZXJhdG9ycyI6W3siY2FyYm9uLWV2ZW50cyI6MCwiY2FyYm9uLWhlYWQiOm51bGwsImVuZXJneS1ldmVudHMiOjAsImVuZXJneS1oZWFkIjpudWxsLCJrd2giOjAsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjowLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYS5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1hLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjowLCJzY29wZTMta2djbzJlIjowfV0sInByb2ZpbGUtdmVyc2lvbiI6IjIuMCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9uZXR3b3JrLXRvcG9sb2d5Ijp7ImNvbnNlbnN1cy1tZWNoYW5pc20iOiJwcm9vZi1vZi1hdXRob3JpdHkiLCJtZW1iZXItb2YtbmV0d29yayI6ImxlZGdlci5leGFtcGxlIiwibm9kZS1jb3VudC12YWxpZGF0aW9uLW1ldGhvZCI6InN5bnRoZXRpYyIsInZhbGlkYXRlZC1ub2RlLWNvdW50IjozfX0sIm1lYXN1cmVtZW50LW1ldGhvZCI6ImhhcmR3YXJlLW1ldGVyZWQiLCJtZXRob2RvbG9neS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL21ldGhvZG9sb2d5Lm1kIiwicGVyaW9kIjp7ImVuZCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIiwic3RhcnQiOiIyMDI1LTAxLTAxVDAwOjAwOjAwWiJ9LCJwcm92aWRlciI6IlNZTlRIRVRJQyBFWEFNUExFLCBub3QgYSByZWFsIG5ldHdvcmsuIFJvbGUgY29udGFjdDogc3VzdGFpbmFiaWxpdHlAdG9sZXJhbmNlLmV4YW1wbGUuIiwic2NvcGUtMiI6MCwic2NvcGUtMyI6MCwidGFyZ2V0IjoibWl4ZWQtbGVkZ2VyLmV4YW1wbGUiLCJ0YXJnZXQtdHlwZSI6InNlcnZpY2UiLCJ1cGRhdGVkIjoiMjAyNi0wMi0xMFQwOTowMDowMFoifQ.thQVdKtley9zoj_s6x1hSaS4EFoyUjFV3an1q7LNZqWZ1C8B7OdAbwAv8uHcjbaAFoQvO1BL8bxHm-w2mm9vDQ"},
+        {"updated":"2026-02-10T09:00:00Z","capabilities":"basic","provider":"SYNTHETIC EXAMPLE, not a real network. Role contact: sustainability@tolerance.example.","measurement-method":"hardware-metered","methodology-uri":"https://tolerance.example/methodology.md","period":{"start":"2025-01-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"target":"mixed-plain.example","target-type":"service","energy-unit":"kWh","carbon-unit":"tCO2e","carbon-accounting":"market-based","disclosure-uri":"https://tolerance.example/disclosures.json","scope-2":0,"scope-3":0,"carbon-footprint":0,"carbon-intensity-gCO2e-per-kWh":0,"energy-consumption":0,"extensions":{"https://andreibesleaga.com/sfc/extensions/carbon-neutrality":{"net-zero-status":"achieved"},"https://andreibesleaga.com/sfc/extensions/network-topology":{"consensus-mechanism":"proof-of-authority","validated-node-count":3,"node-count-validation-method":"synthetic","member-of-network":"ledger.example"},"https://andreibesleaga.com/sfc/extensions/hardware-lifecycle":{"general-purpose-hardware":true,"single-use-asic-required":false}},"signed":"eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MCwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjowLCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL3RvbGVyYW5jZS5leGFtcGxlL2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjAsImVuZXJneS11bml0Ijoia1doIiwiZXh0ZW5zaW9ucyI6eyJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9jYXJib24tbmV1dHJhbGl0eSI6eyJuZXQtemVyby1zdGF0dXMiOiJhY2hpZXZlZCJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9oYXJkd2FyZS1saWZlY3ljbGUiOnsiZ2VuZXJhbC1wdXJwb3NlLWhhcmR3YXJlIjp0cnVlLCJzaW5nbGUtdXNlLWFzaWMtcmVxdWlyZWQiOmZhbHNlfSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJjb25zZW5zdXMtbWVjaGFuaXNtIjoicHJvb2Ytb2YtYXV0aG9yaXR5IiwibWVtYmVyLW9mLW5ldHdvcmsiOiJsZWRnZXIuZXhhbXBsZSIsIm5vZGUtY291bnQtdmFsaWRhdGlvbi1tZXRob2QiOiJzeW50aGV0aWMiLCJ2YWxpZGF0ZWQtbm9kZS1jb3VudCI6M319LCJtZWFzdXJlbWVudC1tZXRob2QiOiJoYXJkd2FyZS1tZXRlcmVkIiwibWV0aG9kb2xvZ3ktdXJpIjoiaHR0cHM6Ly90b2xlcmFuY2UuZXhhbXBsZS9tZXRob2RvbG9neS5tZCIsInBlcmlvZCI6eyJlbmQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsInN0YXJ0IjoiMjAyNS0wMS0wMVQwMDowMDowMFoifSwicHJvdmlkZXIiOiJTWU5USEVUSUMgRVhBTVBMRSwgbm90IGEgcmVhbCBuZXR3b3JrLiBSb2xlIGNvbnRhY3Q6IHN1c3RhaW5hYmlsaXR5QHRvbGVyYW5jZS5leGFtcGxlLiIsInNjb3BlLTIiOjAsInNjb3BlLTMiOjAsInRhcmdldCI6Im1peGVkLXBsYWluLmV4YW1wbGUiLCJ0YXJnZXQtdHlwZSI6InNlcnZpY2UiLCJ1cGRhdGVkIjoiMjAyNi0wMi0xMFQwOTowMDowMFoifQ.LOKEsjctPRh7ID9lcTocu0WXXPA4tIDnL_jl44DAjkDibmi-intg9T9gWGCfNDUGQVu8-wbsR7tUVh8CeBDeDQ"}
+      ],
+      "consumer": {
+        "library": "sustainability-wellknown-consumer",
+        "version": "0.8.2",
+        "valid": [true,true]
+      }
+    }
+  ],
+  "excerpts": {
+    "x1": {
+      "excerpt-version": 2,
+      "profile-version": "2.0",
+      "network": "ledger.example",
+      "read-at": "2026-05-02T00:10:00Z",
+      "registrar": {
+        "jwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+        }
+      },
+      "registry": [
+        {"operator":"did:web:op-a.example","origin":"node.op-a.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"5RAXfr6Yx-sSJMzjLaPP3LzIk7lGwHTj8ynlLxIpxr3ebzPuU2K0xY0La61zJHr354gB80_Fdj52GyW_Gk9xDg"}},
+        {"operator":"did:web:op-b.example","origin":"node.op-b.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"C_CCHss_07Av24ma75IihAP4m3kheWzLvPiUxfQEnCJqmTgeS62EkFUGcIo6NS12R8HDPlKlPqYf8xXFnVmMDA"}},
+        {"operator":"did:web:op-c.example","origin":"node.op-c.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"SPC5YgojebRSuniMSXhqkWnU8r092eeCbTQQ8ohVfT4CCQVvng0QorQ2AWakflsSJB1JcUMPeObyq-1QOF-PAg"}},
+        {"operator":"did:web:op-d.example","origin":"node.op-d.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"zTfSNnw_9GBxUAYIUY5AyPEIudTC-TS7hItaCMjoOntNvhg75NNgcKvj4DIGPX7qXgj97QddPjUM0E93X4QOBA"}},
+        {"operator":"did:web:op-e.example","origin":"node.op-e.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"bSawBLuFglcLmKexMjU06S_FYOuDTz_228RaYLioGx0MHTFGS2a4lyrA3jruTg7whWqIv2P7FYpDvuvlwU7mDQ"}}
+      ],
+      "ledger": [
+        {"commit":"2026-02-03T12:00:00Z","hash":"1b2bba832604922ab787f9ee3fea43b490d800a7b3b31ddf264738c403b1a1f0","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":999999999.999999,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"e0R4TypxILUhSeMLmp0stzSniZAAFz0f4FJlI_KmjYgXQopYUZEDzdsheQWl81ncClTi9aghTGitk-iQfnYCAA"}}},
+        {"commit":"2026-02-03T12:02:00Z","hash":"a14bfd8529b1bfd4d516c6199c3669bb17c0a9927d3b884cc432d26dd2050c47","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-b.example","actor":"did:web:op-b.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":1000000000.000001,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"pqqzKqmVq18X1117aZogoSxv6ZBEtXqxhLI0Kbvwi0bbKHKLrATJYb5NhQyR6jLyMhwpqu_TEYzYG-81cvbvDg"}}},
+        {"commit":"2026-02-03T12:04:00Z","hash":"f3c0e26591ee885660c482e63cf68970ca650d41b4f80753617aeb54c0764211","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-c.example","actor":"did:web:op-c.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":1000000000000000,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"-TOOAT6cRNaMCwiRlWydwlLgkwO-nIcIojHnISRMEUv8VrmQ_zXML017QMcewzc4us0aX9EvSHIujtogq1XBBA"}}},
+        {"commit":"2026-02-03T12:06:00Z","hash":"15878b374c458e8637611d3613461ccc0fb216f976ef48fbd1379744deaa83f9","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-d.example","actor":"did:web:op-d.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":999999999999999,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"76SMn3VyD7j7Kem5ifV5tOp8A9_D5J4imSd_UISwxjMCapB7YQpCX8y43YsZ8ROPcv5j9ebtm8JOqOQgyEbjBg"}}},
+        {"commit":"2026-02-03T12:08:00Z","hash":"039af3f7a79946f4a74c467196ecc1ba7994c3b32105ffd581ddc742374e3a3e","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-e.example","actor":"did:web:op-e.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":0.1234567,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"eabGsrR6gtSnBTnbZZB24iRRFu1Mj08AINDT8_upNOR0mB3dw432AYmJ0OBPvOocKfBvmT9B4Uu8LP_GavLxDw"}}}
+      ]
+    },
+    "x2": {
+      "excerpt-version": 2,
+      "profile-version": "2.0",
+      "network": "ledger.example",
+      "read-at": "2026-05-02T00:10:00Z",
+      "registrar": {
+        "jwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+        }
+      },
+      "registry": [
+        {"operator":"did:web:op-a.example","origin":"node.op-a.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"5RAXfr6Yx-sSJMzjLaPP3LzIk7lGwHTj8ynlLxIpxr3ebzPuU2K0xY0La61zJHr354gB80_Fdj52GyW_Gk9xDg"}},
+        {"operator":"did:web:op-b.example","origin":"node.op-b.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"C_CCHss_07Av24ma75IihAP4m3kheWzLvPiUxfQEnCJqmTgeS62EkFUGcIo6NS12R8HDPlKlPqYf8xXFnVmMDA"}}
+      ],
+      "ledger": [
+        {"commit":"2026-02-03T12:00:00Z","hash":"8c226cc194826e69b1144ee463db5fc6bd2c9174f79c04802f23d511c4660eac","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":1234.5675,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"BY6_Cpnl9YVSLZuGqzo4y9xOjdhZ6mPo1081bZaOoGH5qGvxLqergsN109Olk1UjLW8fUanKua72xHhvaRueAQ"}}},
+        {"commit":"2026-02-03T12:01:00Z","hash":"b265be8dd83ed6ee977fdc0eae7de0f4b53b8229158706c93c20641d755b01b6","event":{"type":"CarbonAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"scope2KgCO2e":300,"scope3KgCO2e":200,"gridIntensityRef":"Electricity Maps zone XX, 2025, annual average","retirements":[{"registry":"https://registry.example","reference":"RET-T1","tonnesRetired":1,"retiredAt":"2026-02-02T00:00:00Z","kg":1000}],"offsetsKgCO2e":1000,"netZero":true,"evidence":"https://ledger.example/evidence/carbon-example"},"sig":{"alg":"Ed25519","value":"BL4drVvvRgz_4pC8eRW8aOpfvXfv7WRIXk5TpgBH6QuL1v7haQpceHqBA2zE6rATWR0z5qSji_UmCrRJ6RxjAQ"}}},
+        {"commit":"2026-02-03T12:02:00Z","hash":"ce8a989951bd2ac46a086a439eee984372a1f10715eec013195afcd5e1d315d1","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-b.example","actor":"did:web:op-b.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":1234.5665,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"1IBU8RUCkD-7wYtgqeTiDORz8aQT1JrdC-Uy8m_5RzazeUQL-gr_t75vVaW8G6ylZaGCUsn1NBXqbjchE1LFDQ"}}},
+        {"commit":"2026-02-03T12:03:00Z","hash":"56155c73c9af6d21d423f1acd4d861373fc8cfa9d2ee0037532cb16aee420907","event":{"type":"CarbonAttested","network":"ledger.example","subject":"did:web:op-b.example","actor":"did:web:op-b.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"scope2KgCO2e":300,"scope3KgCO2e":200,"gridIntensityRef":"Electricity Maps zone XX, 2025, annual average","retirements":[{"registry":"https://registry.example","reference":"RET-T2","tonnesRetired":1,"retiredAt":"2026-02-02T00:00:00Z","kg":1000}],"offsetsKgCO2e":1000,"netZero":true,"evidence":"https://ledger.example/evidence/carbon-example"},"sig":{"alg":"Ed25519","value":"7AgH7wvbdHNx1VzZXgXFG8_op81wxQu4LMliORPChQe03EUU29dYfnQYzDuQraIRFftTPFx95011ajsYO1edCA"}}}
+      ]
+    }
+  }
+}

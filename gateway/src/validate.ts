@@ -18,8 +18,10 @@
  * link-local address (the consumer checks the address in the lookup of the
  * connection it actually opens, on every hop, so a DNS answer that changes
  * after the check cannot pass; true when no `fetchImpl` is injected, as in
- * production; only an https request on port 443 to the checked name is ever
- * attempted); 64 KiB body cap; 5-second timeout; one retrieval in flight per
+ * production; the first request is https on port 443 to the checked name, and
+ * a redirect to another public https host is followed, up to five hops, with
+ * every hop's address checked at connect time; a refused hop is reported to
+ * the requester in fixed words and logged in full on the server only); 64 KiB body cap; 5-second timeout; one retrieval in flight per
  * host; a global budget of new retrievals per minute across all clients; a
  * stricter per-client rate limit for requests that cause a retrieval (a badge
  * served from the cache does not); an operator-maintained exclusion list for
@@ -105,6 +107,8 @@ export interface ValidatorDeps {
   outboundPerMinute?: number;
   /** Hosts whose operators asked not to be fetched; refused before any lookup, never cached. */
   exclude?: ReadonlySet<string>;
+  /** Called with the full detail of a refused retrieval, for the server's log; the requester never sees it. */
+  onRefusal?: (host: string, status: string, detail: string) => void;
 }
 
 export interface HostRefusal {
@@ -149,6 +153,7 @@ export class Validator {
   private readonly ttlMs: number;
   private readonly exclude: ReadonlySet<string>;
   private readonly outboundPerMinute: number;
+  private readonly onRefusal: ((host: string, status: string, detail: string) => void) | undefined;
   private outbound: number[] = [];
 
   constructor(deps: ValidatorDeps = {}) {
@@ -161,6 +166,7 @@ export class Validator {
     this.ttlMs = deps.ttlMs ?? CACHE_TTL_MS;
     this.exclude = deps.exclude ?? new Set();
     this.outboundPerMinute = deps.outboundPerMinute ?? 30;
+    this.onRefusal = deps.onRefusal;
     this.limiter = createRateLimiter({ perMinute: deps.perMinute ?? 6, trustProxy: 1 });
   }
 
@@ -256,6 +262,7 @@ export class Validator {
         note: noteOf(result.signatures ?? [], result.warnings ?? []),
       };
     }
+    if (result.status === "refused-uri" || result.status === "insecure-transport") this.onRefusal?.(host, result.status, result.detail);
     const reachable = new Set(["invalid", "wrong-media-type", "too-many-objects", "too-large"]);
     const detail = describe(result);
     return { origin, status: reachable.has(result.status) ? "invalid" : "unreachable", checked, detail, note: NOTE };
@@ -287,9 +294,10 @@ function describe(r: FetchResult): string {
     case "timeout": return `no response within ${r.timeoutMs} ms`;
     case "too-large": return `body larger than the ${MAX_BODY_BYTES / 1024} KiB limit of this check`;
     case "too-many-objects": return `more objects than this check reads (${r.count} > ${r.max})`;
-    case "insecure-transport": return `refused: ${r.detail}`;
+    // Fixed words: the detail names the address a host resolved to or a redirect target, which is not the requester's to learn.
+    case "insecure-transport": return "refused: the origin redirected to a connection this check does not make (not https)";
     case "too-many-redirects": return `more than five redirects, or a loop: ${r.detail}`;
-    case "refused-uri": return `refused: ${r.detail}`;
+    case "refused-uri": return "refused: this service does not contact that address";
     default: return r.status;
   }
 }

@@ -1,0 +1,228 @@
+{
+  "id": "v28-citation-void",
+  "scenarios": {
+    "void-acts": {
+      "rows": [
+        {
+          "id": "D2.void",
+          "result": "PASS",
+          "scope": "void @2026-01-05T10:03:20Z"
+        },
+        {
+          "id": "D2.void",
+          "result": "PASS",
+          "scope": "void @2026-01-05T11:10:00Z"
+        },
+        {
+          "id": "D2.void",
+          "result": "PASS",
+          "scope": "void @2026-01-05T12:16:40Z"
+        },
+        {
+          "id": "D2.void",
+          "result": "INFO",
+          "scope": "void @2026-01-05T12:48:20Z",
+          "detail": "void ignored: target"
+        },
+        {
+          "id": "D2.void",
+          "result": "INFO",
+          "scope": "void @2026-01-05T12:50:00Z",
+          "detail": "void ignored: target"
+        },
+        {
+          "id": "D2.void",
+          "result": "INFO",
+          "scope": "void @2026-01-05T12:51:40Z",
+          "detail": "void ignored: target"
+        },
+        {
+          "id": "D2.void",
+          "result": "INFO",
+          "scope": "void @2026-01-05T12:53:20Z",
+          "detail": "void ignored: commit"
+        },
+        {
+          "id": "D2.void",
+          "result": "INFO",
+          "scope": "void @2026-01-05T12:53:20Z",
+          "detail": "void ignored: commit"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-e.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-e.example Carbon 2026-01-05T10:01:40Z",
+          "detail": "L9; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "3 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-d.example Carbon",
+          "detail": "2 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-f.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-f.example Carbon",
+          "detail": "1 events"
+        }
+      ],
+      "summary": {
+        "PASS": 9,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 5
+      },
+      "effective": [
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "62d18fe8f312e3f90a381e9952f6f7e9a6cf01c76cb237cfc75ce077608d54eb"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "d943f29f5a47b1cef1909210ae48e5cd4e03cd5e39a726479bced4bd80d871e0"
+        },
+        {
+          "operator": "did:web:op-d.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "b457d3aebd537d5ff4aff801a760670ced71e6f64addbbbc783394ff63d49c8c"
+        },
+        {
+          "operator": "did:web:op-f.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "25ff013ab52cf866b3e16b3310f98d16cd2dafc4b0404472c6fb8c1edd9e3165"
+        },
+        {
+          "operator": "did:web:op-f.example",
+          "type": "EnergyAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "d633bd89bdb7605c01ad1ccf9280f8a1bcfc30f36f011cc83810bacac645fdc4"
+        }
+      ]
+    },
+    "void-act-with-no-pinned-key": {
+      "rows": [
+        {
+          "id": "D2.void",
+          "result": "NOT-EVALUABLE",
+          "scope": "void @2026-01-05T10:03:20Z",
+          "detail": "registrar key not pinned"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "effective": [
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "4c7833256133e52fd780420d7a6241d1572e95d9cc0653c81e1266130b5fa362"
+        }
+      ]
+    },
+    "void-act-under-a-current-key": {
+      "rows": [
+        {
+          "id": "D2.void",
+          "result": "PASS",
+          "scope": "void @2026-01-05T10:03:20Z"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "effective": []
+    },
+    "void-act-under-a-former-key": {
+      "rows": [
+        {
+          "id": "D2.void",
+          "result": "PASS",
+          "scope": "void @2026-01-05T10:03:20Z"
+        },
+        {
+          "id": "D2.void.info",
+          "result": "INFO",
+          "scope": "void @2026-01-05T10:03:20Z",
+          "detail": "void signed under a former key"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      },
+      "effective": []
+    }
+  }
+}

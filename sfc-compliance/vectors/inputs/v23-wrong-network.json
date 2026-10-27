@@ -1,0 +1,73 @@
+{
+  "id": "v23-wrong-network",
+  "scenarios": [
+    {
+      "name": "replayed-event",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example permissioned ledger",
+          "access": "permissioned",
+          "mechanism": "proof-of-authority",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["D3","D5"],
+      "effectiveAt": "2026-05-02T00:10:00Z",
+      "excerptRef": "x1"
+    }
+  ],
+  "excerpts": {
+    "x1": {
+      "excerpt-version": 2,
+      "profile-version": "2.0",
+      "network": "ledger.example",
+      "read-at": "2026-05-02T00:10:00Z",
+      "registrar": {
+        "jwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+        }
+      },
+      "registry": [
+        {"operator":"did:web:op-a.example","origin":"node.op-a.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"5RAXfr6Yx-sSJMzjLaPP3LzIk7lGwHTj8ynlLxIpxr3ebzPuU2K0xY0La61zJHr354gB80_Fdj52GyW_Gk9xDg"}},
+        {"operator":"did:web:op-b.example","origin":"node.op-b.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"C_CCHss_07Av24ma75IihAP4m3kheWzLvPiUxfQEnCJqmTgeS62EkFUGcIo6NS12R8HDPlKlPqYf8xXFnVmMDA"}}
+      ],
+      "ledger": [
+        {"commit":"2026-02-03T12:00:00Z","hash":"e64e172630880f228711ccf737b7ad0cf6c72f314c6097b9fb0989b8e733abe0","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":1000,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"AG_laEZkSRD4fGndzJly6h9eG0QzD-bBn95kGs4LfKBd0RRFuOV8DxdtgnZIFXOdTIUmuOuaHwGScAmM4gtsBg"}}},
+        {"commit":"2026-02-03T12:02:00Z","hash":"4ba10570e7913e0ecd767ea382120d8f4dff4ff5d4b6a9a0aee000a66485c939","event":{"type":"EnergyAttested","network":"other-ledger.example","subject":"did:web:op-b.example","actor":"did:web:op-b.example","prev":null,"ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":1000,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"fjndpalZc7cc5H2zAyp91OcGDyIU2un3fYTsv05hyhLcS81sZXG8n8tM2ihw-VmYu_GdPAeOhwb_3q46ryxaDw"}}},
+        {"commit":"2026-03-03T12:00:00Z","hash":"81a607c72bc7a9b88ad487f0bd375dd25d3738bdb984de6862c8aeb8b5cf2e5f","event":{"type":"EnergyAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-b.example","prev":"e64e172630880f228711ccf737b7ad0cf6c72f314c6097b9fb0989b8e733abe0","ts":"2026-03-01T08:00:00Z","payload":{"period":{"start":"2026-02-01T00:00:00Z","end":"2026-03-01T00:00:00Z"},"nodeCount":3,"kWhConsumed":1000,"measurementMethod":"hardware-metered","evidence":"ipfs://bafy-energy-example"},"sig":{"alg":"Ed25519","value":"8gWf4v2E7cWlalm_l67ubOPLzGsx4fM2WnrX4r0cCZNWs8etoutbrshDG2hyyZDiQp0mas5l5G6bNhTduEfJBA"}}}
+      ]
+    }
+  }
+}

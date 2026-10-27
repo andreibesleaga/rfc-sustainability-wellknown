@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/andreibesleaga/rfc-sustainability-wellknown/main/sfc-compliance/schemas/event-carbon.json",
+  "title": "SFC 2 CarbonAttested event",
+  "description": "A CarbonAttested event in 2.0 form (sections 5.2 and 5.4). Unknown members are allowed (readers ignore them, 3.6 rule 3). Rules that need more than one member or more than one document (L4 to L12, Registry uniqueness, ledger order) are not stated here.",
+  "type": "object",
+  "required": [
+    "type",
+    "network",
+    "subject",
+    "actor",
+    "prev",
+    "ts",
+    "payload",
+    "sig"
+  ],
+  "properties": {
+    "type": {
+      "const": "CarbonAttested"
+    },
+    "network": {
+      "$ref": "#/$defs/host"
+    },
+    "subject": {
+      "$ref": "#/$defs/did"
+    },
+    "actor": {
+      "$ref": "#/$defs/did"
+    },
+    "prev": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/hex64"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ts": {
+      "$ref": "#/$defs/instant"
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "period",
+        "scope2KgCO2e",
+        "scope3KgCO2e",
+        "gridIntensityRef",
+        "retirements",
+        "offsetsKgCO2e",
+        "netZero",
+        "evidence"
+      ],
+      "properties": {
+        "period": {
+          "type": "object",
+          "required": [
+            "start",
+            "end"
+          ],
+          "properties": {
+            "start": {
+              "$ref": "#/$defs/monthBound"
+            },
+            "end": {
+              "$ref": "#/$defs/monthBound"
+            }
+          },
+          "description": "One whole month; `end` is the next month's first instant (the pair is checked by rule L2)."
+        },
+        "scope1KgCO2e": {
+          "$ref": "#/$defs/figure"
+        },
+        "scope2KgCO2e": {
+          "$ref": "#/$defs/figure"
+        },
+        "scope2LocationKgCO2e": {
+          "$ref": "#/$defs/figure"
+        },
+        "scope3KgCO2e": {
+          "$ref": "#/$defs/figure"
+        },
+        "gridIntensityRef": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "retirements": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "required": [
+              "registry",
+              "reference",
+              "tonnesRetired",
+              "retiredAt",
+              "kg"
+            ],
+            "properties": {
+              "registry": {
+                "$ref": "#/$defs/httpsUri"
+              },
+              "reference": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "tonnesRetired": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999999999999999
+              },
+              "retiredAt": {
+                "$ref": "#/$defs/instant"
+              },
+              "kg": {
+                "$ref": "#/$defs/figure"
+              },
+              "beneficiary": {
+                "type": "string",
+                "maxLength": 4096
+              }
+            }
+          }
+        },
+        "offsetsKgCO2e": {
+          "$ref": "#/$defs/figure"
+        },
+        "netZero": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "$ref": "#/$defs/uriAbs"
+        },
+        "supersedes": {
+          "$ref": "#/$defs/hex64"
+        }
+      }
+    },
+    "sig": {
+      "$ref": "#/$defs/sig"
+    }
+  },
+  "$defs": {
+    "hex64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "64 lower-case hexadecimal characters (3.5 hex64)."
+    },
+    "did": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^did:[a-z0-9]+:(?:(?:[A-Za-z0-9._-]|%[0-9A-Fa-f]{2})*:)*(?:[A-Za-z0-9._-]|%[0-9A-Fa-f]{2})+$",
+      "description": "A DID string, DID Core section 3.1 syntax (3.5 did)."
+    },
+    "host": {
+      "type": "string",
+      "maxLength": 253,
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$",
+      "description": "A host name in A-label form, no scheme, port or path; upper case is accepted as input (3.5 host)."
+    },
+    "httpsUri": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^https://\\S+$",
+      "description": "An absolute URI with scheme https (3.5 https-uri)."
+    },
+    "uriAbs": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:\\S+$",
+      "description": "A URI with a scheme; a relative reference is invalid (3.5 uri-abs)."
+    },
+    "instant": {
+      "type": "string",
+      "maxLength": 64,
+      "format": "date-time",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d+)?(Z|[+-]([01]\\d|2[0-3]):[0-5]\\d)$",
+      "description": "An RFC 3339 date-time with upper-case T and Z, numeric offsets and fractions allowed (3.2 instant). Second 60 is rejected by this pattern and by the verifier (3.2)."
+    },
+    "monthBound": {
+      "type": "string",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-01T00:00:00Z$",
+      "description": "The first instant of a month: YYYY-MM-01T00:00:00Z (3.5 month-bound)."
+    },
+    "figure": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 999999999999999,
+      "description": "A figure in kWh or kg: finite, not negative, below 10^15. The digit rules of 3.3 rule 2 (plain decimal, at most 15 digits, at most 6 after the point) cannot be stated for a JSON Schema number and are checked by rule L8."
+    },
+    "sig": {
+      "type": "object",
+      "required": [
+        "alg",
+        "value"
+      ],
+      "properties": {
+        "alg": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{86}$",
+          "description": "base64url without padding, 86 characters (64 bytes). Only the canonical encoding is valid; the schema cannot tell, row 'encoding' of D3 or D2 does."
+        }
+      },
+      "description": "{alg, value} (3.6). Ed25519 is the only algorithm; another alg fails L5 or D2."
+    }
+  }
+}

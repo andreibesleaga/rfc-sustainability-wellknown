@@ -1,51 +1,79 @@
-{
-  "updated": "2026-02-10T09:00:00Z",
-  "capabilities": "basic",
-  "provider": "SYNTHETIC EXAMPLE, not a real network and not a real measurement. Published by the profile author, Andrei Besleaga, as a reserved-name (RFC 2606 .example) reference declaration for the network level of the SFC profile. Every figure below is invented and describes nothing real.",
-  "measurement-method": "third-party-modeled",
-  "methodology-uri": "https://ledger.example/sustainability/methodology-2025",
-  "period": {
-    "start": "2025-01-01T00:00:00Z",
-    "end": "2026-01-01T00:00:00Z"
+[
+  {
+    "updated": "2026-02-10T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "SYNTHETIC EXAMPLE, not a real network and not a real measurement. Role contact: sustainability@ledger.example. Every figure is invented.",
+    "methodology-uri": "https://ledger.example/sustainability/METHODOLOGY.md",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
+    },
+    "target": "ledger.example",
+    "target-type": "service",
+    "energy-consumption": 709.3755,
+    "energy-unit": "MWh",
+    "scope-1": 0.01275,
+    "scope-2": 12.708,
+    "scope-3": 7.92,
+    "carbon-footprint": 20.64075,
+    "carbon-unit": "tCO2e",
+    "carbon-accounting": "market-based",
+    "carbon-intensity-gCO2e-per-kWh": 17.914349,
+    "measurement-method": "cloud-billing",
+    "renewable-energy": 82,
+    "disclosure-uri": "https://ledger.example/sustainability/disclosures.json",
+    "extensions": {
+      "https://andreibesleaga.com/sfc/extensions/hardware-lifecycle": {
+        "general-purpose-hardware": true,
+        "single-use-asic-required": false,
+        "expected-service-life-years": 6,
+        "embodied-carbon-in-scope-3": true,
+        "reuse-and-recycling-policy-uri": "https://ledger.example/sustainability/hardware-policy.html"
+      },
+      "https://andreibesleaga.com/sfc/extensions/carbon-neutrality": {
+        "net-zero-status": "achieved",
+        "offsets-retired-tCO2e": 36,
+        "renewable-procurement": "power-purchase-agreements",
+        "offset-registry-uri": "https://registry.example/retirements"
+      },
+      "https://andreibesleaga.com/sfc/extensions/network-topology": {
+        "consensus-mechanism": "proof-of-authority",
+        "validated-node-count": 12,
+        "node-count-validation-method": "maximum over the months of the period of the sum of the operators' monthly peak node counts"
+      },
+      "https://andreibesleaga.com/sfc/extensions/ledger-evidence-2": {
+        "profile-version": "2.0",
+        "ledger-access-uri": "https://ledger.example/sfc/read",
+        "operators": [
+          {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"52f07d8d2e131b0354b203d4695292ec9503b11261986b6f0c3380a4fdc63dfe","carbon-head":"fc79c67e424c6fb9fe67c3a3b4bb4f846109adeddb69b2f4956327cc17cabb3e","energy-events":12,"carbon-events":12,"kwh":218458.5,"scope1-kgco2e":0,"scope2-kgco2e":3996,"scope3-kgco2e":2580,"offsets-kgco2e":12000,"offset-coverage-every-period":true},
+          {"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":"e76faee28e286fa09898cf59d601aeeeacf65d6d87411c9c820a0ca0e683241b","carbon-head":"a376b1c7e4d7e38f08027e1f798a0b87894c390069d9f928e1213924d86bb043","energy-events":12,"carbon-events":12,"kwh":236458.5,"scope1-kgco2e":12.75,"scope2-kgco2e":4236,"scope3-kgco2e":2640,"offsets-kgco2e":12000,"offset-coverage-every-period":true},
+          {"operator":"did:web:op-c.example","origin":"node.op-c.example","energy-head":"ea30e455704b972d2bf2ceadaa0f5f6e2dcfa51ce0ae8a38afb7eb4e1c9b5607","carbon-head":"1642c3db1cfd6ce277fecbcc705ec400ab079541718dcf4b7b1dd378cf39e5b4","energy-events":12,"carbon-events":12,"kwh":254458.5,"scope1-kgco2e":0,"scope2-kgco2e":4476,"scope3-kgco2e":2700,"offsets-kgco2e":12000,"offset-coverage-every-period":true}
+        ],
+        "network-offset-coverage": true
+      }
+    },
+    "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibWFya2V0LWJhc2VkIiwiY2FyYm9uLWZvb3RwcmludCI6MjAuNjQwNzUsImNhcmJvbi1pbnRlbnNpdHktZ0NPMmUtcGVyLWtXaCI6MTcuOTE0MzQ5LCJjYXJib24tdW5pdCI6InRDTzJlIiwiZGlzY2xvc3VyZS11cmkiOiJodHRwczovL2xlZGdlci5leGFtcGxlL3N1c3RhaW5hYmlsaXR5L2Rpc2Nsb3N1cmVzLmpzb24iLCJlbmVyZ3ktY29uc3VtcHRpb24iOjcwOS4zNzU1LCJlbmVyZ3ktdW5pdCI6Ik1XaCIsImV4dGVuc2lvbnMiOnsiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvY2FyYm9uLW5ldXRyYWxpdHkiOnsibmV0LXplcm8tc3RhdHVzIjoiYWNoaWV2ZWQiLCJvZmZzZXQtcmVnaXN0cnktdXJpIjoiaHR0cHM6Ly9yZWdpc3RyeS5leGFtcGxlL3JldGlyZW1lbnRzIiwib2Zmc2V0cy1yZXRpcmVkLXRDTzJlIjozNiwicmVuZXdhYmxlLXByb2N1cmVtZW50IjoicG93ZXItcHVyY2hhc2UtYWdyZWVtZW50cyJ9LCJodHRwczovL2FuZHJlaWJlc2xlYWdhLmNvbS9zZmMvZXh0ZW5zaW9ucy9oYXJkd2FyZS1saWZlY3ljbGUiOnsiZW1ib2RpZWQtY2FyYm9uLWluLXNjb3BlLTMiOnRydWUsImV4cGVjdGVkLXNlcnZpY2UtbGlmZS15ZWFycyI6NiwiZ2VuZXJhbC1wdXJwb3NlLWhhcmR3YXJlIjp0cnVlLCJyZXVzZS1hbmQtcmVjeWNsaW5nLXBvbGljeS11cmkiOiJodHRwczovL2xlZGdlci5leGFtcGxlL3N1c3RhaW5hYmlsaXR5L2hhcmR3YXJlLXBvbGljeS5odG1sIiwic2luZ2xlLXVzZS1hc2ljLXJlcXVpcmVkIjpmYWxzZX0sImh0dHBzOi8vYW5kcmVpYmVzbGVhZ2EuY29tL3NmYy9leHRlbnNpb25zL2xlZGdlci1ldmlkZW5jZS0yIjp7ImxlZGdlci1hY2Nlc3MtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zZmMvcmVhZCIsIm5ldHdvcmstb2Zmc2V0LWNvdmVyYWdlIjp0cnVlLCJvcGVyYXRvcnMiOlt7ImNhcmJvbi1ldmVudHMiOjEyLCJjYXJib24taGVhZCI6ImZjNzljNjdlNDI0YzZmYjlmZTY3YzNhM2I0YmI0Zjg0NjEwOWFkZWRkYjY5YjJmNDk1NjMyN2NjMTdjYWJiM2UiLCJlbmVyZ3ktZXZlbnRzIjoxMiwiZW5lcmd5LWhlYWQiOiI1MmYwN2Q4ZDJlMTMxYjAzNTRiMjAzZDQ2OTUyOTJlYzk1MDNiMTEyNjE5ODZiNmYwYzMzODBhNGZkYzYzZGZlIiwia3doIjoyMTg0NTguNSwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjEyMDAwLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYS5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1hLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjowLCJzY29wZTIta2djbzJlIjozOTk2LCJzY29wZTMta2djbzJlIjoyNTgwfSx7ImNhcmJvbi1ldmVudHMiOjEyLCJjYXJib24taGVhZCI6ImEzNzZiMWM3ZTRkN2UzOGYwODAyN2UxZjc5OGEwYjg3ODk0YzM5MDA2OWQ5ZjkyOGUxMjEzOTI0ZDg2YmIwNDMiLCJlbmVyZ3ktZXZlbnRzIjoxMiwiZW5lcmd5LWhlYWQiOiJlNzZmYWVlMjhlMjg2ZmEwOTg5OGNmNTlkNjAxYWVlZWFjZjY1ZDZkODc0MTFjOWM4MjBhMGNhMGU2ODMyNDFiIiwia3doIjoyMzY0NTguNSwib2Zmc2V0LWNvdmVyYWdlLWV2ZXJ5LXBlcmlvZCI6dHJ1ZSwib2Zmc2V0cy1rZ2NvMmUiOjEyMDAwLCJvcGVyYXRvciI6ImRpZDp3ZWI6b3AtYi5leGFtcGxlIiwib3JpZ2luIjoibm9kZS5vcC1iLmV4YW1wbGUiLCJzY29wZTEta2djbzJlIjoxMi43NSwic2NvcGUyLWtnY28yZSI6NDIzNiwic2NvcGUzLWtnY28yZSI6MjY0MH0seyJjYXJib24tZXZlbnRzIjoxMiwiY2FyYm9uLWhlYWQiOiIxNjQyYzNkYjFjZmQ2Y2UyNzdmZWNiY2M3MDVlYzQwMGFiMDc5NTQxNzE4ZGNmNGI3YjFkZDM3OGNmMzllNWI0IiwiZW5lcmd5LWV2ZW50cyI6MTIsImVuZXJneS1oZWFkIjoiZWEzMGU0NTU3MDRiOTcyZDJiZjJjZWFkYWEwZjVmNmUyZGNmYTUxY2UwYWU4YTM4YWZiN2ViNGUxYzliNTYwNyIsImt3aCI6MjU0NDU4LjUsIm9mZnNldC1jb3ZlcmFnZS1ldmVyeS1wZXJpb2QiOnRydWUsIm9mZnNldHMta2djbzJlIjoxMjAwMCwib3BlcmF0b3IiOiJkaWQ6d2ViOm9wLWMuZXhhbXBsZSIsIm9yaWdpbiI6Im5vZGUub3AtYy5leGFtcGxlIiwic2NvcGUxLWtnY28yZSI6MCwic2NvcGUyLWtnY28yZSI6NDQ3Niwic2NvcGUzLWtnY28yZSI6MjcwMH1dLCJwcm9maWxlLXZlcnNpb24iOiIyLjAifSwiaHR0cHM6Ly9hbmRyZWliZXNsZWFnYS5jb20vc2ZjL2V4dGVuc2lvbnMvbmV0d29yay10b3BvbG9neSI6eyJjb25zZW5zdXMtbWVjaGFuaXNtIjoicHJvb2Ytb2YtYXV0aG9yaXR5Iiwibm9kZS1jb3VudC12YWxpZGF0aW9uLW1ldGhvZCI6Im1heGltdW0gb3ZlciB0aGUgbW9udGhzIG9mIHRoZSBwZXJpb2Qgb2YgdGhlIHN1bSBvZiB0aGUgb3BlcmF0b3JzJyBtb250aGx5IHBlYWsgbm9kZSBjb3VudHMiLCJ2YWxpZGF0ZWQtbm9kZS1jb3VudCI6MTJ9fSwibWVhc3VyZW1lbnQtbWV0aG9kIjoiY2xvdWQtYmlsbGluZyIsIm1ldGhvZG9sb2d5LXVyaSI6Imh0dHBzOi8vbGVkZ2VyLmV4YW1wbGUvc3VzdGFpbmFiaWxpdHkvTUVUSE9ET0xPR1kubWQiLCJwZXJpb2QiOnsiZW5kIjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJzdGFydCI6IjIwMjUtMDEtMDFUMDA6MDA6MDBaIn0sInByb3ZpZGVyIjoiU1lOVEhFVElDIEVYQU1QTEUsIG5vdCBhIHJlYWwgbmV0d29yayBhbmQgbm90IGEgcmVhbCBtZWFzdXJlbWVudC4gUm9sZSBjb250YWN0OiBzdXN0YWluYWJpbGl0eUBsZWRnZXIuZXhhbXBsZS4gRXZlcnkgZmlndXJlIGlzIGludmVudGVkLiIsInJlbmV3YWJsZS1lbmVyZ3kiOjgyLCJzY29wZS0xIjowLjAxMjc1LCJzY29wZS0yIjoxMi43MDgsInNjb3BlLTMiOjcuOTIsInRhcmdldCI6ImxlZGdlci5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJzZXJ2aWNlIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.6BWVIzFWTCr2ysY0CphVcLKY__kA29HjTPQeme2CDbRTMcLDXjky6CNRoeeyWJrHD6NBcbVusc7HfHfnWizRBQ"
   },
-  "target": "ledger.example",
-  "target-type": "service",
-  "energy-consumption": 800,
-  "energy-unit": "MWh",
-  "carbon-footprint": 95.5,
-  "carbon-unit": "tCO2e",
-  "carbon-accounting": "market-based",
-  "scope-1": 0,
-  "scope-2": 33.1,
-  "scope-3": 62.4,
-  "carbon-intensity-gCO2e-per-kWh": 41.4,
-  "estimated-annual-emissions-kgCO2e": 95500,
-  "renewable-energy": 82,
-  "verifiable-attestation-uri": "https://assurance.example/vc/ledger-example-2025",
-  "disclosure-uri": "https://ledger.example/sustainability/disclosures",
-  "extensions": {
-    "https://andreibesleaga.com/sfc/extensions/hardware-lifecycle": {
-      "general-purpose-hardware": true,
-      "single-use-asic-required": false,
-      "expected-service-life-years": 5,
-      "embodied-carbon-in-scope-3": true,
-      "reuse-and-recycling-policy-uri": "https://ledger.example/sustainability/hardware-policy"
+  {
+    "updated": "2026-02-10T09:00:00Z",
+    "capabilities": "basic",
+    "provider": "SYNTHETIC EXAMPLE, not a real network and not a real measurement. Role contact: sustainability@ledger.example. Every figure is invented.",
+    "measurement-method": "cloud-billing",
+    "methodology-uri": "https://ledger.example/sustainability/METHODOLOGY.md",
+    "period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-01-01T00:00:00Z"
     },
-    "https://andreibesleaga.com/sfc/extensions/carbon-neutrality": {
-      "net-zero-status": "achieved",
-      "renewable-procurement": "power-purchase-agreements",
-      "residual-emissions-tCO2e": 95.5,
-      "offsets-retired-tCO2e": 95.5,
-      "offset-registry-uri": "https://registry.example/retirements/ledger-example-2025",
-      "offsets-attested-by": "Third Party Assurance Ltd."
-    },
-    "https://andreibesleaga.com/sfc/extensions/network-topology": {
-      "consensus-mechanism": "proof-of-stake",
-      "validated-node-count": 137,
-      "node-count-validation-method": "signed block attribution over the 2025 calendar year",
-      "per-transaction-energy-Wh": 0.06,
-      "nakamoto-coefficient": 21,
-      "geographic-regions": 19
-    }
+    "target": "ledger.example",
+    "target-type": "service",
+    "energy-consumption": 709.3755,
+    "energy-unit": "MWh",
+    "carbon-unit": "tCO2e",
+    "disclosure-uri": "https://ledger.example/sustainability/disclosures.json",
+    "carbon-accounting": "location-based",
+    "scope-2": 12.51,
+    "carbon-footprint": 20.44275,
+    "carbon-intensity-gCO2e-per-kWh": 17.63523,
+    "signed": "eyJhbGciOiJFZDI1NTE5IiwiY3R5Ijoic3VzdGFpbmFiaWxpdHktZGF0YStqc29uIn0.eyJjYXBhYmlsaXRpZXMiOiJiYXNpYyIsImNhcmJvbi1hY2NvdW50aW5nIjoibG9jYXRpb24tYmFzZWQiLCJjYXJib24tZm9vdHByaW50IjoyMC40NDI3NSwiY2FyYm9uLWludGVuc2l0eS1nQ08yZS1wZXIta1doIjoxNy42MzUyMywiY2FyYm9uLXVuaXQiOiJ0Q08yZSIsImRpc2Nsb3N1cmUtdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zdXN0YWluYWJpbGl0eS9kaXNjbG9zdXJlcy5qc29uIiwiZW5lcmd5LWNvbnN1bXB0aW9uIjo3MDkuMzc1NSwiZW5lcmd5LXVuaXQiOiJNV2giLCJtZWFzdXJlbWVudC1tZXRob2QiOiJjbG91ZC1iaWxsaW5nIiwibWV0aG9kb2xvZ3ktdXJpIjoiaHR0cHM6Ly9sZWRnZXIuZXhhbXBsZS9zdXN0YWluYWJpbGl0eS9NRVRIT0RPTE9HWS5tZCIsInBlcmlvZCI6eyJlbmQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsInN0YXJ0IjoiMjAyNS0wMS0wMVQwMDowMDowMFoifSwicHJvdmlkZXIiOiJTWU5USEVUSUMgRVhBTVBMRSwgbm90IGEgcmVhbCBuZXR3b3JrIGFuZCBub3QgYSByZWFsIG1lYXN1cmVtZW50LiBSb2xlIGNvbnRhY3Q6IHN1c3RhaW5hYmlsaXR5QGxlZGdlci5leGFtcGxlLiBFdmVyeSBmaWd1cmUgaXMgaW52ZW50ZWQuIiwic2NvcGUtMiI6MTIuNTEsInRhcmdldCI6ImxlZGdlci5leGFtcGxlIiwidGFyZ2V0LXR5cGUiOiJzZXJ2aWNlIiwidXBkYXRlZCI6IjIwMjYtMDItMTBUMDk6MDA6MDBaIn0.9lKBZLSfJ_cXE5Y0NqQSPgZLwp54tHQZlgV4rIrvIXqz_ubHC5XnSYqQ-1DX4VVNZJe8uj2lJHEiV1_tOIF9CA"
   }
-}
+]

@@ -13,7 +13,7 @@
 #   3. consumer        npm ci, typecheck, build, test (after the publisher build)
 #   4. gateway         npm ci, typecheck, build, test, then the conformance battery
 #                      against a local instance on 127.0.0.1:$GATEWAY_PORT (default 18080)
-#   5. sfc-compliance  npm install (no lockfile by design), test, both reference declarations
+#   5. sfc-compliance  npm ci, test, both reference declarations, Python cross-check of the vectors
 #   6. example-scripts the Python, JavaScript and PHP safeguard tests and the request-handler
 #                      end-to-end test
 #   7. tools           tools/report-to-declaration: its tests and the offline demonstration
@@ -152,10 +152,9 @@ do_gateway() {
 
 do_sfc() {
   cd "$ROOT/sfc-compliance"
-  npm install --no-audit --no-fund
-  npm test
-  node sfc-check.mjs examples/sfc-network.example.json
-  node sfc-check.mjs examples/sfc-operator.example.json
+  npm ci --no-audit --no-fund
+  SFC_REQUIRE_PYTHON=1 npm test   # includes the Python cross-check; fails if python3 is missing
+  npm run check
 }
 
 do_example_scripts() {

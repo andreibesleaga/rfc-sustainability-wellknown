@@ -18,7 +18,7 @@ is [GUIDE.md](GUIDE.md).
 cd gateway
 npm install
 npm run build
-npm test          # 737 tests; everything must be green before you deploy
+npm test          # full gateway suite (vitest); everything must be green before you deploy
 node dist/index.js &
 until curl -sf http://127.0.0.1:8080/healthz >/dev/null; do sleep 1; done   # boot fetches live upstreams first
 curl -sSI http://127.0.0.1:8080/wikimedia.org/.well-known/sustainability-data

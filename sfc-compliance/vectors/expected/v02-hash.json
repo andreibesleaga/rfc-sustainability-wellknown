@@ -1,0 +1,27 @@
+{
+  "id": "v02-hash",
+  "scenarios": {
+    "event": {
+      "result": {
+        "signingInput": "{\"actor\":\"did:web:op-a.example\",\"network\":\"ledger.example\",\"payload\":{\"evidence\":\"ipfs://bafy-energy-example\",\"kWhConsumed\":18000,\"measurementMethod\":\"hardware-metered\",\"nodeCount\":3,\"period\":{\"end\":\"2025-02-01T00:00:00Z\",\"start\":\"2025-01-01T00:00:00Z\"}},\"prev\":null,\"subject\":\"did:web:op-a.example\",\"ts\":\"2025-02-01T08:00:00Z\",\"type\":\"EnergyAttested\"}",
+        "signingInputHex": "7b226163746f72223a226469643a7765623a6f702d612e6578616d706c65222c226e6574776f726b223a226c65646765722e6578616d706c65222c227061796c6f6164223a7b2265766964656e6365223a22697066733a2f2f626166792d656e657267792d6578616d706c65222c226b5768436f6e73756d6564223a31383030302c226d6561737572656d656e744d6574686f64223a2268617264776172652d6d657465726564222c226e6f6465436f756e74223a332c22706572696f64223a7b22656e64223a22323032352d30322d30315430303a30303a30305a222c227374617274223a22323032352d30312d30315430303a30303a30305a227d7d2c2270726576223a6e756c6c2c227375626a656374223a226469643a7765623a6f702d612e6578616d706c65222c227473223a22323032352d30322d30315430383a30303a30305a222c2274797065223a22456e657267794174746573746564227d",
+        "hash": "7448157e1992fdc40fb967546cc8237b8f2e6f822b8923723f50e75307ec31c4",
+        "verified": true
+      }
+    },
+    "rfc8032-section-7.1": {
+      "result": [
+        {
+          "ok": true
+        },
+        {
+          "ok": true
+        },
+        {
+          "ok": false,
+          "reason": "mismatch"
+        }
+      ]
+    }
+  }
+}

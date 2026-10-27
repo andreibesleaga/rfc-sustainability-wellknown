@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/andreibesleaga/rfc-sustainability-wellknown/main/sfc-compliance/schemas/ext-carbon-neutrality.json",
+  "title": "SFC 2 carbon-neutrality extension value",
+  "description": "The value of the `carbon-neutrality` extension (section 8.3). `net-zero-status` is an offset-coverage position, not a net-zero finding. Unknown members are allowed. A wrong JSON type of a member makes this schema fail; the verifier then reads the member as absent (8.1).",
+  "type": "object",
+  "required": [
+    "net-zero-status"
+  ],
+  "properties": {
+    "net-zero-status": {
+      "enum": [
+        "achieved",
+        "partial",
+        "not-achieved"
+      ]
+    },
+    "renewable-procurement": {
+      "enum": [
+        "on-site-generation",
+        "power-purchase-agreements",
+        "unbundled-certificates",
+        "supplier-tariff",
+        "grid-average",
+        "mixed"
+      ]
+    },
+    "residual-emissions-tCO2e": {
+      "type": "number",
+      "minimum": 0
+    },
+    "offsets-retired-tCO2e": {
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMaximum": 1000000000000000
+    },
+    "offset-registry-uri": {
+      "$ref": "#/$defs/httpsUri"
+    },
+    "offsets-attested-by": {
+      "type": "string",
+      "maxLength": 4096
+    }
+  },
+  "$defs": {
+    "httpsUri": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^https://\\S+$",
+      "description": "An absolute URI with scheme https (3.5 https-uri)."
+    }
+  }
+}

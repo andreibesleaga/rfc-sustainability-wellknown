@@ -9,7 +9,7 @@
 > Both change the wire format (`reporting-period` became the `period` object, whose bounds are RFC 3339 date-times in `-10`;
 > the `period` query parameter became `start`, `end` and `granularity`; four token members became closed sets; the
 > Internationalization Considerations section was removed). The reference publisher and consumer `0.8.2` and the gateway
-> `0.2.0` implement `-10`. The "366 objects", "aggregation" and `400`/`404` query rules described below for `-06` and
+> `0.3.0` implement `-10`. The "366 objects", "aggregation" and `400`/`404` query rules described below for `-06` and
 > `-07` are gone since `-09`: a server returns what it holds and a value it cannot read is ignored. Issue #103 (carbon.txt) was
 > closed by the registry maintainer on 2026-10-21 as completed, with no registration; wherever it is described below as
 > open, declined as filed, or "waiting for input", that is the record up to 2026-10-03.
@@ -505,18 +505,19 @@ still applies unchanged to `-07`.)*
 
 - **A worked example of carrying an external framework's requirements.** The draft can serve
 as the disclosure layer for Sustainability-First Consensus (SFC), an evaluation framework
-**by this same author**, described in a forthcoming publication by the author; the citation
-will be added when it appears. It is offered as a design exercise, not as independent
+**by this same author**, described in Besleaga, A. N., "'Sustainability-First Consensus' Ledgers for a Green Digital Future",
+*Communications of the ACM*, Opinion, in press, doi:10.1145/3809296 (resolves once ACM publishes). It is offered as a design exercise, not as independent
 validation of this draft. SFC sets
 measurable sustainability criteria for distributed-ledger systems — an annualized energy
-cap, hardware-lifecycle responsibility, GHG Scope 2/3 carbon accountability, and
+cap, hardware-lifecycle responsibility, GHG Scope 1 to 3 carbon accountability (Scope 1 when the operator has any), and
 CSRD/ESG-compatible auditability — and that last criterion is satisfied *directly* by
 publishing a conformant `/.well-known/sustainability-data` document, while the energy cap
 becomes mechanically checkable from the document's own members (an annual
-`reporting-period` with `energy-consumption` < 1 and `energy-unit: "GWh"`). The
+`period` of one year with `energy-consumption` < 1 and `energy-unit: "GWh"`). The
 field-level mapping is worked out member-by-member in
-[sfc-compliance/SFC.md](sfc-compliance/SFC.md) and implemented by the reference
-publisher's adapters and unit normalization. What it demonstrates is narrow and technical:
+[SFC profile 2.0](https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md) and implemented by the reference
+gateway's SFC ledger bridge (`gateway/src/adapters/sfc-ledger-2/`, which derives a signed declaration from a
+ledger excerpt) and checked by the profile's reference verifier (`sfc-compliance/`). What it demonstrates is narrow and technical:
 the schema is expressive enough to carry an external framework's criteria without any
 extension to the specification. Whether other frameworks find it useful is for them to say.
 

@@ -1,0 +1,78 @@
+{
+  "id": "v13-late-correction",
+  "scenarios": {
+    "corrections-after-updated": {
+      "rows": [
+        {
+          "id": "C-SFC-2",
+          "result": "PASS",
+          "scope": "disclosure"
+        },
+        {
+          "id": "D2.void",
+          "result": "PASS",
+          "scope": "void @2026-04-12T09:00:00Z"
+        },
+        {
+          "id": "D4.declared",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "PASS",
+          "scope": "period 2025-01..2025-12"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "FAIL",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "sum at or above CAP"
+        },
+        {
+          "id": "D7",
+          "result": "INFO",
+          "scope": "did:web:op-a.example Carbon 2026-04-10T09:00:00Z",
+          "detail": "superseded since publication"
+        },
+        {
+          "id": "D7",
+          "result": "INFO",
+          "scope": "did:web:op-b.example Energy 2026-04-10T10:00:00Z",
+          "detail": "superseded since publication"
+        },
+        {
+          "id": "D7",
+          "result": "INFO",
+          "scope": "void @2026-04-12T09:00:00Z",
+          "detail": "superseded since publication"
+        },
+        {
+          "id": "D7.C-SFC-4",
+          "result": "INFO",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "as of updated: PASS; as of read-at: FAIL"
+        },
+        {
+          "id": "D7.C-SFC-2",
+          "result": "INFO",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "as of updated: NOT-EVALUABLE; as of read-at: FAIL"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 5,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 5
+      }
+    }
+  }
+}

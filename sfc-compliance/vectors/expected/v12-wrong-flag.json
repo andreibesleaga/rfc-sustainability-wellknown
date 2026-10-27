@@ -1,0 +1,49 @@
+{
+  "id": "v12-wrong-flag",
+  "scenarios": {
+    "flags": {
+      "rows": [
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "4 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-01-03T12:01:00Z",
+          "detail": "L7; skipped"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-02-03T12:01:00Z",
+          "detail": "L7; skipped"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 3,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "effective": [
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2026-02-01T00:00:00Z",
+          "hash": "62e7d6bbe1adb072f69d36af304038090bd8e159482e39315904a7059b0c044d"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2026-03-01T00:00:00Z",
+          "hash": "68782d5677579854d34657d680b070deae3dd44fa05027c3e0011a47ca2906cf"
+        }
+      ]
+    }
+  }
+}

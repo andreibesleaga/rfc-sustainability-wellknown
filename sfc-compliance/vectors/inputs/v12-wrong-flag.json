@@ -1,0 +1,73 @@
+{
+  "id": "v12-wrong-flag",
+  "scenarios": [
+    {
+      "name": "flags",
+      "T": "2026-05-02T00:10:00Z",
+      "parameters": {
+        "registrar-keys": [
+          {
+            "jwk": {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+            },
+            "status": "current"
+          }
+        ],
+        "retirement-registries": ["https://registry.example","https://serials.example"],
+        "reference-forms": [
+          {
+            "registry": "https://registry.example",
+            "rules": ["upper-case","no-surrounding-space"]
+          },
+          {
+            "registry": "https://serials.example",
+            "rules": ["range-first-last"]
+          }
+        ],
+        "platform": {
+          "hot-path": "Example permissioned ledger",
+          "access": "permissioned",
+          "mechanism": "proof-of-authority",
+          "n": 30,
+          "p-watts": 500,
+          "o": 1.5
+        }
+      },
+      "pins": {
+        "methodology": true,
+        "registrar": {
+          "ledger.example": ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"]
+        }
+      },
+      "select": ["D5"],
+      "effectiveAt": "2026-05-02T00:10:00Z",
+      "excerptRef": "x1"
+    }
+  ],
+  "excerpts": {
+    "x1": {
+      "excerpt-version": 2,
+      "profile-version": "2.0",
+      "network": "ledger.example",
+      "read-at": "2026-05-02T00:10:00Z",
+      "registrar": {
+        "jwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+        }
+      },
+      "registry": [
+        {"operator":"did:web:op-a.example","origin":"node.op-a.example","network":"ledger.example","active":[{"from":"2025-11-01T00:00:00Z","to":null}],"keys":[{"jwk":{"kty":"OKP","crv":"Ed25519","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"validFromCommit":"2024-01-01T00:00:00Z","validToCommit":null}],"nodeProfile":{"hardwareClass":"general-purpose-x86","asicForbidden":true,"purchasedAt":"2024-03-01","expectedRetireAt":"2030-03-01","reusePolicy":"donate-to-education"},"version":1,"sig":{"alg":"Ed25519","value":"5RAXfr6Yx-sSJMzjLaPP3LzIk7lGwHTj8ynlLxIpxr3ebzPuU2K0xY0La61zJHr354gB80_Fdj52GyW_Gk9xDg"}}
+      ],
+      "ledger": [
+        {"commit":"2026-01-03T12:01:00Z","hash":"06f24fc9ec049dc5d628fcfd69a1b60ce26fb0f537276737c40e6dc6d208eb16","event":{"type":"CarbonAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":null,"ts":"2026-01-01T08:00:00Z","payload":{"period":{"start":"2025-12-01T00:00:00Z","end":"2026-01-01T00:00:00Z"},"scope2KgCO2e":300,"scope3KgCO2e":200,"gridIntensityRef":"Electricity Maps zone XX, 2025, annual average","retirements":[{"registry":"https://registry.example","reference":"RET-F1","tonnesRetired":1,"retiredAt":"2026-01-02T00:00:00Z","kg":1000}],"offsetsKgCO2e":1000,"netZero":false,"evidence":"https://ledger.example/evidence/carbon-example"},"sig":{"alg":"Ed25519","value":"N-cTJRQr74v77q4SgOqNXR_HGTZZEF3xGxzf8xw6ZVH5SKB-HEJX72HPOUV4ZpFxZCVqbkgKzM2HIslvohNYCA"}}},
+        {"commit":"2026-02-03T12:01:00Z","hash":"05a61da1a4f10985e47ac64e8811c00506b10c45424d18f2104933b8d7d44816","event":{"type":"CarbonAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":"06f24fc9ec049dc5d628fcfd69a1b60ce26fb0f537276737c40e6dc6d208eb16","ts":"2026-02-01T08:00:00Z","payload":{"period":{"start":"2026-01-01T00:00:00Z","end":"2026-02-01T00:00:00Z"},"scope2KgCO2e":600,"scope3KgCO2e":500,"gridIntensityRef":"Electricity Maps zone XX, 2025, annual average","retirements":[{"registry":"https://registry.example","reference":"RET-F2","tonnesRetired":1,"retiredAt":"2026-02-02T00:00:00Z","kg":1000}],"offsetsKgCO2e":1000,"netZero":true,"evidence":"https://ledger.example/evidence/carbon-example"},"sig":{"alg":"Ed25519","value":"MW5CFHgxwe4IcqXl26SujKVdYAQS_E9KZB6EO2_BuogLhgbk8dwWN8KoIPhZZXxKCAXFN87Mui6dPYExxvCdBA"}}},
+        {"commit":"2026-03-03T12:01:00Z","hash":"62e7d6bbe1adb072f69d36af304038090bd8e159482e39315904a7059b0c044d","event":{"type":"CarbonAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":"05a61da1a4f10985e47ac64e8811c00506b10c45424d18f2104933b8d7d44816","ts":"2026-03-01T08:00:00Z","payload":{"period":{"start":"2026-02-01T00:00:00Z","end":"2026-03-01T00:00:00Z"},"scope1KgCO2e":100.5,"scope2KgCO2e":600,"scope3KgCO2e":299.5,"gridIntensityRef":"Electricity Maps zone XX, 2025, annual average","retirements":[{"registry":"https://registry.example","reference":"RET-F3","tonnesRetired":1,"retiredAt":"2026-03-02T00:00:00Z","kg":1000}],"offsetsKgCO2e":1000,"netZero":true,"evidence":"https://ledger.example/evidence/carbon-example"},"sig":{"alg":"Ed25519","value":"pZo0_pWXFjf3RzhV6kSGgQod3qREkrvE3a0A7WWAumHqhm1nTTpTH-ar8r5e_d2iDYTjcoJeojwIN4YkXDWADg"}}},
+        {"commit":"2026-04-03T12:01:00Z","hash":"68782d5677579854d34657d680b070deae3dd44fa05027c3e0011a47ca2906cf","event":{"type":"CarbonAttested","network":"ledger.example","subject":"did:web:op-a.example","actor":"did:web:op-a.example","prev":"62e7d6bbe1adb072f69d36af304038090bd8e159482e39315904a7059b0c044d","ts":"2026-04-01T08:00:00Z","payload":{"period":{"start":"2026-03-01T00:00:00Z","end":"2026-04-01T00:00:00Z"},"scope2KgCO2e":600,"scope3KgCO2e":400.000001,"gridIntensityRef":"Electricity Maps zone XX, 2025, annual average","retirements":[{"registry":"https://registry.example","reference":"RET-F4","tonnesRetired":1,"retiredAt":"2026-04-02T00:00:00Z","kg":1000}],"offsetsKgCO2e":1000,"netZero":false,"evidence":"https://ledger.example/evidence/carbon-example"},"sig":{"alg":"Ed25519","value":"6V6jAlyUpusfQdcjYnudDz2QpEPZ-LZidg1mW7VN4W-oRLvUu8Xf81zGBxWIauoGAGv9Z2Pg6nZKpkJX3FMiAw"}}}
+      ]
+    }
+  }
+}

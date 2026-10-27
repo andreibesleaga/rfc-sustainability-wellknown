@@ -1,0 +1,59 @@
+{
+  "id": "v11-late-retirement",
+  "scenarios": {
+    "retired-at": {
+      "rows": [
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-b.example Carbon 2026-01-02T00:00:00Z",
+          "detail": "L10; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "FAIL",
+          "scope": "did:web:op-a.example Carbon 2026-01-03T12:01:00Z",
+          "detail": "L10; skipped"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-d.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.late",
+          "result": "INFO",
+          "scope": "did:web:op-c.example Carbon 2026-01-06T01:00:00Z",
+          "detail": "late-filed, retirement dates asserted only"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 4,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    }
+  }
+}

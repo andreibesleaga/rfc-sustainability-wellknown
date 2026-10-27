@@ -1,0 +1,228 @@
+{
+  "id": "v33-registrar-objects",
+  "scenarios": {
+    "registry-entry-in-voids": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-a.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-b.example"
+        },
+        {
+          "id": "D2.void",
+          "result": "FAIL",
+          "scope": "void @-",
+          "detail": "extra member"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D4.checkpoint",
+          "result": "INFO",
+          "scope": "checkpoint",
+          "detail": "absent: ledger read not authenticated: commit instants and completeness are the source's claim"
+        }
+      ],
+      "summary": {
+        "PASS": 5,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "registry-entry-as-checkpoint": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-a.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-b.example"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D4.checkpoint",
+          "result": "FAIL",
+          "scope": "checkpoint",
+          "detail": "mismatch: extra member"
+        }
+      ],
+      "summary": {
+        "PASS": 5,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "void-act-and-checkpoint-in-registry": {
+      "rows": [
+        {
+          "id": "D2.unique",
+          "result": "PASS",
+          "scope": "read"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-a.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-b.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "FAIL",
+          "scope": "registry[2]",
+          "detail": "network; shape"
+        },
+        {
+          "id": "D2.entry",
+          "result": "FAIL",
+          "scope": "registry[3]",
+          "detail": "shape"
+        }
+      ],
+      "summary": {
+        "PASS": 3,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "small-order-public-key": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D2.entry",
+          "result": "FAIL",
+          "scope": "did:web:op-s.example",
+          "detail": "weak key"
+        },
+        {
+          "id": "D3",
+          "result": "FAIL",
+          "scope": "did:web:op-s.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "FAIL",
+          "scope": "did:web:op-s.example Energy 2026-02-03T12:00:00Z",
+          "detail": "weak key"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 3,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "small-order-R": {
+      "rows": [
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D3",
+          "result": "FAIL",
+          "scope": "did:web:op-t.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D3.event",
+          "result": "FAIL",
+          "scope": "did:web:op-t.example Energy 2026-02-03T12:00:00Z",
+          "detail": "weak key"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 2,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "registrar-key-pinned-for-another-host": {
+      "rows": [
+        {
+          "id": "D2.entry",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example",
+          "detail": "registrar key not pinned"
+        },
+        {
+          "id": "D2.entry",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-b.example",
+          "detail": "registrar key not pinned"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    }
+  }
+}

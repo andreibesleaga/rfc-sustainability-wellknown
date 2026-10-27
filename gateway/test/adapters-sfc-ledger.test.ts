@@ -717,7 +717,10 @@ describe("the shallow check", () => {
     const http = await resigned(doc, (d) => { (d.extensions as Record<string, Record<string, unknown>>)[LE]["ledger-access-uri"] = "http://ledger.example/x"; });
     expect(fails((await shallowCheck(http, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK] })).rows)).toEqual(["S5a ledger-evidence-shape"]);
     const none = await resigned(doc, (d) => { delete (d.extensions as Record<string, unknown>)[LE]; });
-    expect(fails((await shallowCheck(none, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK] })).rows)).toEqual(["S5a ledger-evidence-shape"]);
+    // without the `ledger-evidence` name the object still claims SFC through its 1.0 names, so SFC 2.0 reads it (9.3, 12.1 rule 3d)
+    const readUnder2 = (await shallowCheck(none, { trustedKeys: [SFC_LEDGER_TEST_PUBLIC_JWK] })).rows.map((x) => x.id);
+    expect(readUnder2).toEqual(expect.arrayContaining(["S2", "PAIR", "S7"]));
+    expect(readUnder2.filter((id) => id.startsWith("S5a"))).toEqual([]);
   });
 
   it("applies the draft's unit defaults when a unit member is absent", async () => {

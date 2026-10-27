@@ -11,12 +11,19 @@ on:
       - "gateway/**"
       - "example-responses/**"
       - "schemas-validators/**"
+      - "sfc-compliance/vectors/**"
+      - "sfc-compliance/examples/**"
+      - "sfc-compliance/schemas/**"
       - ".github/workflows/gateway.yml"
   pull_request:
     paths:
       - "gateway/**"
       - "example-responses/**"
       - "schemas-validators/**"
+      - "sfc-compliance/vectors/**"
+      - "sfc-compliance/examples/**"
+      - "sfc-compliance/schemas/**"
+      - ".github/workflows/gateway.yml"
 
 permissions:
   contents: read

@@ -47,9 +47,10 @@ made each mapping, and not claims of the organization. These documents:
   be mistaken for a statement made or vouched for by the organization.
 
 Documents under a reserved name ending in .example are synthetic. Their figures
-are invented and describe nothing real. One of them, sfc-ledger-demo.example,
-carries a signature made with a publicly known test key (RFC 8032); that
-signature shows how verification works and is not a statement by the operator
+are invented and describe nothing real. Four of them, sfc-ledger-demo.example,
+sfc-ledger-demo-2.example, sfc-network-2.example and sfc-operator-2.example,
+carry a signature made with a publicly known test key (RFC 8032); those
+signatures show how verification works and are not a statement by the operator
 or by anyone else.
 
 ## 3. What is taken from the sources, and what is not

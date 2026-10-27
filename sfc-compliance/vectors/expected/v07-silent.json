@@ -1,0 +1,591 @@
+{
+  "id": "v07-silent",
+  "scenarios": {
+    "carbon-silent-month-with-stray-location-object": {
+      "rows": [
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "disclosure",
+          "detail": "incomplete object"
+        },
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        },
+        {
+          "id": "S6.a",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        },
+        {
+          "id": "S6.b",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        },
+        {
+          "id": "S6.e",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        },
+        {
+          "id": "S6.f",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        },
+        {
+          "id": "S6.g",
+          "result": "DECLARED",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -",
+          "detail": "hardware-lifecycle"
+        },
+        {
+          "id": "S6.g",
+          "result": "DECLARED",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -",
+          "detail": "net-zero-status"
+        },
+        {
+          "id": "S6.g",
+          "result": "DECLARED",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -",
+          "detail": "validated-node-count"
+        },
+        {
+          "id": "S6.g",
+          "result": "DECLARED",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -",
+          "detail": "renewable-energy"
+        },
+        {
+          "id": "VERDICT",
+          "result": "INCOMPLETE",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -",
+          "detail": "silent: did:web:op-c.example, 2025-07, CarbonAttested"
+        },
+        {
+          "id": "PAIR",
+          "result": "INFO",
+          "scope": "ledger.example 2025-01-01..2026-01-01 location-based",
+          "detail": "location object not applicable (incomplete)"
+        },
+        {
+          "id": "D4.declared",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "PASS",
+          "scope": "ledger 2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        }
+      ],
+      "summary": {
+        "PASS": 8,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 4,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      },
+      "derived": [
+        {
+          "spec": {
+            "period": {
+              "start": "2025-01-01T00:00:00Z",
+              "end": "2026-01-01T00:00:00Z"
+            },
+            "cutoff": "2026-02-10T09:00:00Z",
+            "level": "network",
+            "energyUnit": "MWh",
+            "carbonUnit": "tCO2e",
+            "consensus": "proof-of-authority",
+            "updated": "2026-02-10T09:00:00Z",
+            "target": "ledger.example",
+            "renewable": 82
+          },
+          "incomplete": {
+            "energy": false,
+            "carbon": true
+          },
+          "silent": ["did:web:op-c.example 2025-07 CarbonAttested"],
+          "evidence": {
+            "profile-version": "2.0",
+            "ledger-access-uri": "https://ledger.example/sfc/read",
+            "operators": [
+              {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"52f07d8d2e131b0354b203d4695292ec9503b11261986b6f0c3380a4fdc63dfe","carbon-head":"fc79c67e424c6fb9fe67c3a3b4bb4f846109adeddb69b2f4956327cc17cabb3e","energy-events":12,"carbon-events":12,"kwh":218458.5,"scope1-kgco2e":0,"scope2-kgco2e":3996,"scope3-kgco2e":2580,"offsets-kgco2e":12000,"offset-coverage-every-period":true},
+              {"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":"e76faee28e286fa09898cf59d601aeeeacf65d6d87411c9c820a0ca0e683241b","carbon-head":"a376b1c7e4d7e38f08027e1f798a0b87894c390069d9f928e1213924d86bb043","energy-events":12,"carbon-events":12,"kwh":236458.5,"scope1-kgco2e":12.75,"scope2-kgco2e":4236,"scope3-kgco2e":2640,"offsets-kgco2e":12000,"offset-coverage-every-period":true},
+              {"operator":"did:web:op-c.example","origin":"node.op-c.example","energy-head":"ea30e455704b972d2bf2ceadaa0f5f6e2dcfa51ce0ae8a38afb7eb4e1c9b5607","carbon-head":"9b4e617c227bd88ff314fa5054df02d4d26ded0f6d012c380753009663990fe9","energy-events":12,"carbon-events":11,"kwh":254458.5,"scope1-kgco2e":0,"scope2-kgco2e":4102.75,"scope3-kgco2e":2475,"offsets-kgco2e":11000,"offset-coverage-every-period":false}
+            ],
+            "network-offset-coverage": false
+          },
+          "top": {
+            "measurement-method": "cloud-billing",
+            "energy-consumption": 709.3755,
+            "energy-unit": "MWh"
+          },
+          "carbonNeutrality": {
+            "net-zero-status": "partial"
+          },
+          "networkTopology": {
+            "consensus-mechanism": "proof-of-authority",
+            "validated-node-count": 12,
+            "node-count-validation-method": "maximum over the months of the period of the sum of the operators' monthly peak node counts"
+          },
+          "location": null
+        }
+      ]
+    },
+    "silent-ledger-complete-object-offered": {
+      "rows": [
+        {
+          "id": "VERDICT",
+          "result": "INCOMPLETE",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "silent: did:web:op-c.example, 2025-07, CarbonAttested"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "FAIL",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "D4.declared ledger.example 2025-01-01..2026-01-01 market-based; did:web:op-c.example:carbon-events; did:web:op-c.example:carbon-head; did:web:op-c.example:offset-coverage-every-period; did:web:op-c.example:offsets-kgco2e; did:web:op-c.example:scope2-kgco2e; did:web:op-c.example:scope3-kgco2e; network-offset-coverage; top:carbon-footprint; top:carbon-intensity-gCO2e-per-kWh; top:net-zero-status; top:offsets-retired-tCO2e; top:scope-1; top:scope-2; top:scope-3"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "month-with-no-operator": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        },
+        {
+          "id": "S6.e",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        },
+        {
+          "id": "S6.f",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        },
+        {
+          "id": "VERDICT",
+          "result": "INCOMPLETE",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -",
+          "detail": "no operator: 2025-01"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "FAIL",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -",
+          "detail": "network-offset-coverage; top:net-zero-status"
+        }
+      ],
+      "summary": {
+        "PASS": 3,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "month-with-no-operator-honest": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        },
+        {
+          "id": "VERDICT",
+          "result": "INCOMPLETE",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -",
+          "detail": "no operator: 2025-01"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 -"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "derived": [
+        {
+          "spec": {
+            "period": {
+              "start": "2025-01-01T00:00:00Z",
+              "end": "2026-01-01T00:00:00Z"
+            },
+            "cutoff": "2026-02-10T09:00:00Z",
+            "level": "network",
+            "energyUnit": "MWh",
+            "carbonUnit": "tCO2e",
+            "consensus": "proof-of-authority",
+            "updated": "2026-02-10T09:00:00Z",
+            "target": "ledger.example",
+            "renewable": 82
+          },
+          "incomplete": {
+            "energy": true,
+            "carbon": true
+          },
+          "silent": ["no operator 2025-01"],
+          "evidence": {
+            "profile-version": "2.0",
+            "ledger-access-uri": "https://ledger.example/sfc/read",
+            "operators": [
+              {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"d2139d5232074cb3948bfe23f072be9285717fac39b26bdf142fa782f9afd622","carbon-head":"2439bc98cb6f88098a11d3ae30547c558d010c931828d4376676debdb5e79aee","energy-events":11,"carbon-events":11,"kwh":200458.5,"scope1-kgco2e":0,"scope2-kgco2e":3665.75,"scope3-kgco2e":2365,"offsets-kgco2e":11000,"offset-coverage-every-period":true},
+              {"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":"5ecd7fb0041ec418d6f6615f5ff1c1484ffb6fc66531f2b4294dd72857c1d121","carbon-head":"852d57bbd19188d84a8739d03d7a5bb970ddf03979bb7c5e983f73b876906eeb","energy-events":11,"carbon-events":11,"kwh":216958.5,"scope1-kgco2e":12.75,"scope2-kgco2e":3885.75,"scope3-kgco2e":2420,"offsets-kgco2e":11000,"offset-coverage-every-period":true},
+              {"operator":"did:web:op-c.example","origin":"node.op-c.example","energy-head":"37f4cd634336a8e59f738c59af012acbeef5980dbddd7717021a00c5aede9a04","carbon-head":"908632cca43f1b7dc9f286597bc846d094686336b8e01482ced3eab419bd65eb","energy-events":11,"carbon-events":11,"kwh":233458.5,"scope1-kgco2e":0,"scope2-kgco2e":4105.75,"scope3-kgco2e":2475,"offsets-kgco2e":11000,"offset-coverage-every-period":true}
+            ],
+            "network-offset-coverage": false
+          },
+          "top": {
+            "measurement-method": "cloud-billing"
+          },
+          "carbonNeutrality": {
+            "net-zero-status": "partial"
+          },
+          "networkTopology": {
+            "consensus-mechanism": "proof-of-authority"
+          },
+          "location": null
+        }
+      ]
+    },
+    "energy-silent-month": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.a",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.b",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.c",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.e",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.f",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "S6.g",
+          "result": "DECLARED",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "hardware-lifecycle"
+        },
+        {
+          "id": "S6.g",
+          "result": "DECLARED",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "net-zero-status"
+        },
+        {
+          "id": "S6.i",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based"
+        },
+        {
+          "id": "VERDICT",
+          "result": "INCOMPLETE",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based",
+          "detail": "silent: did:web:op-b.example, 2025-04, EnergyAttested"
+        },
+        {
+          "id": "VERDICT",
+          "result": "NOT-APPLICABLE",
+          "scope": "ledger.example 2025-01-01..2026-01-01 location-based"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 market-based"
+        }
+      ],
+      "summary": {
+        "PASS": 8,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 2,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "derived": [
+        {
+          "spec": {
+            "period": {
+              "start": "2025-01-01T00:00:00Z",
+              "end": "2026-01-01T00:00:00Z"
+            },
+            "cutoff": "2026-02-10T09:00:00Z",
+            "level": "network",
+            "energyUnit": "MWh",
+            "carbonUnit": "tCO2e",
+            "consensus": "proof-of-authority",
+            "updated": "2026-02-10T09:00:00Z",
+            "target": "ledger.example",
+            "renewable": 82
+          },
+          "incomplete": {
+            "energy": true,
+            "carbon": false
+          },
+          "silent": ["did:web:op-b.example 2025-04 EnergyAttested"],
+          "evidence": {
+            "profile-version": "2.0",
+            "ledger-access-uri": "https://ledger.example/sfc/read",
+            "operators": [
+              {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"52f07d8d2e131b0354b203d4695292ec9503b11261986b6f0c3380a4fdc63dfe","carbon-head":"fc79c67e424c6fb9fe67c3a3b4bb4f846109adeddb69b2f4956327cc17cabb3e","energy-events":12,"carbon-events":12,"kwh":218458.5,"scope1-kgco2e":0,"scope2-kgco2e":3996,"scope3-kgco2e":2580,"offsets-kgco2e":12000,"offset-coverage-every-period":true},
+              {"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":"5cc6adab5844bd80ba8796ef773f2fa969691629ccc4f82a13672690b61e946c","carbon-head":"a376b1c7e4d7e38f08027e1f798a0b87894c390069d9f928e1213924d86bb043","energy-events":11,"carbon-events":12,"kwh":216846.75,"scope1-kgco2e":12.75,"scope2-kgco2e":4236,"scope3-kgco2e":2640,"offsets-kgco2e":12000,"offset-coverage-every-period":true},
+              {"operator":"did:web:op-c.example","origin":"node.op-c.example","energy-head":"ea30e455704b972d2bf2ceadaa0f5f6e2dcfa51ce0ae8a38afb7eb4e1c9b5607","carbon-head":"1642c3db1cfd6ce277fecbcc705ec400ab079541718dcf4b7b1dd378cf39e5b4","energy-events":12,"carbon-events":12,"kwh":254458.5,"scope1-kgco2e":0,"scope2-kgco2e":4476,"scope3-kgco2e":2700,"offsets-kgco2e":12000,"offset-coverage-every-period":true}
+            ],
+            "network-offset-coverage": true
+          },
+          "top": {
+            "measurement-method": "cloud-billing",
+            "scope-1": 0.01275,
+            "scope-2": 12.708,
+            "scope-3": 7.92,
+            "carbon-footprint": 20.64075,
+            "carbon-unit": "tCO2e",
+            "carbon-accounting": "market-based"
+          },
+          "carbonNeutrality": {
+            "net-zero-status": "achieved",
+            "offsets-retired-tCO2e": 36
+          },
+          "networkTopology": {
+            "consensus-mechanism": "proof-of-authority"
+          },
+          "location": {
+            "scope-2": 12.51,
+            "carbon-footprint": 20.44275
+          }
+        }
+      ]
+    },
+    "operator-all-months-silent-with-disclosure-uri": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        },
+        {
+          "id": "S6.a",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        },
+        {
+          "id": "S6.b",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        },
+        {
+          "id": "S6.e",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        },
+        {
+          "id": "S6.f",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        },
+        {
+          "id": "S6.g",
+          "result": "DECLARED",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -",
+          "detail": "net-zero-status"
+        },
+        {
+          "id": "VERDICT",
+          "result": "INCOMPLETE",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -",
+          "detail": "silent: did:web:op-a.example, 2026-03, CarbonAttested; silent: did:web:op-a.example, 2026-03, EnergyAttested"
+        },
+        {
+          "id": "D2.operator-set",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        },
+        {
+          "id": "D2.network",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        },
+        {
+          "id": "D2.unique",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-a.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-b.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-c.example"
+        },
+        {
+          "id": "D2.registrar-copy",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        },
+        {
+          "id": "D2.signed",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -",
+          "detail": "verified under a Registry key valid at T"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        }
+      ],
+      "summary": {
+        "PASS": 14,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 1,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      },
+      "derived": [
+        {
+          "spec": {
+            "period": {
+              "start": "2026-03-01T00:00:00Z",
+              "end": "2026-04-01T00:00:00Z"
+            },
+            "cutoff": "2026-04-15T00:00:00Z",
+            "level": "operator",
+            "operator": "did:web:op-a.example",
+            "updated": "2026-04-15T00:00:00Z",
+            "target": "node.op-a.example",
+            "extras": {
+              "measurement-method": "hardware-metered"
+            }
+          },
+          "incomplete": {
+            "energy": true,
+            "carbon": true
+          },
+          "silent": ["did:web:op-a.example 2026-03 CarbonAttested","did:web:op-a.example 2026-03 EnergyAttested"],
+          "evidence": {
+            "profile-version": "2.0",
+            "ledger-access-uri": "https://ledger.example/sfc/read",
+            "operators": [
+              {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"66c4d0fab2bfb7ce0a06e497e1abe9c1f2af05c9170af8fe731bf61fab6e1a62","carbon-head":"24150f6182a0f8a76b8296249410e156ce63ab2ec1ee5a7dadd2101cd75a535b","energy-events":0,"carbon-events":0,"kwh":0,"scope1-kgco2e":0,"scope2-kgco2e":0,"scope3-kgco2e":0,"offsets-kgco2e":0,"offset-coverage-every-period":false}
+            ]
+          },
+          "top": {},
+          "carbonNeutrality": {
+            "net-zero-status": "not-achieved"
+          },
+          "networkTopology": {},
+          "location": null
+        }
+      ]
+    },
+    "operator-all-months-silent-without-disclosure-uri": {
+      "rows": [
+        {
+          "id": "C-SFC-5",
+          "result": "FAIL",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -",
+          "detail": "S2; no evidence member"
+        },
+        {
+          "id": "VERDICT",
+          "result": "INCOMPLETE",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -",
+          "detail": "silent: did:web:op-a.example, 2026-03, CarbonAttested; silent: did:web:op-a.example, 2026-03, EnergyAttested"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "PASS",
+          "scope": "node.op-a.example 2026-03-01..2026-04-01 -"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "location-object-without-primary": {
+      "rows": [
+        {
+          "id": "S2",
+          "result": "PASS",
+          "scope": "ledger.example 2025-01-01..2026-01-01 location-based"
+        },
+        {
+          "id": "PAIR",
+          "result": "INFO",
+          "scope": "ledger.example 2025-01-01..2026-01-01 location-based",
+          "detail": "unpaired object"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    }
+  }
+}

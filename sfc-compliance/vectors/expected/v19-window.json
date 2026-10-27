@@ -1,0 +1,335 @@
+{
+  "id": "v19-window",
+  "scenarios": {
+    "empty-registry": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "PASS",
+          "scope": "read"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "no operator active in the window"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "no operator active in the window"
+        },
+        {
+          "id": "C-SFC-3",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "no Registry"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "no operator active in the window"
+        },
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        }
+      ],
+      "summary": {
+        "PASS": 2,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 4,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "young-network": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "PASS",
+          "scope": "read"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "PASS",
+          "scope": "2025-04..2026-03",
+          "detail": "INFO window not fully covered"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "window not fully covered"
+        },
+        {
+          "id": "C-SFC-3",
+          "result": "DECLARED",
+          "scope": "2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "PASS",
+          "scope": "2025-04..2026-03",
+          "detail": "INFO window not fully covered"
+        },
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        }
+      ],
+      "summary": {
+        "PASS": 4,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 1,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "explicit-T-after-read-at": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "PASS",
+          "scope": "read"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "read older than T"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "read older than T"
+        },
+        {
+          "id": "C-SFC-3",
+          "result": "DECLARED",
+          "scope": "2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "read older than T"
+        },
+        {
+          "id": "C-SFC-6",
+          "result": "NOT-EVALUABLE",
+          "scope": "platform",
+          "detail": "test 2: C-SFC-2 NOT-EVALUABLE"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 4,
+        "DECLARED": 1,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "stale-read": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "PASS",
+          "scope": "read"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "stale read"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "stale read"
+        },
+        {
+          "id": "C-SFC-3",
+          "result": "DECLARED",
+          "scope": "2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "stale read"
+        },
+        {
+          "id": "C-SFC-6",
+          "result": "NOT-EVALUABLE",
+          "scope": "platform",
+          "detail": "test 2: C-SFC-2 NOT-EVALUABLE"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 4,
+        "DECLARED": 1,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "read-after-the-clock-plus-skew": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "PASS",
+          "scope": "read"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "stale read"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "stale read"
+        },
+        {
+          "id": "C-SFC-3",
+          "result": "DECLARED",
+          "scope": "2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "NOT-EVALUABLE",
+          "scope": "2025-04..2026-03",
+          "detail": "stale read"
+        },
+        {
+          "id": "C-SFC-6",
+          "result": "NOT-EVALUABLE",
+          "scope": "platform",
+          "detail": "test 2: C-SFC-2 NOT-EVALUABLE"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 4,
+        "DECLARED": 1,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "read-within-age": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "PASS",
+          "scope": "read"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "PASS",
+          "scope": "2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "PASS",
+          "scope": "ledger 2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-3",
+          "result": "DECLARED",
+          "scope": "2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "PASS",
+          "scope": "2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        }
+      ],
+      "summary": {
+        "PASS": 5,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 1,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "permissioned-covered-window-silent-energy": {
+      "rows": [
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "silent: did:web:op-b.example 2025-09"
+        },
+        {
+          "id": "C-SFC-6",
+          "result": "NOT-EVALUABLE",
+          "scope": "platform",
+          "detail": "test 2: C-SFC-2 NOT-EVALUABLE"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "public-assessment-ended-exactly-18-months-before-T": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "public-assessment-ended-one-second-earlier": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "FAIL",
+          "scope": "platform",
+          "detail": "test 2: assessment ended more than 18 months before T"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    }
+  }
+}

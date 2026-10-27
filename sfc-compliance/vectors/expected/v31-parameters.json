@@ -1,0 +1,380 @@
+{
+  "id": "v31-parameters",
+  "scenarios": {
+    "every-item": {
+      "rows": [
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        }
+      ],
+      "summary": {
+        "PASS": 3,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "retirement-registries-missing": {
+      "rows": [
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "1 events"
+        },
+        {
+          "id": "D5.event",
+          "result": "NOT-EVALUABLE",
+          "scope": "did:web:op-a.example Carbon 2026-02-03T12:01:00Z",
+          "detail": "L8b:retirement-registries"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 2,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "mechanism-spellings": {
+      "result": [
+        {
+          "normalised": "proof-of-work",
+          "test1": "FAIL"
+        },
+        {
+          "normalised": "proof-of-work",
+          "test1": "FAIL"
+        },
+        {
+          "normalised": "proof-of-work",
+          "test1": "FAIL"
+        },
+        {
+          "normalised": "proof-of-work",
+          "test1": "FAIL"
+        },
+        {
+          "normalised": "proof-of-work",
+          "test1": "FAIL"
+        },
+        {
+          "normalised": "proof-of-stake",
+          "test1": "PASS"
+        },
+        {
+          "normalised": "proof-of-stak",
+          "test1": "NOT-EVALUABLE"
+        },
+        {
+          "normalised": "bft",
+          "test1": "PASS"
+        },
+        {
+          "normalised": "dag",
+          "test1": "PASS"
+        },
+        {
+          "normalised": "hybrid",
+          "test1": "PASS"
+        },
+        {
+          "normalised": "proof-of-authority",
+          "test1": "PASS"
+        },
+        {
+          "normalised": "",
+          "test1": "NOT-EVALUABLE"
+        },
+        {
+          "normalised": "crash-fault-tolerant",
+          "test1": "PASS"
+        },
+        {
+          "normalised": "crash-fault-tolerant",
+          "test1": "PASS"
+        },
+        {
+          "normalised": "crash-fault-tolerant",
+          "test1": "PASS"
+        }
+      ]
+    },
+    "mechanism-crash-fault-tolerant": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "consensus-mechanism-text-in-the-list": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "consensus-mechanism-text-outside-the-list": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        },
+        {
+          "id": "C-SFC-6.info",
+          "result": "INFO",
+          "scope": "platform",
+          "detail": "consensus-mechanism text differs"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 1
+      }
+    },
+    "assessment-with-fraction-bounds": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "assessment-bounds-differ-by-a-fraction": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "FAIL",
+          "scope": "platform",
+          "detail": "test 2: period is not 12 calendar months"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "mechanism-Proof-of-Work": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "FAIL",
+          "scope": "platform",
+          "detail": "test 1: proof-of-work"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "mechanism-pow": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "FAIL",
+          "scope": "platform",
+          "detail": "test 1: proof-of-work"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "mechanism-misspelt": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "NOT-EVALUABLE",
+          "scope": "platform",
+          "detail": "test 1: mechanism not named or outside the list"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "assessment-of-11-months": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "FAIL",
+          "scope": "platform",
+          "detail": "test 2: period is not 12 calendar months"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "assessment-of-12-months": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "assessment-in-MWh-below-cap": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "PASS",
+          "scope": "platform"
+        }
+      ],
+      "summary": {
+        "PASS": 1,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "assessment-in-MWh-at-cap": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "FAIL",
+          "scope": "platform",
+          "detail": "test 2: figure at or above CAP"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "permissioned-without-o": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "NOT-EVALUABLE",
+          "scope": "platform",
+          "detail": "test 2: missing or malformed: o"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 0,
+        "NOT-EVALUABLE": 1,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    },
+    "permissioned-node-bound-at-cap": {
+      "rows": [
+        {
+          "id": "C-SFC-6",
+          "result": "FAIL",
+          "scope": "platform",
+          "detail": "test 2: node bound at or above CAP"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    }
+  }
+}

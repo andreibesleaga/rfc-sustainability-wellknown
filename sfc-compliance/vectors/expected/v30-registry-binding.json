@@ -1,0 +1,35 @@
+{
+  "id": "v30-registry-binding",
+  "scenarios": {
+    "shared-operator-and-origin-and-unordered-intervals": {
+      "rows": [
+        {
+          "id": "D2.operator-set",
+          "result": "FAIL",
+          "scope": "ledger.example 2026-01-01..2026-02-01 -",
+          "detail": "origin differs"
+        },
+        {
+          "id": "D2.unique",
+          "result": "FAIL",
+          "scope": "ledger.example 2026-01-01..2026-02-01 -",
+          "detail": "active did:web:op-d.example; active did:web:op-e.example; active did:web:op-f.example; operator did:web:op-a.example; origin node.op-a.example"
+        },
+        {
+          "id": "C-SFC-7",
+          "result": "FAIL",
+          "scope": "ledger.example 2026-01-01..2026-02-01 -",
+          "detail": "D2.operator-set ledger.example 2026-01-01..2026-02-01 -; D2.unique ledger.example 2026-01-01..2026-02-01 -"
+        }
+      ],
+      "summary": {
+        "PASS": 0,
+        "FAIL": 3,
+        "NOT-EVALUABLE": 0,
+        "DECLARED": 0,
+        "NOT-DECLARED": 0,
+        "INFO": 0
+      }
+    }
+  }
+}

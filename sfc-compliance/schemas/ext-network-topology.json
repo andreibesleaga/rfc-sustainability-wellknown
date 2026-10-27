@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/andreibesleaga/rfc-sustainability-wellknown/main/sfc-compliance/schemas/ext-network-topology.json",
+  "title": "SFC 2 network-topology extension value",
+  "description": "The value of the `network-topology` extension at both levels (section 8.4): the network-level members or the operator-level members, not both. `validated-node-count` is optional here and required unless the object is incomplete for energy; `member-of-network` is required with `ledger-evidence-2`. Unknown members are allowed. A wrong JSON type of a member makes this schema fail; the verifier then reads the member as absent (8.1).",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "consensus-mechanism"
+      ],
+      "properties": {
+        "consensus-mechanism": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "validated-node-count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "node-count-validation-method": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "per-transaction-energy-Wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "nakamoto-coefficient": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "geographic-regions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "member-of-network": false,
+        "network-declaration": false
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "member-of-network": {
+          "$ref": "#/$defs/host"
+        },
+        "network-declaration": {
+          "$ref": "#/$defs/httpsUri"
+        },
+        "consensus-mechanism": false,
+        "validated-node-count": false,
+        "node-count-validation-method": false,
+        "per-transaction-energy-Wh": false,
+        "nakamoto-coefficient": false,
+        "geographic-regions": false
+      }
+    }
+  ],
+  "$defs": {
+    "host": {
+      "type": "string",
+      "maxLength": 253,
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$",
+      "description": "A host name in A-label form, no scheme, port or path; upper case is accepted as input (3.5 host)."
+    },
+    "httpsUri": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^https://\\S+$",
+      "description": "An absolute URI with scheme https (3.5 https-uri)."
+    }
+  }
+}

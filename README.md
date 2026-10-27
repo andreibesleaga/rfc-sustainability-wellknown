@@ -7,7 +7,7 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-10` (posted 2026-10-24), is under review by the Independent Submissions Editor; it answers the Editor's suggestions on `-09`: every date is an RFC 3339 `date-time` and every token member takes one of a listed set. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md). Current repo software implements Internet-Draft version `-10`: the publisher and the consumer `0.8.0`, the gateway `0.2.0`.
+**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-10` (posted 2026-10-24), is under review by the Independent Submissions Editor; it answers the Editor's suggestions on `-09`: every date is an RFC 3339 `date-time` and every token member takes one of a listed set. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md). Current repo software implements Internet-Draft version `-10`: the publisher and the consumer `0.8.2`, the gateway `0.3.0`.
 
 Presented at the IRTF Sustainability Research Group (IETF 126, July 2026); Independent Submission under review.
 
@@ -60,7 +60,7 @@ The gateway also serves illustrative mappings of real organizations' own publish
 |---|---|
 | **Real organisations** | Figures transcribed from each organisation's own report, with the source document, retrieval date and licence recorded per figure. Served only where the source's terms allow reuse; seven are withheld: six because their terms forbid reuse, one (Fastly) because its terms could not be read. |
 | **Every case in the draft** | 42 wire-format examples: every `target-type`, unit, accounting basis, period precision, trend shape, negative scope, upstream chain, both kinds of extension name, and three really signed declarations (two Ed25519, one ES256). |
-| **Every adapter** | Eleven demonstrations (Kepler/Prometheus, NESO grid intensity, CO2.js, carbon.txt, Climatiq, Salesforce Net Zero Cloud, Microsoft emissions, Watershed, the IETF GREEN power-and-energy YANG model, the Green Web Foundation's DIST file, and an experimental, synthetic ledger example). Each shows **its raw input next to the declaration it becomes** at `/{domain}/input`, with the licence and a live-upstream link where one exists. |
+| **Every adapter** | Fourteen demonstrations (Kepler/Prometheus, NESO grid intensity, CO2.js, carbon.txt, Climatiq, Salesforce Net Zero Cloud, Microsoft emissions, Watershed, the IETF GREEN power-and-energy YANG model, the Green Web Foundation's DIST file, and experimental, synthetic SFC examples: a profile 1.2 ledger, and a profile 2.0 ledger, network and operator). Each shows **its raw input next to the declaration it becomes** at `/{domain}/input`, with the licence and a live-upstream link where one exists. |
 | **Its own report** | Extended service: the objects it holds since go-live, selected by `start`, `end`, `granularity` and `target` and returned as they are held, never summed. Energy from the host's usage metrics, entered per month (a month without an entry is not reported), the Netherlands grid factor (EEA), an embedded `signed` member, and a Verifiable Credential attesting the model. |
 | **HTTP behaviour** | The dedicated media type, strong ETags and `304`s, CORS, `405` with `Allow`, identical `404`s for an unknown subject and a withheld one, `200` with an empty array when a range or target selects nothing, rate limiting, and a legal notice with a removal route. |
 | **For people** | A plain-language page that follows the system light/dark theme, with captioned tables, keyboard-scrollable regions and a link for every request it advertises. |
@@ -126,7 +126,7 @@ current release, **`0.8.2`**, implements draft `-10`; by default it also reads t
   `--strict` mode is a conformance checker for any implementation. API, CLI and the version history:
   [consumer/README.md](consumer/README.md) and [consumer/USAGE.md](consumer/USAGE.md).
 
-Both packages are also mirrored on GitHub Packages; npmjs.com is the canonical registry. The reference gateway (`0.2.0`)
+Both packages are also mirrored on GitHub Packages; npmjs.com is the canonical registry. The reference gateway (`0.3.0`)
 uses both together in its tests and its live deployment.
 
 ## Verify a live deployment
@@ -173,7 +173,7 @@ rfc-sustainability-wellknown/
 ├── bdd/                        # Behaviour scenarios for every normative sentence of the draft (cucumber-js), with the traceability check
 ├── fitness/                    # Architecture fitness functions: cross-package rules kept as tests
 ├── architecture/               # System overview diagram and architecture notes
-├── sfc-compliance/             # The SFC profile of this well-known URI: normative PROFILE.md, two reference declarations, and a checker
+├── sfc-compliance/             # SFC profile 2.0 tools: checker, schemas, test vectors, examples (the profile text is in awesome-blockchain-greentech)
 ├── .github/                    # CI workflows (build, test, conformance battery, package publishing) and Dependabot policy
 ├── SIGNING-AND-ATTESTATION.md  # How to deploy the OPTIONAL signature and a Verifiable Credential (publisher, attester, consumer); covers the embedded `signed` member of -10
 ├── ADOPTION.md                 # The case for RFC/IANA adoption (business, technical, regulatory benefits)
@@ -384,7 +384,7 @@ How to deploy it, and the draft's other optional mechanism, the `signed` member 
 
 ## Supporting material (non-normative)
 
-* [sfc-compliance/](sfc-compliance/) — an optional profile of this well-known URI for ledger-based systems (the author's Sustainability-First Consensus framework), with a checker. It changes nothing in the draft.
+* [sfc-compliance/](sfc-compliance/) — the checker, schemas, test vectors and examples for [SFC profile 2.0](https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md), an optional profile of this well-known URI for ledger-based systems (the author's Sustainability-First Consensus framework). It changes nothing in the draft.
 
 The product-discovery notes and the deployment research logs that informed earlier revisions are working material, not part of the specification, and are no longer carried in the repository. Their conclusions are in the draft and in `ADOPTION.md`.
 

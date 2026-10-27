@@ -1,0 +1,674 @@
+{
+  "id": "worked",
+  "scenarios": {
+    "worked": {
+      "rows": [
+        {
+          "id": "D1",
+          "result": "PASS",
+          "scope": "read"
+        },
+        {
+          "id": "D3.order",
+          "result": "PASS",
+          "scope": "ledger"
+        },
+        {
+          "id": "D2.unique",
+          "result": "PASS",
+          "scope": "read"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-a.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-b.example"
+        },
+        {
+          "id": "D2.entry",
+          "result": "PASS",
+          "scope": "did:web:op-c.example"
+        },
+        {
+          "id": "D2.registrar-copy",
+          "result": "PASS",
+          "scope": "read"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "13 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "12 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "11 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "12 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "12 events"
+        },
+        {
+          "id": "D3",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "12 events"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy"
+        },
+        {
+          "id": "D4.chain",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon"
+        },
+        {
+          "id": "D4.checkpoint",
+          "result": "INFO",
+          "scope": "checkpoint",
+          "detail": "absent: ledger read not authenticated: commit instants and completeness are the source's claim"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Energy",
+          "detail": "13 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-a.example Carbon",
+          "detail": "12 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Energy",
+          "detail": "11 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-b.example Carbon",
+          "detail": "12 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Energy",
+          "detail": "12 events"
+        },
+        {
+          "id": "D5",
+          "result": "PASS",
+          "scope": "did:web:op-c.example Carbon",
+          "detail": "12 events"
+        },
+        {
+          "id": "D5.late",
+          "result": "INFO",
+          "scope": "did:web:op-a.example Energy 2025-09-12T09:00:00Z",
+          "detail": "late-filed, retirement dates asserted only"
+        },
+        {
+          "id": "C-SFC-1",
+          "result": "FAIL",
+          "scope": "2025-04..2026-03",
+          "detail": "silent: did:web:op-b.example 2025-11"
+        },
+        {
+          "id": "C-SFC-2",
+          "result": "NOT-EVALUABLE",
+          "scope": "ledger 2025-04..2026-03",
+          "detail": "silent: did:web:op-b.example 2025-11"
+        },
+        {
+          "id": "C-SFC-3",
+          "result": "DECLARED",
+          "scope": "2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-4",
+          "result": "PASS",
+          "scope": "2025-04..2026-03"
+        },
+        {
+          "id": "C-SFC-6",
+          "result": "NOT-EVALUABLE",
+          "scope": "platform",
+          "detail": "test 2: C-SFC-2 NOT-EVALUABLE"
+        },
+        {
+          "id": "D8",
+          "result": "NOT-EVALUABLE",
+          "scope": "read",
+          "detail": "not performed"
+        }
+      ],
+      "summary": {
+        "PASS": 26,
+        "FAIL": 1,
+        "NOT-EVALUABLE": 3,
+        "DECLARED": 1,
+        "NOT-DECLARED": 0,
+        "INFO": 2
+      },
+      "effective": [
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-04-01T00:00:00Z",
+          "hash": "4cf47d00c1c56506687493cf62372ea3522ef30e289c6d964139ce4155f777a4"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-05-01T00:00:00Z",
+          "hash": "0d72a23e3a6976d92c7d1e6d4b0b103a74e6dfdf80b1e6d984a1829baf9dd156"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-06-01T00:00:00Z",
+          "hash": "c11b31221f8fb08023f7e42eae65997a524ea81a88fefc37dead45b0914c2cc4"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-07-01T00:00:00Z",
+          "hash": "5c3524b806455da8dffed9ceca2bb4e7438cb3582da6927a975fd2f4eb12bd4f"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-08-01T00:00:00Z",
+          "hash": "f3058dbc778b6191dfd0137ae3f69828db2bf482c50c6ca583def76fb040a064"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-09-01T00:00:00Z",
+          "hash": "877bb98cfe4ab24b53b7d009168c9857e3df6977a8825b7e0a93b81cddc7ae61"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-10-01T00:00:00Z",
+          "hash": "aefea698423844e1805e1cae759087a3e216123918ba2ea4d6305909b83d29b6"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-11-01T00:00:00Z",
+          "hash": "1a5006bbc5ef425c6e76f760d4e8e20ba96801f6f3b61c84cc0e3be07772e9b9"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "a7f44683f244237ee7793d3814bb40d23e7e9a205197f841c41f2747e8e7829e"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2026-01-01T00:00:00Z",
+          "hash": "81a71d202ba0a07701693d7b3ee320e6b776416e1990663a92be202c03e2e8a3"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2026-02-01T00:00:00Z",
+          "hash": "210337cedc0fbc12fc329f15406a959c01d33b68821f20bc6f70f4fbcad250a6"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "CarbonAttested",
+          "month": "2026-03-01T00:00:00Z",
+          "hash": "5846f8bd4cdf4bffd48770efc739cb1d88dbf41c66b3d46fc2f22b567ebeae16"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2025-04-01T00:00:00Z",
+          "hash": "d1cd4b4dbc7a480ef039f1927611d67d3c22f70e47bda81d450af6c39f317c29"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2025-05-01T00:00:00Z",
+          "hash": "4ae4c827de2448ba4eb0789c0bf9d36af64a32fed3865c8699cdfed562857e26"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2025-06-01T00:00:00Z",
+          "hash": "3c4108dfebe35eadc996437b0f00d898ba5ba72e2369b7999951118104ced3ed"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2025-07-01T00:00:00Z",
+          "hash": "f1223fdd6b5bc7cef829e76880308600303003c8b67c41919bff7c9ba7379143"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2025-08-01T00:00:00Z",
+          "hash": "7b3d9c4a38560ca490e9234206fe1954bbc50652307bff1fc69bdec284d7c38e"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2025-09-01T00:00:00Z",
+          "hash": "a8f52cd31b5f931c29ce97ad7b6b5d9c0baba62b8c25b51a2802a9e13565f3aa"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2025-10-01T00:00:00Z",
+          "hash": "5ba32e09ebe5c1783cfaeaa1d25fda5bf2af7c7e05e34db8a6491652626c0026"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2025-11-01T00:00:00Z",
+          "hash": "4ccfa1d55d614712189e835c2b9f32a1cd28ecb70570ab1213459589e9434a83"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "a554e203a80d8fc9ca04e05eb80f0b714cd76d17828ccf1fb99951691a0c6aeb"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2026-01-01T00:00:00Z",
+          "hash": "e02aac9a7b8641b9b68152755e727cac34972a83743a2867226c897ecdd72062"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2026-02-01T00:00:00Z",
+          "hash": "5f0cc0d186abdf7897685b06e8049a0b3df1a46a27a1a1311fc84b8e0b300442"
+        },
+        {
+          "operator": "did:web:op-a.example",
+          "type": "EnergyAttested",
+          "month": "2026-03-01T00:00:00Z",
+          "hash": "d5ef820c52ec9a68b78dc7735bcbf87f777a5817562208f107638b287d167200"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-04-01T00:00:00Z",
+          "hash": "d6a9233744bfdd172fe838c394e3ebfe2470245aedcecc63f8992da3e8f70c4b"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-05-01T00:00:00Z",
+          "hash": "4b652195ddccac11cc3053c59faac5a067dbb84edf6fb679148d716731d14bb0"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-06-01T00:00:00Z",
+          "hash": "30368ec99b4b65c5ada3336c969d48bd17d289d08d7a5a08ce632daf3049d255"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-07-01T00:00:00Z",
+          "hash": "d99f60503744ae48a0c1c6ce26d1315358b24b0a784a2b7843837c0a18db8a65"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-08-01T00:00:00Z",
+          "hash": "1b41173b213e213430fbb51c9b9b76b5a82e68246a65df4cdfc356b81e71a341"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-09-01T00:00:00Z",
+          "hash": "71aa0fc44b0d617cde835393904acf4e53c48c11fe56427ae968444643e232f8"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-10-01T00:00:00Z",
+          "hash": "9ba5b094ef791b98111e45614ca7657aea42c136e69fb49326021092c310f58c"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-11-01T00:00:00Z",
+          "hash": "416fcc3aa0d27592776d1685b7124e8b58390143948e9cb81c4d75b6c468a0c4"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "38b7b8d184e05274deec5af4e69f20385f6e7a72bf7917ee18c54c456fdbd489"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2026-01-01T00:00:00Z",
+          "hash": "a70da57d8463974096401fe7c51252df8e48fd7fc66fb4e0f8603b352e46608b"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2026-02-01T00:00:00Z",
+          "hash": "970fe4463861fe6feaa8f3210781fb2467fe41cf4d1ef5a9e0d9723d82a30188"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "CarbonAttested",
+          "month": "2026-03-01T00:00:00Z",
+          "hash": "28d72f3d9660c3edb233bb9f8d841477a0983a0dbe4dc4efb7d7f57704b7fd92"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2025-04-01T00:00:00Z",
+          "hash": "738dc5a3427b80b589533e640d9d97ffa603c0016b6b03cd9a7e537ecf28d973"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2025-05-01T00:00:00Z",
+          "hash": "15ca91883c64d9658cca0fdb0ab18079714ba120c2f535aea3a6e14b7208a3e4"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2025-06-01T00:00:00Z",
+          "hash": "b485e4ce0c83f1ecb352baf2ce93c96f9820f821717f58c68a68685e53842356"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2025-07-01T00:00:00Z",
+          "hash": "db001a75758097092f79195258c9f1838ae4c843304643d2e9f948002d178b4b"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2025-08-01T00:00:00Z",
+          "hash": "bbeadc43c19a9037b037d16be5a7a0550a4db848b9922ff77479a071db0d634b"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2025-09-01T00:00:00Z",
+          "hash": "0923be49c4f4bf09d19a5d0ef4c14f0f635399712891b594ab79fedcfe331f9e"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2025-10-01T00:00:00Z",
+          "hash": "4b1554d8f35080f36a3219ef60ba0fc5fde2c22162952d1162442e2a04c68a1a"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "888d1eb11fa1afc093a21d210d1420b153fd735442eee94e5ca2dd48ca511df3"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2026-01-01T00:00:00Z",
+          "hash": "9c46d825503df3e687f6af1f8d576cc32544378e3f6d487d1ef99f17bc11aa58"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2026-02-01T00:00:00Z",
+          "hash": "f25918b43bb5d3b6fcb0c0281e74fe1128c25381684fcec6cf585715f20130ff"
+        },
+        {
+          "operator": "did:web:op-b.example",
+          "type": "EnergyAttested",
+          "month": "2026-03-01T00:00:00Z",
+          "hash": "06efa08c7a46daa5e3454e919db2e440759a725c5989932a04485f79b0ba5926"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2025-04-01T00:00:00Z",
+          "hash": "18e184d81496c66c981b8a022a9526eb8c32a4445d23bd1a28947cf71d53758a"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2025-05-01T00:00:00Z",
+          "hash": "49e5f884ce5397a49854caa1749c752e3456c1bb4198ad32192e83a0719a5d06"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2025-06-01T00:00:00Z",
+          "hash": "54b3ee9d9c2574b9e53466285430640f10fe2d475e74f12fb5995639eb24d144"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2025-07-01T00:00:00Z",
+          "hash": "1e299f535ecd0360681c4a312c8067830c1c425ef655103cb4299c433dc9890b"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2025-08-01T00:00:00Z",
+          "hash": "e81538d0e6bee5b1e88e5fb3857ed7d5beca5b4c896c8d89ff45ae3e02fd59eb"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2025-09-01T00:00:00Z",
+          "hash": "189a9d40cbe792cc8816f5a60e7f139dc256ed890219bf91113a94988b57562c"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2025-10-01T00:00:00Z",
+          "hash": "fb1cc1b862d748bbcf8cc0da10cdde5e0d993b8942d3450468d80bbd6b13e683"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2025-11-01T00:00:00Z",
+          "hash": "0dfa32c55d3b235d383392fddc47788f0231dea11ac84257ef88efa39dd36a98"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "aba8daa310884edd51d0c3ff22dfb39d662285c663556641c47d9e051ea40cb6"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2026-01-01T00:00:00Z",
+          "hash": "1c859bd57be7a7f3bf8da591670ce6ad3d653bb92b9292b63adbe2a9bfe6ac9c"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2026-02-01T00:00:00Z",
+          "hash": "5114fea251c690037c540f938423d70527a644867d1c5a79ae1194e6ffc91b61"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "CarbonAttested",
+          "month": "2026-03-01T00:00:00Z",
+          "hash": "856453e8fe79fa27c7e87c2bb0865be2a1a5463ad2b92b2cfcc04be02188dc45"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2025-04-01T00:00:00Z",
+          "hash": "ab75712249a7597b8604d7b6ea97cb9cd7d3df42988734c1bcfa8231728db8f2"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2025-05-01T00:00:00Z",
+          "hash": "351c8fed080fcdc5b19bc91c4dc1dcb5f64719e102e7d34442f42595c67f457f"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2025-06-01T00:00:00Z",
+          "hash": "bbd63641be95db8eb6854cb2fbd017c1c0d78d0f4eb7b8d765970a3329b8673e"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2025-07-01T00:00:00Z",
+          "hash": "47495a0ed769c054e71c2f84f8ef38552a1e049cb35eaae46c5cf82225562351"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2025-08-01T00:00:00Z",
+          "hash": "7c2b02490dd6242f3ee3639c114afce338213314a4ee6c1bf230534dbdfbde69"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2025-09-01T00:00:00Z",
+          "hash": "670cf00207a0fd15a4732c6992a614bfbbe257c1313b5eeec31d473a3d0a35d7"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2025-10-01T00:00:00Z",
+          "hash": "214aec5ec4173cffa00bfea6325f6e3a4e38142767d51c73098a2f203fcb4b39"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2025-11-01T00:00:00Z",
+          "hash": "1cc3d7bb4a2d67d0ba45060ccdc9fdb10546f7e9fc041359d56c530024a6a89f"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2025-12-01T00:00:00Z",
+          "hash": "3c4fd6dac81faee1429f6b93cb7d6a507c7a829de5c3a1b662e3ed082a929235"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2026-01-01T00:00:00Z",
+          "hash": "bc3889ad1819af4829b7003b513a1a73856ad8b086f4b87331d2fd09c973cb0f"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2026-02-01T00:00:00Z",
+          "hash": "aa453bd260dacdda0baf1824ee5915bc4fd3a133128aadc7f2248c68840a2ad5"
+        },
+        {
+          "operator": "did:web:op-c.example",
+          "type": "EnergyAttested",
+          "month": "2026-03-01T00:00:00Z",
+          "hash": "b232d9c26c56b2981a7c8397712c62accc291248d33cc0970109679c78f89c25"
+        }
+      ],
+      "derived": [
+        {
+          "spec": {
+            "period": {
+              "start": "2025-04-01T00:00:00Z",
+              "end": "2026-04-01T00:00:00Z"
+            },
+            "cutoff": "2026-05-02T00:10:00Z",
+            "level": "network",
+            "energyUnit": "MWh",
+            "carbonUnit": "tCO2e",
+            "consensus": "proof-of-authority"
+          },
+          "incomplete": {
+            "energy": true,
+            "carbon": false
+          },
+          "silent": ["did:web:op-b.example 2025-11 EnergyAttested"],
+          "evidence": {
+            "profile-version": "2.0",
+            "ledger-access-uri": "https://ledger.example/sfc/read",
+            "operators": [
+              {"operator":"did:web:op-a.example","origin":"node.op-a.example","energy-head":"d5ef820c52ec9a68b78dc7735bcbf87f777a5817562208f107638b287d167200","carbon-head":"5846f8bd4cdf4bffd48770efc739cb1d88dbf41c66b3d46fc2f22b567ebeae16","energy-events":13,"carbon-events":12,"kwh":242558.5,"scope1-kgco2e":0,"scope2-kgco2e":4541,"scope3-kgco2e":2700,"offsets-kgco2e":12000,"offset-coverage-every-period":true},
+              {"operator":"did:web:op-b.example","origin":"node.op-b.example","energy-head":"06efa08c7a46daa5e3454e919db2e440759a725c5989932a04485f79b0ba5926","carbon-head":"28d72f3d9660c3edb233bb9f8d841477a0983a0dbe4dc4efb7d7f57704b7fd92","energy-events":11,"carbon-events":12,"kwh":238697.75,"scope1-kgco2e":0,"scope2-kgco2e":4254,"scope3-kgco2e":2640,"offsets-kgco2e":12000,"offset-coverage-every-period":true},
+              {"operator":"did:web:op-c.example","origin":"node.op-c.example","energy-head":"b232d9c26c56b2981a7c8397712c62accc291248d33cc0970109679c78f89c25","carbon-head":"856453e8fe79fa27c7e87c2bb0865be2a1a5463ad2b92b2cfcc04be02188dc45","energy-events":12,"carbon-events":12,"kwh":278458.5005,"scope1-kgco2e":0,"scope2-kgco2e":4494,"scope3-kgco2e":2700,"offsets-kgco2e":12000,"offset-coverage-every-period":true}
+            ],
+            "network-offset-coverage": true
+          },
+          "top": {
+            "measurement-method": "cloud-billing",
+            "scope-2": 13.289,
+            "scope-3": 8.04,
+            "carbon-footprint": 21.329,
+            "carbon-unit": "tCO2e",
+            "carbon-accounting": "market-based"
+          },
+          "carbonNeutrality": {
+            "net-zero-status": "achieved",
+            "offsets-retired-tCO2e": 36
+          },
+          "networkTopology": {
+            "consensus-mechanism": "proof-of-authority"
+          },
+          "location": null
+        }
+      ]
+    }
+  }
+}

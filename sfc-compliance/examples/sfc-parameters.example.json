@@ -1,0 +1,53 @@
+{
+  "registrar-keys": [
+    {
+      "jwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+      },
+      "status": "current"
+    }
+  ],
+  "retirement-registries": ["https://registry.example","https://serials.example"],
+  "reference-forms": [
+    {
+      "registry": "https://registry.example",
+      "rules": ["upper-case","no-surrounding-space"]
+    },
+    {
+      "registry": "https://serials.example",
+      "rules": ["range-first-last"]
+    }
+  ],
+  "platform": {
+    "hot-path": "Example permissioned ledger",
+    "access": "permissioned",
+    "mechanism": "proof-of-authority",
+    "n": 30,
+    "p-watts": 500,
+    "o": 1.5
+  },
+  "takeovers": [
+    {
+      "operator": "did:web:op-a.example",
+      "type": "EnergyAttested",
+      "ledger": "old-ledger.example",
+      "tip": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "registry-1x-digests": [
+    {
+      "operator": "did:web:op-b.example",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  ],
+  "beneficiaries": [
+    {
+      "beneficiary": "Operator A Example Ltd",
+      "operator": "did:web:op-a.example"
+    }
+  ],
+  "void-requesters": ["did:web:op-a.example"],
+  "scope2-basis-1x": "market-based"
+}

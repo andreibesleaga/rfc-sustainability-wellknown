@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - "sfc-compliance/**"
+      - ".github/workflows/sfc-compliance.yml"
 
 permissions:
   contents: read
@@ -25,21 +26,26 @@ jobs:
         with:
           node-version: "22"
 
-      # `sfc-compliance` has NO lockfile by design: it depends on exactly one
-      # package, the PUBLISHED consumer, and is meant to demonstrate that the
-      # profile can be checked with nothing but what is on the registry. So
-      # `npm install`, never `npm ci`.
-      #
-      # Locally the same suite runs against the
-      # tarball in ../consumer (see sfc-compliance/README.md).
-      - name: Install the published consumer
-        run: npm install
+      # The lockfile pins the published consumer library and the test tools.
+      - name: Install
+        run: npm ci
 
+      # The Python cross-check of the vectors needs python3; setup-python makes that independent of the runner image.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      # npm test regenerates the vectors into a temporary folder, checks they equal the committed
+      # files, and runs the Python cross-check (vectors/crosscheck.py), so there is no separate
+      # cross-check step. SFC_REQUIRE_PYTHON makes the test fail, not skip, when python3 is missing
+      # (test/vectors.test.mjs reads it).
       - name: Test
         run: npm test
+        env:
+          SFC_REQUIRE_PYTHON: "1"
 
-      - name: Check the network-level reference declaration
-        run: node sfc-check.mjs examples/sfc-network.example.json
+      - name: Check the two reference declarations
+        run: npm run check
 
-      - name: Check the operator-level reference declaration
-        run: node sfc-check.mjs examples/sfc-operator.example.json
+      - name: Check code complexity
+        run: npm run lint

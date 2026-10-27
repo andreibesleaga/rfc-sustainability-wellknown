@@ -1,8 +1,8 @@
 {
   "name": "sfc-compliance",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "private": true,
-  "description": "The SFC profile of the sustainability-data well-known URI: the normative profile, two reference declarations, and sfc-check, a checker built on the published consumer library.",
+  "description": "Checker for the SFC profile, version 2.0: shallow and deep checks of a sustainability declaration against the draft -10 wire and a ledger read, with the schemas, test vectors and examples of the profile.",
   "license": "BSD-3-Clause",
   "author": "Andrei Nicolae Besleaga",
   "type": "module",
@@ -10,13 +10,18 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "check": "node sfc-check.mjs examples/sfc-network.example.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check": "node sfc-check.mjs examples/sfc-network.example.json --now 2026-05-02T00:10:00Z && node sfc-check.mjs examples/sfc-operator.example.json --now 2026-05-02T00:10:00Z",
+    "lint": "eslint lib vectors sfc-check.mjs",
+    "vectors": "node vectors/make-vectors.mjs && python3 vectors/crosscheck.py"
   },
   "dependencies": {
-    "sustainability-wellknown-consumer": "^0.8.1"
+    "sustainability-wellknown-consumer": "^0.8.2"
   },
   "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "eslint": "^10.13.0",
     "vitest": "^5.0.0"
   }
 }

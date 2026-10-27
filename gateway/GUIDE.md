@@ -91,7 +91,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 cd gateway
 npm install
 npm run build
-npm test                       # 737 tests
+npm test                       # full gateway suite (vitest)
 node dist/index.js             # binds 0.0.0.0:8080
 ```
 
@@ -355,6 +355,9 @@ which reads the same data from a file, is not used here):
 | `yang-energy-demo.example` | `yang-power-energy` (this gateway's own, `src/adapters/yang-power-energy.ts`) | **replay** — two recorded RFC 7951 snapshots of the IETF GREEN `ietf-power-and-energy` module; invented figures; no public RESTCONF server implements the draft |
 | `dist-demo.example` | `dist` (this gateway's own, `src/adapters/dist.ts`) | **live** — the Green Web Foundation's own `dist.json`, fetched daily and summed under strict rules (CC BY 4.0, attributed in band); replay of a recorded copy when unreachable |
 | `sfc-ledger-demo.example` | `sfc-ledger-bridge` (this gateway's own, `src/adapters/sfc-ledger-bridge.ts`), EXPERIMENTAL | **replay** — a recorded synthetic ledger excerpt (one operator, January–April 2026) signed with the public RFC 8032 test key; the declaration is signed with the same key and carries the `ledger-evidence` extension of disclosure profile 1.1; both bridge checks run on it at boot |
+| `sfc-ledger-demo-2.example` | `sfc-ledger-bridge` (this gateway's own; SFC profile 2.0 code in `src/adapters/sfc-ledger-2/`), EXPERIMENTAL | **replay** — a recorded synthetic ledger read (excerpt format 2: three operators, fifteen months, their Registry entries) from the SFC 2.0 test vectors, bridged into the signed market-based network declaration for 2025 with `ledger-evidence-2`; signed with the public RFC 8032 test key; both checks of SFC profile 2.0 run on it at boot; to run the script's checks from outside (it is not a full SFC 2 verifier), see METHODOLOGY.md §4 ("Running the 2.0 checks on these three demos") |
+| `sfc-network-2.example` | `sfc-reference-declaration` (a static relay inside `src/adapters/demo-specs.ts`) | **replay** — the reference network declaration of `sfc-compliance/examples/` (its market-based primary object; a subject relays one object), re-signed with the public test key; both checks run on it at boot (outside check: METHODOLOGY.md §4, needs `--excerpt`) |
+| `sfc-operator-2.example` | `sfc-reference-declaration` (as above) | **replay** — the reference operator declaration of `sfc-compliance/examples/` (one operator, January 2025), re-signed with the public test key; both checks run on it at boot (outside check: METHODOLOGY.md §4, needs `--excerpt`) |
 
 The mode contract lives in `src/live.ts`: a live build failure at boot falls
 back to the recorded fixture (the gateway never refuses to start because
@@ -699,7 +702,8 @@ service. It exercises every optional part of the draft:
   and refuses to start if that fails; a key that cannot be imported also stops
   the boot. Relayed declarations are never signed: the gateway can vouch for its
   own bytes, never for a third party's figures. (The synthetic
-  `sfc-ledger-demo.example` is the stated exception: it is signed with the public
+  `sfc-ledger-demo.example`, `sfc-ledger-demo-2.example`, `sfc-network-2.example` and
+  `sfc-operator-2.example` are the stated exceptions: they are signed with the public
   RFC 8032 test key, which is nobody's statement.)
 - **Upstream.** The gateway's own declaration carries **no** `upstream` member.
   The hosting platform publishes no declaration, so naming one would be false —

@@ -321,7 +321,7 @@ Feature: Reference gateway demos
     And the page lists every example with its exact request
     When I send GET "/index.json"
     Then the body has the lists "subjects", "adapter-demonstrations" and "wire-format-examples"
-    And the list "adapter-demonstrations" has 11 entries
+    And the list "adapter-demonstrations" has 14 entries
     And the list "wire-format-examples" has 42 entries
     And every entry has "period" as an object with "start" and "end"
 

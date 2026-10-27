@@ -4,6 +4,18 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
+### **Version 10 to Version 11 (`draft-besleaga-sustainability-wellknown`) — posted 2026-10-27**
+
+Editorial, at the Independent Submissions Editor's comments on `-10`. **A `-10` document is a valid `-11` document:** the
+wire format, the CDDL and every requirement are unchanged. The paragraph on how strings are compared is removed, and each
+place that compares strings says "compared as a string". `updated` is the RFC 3339 `date-time` at which the object was last
+updated; the upper-case `T` and `Z` are left to the CDDL. `measurement-method` calls its four values methods rather than
+tokens. The `period` text keeps the half-open interval, the calendar-2025 example and the recommendations, and leaves how
+offsets are read and what a whole calendar period is to date-time libraries. The Implementation Status appendix records that
+the software and both deployments implement the format. The full list is the draft's "Since -10" appendix.
+
+---
+
 ### **Version 09 to Version 10 (`draft-besleaga-sustainability-wellknown`) — posted 2026-10-24**
 
 Changes the wire format, at the Independent Submissions Editor's suggestions on `-09`. **A `-09` document is not a valid `-10`

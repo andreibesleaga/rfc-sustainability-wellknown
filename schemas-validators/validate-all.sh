@@ -38,7 +38,7 @@ PYTHON="${PYTHON:-python3}"
 CORPUS_DIR="examples"
 MANIFEST="$CORPUS_DIR/manifest.json"
 EXAMPLES_DIR="../example-responses"
-DRAFT="../internet-drafts/draft-besleaga-sustainability-wellknown-10.md"
+DRAFT="../internet-drafts/draft-besleaga-sustainability-wellknown-11.md"
 
 for arg in "$@"; do
     case "$arg" in

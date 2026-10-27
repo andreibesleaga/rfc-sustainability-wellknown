@@ -436,7 +436,7 @@ One draft sentence [req-d2b6ec62] holds two verifiable statements: REQ-QRY-17a (
 #### REQ-PER-02 (Unwanted behaviour, Section 3.2)
 
 - **EARS.** If period.start is not before period.end, compared as instants, then the publisher gate shall refuse the object and the consumer shall report it invalid; an equal start and end is invalid; the schemas accept both.
-- **Draft (Section 3.2).** "start MUST be before end; bounds are compared as the instants they denote, whatever their offsets." [req-24108bed]
+- **Draft (Section 3.2).** "The period the object covers, from start, included, to end, excluded, each an [RFC3339] date-time; start MUST be before end." [req-c0278cfe]
 - **Implemented by.** publisher: src/period.ts parsePeriod throws PeriodError with code; src/normalize.ts wraps it; consumer: src/period.ts; src/validate.ts; gateway: src/validate.ts; tools: sustainability-publisher upgrade --check; schemas are silent (CDDL cannot compare), so the rule lives in code and in this requirement
 - **Verified by.** UT: publisher/test/period.test.ts; consumer/test/validate.test.ts. BDD: @REQ-PER-02 (g: start before end; e: equal bounds, end before start; x: start 2025-01-01T00:00:00+02:00 against end 2025-01-01T00:00:00Z is valid because the instants differ by two hours). SCH: R01, R02, R03 (prose set; the schemas accept them), mixed-offsets.example.
 
@@ -450,7 +450,7 @@ One draft sentence [req-d2b6ec62] holds two verifiable statements: REQ-QRY-17a (
 #### REQ-PER-04 (Ubiquitous, Section 3.2)
 
 - **EARS.** The publisher shall write boundaries at midnight UTC with the offset Z by default, and shall write each bound of a local accounting day in the offset in force at that boundary (a fixed offset or an IANA zone through Temporal), never +00:00 for UTC.
-- **Draft (Section 3.2).** "A bound is written in the offset of its boundary: boundaries at midnight UTC, written with the offset Z, are RECOMMENDED, and a publisher whose accounting day begins at a local midnight writes in each bound the offset in force at that boundary. [...] The publisher's accounting day begins at its local midnight, eight hours ahead of UTC and the same all year: both bounds carry that offset" [req-8322eb9f]
+- **Draft (Section 3.2).** "Bounds at midnight UTC, written with Z, are RECOMMENDED. [...] The publisher's accounting day begins at its local midnight, eight hours ahead of UTC and the same all year: both bounds carry that offset" [req-279994f2]
 - **Implemented by.** publisher: src/period.ts yearPeriod, monthPeriod, dayPeriod, quarterPeriod (offset = "Z"; zone option); src/cli.ts and adapters: slurm-sacct utcOffset; tools: tools/create-sustainability-data --offset; tools/report-to-declaration; sustainability-publisher upgrade --offset; kits: deploy/one-click (SD_START, SD_END), Home Assistant server.mjs monthPeriod, WordPress plugin
 - **Verified by.** UT: publisher/test/period.test.ts; publisher/test/csv-slurm.test.ts; tools tests. BDD: @REQ-PER-04 (g: default Z; Section 4.3 March 2026 at +08:00; x: Europe/Berlin March 2025 has +01:00 start and +02:00 end; +00:00 input is written as Z; e: an adapter that writes +00:00 for UTC fails the test (Z is written)). SCH: pos-negative-offset.json, example-3.json (+08:00).
 
@@ -478,7 +478,7 @@ One draft sentence [req-d2b6ec62] holds two verifiable statements: REQ-QRY-17a (
 #### REQ-PER-08 (Ubiquitous, Section 3.2)
 
 - **EARS.** The publisher shall warn, and by default shall not publish, an object whose period is shorter than a calendar day or whose bounds are not the first instant of a calendar day in their own offset; the 23-hour and 25-hour days of a daylight-saving change satisfy the rule; the operator may switch the default to warn or off. The publisher shall also warn, without dropping the object, when period.end is after updated. This requirement is the only place where either warning is stated; REQ-PRT-04 and REQ-PRV-02 cite it.
-- **Draft (Section 3.2).** "A period SHOULD be a calendar day or longer, each bound the first instant of a calendar day in its own offset (Section 6.1)." [req-305ad347]
+- **Draft (Section 3.2).** "A period SHOULD be one or more whole calendar days: a shorter one can tie figures to individual requests (Section 6.1), and whole days compare like for like." [req-36eb53b0]
 - **Implemented by.** publisher: src/security.ts secureReports dayFloor: "drop" | "warn" | "off" (default drop, with a diagnostic per dropped object; see ); src/period.ts isOnDayBoundaries; src/validate.ts warning updated-before-period-end; consumer: src/validate.ts period-below-day-floor warning, never an error; gateway: src/config.ts LIMITS; self report holds no object shorter than a day; kits: example-scripts/security.{js,php,py} floor on day boundaries parsed by the host RFC 3339 library
 - **Verified by.** UT: publisher/test/server.test.ts (12-hour period dropped, off-midnight period dropped, 23-hour DST day kept); publisher/test/hardening.test.ts; consumer/test/validate.test.ts; example-scripts/test_security.*. BDD: @REQ-PER-08 (g: whole days kept; e: a 12-hour period is dropped with a diagnostic; a period whose end is after updated keeps the object and warns; x: dayFloor warn keeps and warns, off keeps silently). SCH: -.
 
@@ -494,7 +494,7 @@ One draft sentence [req-d2b6ec62] holds two verifiable statements: REQ-QRY-17a (
 #### REQ-TGT-02 (Ubiquitous, Section 3.2)
 
 - **EARS.** The publisher shall emit target exactly as the operator supplied it, without translation, transliteration, case change or normalization, and the consumer shall compare it as a string and shall not translate or transliterate it for any output.
-- **Draft (Section 3.2).** "It is an opaque protocol element: it MUST NOT be translated or transliterated, and is compared as a string (Section 3.1)." [req-d38c718d]
+- **Draft (Section 3.2).** "It is an opaque protocol element: it MUST NOT be translated or transliterated, and is compared as a string." [req-d311a19d]
 - **Implemented by.** publisher: src/normalize.ts (target passes through; only the host rule of REQ-TGT-03 applies); consumer: src/signature.ts and src/upstream.ts compare with ===; src/cli.ts prints target verbatim (isolated); gateway: src/index-page.ts shows target verbatim
 - **Verified by.** UT: publisher/test/normalize.test.ts; consumer/test/signature.test.ts. BDD: @REQ-TGT-02 (g: target in Cyrillic, Han and Arabic unchanged; x: decomposed and precomposed forms stay distinct; e: an adapter that offers a translation hook for target is refused (Grün GmbH is never rewritten as Gruen GmbH)). SCH: V21.
 

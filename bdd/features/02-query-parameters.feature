@@ -601,7 +601,7 @@ Feature: Query parameters
     And the published period ends no later than "updated"
     And the operator was not warned about "updated-before-period-end"
 
-  @REQ-PRT-04 @REQ-PER-08 @error @req-23c17076 @req-305ad347
+  @REQ-PRT-04 @REQ-PER-08 @error @req-23c17076 @req-36eb53b0
   Scenario: A month in progress labelled as the whole month raises the updated-before-period-end warning
     Given a publisher given the period "2026-10-01T00:00:00Z" to "2026-11-01T00:00:00Z"
     When the publisher builds the declarations

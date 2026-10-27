@@ -1,5 +1,5 @@
 {
-  "source": "draft-besleaga-sustainability-wellknown-10.md",
+  "source": "draft-besleaga-sustainability-wellknown-11.md",
   "count": 44,
   "requirements": [
     {
@@ -68,20 +68,20 @@
       "text": "A consumer ignores a top-level member it does not recognize and MUST NOT treat its presence as an error ({{RFC7493}}, Section 4.2); this document defines no version member, since the media type identifies the format."
     },
     {
-      "id": "req-24108bed",
+      "id": "req-c0278cfe",
       "section": "Mandatory Members",
       "keywords": [
         "MUST"
       ],
-      "text": "`start` MUST be before `end`; bounds are compared as the instants they denote, whatever their offsets."
+      "text": "**period** (object): The period the object covers, from `start`, included, to `end`, excluded, each an {{RFC3339}} `date-time`; `start` MUST be before `end`."
     },
     {
-      "id": "req-8322eb9f",
+      "id": "req-279994f2",
       "section": "Mandatory Members",
       "keywords": [
         "RECOMMENDED"
       ],
-      "text": "A bound is written in the offset of its boundary: boundaries at midnight UTC, written with the offset `Z`, are RECOMMENDED, and a publisher whose accounting day begins at a local midnight writes in each bound the offset in force at that boundary."
+      "text": "Bounds at midnight UTC, written with `Z`, are RECOMMENDED."
     },
     {
       "id": "req-658f55db",
@@ -92,20 +92,20 @@
       "text": "Whole calendar years and months are RECOMMENDED, being the periods reports state and consumers compare."
     },
     {
-      "id": "req-305ad347",
+      "id": "req-36eb53b0",
       "section": "Mandatory Members",
       "keywords": [
         "SHOULD"
       ],
-      "text": "A period SHOULD be a calendar day or longer, each bound the first instant of a calendar day in its own offset ({{privacy-considerations}})."
+      "text": "A period SHOULD be one or more whole calendar days: a shorter one can tie figures to individual requests ({{privacy-considerations}}), and whole days compare like for like."
     },
     {
-      "id": "req-d38c718d",
+      "id": "req-d311a19d",
       "section": "Mandatory Members",
       "keywords": [
         "MUST NOT"
       ],
-      "text": "It is an opaque protocol element: it MUST NOT be translated or transliterated, and is compared as a string ({{body}})."
+      "text": "It is an opaque protocol element: it MUST NOT be translated or transliterated, and is compared as a string."
     },
     {
       "id": "req-cdc28d84",

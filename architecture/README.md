@@ -11,8 +11,8 @@ Context → Level 2 Container → Level 3 Component), written in
 inline (Mermaid source) and as a pre-rendered image in [`images/`](images/); the
 sources live in [`diagrams/`](diagrams/).
 
-**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-10.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-10.md)
-(the latest posted draft is **`-10`, posted 2026-10-24**; `-09` was posted 2026-10-16 and `-07`, which §3 describes in detail, on 2026-09-17; see [§3](#3-the-protocol-subsystem) for what
+**Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-11.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-11.md)
+(the latest posted draft is **`-11`, posted 2026-10-27**, with the wire format of `-10`, posted 2026-10-24; `-09` was posted 2026-10-16 and `-07`, which §3 describes in detail, on 2026-09-17; see [§3](#3-the-protocol-subsystem) for what
 it changes), with [`internet-drafts/draft-besleaga-sustainability-wellknown-06.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-06.md)
 kept as the historical reference for the prior posted revision
 (2026-09-10, the "2.0"-labeled `sustainability-data` URI rename), [`../README.md`](../README.md),
@@ -261,7 +261,7 @@ favor of a consumer-side bound; and removes the `X-Content-Type-Options:
 nosniff` recommendation. See the draft's own Changelog appendix for the full
 list.
 **`-06`** (schema `2.0`) is an *earlier posted revision* —
-posted to the Datatracker 2026-09-10 (superseded by `-07`, posted 2026-09-17; the latest posted revision is `-10`): it requires the
+posted to the Datatracker 2026-09-10 (superseded by `-07`, posted 2026-09-17; the latest posted revision is `-11`): it requires the
 dedicated `application/sustainability-data+json` media type, raises HTTPS
 from SHOULD to MUST, added `X-Content-Type-Options: nosniff` and the
 now-withdrawn detached JWS, with no wire-format change from `-05`. Earlier
@@ -524,8 +524,8 @@ posted revision (media type required, HTTPS MUST, `nosniff`, the
 now-withdrawn OPTIONAL detached JWS), to `-07`
 (2026-09-17: embedded `signed` member, `version` removed, closed
 member set, `extensions` by absolute URI, `upstream`, `nosniff` recommendation
-withdrawn — §3), `-08` (2026-10-09, prose only), `-09` (2026-10-16, the `period` object)
-and `-10`, the latest posted revision (2026-10-24: date-time bounds, closed token sets),
+withdrawn — §3), `-08` (2026-10-09, prose only), `-09` (2026-10-16, the `period` object),
+`-10` (2026-10-24: date-time bounds, closed token sets) and `-11`, the latest posted revision (2026-10-27, editorial),
 and the eventual Informational RFC + IANA registration.
 
 ![Version & revision states](images/version-state.png)
@@ -1039,7 +1039,7 @@ same JTD schema enforced, identically, at every layer.
 * Diagrams rendered with
   [`@mermaid-js/mermaid-cli`](https://github.com/mermaid-js/mermaid-cli)
   (`mmdc -s 2 -b white`).
-* **Repository ground truth** — the `-10` draft (latest posted, 2026-10-24; the active
+* **Repository ground truth** — the `-11` draft (latest posted, 2026-10-27, the `-10` wire format; the active
   source for the protocol content in this document — see §3), with `-06` kept
   as the historical prior-posted reference, root `README.md`,
   `publisher/src/`, `consumer/src/`, `schemas-validators/`,

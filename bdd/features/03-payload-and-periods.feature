@@ -83,7 +83,7 @@ Feature: Payload and periods
     When the consumer validates it
     Then it is not valid
 
-  @REQ-PER-02 @rk-mand-6 @error @req-24108bed
+  @REQ-PER-02 @rk-mand-6 @error @req-c0278cfe
   Scenario Outline: start must be before end, compared as instants
     Given a valid declaration object
     And the declaration has period "<start>" to "<end>"
@@ -99,14 +99,14 @@ Feature: Payload and periods
       | 2025-01-01T00:00:00+00:00   | 2025-01-01T00:00:00Z        |
       | 2025-01-01T00:00:00.5Z      | 2025-01-01T00:00:00.5Z      |
 
-  @REQ-PER-02 @rk-mand-6 @edge @req-24108bed
+  @REQ-PER-02 @rk-mand-6 @edge @req-c0278cfe
   Scenario: Instants decide, not the text, when the offsets differ
     Given a valid declaration object
     And the declaration has period "2025-01-01T00:00:00+14:00" to "2025-01-01T00:00:00Z"
     When the consumer validates it
     Then it is valid
 
-  @REQ-PER-02 @UC-1.1 @rk-mand-6 @error @req-24108bed
+  @REQ-PER-02 @UC-1.1 @rk-mand-6 @error @req-c0278cfe
   Scenario: The publisher refuses to build a period whose start is not before its end
     Given a publisher given the period "2025-02-01T00:00:00Z" to "2025-01-01T00:00:00Z"
     Then the publisher refuses to build it
@@ -198,13 +198,13 @@ Feature: Payload and periods
     Then it is valid
     And the periods "2025-01" and "2025" are reported as overlapping
 
-  @REQ-PER-04 @rk-mand-8 @golden @req-8322eb9f
+  @REQ-PER-04 @rk-mand-8 @golden @req-279994f2
   Scenario: A publisher writes each bound in the offset in force at that boundary
     Given a publisher given the calendar month "2025-03" in the time zone "Europe/Berlin"
     Then the published period is "2025-03-01T00:00:00+01:00" to "2025-04-01T00:00:00+02:00"
     And the period is classified as "monthly"
 
-  @REQ-PER-04 @REQ-PER-06 @UC-4.1 @rk-mand-8 @golden @req-8322eb9f
+  @REQ-PER-04 @REQ-PER-06 @UC-4.1 @rk-mand-8 @golden @req-279994f2
   Scenario Outline: A publisher whose accounting day is a local day writes the one offset it uses
     Given a publisher given the calendar month "2026-03" with the offset "<offset>"
     Then the published period is "2026-03-01T00:00:00<offset>" to "2026-04-01T00:00:00<offset>"
@@ -215,14 +215,14 @@ Feature: Payload and periods
       | +08:00 |
       | -05:00 |
 
-  @REQ-PER-04 @REQ-PER-07 @UC-1.1 @rk-mand-8 @rk-mand-10 @golden @req-658f55db @req-8322eb9f
+  @REQ-PER-04 @REQ-PER-07 @UC-1.1 @rk-mand-8 @rk-mand-10 @golden @req-658f55db @req-279994f2
   Scenario: A publisher writes whole UTC months and years with Z by default
     Given a publisher given the calendar year 2025
     Then the published period is "2025-01-01T00:00:00Z" to "2026-01-01T00:00:00Z"
     Given a publisher given the calendar month "2025-02"
     Then the published period is "2025-02-01T00:00:00Z" to "2025-03-01T00:00:00Z"
 
-  @REQ-PER-08 @rk-mand-10 @golden @req-305ad347
+  @REQ-PER-08 @rk-mand-10 @golden @req-36eb53b0
   Scenario Outline: A period of a calendar day or longer on day boundaries raises no warning
     Given a valid declaration object
     And the declaration has period "<start>" to "<end>"
@@ -238,7 +238,7 @@ Feature: Payload and periods
       | 2025-03-30T00:00:00+01:00   | 2025-03-31T00:00:00+02:00   |
       | 2026-03-01T00:00:00+08:00   | 2026-03-02T00:00:00+08:00   |
 
-  @REQ-PER-08 @UC-4.2 @rk-mand-10 @edge @req-305ad347
+  @REQ-PER-08 @UC-4.2 @rk-mand-10 @edge @req-36eb53b0
   Scenario Outline: A period shorter than a calendar day, or off day boundaries, is valid and draws a warning
     Given a valid declaration object
     And the declaration has period "<start>" to "<end>"
@@ -256,7 +256,7 @@ Feature: Payload and periods
       | one second           | 2025-01-01T00:00:00Z        | 2025-01-01T00:00:01Z        |
       | midnight UTC written in +08:00, so 08:00 local | 2025-01-01T08:00:00+08:00 | 2025-01-02T08:00:00+08:00 |
 
-  @REQ-PER-08 @rk-mand-10 @edge @req-305ad347
+  @REQ-PER-08 @rk-mand-10 @edge @req-36eb53b0
   Scenario: The warning is advice, never a refusal: the object stays valid and usable
     Given a valid declaration object
     And the declaration has period "2025-01-01T06:00:00Z" to "2025-01-01T07:00:00Z"
@@ -767,7 +767,7 @@ Feature: Payload and periods
       | x                       |
       | Acme Retail plc and sons |
 
-  @REQ-TGT-02 @golden @req-d38c718d @rk-mand-11
+  @REQ-TGT-02 @golden @req-d311a19d @rk-mand-11
   Scenario: A target with a diaeresis is published and read exactly as written
     Given an extended publisher holding the target "Grün GmbH"
     When the publisher builds the declarations
@@ -777,7 +777,7 @@ Feature: Payload and periods
     And the target member is not "Grun GmbH"
     And the publisher's options have no translate or transliterate member
 
-  @REQ-TGT-02 @edge @req-d38c718d @rk-mand-11
+  @REQ-TGT-02 @edge @req-d311a19d @rk-mand-11
   Scenario Outline: A target in another script is neither translated nor transliterated
     Given an extended publisher holding the target "<target>"
     When the publisher builds the declarations
@@ -790,7 +790,7 @@ Feature: Payload and periods
       | 株式会社サンプル      |
       | شركة المثال          |
 
-  @REQ-TGT-02 @edge @req-d38c718d @rk-mand-11
+  @REQ-TGT-02 @edge @req-d311a19d @rk-mand-11
   Scenario: Precomposed and decomposed forms of a name stay two different targets
     Given an extended publisher holding these periods:
       | label       | start                | end                  | target    |

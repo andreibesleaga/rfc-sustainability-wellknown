@@ -462,7 +462,7 @@ Feature: Security and privacy
 
   # ---- privacy ----
 
-  @REQ-PER-08 @REQ-PRV-02 @UC-4.1 @rk-mand-10 @golden @req-182dbb2b @req-305ad347
+  @REQ-PER-08 @REQ-PRV-02 @UC-4.1 @rk-mand-10 @golden @req-182dbb2b @req-36eb53b0
   Scenario: A publisher serves nothing shorter than a calendar day by default
     Given a publisher holding periods "2025-01-01T00:00:00Z/2025-01-01T12:00:00Z" and "2025-01-02T00:00:00Z/2025-01-03T00:00:00Z"
     When the publisher is served on a local port
@@ -470,7 +470,7 @@ Feature: Security and privacy
     Then the body lists only the period "2025-01-02T00:00:00Z/2025-01-03T00:00:00Z"
     And the operator was warned about "2025-01-01T00:00:00Z/2025-01-01T12:00:00Z"
 
-  @REQ-PER-08 @UC-4.1 @UC-1.1 @rk-mand-10 @edge @req-305ad347
+  @REQ-PER-08 @UC-4.1 @UC-1.1 @rk-mand-10 @edge @req-36eb53b0
   Scenario Outline: The day-floor option decides what happens to a short period
     Given the dayFloor option is "<option>"
     And a publisher holding periods "2025-01-01T00:00:00Z/2025-01-01T12:00:00Z"
@@ -485,7 +485,7 @@ Feature: Security and privacy
       | warn   | the period "2025-01-01T00:00:00Z/2025-01-01T12:00:00Z" | yes    |
       | off    | the period "2025-01-01T00:00:00Z/2025-01-01T12:00:00Z" | no     |
 
-  @REQ-PER-08 @rk-mand-10 @rk-mand-9 @edge @req-305ad347
+  @REQ-PER-08 @rk-mand-10 @rk-mand-9 @edge @req-36eb53b0
   Scenario Outline: The floor reads each bound in its own offset
     Given a publisher holding periods "<period>"
     When the publisher is served on a local port
@@ -499,7 +499,7 @@ Feature: Security and privacy
       | 2026-03-01T08:00:00+08:00/2026-03-02T08:00:00+08:00 | no periods            |
       | 2026-03-01T00:00:00+08:00/2026-03-02T00:00:00+08:00 | that period           |
 
-  @REQ-PER-08 @UC-7.1 @rk-mand-10 @golden @req-305ad347
+  @REQ-PER-08 @UC-7.1 @rk-mand-10 @golden @req-36eb53b0
   Scenario: The reference gateway serves only day boundaries
     Given the reference gateway is running
     When I send GET "/.well-known/sustainability-data?granularity=daily&start=2026-01-01T00:00:00Z&end=2026-12-31T00:00:00Z"

@@ -84,7 +84,7 @@ Feature: Personas and usage scenarios
     And the consumer walks the upstream chain
     And at most 3 upstream declarations were retrieved
 
-  @persona-device @REQ-ENG-01 @REQ-PER-08 @UC-4.1 @rk-opt-2 @rk-mand-10 @golden @req-305ad347
+  @persona-device @REQ-ENG-01 @REQ-PER-08 @UC-4.1 @rk-opt-2 @rk-mand-10 @golden @req-36eb53b0
   Scenario: A device reports small energies in watt-hours for a calendar day
     Given a valid declaration object with target-type "device" and target "sensor-7f3a"
     And the member "energy-consumption" is the number 850
@@ -350,7 +350,7 @@ Feature: Personas and usage scenarios
     Then the tool refuses and names "disclosure-uri"
     And no output file was written
 
-  @REQ-NUM-01 @REQ-DRV-03 @REQ-TTY-01 @REQ-MTH-01 @REQ-PER-02 @error @UC-1.1 @req-27e5209f @req-24108bed
+  @REQ-NUM-01 @REQ-DRV-03 @REQ-TTY-01 @REQ-MTH-01 @REQ-PER-02 @error @UC-1.1 @req-27e5209f @req-c0278cfe
   Scenario Outline: A value the draft forbids is refused, and the refusal names what is wrong or the allowed set
     Given the create-sustainability-data tool is given the default answers
     And the answer "<answer>" is "<value>"

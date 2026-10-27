@@ -12,7 +12,8 @@
 > `0.3.0` implement `-10`. The "366 objects", "aggregation" and `400`/`404` query rules described below for `-06` and
 > `-07` are gone since `-09`: a server returns what it holds and a value it cannot read is ignored. Issue #103 (carbon.txt) was
 > closed by the registry maintainer on 2026-10-21 as completed, with no registration; wherever it is described below as
-> open, declined as filed, or "waiting for input", that is the record up to 2026-10-03.
+> open, declined as filed, or "waiting for input", that is the record up to 2026-10-03. `-11`, posted on 2026-10-27, is
+> editorial and keeps the `-10` wire format.
 
 ## TL;DR
 

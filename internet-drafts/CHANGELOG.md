@@ -4,6 +4,14 @@ The document was published under two names. Versions **00–05** were `draft-bes
 
 ---
 
+### **Version 11 to Version 12 (`draft-besleaga-sustainability-wellknown`) — posted 2026-10-28**
+
+Editorial, at the Independent Submissions Editor's comment on `-11`: the second sentence of the note after the CDDL in
+the Formal Definition section is removed. The wire format, the CDDL and every requirement are unchanged. The draft's
+"Since -11" appendix records the change.
+
+---
+
 ### **Version 10 to Version 11 (`draft-besleaga-sustainability-wellknown`) — posted 2026-10-27**
 
 Editorial, at the Independent Submissions Editor's comments on `-10`. **A `-10` document is a valid `-11` document:** the

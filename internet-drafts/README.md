@@ -9,13 +9,17 @@ Source and rendered forms of the Internet-Draft, plus supplementary material.
 Well-Known URI* — the Datatracker document name is unchanged).
 Individual submission on the IETF **Independent Submission Stream** (Informational).
 
-- **`-11`** is the **latest posted** revision (posted 2026-10-27, under ISE review; sources in this directory:
+- **`-12`** is the **latest posted** revision (posted 2026-10-28, under ISE review; sources in this directory:
+  `draft-besleaga-sustainability-wellknown-12.{md,xml,txt}`). It is editorial, at the Independent Submissions Editor's
+  comment on `-11`: the second sentence of the note after the CDDL is removed. The wire format, the CDDL and the
+  requirements are those of `-10`. See the draft's own "Since -11" changelog appendix.
+- **`-11`** is the prior posted revision (posted 2026-10-27; sources in this directory:
   `draft-besleaga-sustainability-wellknown-11.{md,xml,txt}`). It is editorial, at the Independent Submissions Editor's
   comments on `-10`: the paragraph on string comparison is removed, `updated` stops at "last updated", `measurement-method`
   calls its four values methods, and the `period` text keeps the half-open interval, the example and the recommendations.
   The wire format, the CDDL and the requirements are those of `-10`, so a `-10` document is a valid `-11` document. See
   the draft's own "Since -10" changelog appendix.
-- **`-10`** is the prior posted revision (posted 2026-10-24; sources in this directory:
+- **`-10`** is an earlier posted revision (posted 2026-10-24; sources in this directory:
   `draft-besleaga-sustainability-wellknown-10.{md,xml,txt}`). It changes the wire format at the Independent Submissions
   Editor's suggestions on `-09`: every date is an RFC 3339 `date-time` (`period.start` and `period.end` are instants, the
   period is half-open, and the `start` and `end` query parameters are UTC date-times, a value that does not match the grammar
@@ -101,10 +105,13 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 |---|---|
 | `build.sh` | Build-and-check script for any revision (see "Building the draft" below). |
 | `v3-postprocess.py` | Run by `build.sh` and CI on the generated XML: drops `<?line?>` PIs, un-nests the References sections, removes cited-reference abstracts and the BCP 14 no-break space, so idnits3 reports no nits in any mode. |
-| `draft-besleaga-sustainability-wellknown-11.md` | Markdown source of the latest posted revision (posted 2026-10-27). Do not edit — it is a posted artifact; further changes go to a future `-12` file. |
+| `draft-besleaga-sustainability-wellknown-12.md` | Markdown source of the latest posted revision (posted 2026-10-28). Do not edit — it is a posted artifact; further changes go to a future `-13` file. |
+| `draft-besleaga-sustainability-wellknown-12.xml` | xml2rfc v3 XML of `-12` — the submission form. |
+| `draft-besleaga-sustainability-wellknown-12.txt` | Rendered plain-text form of `-12`. |
+| `draft-besleaga-sustainability-wellknown-11.md` | Markdown source of the prior posted revision (posted 2026-10-27). Do not edit — it is a posted artifact. |
 | `draft-besleaga-sustainability-wellknown-11.xml` | xml2rfc v3 XML of `-11` — the submission form. |
 | `draft-besleaga-sustainability-wellknown-11.txt` | Rendered plain-text form of `-11`. |
-| `draft-besleaga-sustainability-wellknown-10.md` | Markdown source of the prior posted revision (posted 2026-10-24). Do not edit — it is a posted artifact. |
+| `draft-besleaga-sustainability-wellknown-10.md` | Markdown source of an earlier posted revision (posted 2026-10-24). Do not edit — it is a posted artifact. |
 | `draft-besleaga-sustainability-wellknown-10.xml` | xml2rfc v3 XML of `-10` — the submission form. |
 | `draft-besleaga-sustainability-wellknown-10.txt` | Rendered plain-text form of `-10`. |
 | `draft-besleaga-sustainability-wellknown-09.md` | Markdown source of an earlier posted revision (posted 2026-10-16). Do not edit — it is a posted artifact. |
@@ -123,8 +130,8 @@ Individual submission on the IETF **Independent Submission Stream** (Information
 | `draft-besleaga-sustainability-wellknown-05.xml` | xml2rfc v3 XML of `-05` — the authoritative submission form. |
 | `draft-besleaga-sustainability-wellknown-05.txt` | Rendered plain-text form of `-05`. |
 
-`-05` to `-10` are posted revisions kept as files for reference; `-10` (posted
-2026-10-24) is the prior posted revision; `-11` (posted 2026-10-27) is the latest. `-05` is kept in this directory for now.
+`-05` to `-11` are posted revisions kept as files for reference; `-11` (posted
+2026-10-27) is the prior posted revision; `-12` (posted 2026-10-28) is the latest. `-05` is kept in this directory for now.
 Revisions `-00` through `-04` were removed once posted; they remain on the Datatracker and in
 this repository's git history.
 
@@ -251,7 +258,7 @@ The bullets above are kept as written on 2026-10-09. Since then:
   token members were still free text. **`-10` (posted 2026-10-24)** is not wire-compatible with `-09`: the bounds of
   `period` are RFC 3339 date-times, and `measurement-method`, `functional-unit`, `carbon-unit` and the `upstream` `role`
   take one of a listed set. The data model is still 7 mandatory and 19 optional members (26 total). **`-11` (posted
-  2026-10-27)** has the same wire format as `-10`.
+  2026-10-27)** and **`-12` (posted 2026-10-28)** have the same wire format as `-10`.
 - **Libraries:** `0.7.x` implemented `-07`; the current releases, publisher `0.8.2` and consumer `0.8.2`, implement
   `-10`. The consumer reads the forms of `-08` and `-09` by default and reports what it converted or disregarded; the
   publisher's `upgrade` command converts a declaration file. The gateway is at `0.3.0`. The schemas in

@@ -253,7 +253,7 @@ export function objectsFromTable(table) {
 
 /** The first JSON example under the heading "## <title>" of the draft in the repository. */
 export function draftExample(title) {
-  const draft = readFileSync(resolve(ROOT, "internet-drafts", "draft-besleaga-sustainability-wellknown-11.md"), "utf8");
+  const draft = readFileSync(resolve(ROOT, "internet-drafts", "draft-besleaga-sustainability-wellknown-12.md"), "utf8");
   const start = draft.indexOf(`\n## ${title}\n`);
   if (start < 0) throw new Error(`the draft has no section "${title}"`);
   const open = draft.indexOf("~~~ json\n", start);

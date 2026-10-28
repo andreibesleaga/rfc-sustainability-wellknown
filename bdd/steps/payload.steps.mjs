@@ -65,7 +65,7 @@ const METHODOLOGY = baseDeclaration()["methodology-uri"];
 
 /** The text of the draft under a heading: its first JSON example, byte for byte. */
 function draftExampleText(heading) {
-  const draft = readFileSync(resolve(ROOT, "internet-drafts", "draft-besleaga-sustainability-wellknown-11.md"), "utf8");
+  const draft = readFileSync(resolve(ROOT, "internet-drafts", "draft-besleaga-sustainability-wellknown-12.md"), "utf8");
   const start = draft.search(new RegExp(`^#{1,2} ${heading}$`, "m"));
   assert.ok(start >= 0, `the draft has no section "${heading}"`);
   const open = draft.indexOf("~~~ json\n", start) + "~~~ json\n".length;

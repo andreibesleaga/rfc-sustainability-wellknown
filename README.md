@@ -7,7 +7,7 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-11` (posted 2026-10-27), is under review by the Independent Submissions Editor; it shortens four passages at the Editor's comments on `-10` and keeps the `-10` wire format, in which every date is an RFC 3339 `date-time` and every token member takes one of a listed set. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md). Current repo software implements Internet-Draft version `-10`, whose wire format `-11` keeps: the publisher and the consumer `0.8.2`, the gateway `0.3.0`.
+**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-12` (posted 2026-10-28), is under review by the Independent Submissions Editor; it removes one sentence after the CDDL at the Editor's comment on `-11`, and like `-11` it keeps the `-10` wire format, in which every date is an RFC 3339 `date-time` and every token member takes one of a listed set. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md). Current repo software implements Internet-Draft version `-10`, whose wire format `-11` keeps: the publisher and the consumer `0.8.2`, the gateway `0.3.0`.
 
 Presented at the IRTF Sustainability Research Group (IETF 126, July 2026); Independent Submission under review.
 
@@ -194,14 +194,15 @@ System architecture, with C4 diagrams: [architecture/README.md](architecture/REA
 ## internet-drafts/
 
 The draft in Markdown, xml2rfc XML and rendered text, plus supplementary documents. The directory keeps the posted
-`-05` to `-11`; earlier revisions are on the
+`-05` to `-12`; earlier revisions are on the
 [Datatracker](https://datatracker.ietf.org/doc/draft-besleaga-sustainability-wellknown/) and in this repository's
 git history. The full revision history is in [internet-drafts/README.md](internet-drafts/README.md).
 
 | File | Description |
 |---|---|
-| `draft-besleaga-sustainability-wellknown-11.md` / `.xml` / `.txt` | **Latest posted revision** (posted 2026-10-27, under ISE review). Editorial, at the Editor's comments on `-10`: the string-comparison paragraph is removed, `updated` and `period` are defined more briefly, and `measurement-method` calls its values methods; the wire format, the CDDL and the requirements are those of `-10` |
-| `draft-besleaga-sustainability-wellknown-10.md` / `.xml` / `.txt` | **Prior posted revision** (posted 2026-10-24). Changes the wire format at the Editor's suggestions on `-09`: every date is an RFC 3339 `date-time`, `period` is a half-open range of two such values, the `start` and `end` query parameters are UTC date-times, and `measurement-method`, `functional-unit`, `carbon-unit` and the `upstream` `role` take one of a listed set (the Internationalization Considerations section is removed and Security Considerations is shortened) |
+| `draft-besleaga-sustainability-wellknown-12.md` / `.xml` / `.txt` | **Latest posted revision** (posted 2026-10-28, under ISE review). Editorial, at the Editor's comment on `-11`: one sentence after the CDDL is removed; the wire format, the CDDL and the requirements are those of `-10` |
+| `draft-besleaga-sustainability-wellknown-11.md` / `.xml` / `.txt` | **Prior posted revision** (posted 2026-10-27). Editorial, at the Editor's comments on `-10`: the string-comparison paragraph is removed, `updated` and `period` are defined more briefly, and `measurement-method` calls its values methods; the wire format, the CDDL and the requirements are those of `-10` |
+| `draft-besleaga-sustainability-wellknown-10.md` / `.xml` / `.txt` | Earlier posted revision (posted 2026-10-24). Changes the wire format at the Editor's suggestions on `-09`: every date is an RFC 3339 `date-time`, `period` is a half-open range of two such values, the `start` and `end` query parameters are UTC date-times, and `measurement-method`, `functional-unit`, `carbon-unit` and the `upstream` `role` take one of a listed set (the Internationalization Considerations section is removed and Security Considerations is shortened) |
 | `draft-besleaga-sustainability-wellknown-09.md` / `.xml` / `.txt` | Earlier posted revision (posted 2026-10-16). Restructured the document and replaced `reporting-period` and the `period` query parameter with `period` (an object) and `start`, `end` and `granularity` |
 | `draft-besleaga-sustainability-wellknown-08.*`, `-07.*` | Earlier posted revisions (`-08` 2026-10-09, `-07` 2026-09-17; `-07` defined the embedded `signed` member, `upstream` and `extensions`) |
 | `draft-besleaga-sustainability-wellknown-06.*`, `-05.*` | Prior posted revisions, kept as files for reference |

@@ -12,8 +12,8 @@ inline (Mermaid source) and as a pre-rendered image in [`images/`](images/); the
 sources live in [`diagrams/`](diagrams/).
 
 **Ground truth**: [`internet-drafts/draft-besleaga-sustainability-wellknown-12.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-12.md)
-(the latest posted draft is **`-12`, posted 2026-10-28**, with the wire format of `-10`, posted 2026-10-24; `-09` was posted 2026-10-16 and `-07`, which §3 describes in detail, on 2026-09-17; see [§3](#3-the-protocol-subsystem) for what
-it changes), with [`internet-drafts/draft-besleaga-sustainability-wellknown-06.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-06.md)
+(the latest posted draft is **`-12`**, with the wire format of `-10`; [§3](#3-the-protocol-subsystem) says what changed,
+and [`internet-drafts/README.md`](../internet-drafts/README.md) holds the full revision history), with [`internet-drafts/draft-besleaga-sustainability-wellknown-06.md`](../internet-drafts/draft-besleaga-sustainability-wellknown-06.md)
 kept as the historical reference for the prior posted revision
 (2026-09-10, the "2.0"-labeled `sustainability-data` URI rename), [`../README.md`](../README.md),
 [`publisher/src/`](../publisher/src/), [`consumer/src/`](../consumer/src/),

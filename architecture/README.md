@@ -150,7 +150,7 @@ The reference implementation decomposes into:
 
 | Container | Location | Role |
 |---|---|---|
-| **Source Adapters** | `publisher/src/adapters/` | 10 pluggable `SourceAdapter` factories turning any upstream into `RawMetrics` |
+| **Source Adapters** | `publisher/src/adapters/` | 12 pluggable `SourceAdapter` factories turning any upstream into `RawMetrics` |
 | **Publishing Pipeline** | `publisher/src/{normalize,security,validate,publisher}.ts` | normalize → safeguards → JTD validation gate → bounded cache + ETag |
 | **HTTP Layer** | `publisher/src/{handler,server,middleware/*,cli}.ts` | one framework-agnostic handler behind a standalone server, Express/Fastify middleware, and a CLI |
 | **carbon.txt Module** | `publisher/src/carbontxt.ts` | emit / parse / discover a bidirectional carbon.txt |
@@ -363,9 +363,8 @@ sequenceDiagram
 
 A response is a single `SustainabilityMetrics` object or an array of them
 (a trend). **As of `-07`: 7 members are mandatory, 19 optional — 26 total**
-(the reference codebase this section also describes still implements the
-`-06`/"2.0" count of 8 mandatory + 16 optional = 24, and carries the
-now-removed `version` member; see the note at the top of §3). Omission is the
+(the reference codebase has implemented this count since 0.7.0, and carries no
+`version` member; see the note at the top of §3). Omission is the
 only "not reported" mechanism (true since `-03`, unaffected by `version`'s
 removal): a present member always carries a real value. Gross quantities are
 non-negative; `renewable-energy` is bounded 0–100 inclusive; `scope-1/2/3`
@@ -388,10 +387,11 @@ methodology document should list the names it uses with their definitions. `-07`
 array of `{declaration, role?}` objects linking to the declarations of
 providers this object's figures derive from, walked by a consumer to a depth
 of at most three, refusing revisited URIs) and `signed` (an OPTIONAL embedded
-JWS replacing the withdrawn `.jws` companion resource). The reference
-codebase's open schema (`additionalProperties` / `* tstr => any`) still
-implements only the `-06` convention; the closed member set, `extensions`,
-and `upstream` are not yet wired in.
+JWS replacing the withdrawn `.jws` companion resource). The schemas in
+`schemas-validators/` stay open (`additionalProperties` / `* tstr => any`) so
+that a consumer ignores a member it does not recognize; they define
+`extensions` and `upstream`, and the publisher's validation gate refuses a
+top-level member the draft does not define.
 
 ![Data model](images/data-model.png)
 
@@ -596,11 +596,12 @@ spreadsheets); the gateway's adapter layer flattens all of them into one
 loosely-typed `RawMetrics` shape, and a single deterministic pipeline turns that
 into a draft-conformant document.
 
-**The 10 adapters** (`publisher/src/adapters/`, factory names as registered in
+**The 12 adapters** (`publisher/src/adapters/`, factory names as registered in
 `cli.ts`): `static`, `static-file`, `computed`, `kepler-prometheus`, `climatiq`,
 `co2js` (Green Web Foundation CO2.js, bytes → carbon, with Greencheck),
-`carbontxt-api` (GWF hosted carbon.txt API), and the enterprise trio
-`salesforce-nzc`, `ms-sustainability`, `watershed`. Every adapter implements the
+`carbontxt-api` (GWF hosted carbon.txt API), the enterprise trio
+`salesforce-nzc`, `ms-sustainability`, `watershed`, and `csv` (an ESG tool's
+export) and `slurm-sacct` (HPC job accounting). Every adapter implements the
 same three-property contract: `{ name, capabilities, fetch(query) }`.
 
 **Pipeline stages** (orchestrated by `Publisher.build()` in `publisher.ts`):
@@ -613,15 +614,22 @@ same three-property contract: `{ name, capabilities, fetch(query) }`.
    the mandatory `target` (adapter value or configured fallback), and hard
    errors on constraint violations (negative gross metrics, `renewable-energy`
    outside 0–100, `sci-score` without `functional-unit`, malformed periods).
-3. **`secureReports()`** (`security.ts`) — operational safeguards: drop
-   sub-daily entries (traffic-analysis floor), sort ascending, cap at 366
-   keeping the most recent (a `-06`-era DoS mandate; `-07` withdraws the
-   server-side cap in favor of a consumer-side bound, see §3 — the pipeline
-   still applies it as a defensive default), optional deterministic ~±1%
-   multiplicative noise (anti-fingerprinting; same factor per period so scopes
-   still sum to the footprint and re-generation is stable for caching).
-4. **Shape rule** — no `granularity` in the query ⇒ single object (most recent
-   entry); granularity ⇒ array. Zero entries ⇒ `NotFoundError` ⇒ HTTP 404.
+3. **Cap, selection and `secureReports()`** (`security.ts`, `selection.ts`) —
+   `assertHeldWithinCap()` refuses to build when the adapter holds more than
+   `maxObjects` objects (366 by default; a deployment safeguard, since `-07`
+   the draft bounds the consumer instead, see §3) and never truncates an
+   answer; when a parameter is honored, `selectDeclarations()` keeps the
+   objects that satisfy it; then the operational safeguards: drop entries
+   below the day floor (by default, with a warning), sort ascending by
+   `period.start`, optional deterministic ~±1% multiplicative noise
+   (anti-fingerprinting, only with `noiseDisclosed`; same factor per period so
+   scopes still sum to the footprint and re-generation is stable for caching).
+4. **Shape rule** — a request that honors a parameter gets an array, empty
+   when nothing matches. One that honors none gets what is held: an Extended
+   publisher answers with the array (the latest object with
+   `representation: "single"`), a Basic one with the object or array the
+   adapter returned. Nothing to serve from a Basic publisher, or from one with
+   `representation: "single"` ⇒ `NotFoundError` ⇒ HTTP 404.
 5. **JTD validation gate** (`validate.ts`) — every payload is validated against
    the embedded schema *plus* the prose rules JTD cannot express (non-negativity,
    0–100, sci↔functional-unit dependency, finite numbers, RFC 3339 `updated`,
@@ -778,12 +786,16 @@ in early adoption), and transform. Three tiers:
    (origin + params) ETag cache; a `304` transparently replays the cached
    document; `getTrend()` asserts the array shape.
 3. **CLI `sustainability-fetch`** — JSON/CSV/NDJSON output, plus `--strict`,
-   which runs the **7-check conformance battery** (`conformance.ts`) against
-   *any* implementation: Basic single object · media type (`application/sustainability-data+json`;
+   which runs the **12-check conformance battery** (`conformance.ts`; levels and
+   sample output in [consumer/USAGE.md §5](../consumer/USAGE.md#5-conformance-checking-any-origin))
+   against *any* implementation: a schema-valid Basic declaration · media type (`application/sustainability-data+json`;
    legacy `application/json` ⇒ WARN, not FAIL) · the OPTIONAL embedded `signed`
    member absent, or present and verifiable over the object it accompanies ·
-   ETag present · fresh ETag ⇒ 304 · POST ⇒ 405 + `Allow` · granularity
-   request yields a valid (sorted-array-when-honored) response. The `-06`-era
+   signature algorithm `Ed25519` or `ES256` · ETag present · fresh ETag ⇒ 304 ·
+   POST ⇒ 405 + `Allow` · a query value outside the profile ignored · a range
+   that selects nothing ⇒ `200` · `capabilities` `extended` when a parameter is
+   honored · an Extended range request yields a valid (sorted-array-when-honored)
+   response · whole calendar periods (informational). The `-06`-era
    `X-Content-Type-Options: nosniff` and detached-`.jws` checks are gone with
    the provisions behind them (see §3). The battery
    deliberately disables the legacy-compat pre-pass so it sees the document
@@ -914,7 +926,7 @@ on the origin routes to *some* conformant responder:
    GET/HEAD-only with `405 + Allow`).
 4. **Reverse proxy** — nginx/Apache/CDN in front of topology 1, proxying only
    the well-known path (with the commented rate-limiting snippets recommended
-   for dynamic `period`/`granularity` queries).
+   for dynamic `start`/`end`/`granularity` queries).
 5. **Serverless / edge** — any function handler that adapts its event to
    `handleRequest()`'s query/header inputs and its `HandlerResult` output.
 
@@ -996,12 +1008,12 @@ one daily live-deployment check and one publishing workflow:
 | Workflow | Scope |
 |---|---|
 | `draft.yml` | Builds the latest draft with kramdown-rfc + xml2rfc, sanity checks, uploads the I-D artifact |
-| `publisher.yml` | Typecheck, build, test, `npm publish --dry-run` for the publisher (path-triggered, incl. schema paths) |
+| `publisher.yml` | Typecheck, build and test the publisher, then validate a generated document with the Python (JTD) and Ruby (CDDL) validators (path-triggered, incl. schema paths) |
 | `gateway.yml` | Builds and tests the reference gateway (`gateway/`), then runs the conformance battery against a live instance (path-triggered, incl. schema paths) |
 | `consumer.yml` | Builds the **publisher first** (the consumer's `interop.test.ts` runs a live in-process producer→consumer round trip), then builds and tests the consumer |
-| `example-scripts.yml` | Python/JS/PHP safeguard test suites |
+| `example-scripts.yml` | Python/JS/PHP safeguard test suites, the `request-handler.py` end-to-end test, and the nginx and Apache configuration checks |
 | `publish-github-packages.yml` | Mirrors the publisher and consumer npm packages to GitHub Packages as `@andreibesleaga/…` on `v*` tags or manual dispatch (npmjs.com stays canonical; already-published versions are skipped), and builds, smoke-tests and pushes the gateway image `ghcr.io/andreibesleaga/sustainability-wellknown-gateway` from `gateway/Dockerfile` |
-| `full-verify.yml` | The umbrella: draft build + idnits (0 errors), dual-validator schema pass, both packages (typecheck/build/test/dry-run publish), example-script suites, **live nginx and Apache runs** of the `server-configurations/` snippets (curl-asserting 200 and `405 + Allow: GET, HEAD`), and a summary gate over all areas; runs weekly, by hand, and on changes to the schema corpus or `tools/report-to-declaration/` (each push is covered by the area workflows) |
+| `full-verify.yml` | The umbrella: draft build + idnits3 in normal mode (no nit), the tools, the behaviour scenarios and fitness functions, dual-validator schema pass, both packages (typecheck/build/test/dry-run publish), the gateway with its conformance battery, example-script suites, **live nginx and Apache runs** of the `server-configurations/` snippets (curl-asserting 200 and `405 + Allow: GET, HEAD`), and a summary gate over all areas; runs weekly, by hand, and on changes to the schema corpus or `tools/report-to-declaration/` (each push is covered by the area workflows) |
 | `bdd.yml` | The behaviour scenarios (`bdd/`) and the traceability check of every normative sentence of the draft |
 | `deploy-kit.yml` | Every CI recipe of the deployment kit (`deploy/`) run in strict mode |
 | `sfc-compliance.yml` | The SFC profile 2.0 checker and test vectors (`sfc-compliance/`) run against the published consumer |

@@ -178,9 +178,10 @@ cd internet-drafts
 `build.sh` regenerates the `.xml` and `.txt` from the Markdown source and then verifies that
 `xml2rfc --strict` completes without error, that no rendered line exceeds 72 characters and the
 text is pure ASCII, that no Markdown code fences leaked into the output, that the schema
-references resolve and the stale RFC 8949 reference is absent, that the draft's CDDL and JTD
-blocks still match `../schemas-validators/`, and that idnits (run through the IETF author-tools
-API) reports zero errors. It exits non-zero if any check fails.
+references resolve and the stale RFC 8949 reference is absent, that the draft's CDDL block (and
+its JTD block, in a revision before `-09` that carries one) still matches `../schemas-validators/`,
+that idnits (run through the IETF author-tools API) reports zero errors, and that idnits3 in normal
+mode (run with `npx`) reports no nit. It exits non-zero if any check fails.
 
 One idnits **warning** is expected and cannot be fixed: the citation URLs for the GHG Protocol,
 the UN 2030 Agenda and carbon.txt are real domains rather than RFC 2606 examples.

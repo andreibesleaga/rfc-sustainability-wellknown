@@ -18,6 +18,10 @@ gem install cddl -v 0.12.14
 gem install kramdown-rfc2629
 ```
 
+Where the system Python refuses `pip install` (PEP 668, as on Ubuntu 24.04), install the two packages in a virtual
+environment and put its `bin/` first on `PATH`; `scripts/test-everything.sh` and the validators use the `python3` they
+find there.
+
 ## Building and testing
 
 Each package is independent. From `publisher/`, `consumer/` or `gateway/`:
@@ -72,12 +76,14 @@ report-to-declaration tool, which no other workflow covers. It has no job for `s
 builds of the two libraries, and `gateway.yml` runs the gateway against the registry versions on changes under `gateway/`.
 The library jobs run on Node 22 and 24, which must pass, and on Node 26, which is reported and does not block.
 The workflows a change triggers are the checks to satisfy before opening a PR; `full-verify.yml` can be run by hand.
+All twelve workflows, the daily live-deployment check, the GitHub Action's self-check and the GitHub Packages
+publishing included, are listed in [architecture/README.md § 8](architecture/README.md#8-ci--verification-architecture).
 
 ## The schema identity rule
 
 The data model exists in four places, and they must stay identical (the embedded TypeScript copies are equal to the JSON schema as JSON values; the CDDL and JSON files are byte-identical):
 
-1. the CDDL block in `internet-drafts/draft-besleaga-sustainability-wellknown-10.md` (the draft carries no JTD block since `-09`; `-10` was posted 2026-10-24 and must not be edited, nor the posted `-05` to `-09` files; further changes go to a future `-11` file)
+1. the CDDL block in `internet-drafts/draft-besleaga-sustainability-wellknown-12.md` (the draft carries no JTD block since `-09`; `-12` was posted 2026-10-28 and must not be edited, nor the posted `-05` to `-11` files; further changes go to a future `-13` file)
 2. `schemas-validators/response-schema.cddl` and `response-schema.json`
 3. `publisher/src/schema.ts`
 4. `consumer/src/schema.ts`

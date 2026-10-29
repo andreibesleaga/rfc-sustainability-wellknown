@@ -1,6 +1,6 @@
 # PHP
 `router.php` is a complete front controller, started and validated in CI with PHP's built-in server; it serves
-`data/sustainability-data.json` beside it, or the file named by `SD_FILE`.
+`data/sustainability-data.json` beside it, or the file named by `SD_FILE` (to try it, set `SD_FILE=../../www/.well-known/sustainability-data`, the kit's sample, in this folder).
 `laravel-routes.php` is the one Laravel route; `SymfonyController.php` the one Symfony controller.
 WordPress: until the plugin ships, the Apache/LiteSpeed `.htaccess` recipe in `../../proxies/apache/`
 works on every WordPress host that runs Apache or LiteSpeed; put the document at

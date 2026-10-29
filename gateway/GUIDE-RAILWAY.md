@@ -16,7 +16,7 @@ is [GUIDE.md](GUIDE.md).
 
 ```bash
 cd gateway
-npm install
+npm ci
 npm run build
 npm test          # full gateway suite (vitest); everything must be green before you deploy
 node dist/index.js &

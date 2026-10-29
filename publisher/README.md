@@ -45,7 +45,7 @@ surrogates are refused).
 
 ```bash
 cd publisher
-npm install
+npm ci
 npm run build      # tsc → dist/
 npm test           # vitest: the full suite (unit + adapters + carbon.txt + conformance + hardening + E2E server/Express/Fastify/CLI)
 ```
@@ -134,8 +134,8 @@ await app.listen({ port: 8080 });
 ```
 
 All entry points (standalone server, both middlewares, `handleRequest`) emit
-`Access-Control-Allow-Origin: *` on every response — the draft says successful
-responses SHOULD carry it (WebFinger practice; not a requirement of the draft), and echoing it on the error
+`Access-Control-Allow-Origin: *` on every response — WebFinger practice, not a requirement of the
+draft (`-09` removed its recommendation), and echoing it on the error
 statuses too lets cross-origin aggregators read those as well (`cors` option to
 override/disable).
 
@@ -540,10 +540,10 @@ repo's **independent** Python (JTD) and Ruby (CDDL) validators in CI — see
 
 Once a server built with this publisher is deployed, verify it the same way any
 `/.well-known/sustainability-data` origin is verified — curl for headers/body plus the
-consumer's `--strict` conformance battery. See
-[consumer/README.md § CLI](../consumer/README.md#cli)
-for the four commands and expected output (`--verify` reports the outcome of the
-`signed` member's verification).
+consumer's `--strict` conformance battery. See the root
+[README § Verify a live deployment](../README.md#verify-a-live-deployment) for the four commands and
+[consumer/USAGE.md §5](../consumer/USAGE.md#5-conformance-checking-any-origin) for the expected output
+(`--verify` reports the outcome of the `signed` member's verification).
 
 ## Migrating from 0.7.x
 

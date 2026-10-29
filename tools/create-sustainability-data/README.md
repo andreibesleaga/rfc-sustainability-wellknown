@@ -4,8 +4,8 @@ A few questions, one conformant `/.well-known/sustainability-data` file (draft -
 for your host (Cloudflare Pages, Netlify, Vercel, nginx, Apache, Caddy, or just the file). Sign the file with an
 Ed25519 key if you have one.
 
-Not yet published to npm. Until it is, run it from a clone: `npm install` in this folder (it installs
-`sustainability-wellknown-publisher` 0.8.0 from npm), then `node bin/create.mjs` with the options below (see Development).
+Not yet published to npm. Until it is, run it from a clone: `npm ci` in this folder (it installs
+`sustainability-wellknown-publisher` 0.8.2 from npm), then `node bin/create.mjs` with the options below (see Development).
 
 ```bash
 npx create-sustainability-data            # interactive (after it is published; `node bin/create.mjs` from a clone until then)
@@ -76,11 +76,11 @@ Then deploy and check: `npx -y -p sustainability-wellknown-consumer sustainabili
 
 ## Development
 
-The only dependency is `sustainability-wellknown-publisher` (0.8.0 or later, on npm). `npm install` and `npm test` are
+The only dependency is `sustainability-wellknown-publisher` (0.8.2 or later, on npm). `npm ci` and `npm test` are
 enough. To test against an unreleased publisher, pack `../../publisher` and install the tarball with `--no-save --package-lock=false`:
 
 ```bash
 (cd ../../publisher && npm run build && npm pack --pack-destination /tmp/csd-pack)
-npm install --no-save --package-lock=false /tmp/csd-pack/sustainability-wellknown-publisher-0.8.0.tgz
+npm install --no-save --package-lock=false /tmp/csd-pack/sustainability-wellknown-publisher-0.8.2.tgz
 npm test
 ```

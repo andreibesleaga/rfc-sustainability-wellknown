@@ -14,16 +14,16 @@ Everyone else is marked **independent**.
 
 | Implementation | Role | Language | Licence | Location | Tracks |
 |---|---|---|---|---|---|
-| `sustainability-wellknown-publisher` | publisher: serves and signs declarations (HTTP middleware and an offline `sustainability-sign` tool for static hosts) | TypeScript / Node.js | BSD-3-Clause | `publisher/`, npm | `-10` (`0.8.0`) |
-| `sustainability-wellknown-consumer` | consumer: fetches, validates and (on request) verifies signatures and attestations | TypeScript / Node.js | BSD-3-Clause | `consumer/`, npm | `-10` (`0.8.0`; reads the `-08` and `-09` forms by default) |
+| `sustainability-wellknown-publisher` | publisher: serves and signs declarations (HTTP middleware and an offline `sustainability-sign` tool for static hosts) | TypeScript / Node.js | BSD-3-Clause | `publisher/`, npm | `-10` (`0.8.2`) |
+| `sustainability-wellknown-consumer` | consumer: fetches, validates and (on request) verifies signatures and attestations | TypeScript / Node.js | BSD-3-Clause | `consumer/`, npm | `-10` (`0.8.2`; reads the `-08` and `-09` forms by default) |
 | JTD validator | validates a document against the JTD schema (RFC 8927) | Python | BSD-3-Clause | `schemas-validators/validator-json.py` | `-10` |
 | CDDL validator | validates a document against the CDDL schema (RFC 8610) | Python | BSD-3-Clause | `schemas-validators/validator-cddl.py` | `-10` |
-| Reference gateway | serves the format live and relays declarations for third-party subjects | TypeScript / Node.js | BSD-3-Clause | `gateway/` | `-10` (`0.2.0`) |
+| Reference gateway | serves the format live and relays declarations for third-party subjects | TypeScript / Node.js | BSD-3-Clause | `gateway/` | `-10` (`0.3.0`) |
 | Initializer `create-sustainability-data` | asks a few questions and writes a conformant declaration, signed with Ed25519 if a key is given, with the configuration for the host | Node.js | BSD-3-Clause | `tools/create-sustainability-data/` | `-10` (`0.2.0`) |
 | `report-to-declaration` | demonstration: a published report in, a candidate declaration out, with a verbatim quote behind every figure | Node.js | BSD-3-Clause | `tools/report-to-declaration/` | `-10` (`0.3.0`) |
 | Deployment kit | configuration and one-route examples for the most used hosts, web servers and frameworks, each CI-run recipe validated with the consumer in strict mode | nginx, Apache, Caddy, HAProxy, Envoy, Traefik, IIS; Node.js, Python, PHP, Go, Java, C#, Ruby, Rust | BSD-3-Clause | `deploy/` | `-10` |
 | WordPress plugin "Sustainability Data (well-known)" | serves and signs a declaration from a settings page; no external calls | PHP | GPLv2-or-later | `deploy/wordpress/` | `-10` (`0.2.0`) |
-| One-click node | a signed declaration from environment variables, on the publisher library (Railway or any container host) | TypeScript / Node.js | BSD-3-Clause | `deploy/one-click/railway/` | `-10` (`0.1.0`, publisher `0.8.0`) |
+| One-click node | a signed declaration from environment variables, on the publisher library (Railway or any container host) | TypeScript / Node.js | BSD-3-Clause | `deploy/one-click/railway/` | `-10` (`0.1.0`, publisher `0.8.2`) |
 | GitHub Action | validates a file or a live origin in CI with the consumer | composite action | BSD-3-Clause | `deploy/github-action/` | `-10` (consumer `0.8.0`) |
 | Behaviour scenarios and fitness functions | one scenario or more for every normative sentence of the draft (traced by id), and cross-package rules as tests | cucumber-js, node:test | BSD-3-Clause | `bdd/`, `fitness/` | `-10` |
 

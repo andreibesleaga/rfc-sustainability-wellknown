@@ -24,7 +24,7 @@ From a checkout:
 
 ```bash
 cd consumer
-npm install
+npm ci
 npm run build      # tsc, output in dist/
 npm test           # vitest: unit, fetch, TLS transport, and a round trip against the publisher in ../publisher
 ```

@@ -7,7 +7,7 @@ Datatracker: [draft-besleaga-sustainability-wellknown](https://datatracker.ietf.
 
 **Author:** Andrei Nicolae Besleaga
 
-**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-12` (posted 2026-10-28), is under review by the Independent Submissions Editor; it removes one sentence after the CDDL at the Editor's comment on `-11`, and like `-11` it keeps the `-10` wire format, in which every date is an RFC 3339 `date-time` and every token member takes one of a listed set. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md). Current repo software implements Internet-Draft version `-10`, whose wire format `-11` keeps: the publisher and the consumer `0.8.2`, the gateway `0.3.0`.
+**Status:** an individual Internet-Draft on the IETF Independent Submission Stream, proposed as an Informational RFC. The latest posted revision, `-12` (posted 2026-10-28), is under review by the Independent Submissions Editor; it removes one sentence after the CDDL at the Editor's comment on `-11`, and like `-11` it keeps the `-10` wire format, in which every date is an RFC 3339 `date-time` and every token member takes one of a listed set. An IANA well-known URI registration is requested ([protocol-registries/well-known-uris#95](https://github.com/protocol-registries/well-known-uris/issues/95)) and parked until the draft is adopted on a stream. Revision history: [internet-drafts/README.md](internet-drafts/README.md) and [internet-drafts/CHANGELOG.md](internet-drafts/CHANGELOG.md); the registration and naming case: [ADOPTION.md](ADOPTION.md). Current repo software implements Internet-Draft version `-10`, whose wire format `-11` and `-12` keep: the publisher and the consumer `0.8.2`, the gateway `0.3.0`.
 
 Presented at the IRTF Sustainability Research Group (IETF 126, July 2026); Independent Submission under review.
 
@@ -50,7 +50,7 @@ Organization-level figures and regulatory reporting (CSRD and analogues, MiCA's 
 
 ## The live gateway
 
-Reference testing gateway: https://sustainability.up.railway.app/ — it runs the draft end to end. It serves one demonstration subject per publisher adapter plus three of the gateway's own, every example document from this repository, and its own report; some demonstrations fetch their upstream daily, the rest replay a recorded response. Every document is produced by the published publisher library and validated by the published consumer library at start-up; a failure stops it from starting.
+Reference testing gateway: https://sustainability.up.railway.app/ — it runs the draft end to end. It serves fourteen demonstration subjects (eight on the publisher's adapters, six on four adapters of the gateway's own), every example document from this repository, and its own report; some demonstrations fetch their upstream daily, the rest replay a recorded response. Every document is produced by the published publisher library and validated by the published consumer library at start-up; a failure stops it from starting.
 
 The gateway also serves illustrative mappings of real organizations' own published figures, prepared by the author, served only where the source's terms allow reuse, not endorsed by anyone, and removable on request ([gateway/LEGAL.md](gateway/LEGAL.md); sources and retrieval dates in [gateway/data/README.md](gateway/data/README.md)).
 
@@ -81,7 +81,7 @@ tested the way its platform expects. Details and the verification status of each
 |---|---|---|
 | A static host (Cloudflare Pages, Netlify, Vercel, Render, AWS S3 + CloudFront, Google Cloud, Azure) | the header file or policy in [`deploy/static/`](deploy/static/); a Terraform module and a CLI script for AWS; honest notes where a host cannot do it (GitHub Pages, Shopify, Squarespace, Webflow) | Terraform `fmt` and `validate` in CI; the rest reviewed |
 | A web server or proxy (nginx, Apache or LiteSpeed via `.htaccess`, Caddy, HAProxy, Envoy, Traefik, IIS) | the few lines in [`deploy/proxies/`](deploy/proxies/) | nginx, Apache and Caddy started and checked in strict mode in CI; HAProxy configuration-checked |
-| An application (Express, Fastify, Koa, Next.js, Nuxt, SvelteKit, Astro; Flask, FastAPI, Django; PHP, Laravel, Symfony; Go; Spring Boot; ASP.NET Core; Rails; Axum) | one route in [`deploy/frameworks/`](deploy/frameworks/), or the publisher library for a signed, Extended service | ten servers started in CI, each checked for every MUST of the draft, `405` with `Allow`, `HEAD` like `GET`, `ETag`/`304` |
+| An application (Express, Fastify, Koa, Next.js, Nuxt, SvelteKit, Astro; Flask, FastAPI, Django; PHP, Laravel, Symfony; Go; Spring Boot; ASP.NET Core; Rails; Axum) | one route in [`deploy/frameworks/`](deploy/frameworks/), or the publisher library for a signed, Extended service | seven of them (Express, Fastify, Koa, Flask, FastAPI, plain PHP, Go) started in CI, each checked for every MUST of the draft, `405` with `Allow`, `HEAD` like `GET`, `ETag`/`304`; the others reviewed |
 | WordPress | the plugin [Sustainability Data (well-known)](deploy/wordpress/): a settings page that checks what you enter, a signed declaration, multisite, translation-ready, no external calls (GPLv2-or-later) | WordPress coding standards, PHP 8.1 compatibility, offline tests, and a run in a real WordPress in Docker checked by the consumer |
 | Nothing yet | `create-sustainability-data` (`0.2.0`, writes the `-10` form; not yet on npm, run it from a clone as its README says, `npx create-sustainability-data` once published): a few questions, the file and your host's configuration ([`tools/create-sustainability-data/`](tools/create-sustainability-data/)) | tests, including the command run the way `npx` runs it |
 | A container platform (Railway or any other) | the one-click node in [`deploy/one-click/railway/`](deploy/one-click/railway/): figures from environment variables, served and signed by the publisher library | tests; the image built and run |
@@ -149,9 +149,10 @@ npx -y -p sustainability-wellknown-consumer sustainability-fetch https://example
 curl -sI https://example.org/sustainability-methodology.html | head -1
 ```
 
-The walkthrough, the expected output, the `--strict` severity model (a failed `MUST` is `FAIL`; an unmet `SHOULD`
-is `WARN` and does not fail the check) and the consumer version needed for a `-10` document are in
-[consumer/README.md § CLI](consumer/README.md#cli).
+The `--strict` severity model (a failed `MUST` is `FAIL`; an unmet `SHOULD` is `WARN` and does not fail the check) is
+in [consumer/README.md § CLI](consumer/README.md#cli), and the consumer version needed for a `-10` document under its
+"Entry points and version history"; the twelve checks and a sample output are in
+[consumer/USAGE.md §5](consumer/USAGE.md#5-conformance-checking-any-origin).
 
 ---
 
@@ -160,7 +161,7 @@ The normative specification is the Internet‑Draft; this repo provides non‑no
 
 ```
 rfc-sustainability-wellknown/
-├── internet-drafts/            # Draft sources (-05 to -10 posted), build script, changelog, VC companion note
+├── internet-drafts/            # Draft sources (-05 to -12 posted), build script, changelog, VC companion note
 ├── example-responses/          # Valid JSON response examples (all validators pass)
 ├── schemas-validators/         # Formal schemas (CDDL, JTD) and validation tooling
 ├── example-scripts/            # Server-side security middleware + reference request handler (Python, JS, PHP), with tests

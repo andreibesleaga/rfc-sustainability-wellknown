@@ -1,6 +1,6 @@
 # Node.js
-`express.mjs`, `fastify.mjs`, `koa.mjs` are complete servers (`npm install`, then `PORT=3000 npm run express`); they serve
-`data/sustainability-data.json` beside the recipe, or the file named by `SD_FILE`;
+`express.mjs`, `fastify.mjs`, `koa.mjs` are complete servers (`npm ci`, then `PORT=3000 npm run express`); they serve
+`data/sustainability-data.json` beside the recipe, or the file named by `SD_FILE` (to try one, set `SD_FILE=../../www/.well-known/sustainability-data`, the kit's sample, in this folder);
 they are started and validated in CI. The Next.js, Nuxt, SvelteKit and Astro files are the one route each
 framework needs (reviewed, not started in CI), placed at the path shown in their first line; the document lives at
 `data/sustainability-data.json` in the project (not under `public/`, so the extensionless canonical path

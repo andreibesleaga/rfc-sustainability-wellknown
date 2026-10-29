@@ -29,7 +29,7 @@
 # installed system-wide and run in CI (full-verify.yml, example-scripts.yml).
 #
 # Needs: Node.js 22.13 or newer with npm, Python 3 with the `jtd` package, Ruby with the
-# `cddl` gem, PHP 8 (CLI), network access to the npm registry; for step 7 also
+# `cddl` gem, PHP 8 (CLI), network access to the npm registry; for step 10 also
 # kramdown-rfc and xml2rfc. See CONTRIBUTING.md "Requirements". The Python packages and
 # the gem can be installed with:  python3 schemas-validators/install.py
 #

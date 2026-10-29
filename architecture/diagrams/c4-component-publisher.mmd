@@ -9,6 +9,7 @@ flowchart TB
         CQ["Climatiq estimate API"]
         GW["GWF Greencheck + carbon.txt API"]
         FS["Local JSON file / config"]
+        CS["CSV export / Slurm sacct output"]
     end
 
     subgraph PUB["publisher/src (npm: sustainability-wellknown-publisher)"]
@@ -20,12 +21,15 @@ flowchart TB
             A5["co2js (bytes → carbon)"]
             A6["carbontxt-api"]
             A7["enterprise/: salesforce-nzc,<br/>ms-sustainability, watershed"]
+            A8["csv · slurm-sacct"]
         end
-        NORM["normalize.ts<br/>units (J→kWh, Wh↔GWh, g↔mt), carbon = energy × intensity,<br/>defaults, PERIOD_RE, mandatory target, range checks"]
-        SEC["security.ts — secureReports()<br/>daily floor · sort ascending · cap 366 (keep newest;<br/>a deployment safeguard, not a -07 requirement) ·<br/>optional deterministic ~1% noise"]
+        NORM["normalize.ts<br/>units (J→kWh, Wh↔GWh, g↔mt), carbon = energy × intensity,<br/>defaults, date-time periods (period.ts),<br/>closed token sets (tokens.ts), mandatory target, range checks"]
+        SEL["selection.ts — selectDeclarations()<br/>the objects that satisfy every honored parameter"]
+        SEC["security.ts — assertHeldWithinCap(): refuse more than<br/>366 held objects (a deployment safeguard; never truncates) ·<br/>secureReports(): day floor · sort ascending ·<br/>opt-in deterministic ~1% noise (needs noiseDisclosed)"]
         VAL["validate.ts — JTD gate (ajv/jtd)<br/>+ prose rules: non-negative, 0–100, sci↔functional-unit,<br/>finite numbers, start before end, day floor"]
         SCH["schema.ts<br/>embedded RESPONSE_JTD_SCHEMA<br/>(byte-equal to schemas-validators/, CI-checked)"]
-        PUBL["publisher.ts — Publisher<br/>orchestrates build(); single-vs-array shape rule;<br/>bounded in-memory cache (TTL 24h, 256 keys) + SHA-1 ETag"]
+        PUBL["publisher.ts — Publisher<br/>orchestrates build(): cap → select → safeguards →<br/>shape rule → gate → optional signing;<br/>bounded in-memory cache (TTL 24h, 256 keys) + SHA-1 ETag"]
+        JWS["jws.ts — signDocument()<br/>optional embedded signed member (Ed25519 / ES256)"]
         HANDLER["handler.ts — handleRequest()<br/>200/304/404/503, Cache-Control, CORS, If-None-Match"]
         CTXT["carbontxt.ts<br/>emit / parse / discover carbon.txt (TOML)"]
         subgraph HTTP["HTTP exposure"]
@@ -34,7 +38,7 @@ flowchart TB
             FAS["middleware/fastify.ts"]
             CLI["cli.ts — config file → adapter factory →<br/>serve or --once print"]
         end
-        UTIL["util.ts — fromWire(), lastFullMonth(), readJson()"]
+        UTIL["util.ts — readJson(), fetchJson() with a byte cap,<br/>fromWire(), lastFullMonthPeriod(), nowDateTime()"]
     end
 
     CLIENT(("HTTP client"))
@@ -48,13 +52,17 @@ flowchart TB
     GW --> A6
     FS --> A1
     FS --> A2
+    CS --> A8
 
     PUBL -- "fetch(query)" --> ADP
     ADP -- "RawMetrics" --> NORM
     NORM -- "SustainabilityMetrics[]" --> SEC
+    SEC -- "cap checked" --> SEL
+    SEL -- "selection" --> SEC
     SEC --> VAL
     SCH -.-> VAL
     VAL -- "assertValid (fail ⇒ throw ⇒ 503)" --> PUBL
+    PUBL -- "sign (optional, last step)" --> JWS
     PUBL -- "SerializedDocument {body, etag}" --> HANDLER
     HANDLER --> SRV
     HANDLER --> EXP

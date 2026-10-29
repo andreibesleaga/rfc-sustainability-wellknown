@@ -5,7 +5,7 @@ flowchart TD
         S1["Enterprise platform<br/>(Salesforce NZC / MS Sustainability / Watershed)"]
         S2["Energy telemetry<br/>(Kepler / Prometheus)"]
         S3["Carbon models & APIs<br/>(Climatiq · CO2.js · GWF carbon.txt API)"]
-        S4["Static / computed config"]
+        S4["Static / computed config ·<br/>CSV exports · Slurm sacct"]
     end
 
     S1 --> AD
@@ -17,16 +17,23 @@ flowchart TD
 
     N["normalize()<br/>· joules → kWh, unit conversion (Wh…GWh, g…tCO2e)<br/>· carbon = energy × grid intensity when absent<br/>· defaults: capabilities basic, updated now<br/>· mandatory target (adapter value or configured fallback)<br/>· reject negative gross metrics, renewable outside 0–100,<br/>  sci-score without functional-unit, bad periods"]
 
-    N -- "SustainabilityMetrics[]" --> G1
+    N -- "SustainabilityMetrics[]" --> CAP
+
+    CAP{"held objects ><br/>maxObjects (366 by default)?"}
+    CAP -- "yes: build refused<br/>(an answer is never cut)" --> R503
+    CAP -- "no" --> SEL
+
+    SEL["Select (selection.ts): the objects that satisfy<br/>every honored parameter; all held objects<br/>when none is honored"] --> G1
 
     subgraph SAFE["secureReports() — operational safeguards"]
-        G1["Daily floor: drop entries with<br/>period shorter than a calendar day"] --> G2
+        G1["Day floor: drop (default, with a warning),<br/>warn or keep an object whose bounds are<br/>not on calendar-day boundaries"] --> G2
         G2["Sort ascending by period.start"] --> G3
-        G3["Defensive cap: max 366 objects,<br/>keep most recent (a deployment safeguard;<br/>-07 puts the binding bound on the consumer)"] --> G4
-        G4["Optional anti-fingerprinting noise:<br/>~±1% multiplicative, deterministic per period,<br/>consistent across related fields"]
+        G3["Optional anti-fingerprinting noise (off by default,<br/>needs noiseDisclosed): ~±1% multiplicative,<br/>deterministic per period, consistent across related fields"]
     end
 
-    G4 --> SHAPE{"honored any<br/>parameter?"}
+    G3 --> EMPTY{"nothing left, no parameter honored<br/>and no array answer?"}
+    EMPTY -- "yes" --> R404["404 (no data)"]
+    EMPTY -- "no" --> SHAPE{"honored any<br/>parameter?"}
     SHAPE -- "yes" --> ARR["Array (empty allowed)"]
     SHAPE -- "no" --> ONE["As held (Basic) /<br/>array (Extended)"]
 
@@ -35,7 +42,8 @@ flowchart TD
 
     V{"JTD validation gate<br/>assertValid(): schema + prose rules"}
     V -- "fail" --> R503["503 Service Unavailable<br/>(never publish corrupt data; onError logged)"]
-    V -- "pass" --> CACHE["Serialize + SHA-1 ETag<br/>bounded in-memory cache<br/>(TTL 24h, ≤256 query variants)"]
+    V -- "pass" --> SIGN["Optional signed member<br/>(Ed25519 / ES256 JWS; the last step)"]
+    SIGN --> CACHE["Serialize + SHA-1 ETag<br/>bounded in-memory cache<br/>(TTL 24h, ≤256 query variants)"]
 
     CACHE --> H["handler.ts → HTTP<br/>200 + ETag + Cache-Control + CORS<br/>If-None-Match match ⇒ 304"]
     H --> OUT(("/.well-known/sustainability-data<br/>one standard endpoint"))

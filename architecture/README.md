@@ -173,12 +173,12 @@ flowchart TB
     %% person = dark blue · container = blue · external = grey · boundaries = dashed.
 
     CLIENT["Consumer<br/>[Person / System]<br/>regulator · aggregator · carbon-aware tool ·<br/>AI agent · browser"]
-    DS["Metric Sources<br/>[External Systems]<br/>enterprise platforms · Kepler/Prometheus ·<br/>Climatiq · CO2.js · GWF carbon.txt API ·<br/>static/computed values"]
+    DS["Metric Sources<br/>[External Systems]<br/>enterprise platforms · Kepler/Prometheus ·<br/>Climatiq · CO2.js · GWF carbon.txt API ·<br/>CSV exports · Slurm sacct · static/computed values"]
 
     subgraph REPO["rfc-sustainability-wellknown reference implementation [System]"]
         subgraph PUBB["Publisher Gateway — publisher/ (npm: sustainability-wellknown-publisher)"]
-            ADP["Source Adapters<br/>[Container: TypeScript]<br/>10 pluggable adapters:<br/>SourceAdapter.fetch(query) → RawMetrics"]
-            PIPE["Publishing Pipeline<br/>[Container: TypeScript]<br/>normalize → secureReports (DoS cap,<br/>daily floor, noise) → JTD validation gate →<br/>bounded in-memory cache + ETag"]
+            ADP["Source Adapters<br/>[Container: TypeScript]<br/>12 pluggable adapters:<br/>SourceAdapter.fetch(query) → RawMetrics"]
+            PIPE["Publishing Pipeline<br/>[Container: TypeScript]<br/>normalize → held-object cap (refuse above 366) →<br/>select → secureReports (day floor, sort,<br/>opt-in noise) → validation gate →<br/>optional signing → bounded in-memory cache + ETag"]
             HTTPL["HTTP Layer<br/>[Container: Node http / Express / Fastify]<br/>framework-agnostic handler · standalone server ·<br/>middleware · CLI — 200/304/404/405/503"]
             CTM["carbon.txt Module<br/>[Container: TypeScript]<br/>emit / parse / discover a bidirectional carbon.txt"]
         end
@@ -187,7 +187,7 @@ flowchart TB
             FETCH["Fetch + Validate Library<br/>[Container: TypeScript]<br/>fetchSustainability: timeout & byte caps ·<br/>legacy-compat pre-pass · JTD + prose rules"]
             SCLI["SustainabilityClient<br/>[Container: TypeScript]<br/>ETag-cached polling"]
             TR["Transforms<br/>[Container: TypeScript]<br/>CSV · NDJSON · flatten · total"]
-            FCLI["sustainability-fetch CLI<br/>[Container: Node bin]<br/>--strict = 8-check conformance battery<br/>against any origin"]
+            FCLI["sustainability-fetch CLI<br/>[Container: Node bin]<br/>--strict = 12-check conformance battery<br/>against any origin"]
         end
 
         SCHEMAS["Formal Schemas + Validators<br/>[Container: CDDL (RFC 8610) + JTD (RFC 8927)]<br/>schemas-validators/: dual Python/Ruby validators;<br/>schema copies embedded in both packages,<br/>equal to the canonical file in CI"]
@@ -361,37 +361,48 @@ sequenceDiagram
 
 ### 3.2 Data model (26 members)
 
-A response is a single `SustainabilityMetrics` object or an array of them
-(a trend). **As of `-07`: 7 members are mandatory, 19 optional — 26 total**
-(the reference codebase has implemented this count since 0.7.0, and carries no
-`version` member; see the note at the top of §3). Omission is the
-only "not reported" mechanism (true since `-03`, unaffected by `version`'s
-removal): a present member always carries a real value. Gross quantities are
-non-negative; `renewable-energy` is bounded 0–100 inclusive; `scope-1/2/3`
-**may** be negative (removals / net accounting); absent unit members default
-to `kWh` and `gCO2e`; `sci-score` requires `functional-unit`. The `-04`
-revision adds the optional `target-type` member — an enumerated hint
-(`origin`/`path`/`organization`/`service`/`product`/`device`/`tenant`/`data-source`)
-classifying the subject named by `target`; unrecognized values are
-tolerated (the client reads `target` as if the hint were absent), and array
-entries share one value. **`-07` closes the top-level member set**: a
-publisher MUST NOT add other top-level members, and a consumer MUST ignore
-one it does not recognize. Private extension data now lives inside an
-OPTIONAL top-level `extensions` object keyed by an absolute URI (RFC 3986;
-either an `https` URI the definer controls, which should identify documentation
-of the extension, or `urn:uuid:` plus a lowercase hyphenated UUID, RFC 9562),
-replacing the reverse-domain convention (`com.example.pue`; undotted names
-"reserved for the spec") of `-06` and earlier. A key is an identifier compared
-as a string, never dereferenced, and there is no registry; a publisher's
-methodology document should list the names it uses with their definitions. `-07` also adds `upstream` (an
-array of `{declaration, role?}` objects linking to the declarations of
-providers this object's figures derive from, walked by a consumer to a depth
-of at most three, refusing revisited URIs) and `signed` (an OPTIONAL embedded
-JWS replacing the withdrawn `.jws` companion resource). The schemas in
-`schemas-validators/` stay open (`additionalProperties` / `* tstr => any`) so
-that a consumer ignores a member it does not recognize; they define
-`extensions` and `upstream`, and the publisher's validation gate refuses a
-top-level member the draft does not define.
+A response is a single `SustainabilityMetrics` object or an array of them; a
+consumer accepts both forms, and the objects of an array may cover different
+periods and targets of the same origin. **Under `-10` (kept by `-11` and
+`-12`), 7 members are mandatory and 19 optional — 26 total**: `updated`,
+`capabilities`, `provider`, `measurement-method`, `methodology-uri`, `period`
+(an object of two RFC 3339 `date-time` bounds, `start` included, `end`
+excluded) and `target` are mandatory. Omission is the only "not reported"
+mechanism: a present member always carries a real value, and an object carries
+at least one numeric metric or one of `disclosure-uri` and
+`verifiable-attestation-uri`. Gross quantities are non-negative;
+`renewable-energy` is bounded 0–100 inclusive; `scope-1/2/3` **may** be
+negative (removals / net accounting); absent unit members default to `kWh` and
+`gCO2e`; `sci-score` requires `functional-unit`. Every token member takes one
+of a closed set: `capabilities` (2), `measurement-method` (4), `energy-unit`
+(4), `carbon-unit` (`gCO2e`, `kgCO2e`, `tCO2e`), `carbon-accounting` (2),
+`functional-unit` (12), the `upstream` `role` (6) and the optional
+`target-type` (9: `organization`, `facility`, `origin`, `path`, `service`,
+`product`, `device`, `tenant`, `data-source`), which classifies the subject
+named by `target` and does not change its syntax or comparison. A value outside
+its set makes the document invalid; the consumer's legacy-compatibility
+pre-pass reads a `-08` or `-09` document's period and out-of-set tokens as
+their `-10` forms and reports each one (an out-of-set `target-type` is
+disregarded). The top-level member set is closed: a publisher MUST NOT add
+other top-level members, and a consumer ignores one it does not recognize.
+Private extension data lives inside the OPTIONAL `extensions` object, keyed by
+an absolute URI (an `https` URI under the definer's control, or a `urn:uuid:`
+name, RFC 9562), compared as a string, never dereferenced, with no registry.
+`upstream` is an array of `{declaration, role?}` objects linking to the
+declarations of providers this object's figures derive from, walked by a
+consumer at most three declarations deep, refusing revisited URIs, within a
+retrieval budget; `signed` is an OPTIONAL embedded JWS (`Ed25519` or `ES256`
+RECOMMENDED). The schemas in `schemas-validators/` stay open
+(`additionalProperties` / `* tstr => any`) so that a consumer ignores a member
+it does not recognize; they define `extensions` and `upstream`, and the
+publisher's validation gate refuses a top-level member the draft does not
+define.
+
+History in one sentence: `target-type` arrived in `-04` (an unrecognized value
+was then tolerated), `-07` removed `version`, closed the member set, replaced
+reverse-domain extension names with `extensions` and added `upstream` and
+`signed`, `-09` replaced `reporting-period` with `period`, and `-10` made every
+date a date-time and every token set closed (`facility` is new).
 
 ![Data model](images/data-model.png)
 
@@ -539,7 +550,7 @@ stateDiagram-v2
         state "1.1 (historical): adds optional disclosure-uri" as V11
         state "2.0 (historical, -03 through -06): 8 mandatory + 16 optional members, omission is the only not-reported mechanism, mandatory target (+ optional target-type hint since -04), CO2e renames, energy/carbon optional with kWh/gCO2e defaults; -06 fixed 2.0 as the single defined label a publisher MUST use" as V20
         state "unlabeled (-07 to -08): the version member is removed outright, not replaced by a new label; 7 mandatory + 19 optional members; extensions keyed by absolute URI (https or urn-uuid) replaces reverse-domain naming; new upstream and signed members; top-level member set closed" as V07
-        state "period object (-09 to -10, current): reporting-period is replaced by period {start, end}; -10 makes every date an RFC 3339 date-time and every token member one of a listed set" as V10P
+        state "period object (-09 onward): reporting-period is replaced by period {start, end}; -10 makes every date an RFC 3339 date-time and every token member one of a listed set; -11 and -12 keep the -10 wire format (current)" as V10P
         state "Client processing of ANY document (field-driven, never version-driven): negative value in a non-negative member = not reported (subsumes the sentinel); missing target = origin-wide report; unknown members ignored; a version member, where one is carried by a 1.x/2.0-era document, is never rejected or branched on" as COMPAT
 
         [*] --> V10
@@ -565,7 +576,9 @@ stateDiagram-v2
         state "-07 POSTED: posted 2026-09-17, under ISE review — withdraws the .jws companion resource for an embedded OPTIONAL signed member, removes version (7 mandatory members), closes the top-level member set, replaces reverse-domain extensions with a URI-keyed extensions object, adds upstream, drops nosniff and the server-side 366 cap, adds ABNF query-parameter processing" as POSTED7
         state "-08 POSTED: posted 2026-10-09 — RFC 7942 Implementation Status appendix and answers to the ART-area early review of -07" as POSTED8
         state "-09 POSTED: posted 2026-10-16 — restructured; reporting-period replaced by the period object" as POSTED9
-        state "-10 POSTED 2026-10-24 (current, under ISE review): every date an RFC 3339 date-time, every token member one of a listed set" as POSTED10
+        state "-10 POSTED: posted 2026-10-24 — every date an RFC 3339 date-time, every token member one of a listed set" as POSTED10
+        state "-11 POSTED: posted 2026-10-27 — editorial; the -10 wire format" as POSTED11
+        state "-12 POSTED 2026-10-28 (current, under ISE review): editorial; the -10 wire format" as POSTED12
         state "Informational RFC + IANA 'sustainability-data' well-known URI (provisional, promotable to permanent)" as RFC
 
         [*] --> GREEN
@@ -579,7 +592,9 @@ stateDiagram-v2
         POSTED7 --> POSTED8 : posted 2026-10-09
         POSTED8 --> POSTED9 : posted 2026-10-16
         POSTED9 --> POSTED10 : posted 2026-10-24
-        POSTED10 --> RFC : ISE approval + RFC Editor
+        POSTED10 --> POSTED11 : posted 2026-10-27
+        POSTED11 --> POSTED12 : posted 2026-10-28
+        POSTED12 --> RFC : ISE approval + RFC Editor
         RFC --> [*]
     }
 ```
@@ -656,7 +671,7 @@ flowchart TD
         S1["Enterprise platform<br/>(Salesforce NZC / MS Sustainability / Watershed)"]
         S2["Energy telemetry<br/>(Kepler / Prometheus)"]
         S3["Carbon models & APIs<br/>(Climatiq · CO2.js · GWF carbon.txt API)"]
-        S4["Static / computed config"]
+        S4["Static / computed config ·<br/>CSV exports · Slurm sacct"]
     end
 
     S1 --> AD
@@ -668,16 +683,23 @@ flowchart TD
 
     N["normalize()<br/>· joules → kWh, unit conversion (Wh…GWh, g…tCO2e)<br/>· carbon = energy × grid intensity when absent<br/>· defaults: capabilities basic, updated now<br/>· mandatory target (adapter value or configured fallback)<br/>· reject negative gross metrics, renewable outside 0–100,<br/>  sci-score without functional-unit, bad periods"]
 
-    N -- "SustainabilityMetrics[]" --> G1
+    N -- "SustainabilityMetrics[]" --> CAP
+
+    CAP{"held objects ><br/>maxObjects (366 by default)?"}
+    CAP -- "yes: build refused<br/>(an answer is never cut)" --> R503
+    CAP -- "no" --> SEL
+
+    SEL["Select (selection.ts): the objects that satisfy<br/>every honored parameter; all held objects<br/>when none is honored"] --> G1
 
     subgraph SAFE["secureReports() — operational safeguards"]
-        G1["Daily floor: drop entries with<br/>period shorter than a calendar day"] --> G2
+        G1["Day floor: drop (default, with a warning),<br/>warn or keep an object whose bounds are<br/>not on calendar-day boundaries"] --> G2
         G2["Sort ascending by period.start"] --> G3
-        G3["Defensive cap: max 366 objects,<br/>keep most recent (a deployment safeguard;<br/>-07 puts the binding bound on the consumer)"] --> G4
-        G4["Optional anti-fingerprinting noise:<br/>~±1% multiplicative, deterministic per period,<br/>consistent across related fields"]
+        G3["Optional anti-fingerprinting noise (off by default,<br/>needs noiseDisclosed): ~±1% multiplicative,<br/>deterministic per period, consistent across related fields"]
     end
 
-    G4 --> SHAPE{"honored any<br/>parameter?"}
+    G3 --> EMPTY{"nothing left, no parameter honored<br/>and no array answer?"}
+    EMPTY -- "yes" --> R404["404 (no data)"]
+    EMPTY -- "no" --> SHAPE{"honored any<br/>parameter?"}
     SHAPE -- "yes" --> ARR["Array (empty allowed)"]
     SHAPE -- "no" --> ONE["As held (Basic) /<br/>array (Extended)"]
 
@@ -686,7 +708,8 @@ flowchart TD
 
     V{"JTD validation gate<br/>assertValid(): schema + prose rules"}
     V -- "fail" --> R503["503 Service Unavailable<br/>(never publish corrupt data; onError logged)"]
-    V -- "pass" --> CACHE["Serialize + SHA-1 ETag<br/>bounded in-memory cache<br/>(TTL 24h, ≤256 query variants)"]
+    V -- "pass" --> SIGN["Optional signed member<br/>(Ed25519 / ES256 JWS; the last step)"]
+    SIGN --> CACHE["Serialize + SHA-1 ETag<br/>bounded in-memory cache<br/>(TTL 24h, ≤256 query variants)"]
 
     CACHE --> H["handler.ts → HTTP<br/>200 + ETag + Cache-Control + CORS<br/>If-None-Match match ⇒ 304"]
     H --> OUT(("/.well-known/sustainability-data<br/>one standard endpoint"))
@@ -710,6 +733,7 @@ flowchart TB
         CQ["Climatiq estimate API"]
         GW["GWF Greencheck + carbon.txt API"]
         FS["Local JSON file / config"]
+        CS["CSV export / Slurm sacct output"]
     end
 
     subgraph PUB["publisher/src (npm: sustainability-wellknown-publisher)"]
@@ -721,12 +745,15 @@ flowchart TB
             A5["co2js (bytes → carbon)"]
             A6["carbontxt-api"]
             A7["enterprise/: salesforce-nzc,<br/>ms-sustainability, watershed"]
+            A8["csv · slurm-sacct"]
         end
-        NORM["normalize.ts<br/>units (J→kWh, Wh↔GWh, g↔mt), carbon = energy × intensity,<br/>defaults, PERIOD_RE, mandatory target, range checks"]
-        SEC["security.ts — secureReports()<br/>daily floor · sort ascending · cap 366 (keep newest;<br/>a deployment safeguard, not a -07 requirement) ·<br/>optional deterministic ~1% noise"]
+        NORM["normalize.ts<br/>units (J→kWh, Wh↔GWh, g↔mt), carbon = energy × intensity,<br/>defaults, date-time periods (period.ts),<br/>closed token sets (tokens.ts), mandatory target, range checks"]
+        SEL["selection.ts — selectDeclarations()<br/>the objects that satisfy every honored parameter"]
+        SEC["security.ts — assertHeldWithinCap(): refuse more than<br/>366 held objects (a deployment safeguard; never truncates) ·<br/>secureReports(): day floor · sort ascending ·<br/>opt-in deterministic ~1% noise (needs noiseDisclosed)"]
         VAL["validate.ts — JTD gate (ajv/jtd)<br/>+ prose rules: non-negative, 0–100, sci↔functional-unit,<br/>finite numbers, start before end, day floor"]
         SCH["schema.ts<br/>embedded RESPONSE_JTD_SCHEMA<br/>(byte-equal to schemas-validators/, CI-checked)"]
-        PUBL["publisher.ts — Publisher<br/>orchestrates build(); single-vs-array shape rule;<br/>bounded in-memory cache (TTL 24h, 256 keys) + SHA-1 ETag"]
+        PUBL["publisher.ts — Publisher<br/>orchestrates build(): cap → select → safeguards →<br/>shape rule → gate → optional signing;<br/>bounded in-memory cache (TTL 24h, 256 keys) + SHA-1 ETag"]
+        JWS["jws.ts — signDocument()<br/>optional embedded signed member (Ed25519 / ES256)"]
         HANDLER["handler.ts — handleRequest()<br/>200/304/404/503, Cache-Control, CORS, If-None-Match"]
         CTXT["carbontxt.ts<br/>emit / parse / discover carbon.txt (TOML)"]
         subgraph HTTP["HTTP exposure"]
@@ -735,7 +762,7 @@ flowchart TB
             FAS["middleware/fastify.ts"]
             CLI["cli.ts — config file → adapter factory →<br/>serve or --once print"]
         end
-        UTIL["util.ts — fromWire(), lastFullMonth(), readJson()"]
+        UTIL["util.ts — readJson(), fetchJson() with a byte cap, nowDateTime()"]
     end
 
     CLIENT(("HTTP client"))
@@ -749,13 +776,17 @@ flowchart TB
     GW --> A6
     FS --> A1
     FS --> A2
+    CS --> A8
 
     PUBL -- "fetch(query)" --> ADP
     ADP -- "RawMetrics" --> NORM
     NORM -- "SustainabilityMetrics[]" --> SEC
+    SEC -- "cap checked" --> SEL
+    SEL -- "selection" --> SEC
     SEC --> VAL
     SCH -.-> VAL
     VAL -- "assertValid (fail ⇒ throw ⇒ 503)" --> PUBL
+    PUBL -- "sign (optional, last step)" --> JWS
     PUBL -- "SerializedDocument {body, etag}" --> HANDLER
     HANDLER --> SRV
     HANDLER --> EXP

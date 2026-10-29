@@ -4,12 +4,12 @@ flowchart TB
     %% person = dark blue · container = blue · external = grey · boundaries = dashed.
 
     CLIENT["Consumer<br/>[Person / System]<br/>regulator · aggregator · carbon-aware tool ·<br/>AI agent · browser"]
-    DS["Metric Sources<br/>[External Systems]<br/>enterprise platforms · Kepler/Prometheus ·<br/>Climatiq · CO2.js · GWF carbon.txt API ·<br/>static/computed values"]
+    DS["Metric Sources<br/>[External Systems]<br/>enterprise platforms · Kepler/Prometheus ·<br/>Climatiq · CO2.js · GWF carbon.txt API ·<br/>CSV exports · Slurm sacct · static/computed values"]
 
     subgraph REPO["rfc-sustainability-wellknown reference implementation [System]"]
         subgraph PUBB["Publisher Gateway — publisher/ (npm: sustainability-wellknown-publisher)"]
-            ADP["Source Adapters<br/>[Container: TypeScript]<br/>10 pluggable adapters:<br/>SourceAdapter.fetch(query) → RawMetrics"]
-            PIPE["Publishing Pipeline<br/>[Container: TypeScript]<br/>normalize → secureReports (DoS cap,<br/>daily floor, noise) → JTD validation gate →<br/>bounded in-memory cache + ETag"]
+            ADP["Source Adapters<br/>[Container: TypeScript]<br/>12 pluggable adapters:<br/>SourceAdapter.fetch(query) → RawMetrics"]
+            PIPE["Publishing Pipeline<br/>[Container: TypeScript]<br/>normalize → held-object cap (refuse above 366) →<br/>select → secureReports (day floor, sort,<br/>opt-in noise) → validation gate →<br/>optional signing → bounded in-memory cache + ETag"]
             HTTPL["HTTP Layer<br/>[Container: Node http / Express / Fastify]<br/>framework-agnostic handler · standalone server ·<br/>middleware · CLI — 200/304/404/405/503"]
             CTM["carbon.txt Module<br/>[Container: TypeScript]<br/>emit / parse / discover a bidirectional carbon.txt"]
         end
@@ -18,7 +18,7 @@ flowchart TB
             FETCH["Fetch + Validate Library<br/>[Container: TypeScript]<br/>fetchSustainability: timeout & byte caps ·<br/>legacy-compat pre-pass · JTD + prose rules"]
             SCLI["SustainabilityClient<br/>[Container: TypeScript]<br/>ETag-cached polling"]
             TR["Transforms<br/>[Container: TypeScript]<br/>CSV · NDJSON · flatten · total"]
-            FCLI["sustainability-fetch CLI<br/>[Container: Node bin]<br/>--strict = 8-check conformance battery<br/>against any origin"]
+            FCLI["sustainability-fetch CLI<br/>[Container: Node bin]<br/>--strict = 12-check conformance battery<br/>against any origin"]
         end
 
         SCHEMAS["Formal Schemas + Validators<br/>[Container: CDDL (RFC 8610) + JTD (RFC 8927)]<br/>schemas-validators/: dual Python/Ruby validators;<br/>schema copies embedded in both packages,<br/>equal to the canonical file in CI"]

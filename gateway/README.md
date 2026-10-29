@@ -133,7 +133,7 @@ Anything invented lives under a reserved `.example` name (RFC 2606), says
 **Node.js 22.13 or newer** is required (the publisher and consumer 0.8.0 declare 22.13; the JOSE library is loaded as an ES module through `require()`, unflagged since 22.12, and Vitest 5 needs 22.12).
 
 ```bash
-npm install
+npm ci
 npm run build
 npm test                       # full gateway suite (vitest)
 node dist/index.js             # 0.0.0.0:8080

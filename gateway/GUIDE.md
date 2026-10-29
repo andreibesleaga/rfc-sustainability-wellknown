@@ -51,7 +51,7 @@ distinction is the whole design.
 
 The gateway does not reimplement the format. It depends on the published
 [`sustainability-wellknown-publisher`](https://www.npmjs.com/package/sustainability-wellknown-publisher)
-package (0.8.0) for normalization, the JTD validation gate, ETag generation,
+package (0.8.2) for normalization, the JTD validation gate, ETag generation,
 caching and the per-document HTTP semantics; the gateway adds multi-subject
 routing, `Last-Modified`, the index, and the honesty machinery.
 
@@ -89,7 +89,7 @@ Everything below is a hard rule, enforced by the test suite where it can be.
 
 ```bash
 cd gateway
-npm install
+npm ci
 npm run build
 npm test                       # full gateway suite (vitest)
 node dist/index.js             # binds 0.0.0.0:8080

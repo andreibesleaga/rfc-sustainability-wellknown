@@ -69,6 +69,7 @@ basis, is refused. `candidate.json` is then an array of two objects.
 
 ```bash
 # Offline demonstration: no key, no network, deterministic.
+# It exits 3 by design: out/candidate.json is written and waits for a reviewer.
 npm run demo
 
 # Live, through OpenRouter:

@@ -37,15 +37,14 @@ and embedded back into it before serving.
 sustainability-publisher keygen --out /etc/sustainability/private.jwk > signing-key.jwk   # public half printed
 # host signing-key.jwk at an ordinary path under your origin, e.g. <your-site>/keys/signing-key.jwk (application/jwk+json)
 SUSTAINABILITY_SIGNING_KEY="$(cat /etc/sustainability/private.jwk)" sustainability-publisher --config config.json
-# or in config:  "server": { "signingKeyFile": "/etc/sustainability/private.jwk" }
-# in code:       createSustainabilityServer(publisher, { signingKey: await importSigningKey(jwkJson) })  (same option on the middlewares)
+# or in config:  "signing": { "keyFile": "/etc/sustainability/private.jwk" }
+# in code:       new Publisher(adapter, { signing: { key: await importSigningKey(jwkJson) } })  (the server and the middlewares serve what it signs)
 ```
 
-The document handler embeds a fresh `signed` member in each declaration object
-it serves (every object of an array trend gets its own), and re-signs whenever
-an object changes. The object must be stable between generation and serving:
-keep the publisher's `cacheTtlMs` above 0 (the default is a day) — with `0`,
-every request would regenerate, and the start-up refuses to sign.
+The publisher embeds a `signed` member in each declaration object once per
+built document (every object of an array trend gets its own), as the last step
+of building it, so a cached document and its signatures always match; a rebuilt
+object is signed again in the same step.
 
 **A static host** (a file on disk, no Node at runtime): sign the file you serve —
 the tool embeds `signed` into each declaration object in the file and writes the

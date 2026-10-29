@@ -24,7 +24,7 @@ Everyone else is marked **independent**.
 | Deployment kit | configuration and one-route examples for the most used hosts, web servers and frameworks, each CI-run recipe validated with the consumer in strict mode | nginx, Apache, Caddy, HAProxy, Envoy, Traefik, IIS; Node.js, Python, PHP, Go, Java, C#, Ruby, Rust | BSD-3-Clause | `deploy/` | `-10` |
 | WordPress plugin "Sustainability Data (well-known)" | serves and signs a declaration from a settings page; no external calls | PHP | GPLv2-or-later | `deploy/wordpress/` | `-10` (`0.2.0`) |
 | One-click node | a signed declaration from environment variables, on the publisher library (Railway or any container host) | TypeScript / Node.js | BSD-3-Clause | `deploy/one-click/railway/` | `-10` (`0.1.0`, publisher `0.8.2`) |
-| GitHub Action | validates a file or a live origin in CI with the consumer | composite action | BSD-3-Clause | `deploy/github-action/` | `-10` (consumer `0.8.0`) |
+| GitHub Action | validates a file or a live origin in CI with the consumer | composite action | BSD-3-Clause | `deploy/github-action/` | `-10` (consumer `0.8.2`) |
 | Behaviour scenarios and fitness functions | one scenario or more for every normative sentence of the draft (traced by id), and cross-package rules as tests | cucumber-js, node:test | BSD-3-Clause | `bdd/`, `fitness/` | `-10` |
 
 All of the above are maintained by the draft's author. The two validators are independent of

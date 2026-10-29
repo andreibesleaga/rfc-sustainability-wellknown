@@ -16,7 +16,7 @@ inputs:
   consumer-version:
     description: "Exact version of sustainability-wellknown-consumer to use (the version this action was tested with by default)"
     required: false
-    default: "0.8.0"
+    default: "0.8.2"
 outputs:
   status:
     description: "valid or invalid"

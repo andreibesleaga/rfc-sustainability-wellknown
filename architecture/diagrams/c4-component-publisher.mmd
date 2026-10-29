@@ -38,7 +38,7 @@ flowchart TB
             FAS["middleware/fastify.ts"]
             CLI["cli.ts — config file → adapter factory →<br/>serve or --once print"]
         end
-        UTIL["util.ts — readJson(), fetchJson() with a byte cap, nowDateTime()"]
+        UTIL["util.ts — readJson(), fetchJson() with a byte cap,<br/>fromWire(), lastFullMonthPeriod(), nowDateTime()"]
     end
 
     CLIENT(("HTTP client"))

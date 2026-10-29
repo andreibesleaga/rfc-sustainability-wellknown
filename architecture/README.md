@@ -380,10 +380,12 @@ of a closed set: `capabilities` (2), `measurement-method` (4), `energy-unit`
 `target-type` (9: `organization`, `facility`, `origin`, `path`, `service`,
 `product`, `device`, `tenant`, `data-source`), which classifies the subject
 named by `target` and does not change its syntax or comparison. A value outside
-its set makes the document invalid; the consumer's legacy-compatibility
-pre-pass reads a `-08` or `-09` document's period and out-of-set tokens as
-their `-10` forms and reports each one (an out-of-set `target-type` is
-disregarded). The top-level member set is closed: a publisher MUST NOT add
+its set makes the document invalid. The consumer's legacy-compatibility
+pre-pass reads the period and the `functional-unit` and `carbon-unit`
+spellings of a `-08` or `-09` document as their `-10` forms, disregards an
+out-of-set `measurement-method` (read as `third-party-modeled`),
+`target-type` or `upstream` `role`, and reports each one; an `energy-unit`,
+`carbon-accounting` or `capabilities` outside its set stays invalid. The top-level member set is closed: a publisher MUST NOT add
 other top-level members, and a consumer ignores one it does not recognize.
 Private extension data lives inside the OPTIONAL `extensions` object, keyed by
 an absolute URI (an `https` URI under the definer's control, or a `urn:uuid:`
@@ -762,7 +764,7 @@ flowchart TB
             FAS["middleware/fastify.ts"]
             CLI["cli.ts — config file → adapter factory →<br/>serve or --once print"]
         end
-        UTIL["util.ts — readJson(), fetchJson() with a byte cap, nowDateTime()"]
+        UTIL["util.ts — readJson(), fetchJson() with a byte cap,<br/>fromWire(), lastFullMonthPeriod(), nowDateTime()"]
     end
 
     CLIENT(("HTTP client"))

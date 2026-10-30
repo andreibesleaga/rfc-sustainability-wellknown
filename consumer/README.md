@@ -176,9 +176,10 @@ All modules are re-exported from the package root, except `runCli()`, which `bin
 
 ```bash
 sustainability-fetch <origin> [--target=] [--start=] [--end=] [--granularity=] \
-  [--format=json|csv|ndjson] [--strict] [--etag=] [--allow-http] \
+  [--format=json|csv|ndjson] [--total] [--strict] [--etag=] [--allow-http] [--allow-private] \
   [--verify] [--require-signed] [--trusted-key=<file>] [--trust-anchor=<file>] [--pin=<file>] \
-  [--upstream] [--verify-attestation[=<issuer JWK url or file>]]
+  [--upstream] [--disclosure] [--verify-attestation[=<issuer JWK url or file>]] \
+  [--max-bytes=] [--max-objects=] [--max-retrievals=] [--timeout=<seconds>]
 ```
 
 Options may come before or after the origin. A bare hostname becomes `https://`. The origin can be a plain
@@ -192,6 +193,9 @@ origin, a base URL with a path prefix (a gateway serving many subjects), or the 
   one verdict per entry: `consistent`, `under-reported`, `not-comparable` or `unreachable`. This is evidence about consistency between two
   self-asserted claims, never proof of either; `under-reported` is something to investigate, not a failure to conform.
 * `--verify-attestation` retrieves the linked W3C Verifiable Credential and compares the declaration copy it carries with the object served.
+* `--total` prints the sum of the figures instead of the declaration, only for objects of one target whose periods do not overlap and that share one carbon-accounting value (or none); otherwise it prints the reason and exits 1.
+* `--disclosure` retrieves `disclosure-uri` and reports its media type and size; nothing is concluded from it.
+* `--max-bytes=` (default 10000000), `--max-objects=` (default 500), `--max-retrievals=` (upstream walk, default 20) and `--timeout=` (seconds per request, default 30) bound a fetch.
 * An `http://` origin is refused (exit 2) unless `--allow-http` is given. `--allow-http` also permits loopback addresses; a private or link-local address additionally needs `--allow-private`.
 * Exit status is non-zero on any HTTP error, invalid declaration or failed conformance check, so it is scriptable in cron and CI.
 

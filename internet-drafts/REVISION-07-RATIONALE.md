@@ -29,9 +29,9 @@ against 13,010 in `-06`, measured the same way on both files.
 
 | # | Change | Trigger | Draft section | Cost to move | Reversal |
 |---|---|---|---|---|---|
-| 1 | Signing moved inside the document | E4; owner; implementation | Signing | One file instead of two | Signing; one member row; one CDDL and one JTD line; one module per library |
+| 1 | Signing moved inside the document | E4; author; implementation | Signing | One file instead of two | Signing; one member row; one CDDL and one JTD line; one module per library |
 | 1a | Precedence conditional on key trust | implementation | Verification | None | One paragraph; one consumer branch |
-| 2 | `version` removed; member set closed | A10; E8; owner | Mandatory Members | Delete one member; `-06` documents still read | One member row; two schema lines; one constant per package |
+| 2 | `version` removed; member set closed | A10; E8; author | Mandatory Members | Delete one member; `-06` documents still read | One member row; two schema lines; one constant per package |
 | 3 | Extensions keyed by URI | E8; A11 | Extensions | Move extension members under a URI the definer controls, or a `urn:uuid:` name | Extensions; CDDL `ext-name` rule; JTD entry; one key validator per package |
 | 4 | `upstream`, tenant declarations, bounded walk | E11; A5; A18; implementation | Upstream Declarations | None; the member is optional | Upstream Declarations; one member row; one schema entry; the chain walker |
 | 5 | At-least-one rule replaces retrievability | E13; E12b; A8 | Value Constraints and Omitted Metrics | A metric-less publisher adds a figure or an evidence link | One paragraph; one branch per validator |
@@ -39,7 +39,7 @@ against 13,010 in `-06`, measured the same way on both files.
 | 7 | Query parameters formalized | E7; implementation | Extended Query Parameters | A server answers 400 where it once had a choice | One numbered step per rule; one publisher function |
 | 8 | Tolerance narrowed to optional members | implementation | Value Constraints and Omitted Metrics | None | One paragraph |
 | 9 | Service-level rules re-cut | E5; A3; A5; implementation | Mandatory Minimum Supported Service | None | One bullet each |
-| 10 | Noise disclosure raised to MUST | owner; implementation | Privacy Considerations | A publisher applying noise says so | One bullet |
+| 10 | Noise disclosure raised to MUST | author; implementation | Privacy Considerations | A publisher applying noise says so | One bullet |
 | 11 | Text reduction, terminology, appendices | E1; E2; E3; E9; E12a; E14 | throughout | None | Editorial |
 
 Each reversal is one edit site per package, because every path, media type, algorithm, `cty`
@@ -55,7 +55,7 @@ in Compact Serialization over the object minus `signed`, with `cty` naming the m
 document already registers, in place of the `application/jose` type the detached form used.
 
 Trigger: E4, that the use of `.well-known` was not economical, plus the Editor's concern about an
-optional detached signature; the owner chose to go further than the two resources proposed.
+optional detached signature; the author chose to go further than the two resources proposed.
 Implementation supplied the evidence: within days of enabling the detached signature on the
 reference deployment, the platform's edge cache served the document and its separate signature
 resource independently, one cache entry per content coding with no purge, so a consumer could

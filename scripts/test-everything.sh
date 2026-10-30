@@ -175,7 +175,10 @@ do_tools() {
     --target-type organization --source-differs --out "$out" || [ $? -eq 3 ]
   test -f "$out/candidate.json" && ! test -f "$out/declaration.json"
   # The initializer: seven answers in, a conformant file and the host's configuration out.
+  # It runs against the source publisher build (made by the publisher step), as in CI.
   cd "$ROOT/tools/create-sustainability-data"
+  npm ci --no-audit --no-fund
+  bash "$ROOT/scripts/overlay-source-publisher.sh" tools/create-sustainability-data
   node --test test/*.test.mjs
 }
 
@@ -202,6 +205,11 @@ do_bdd() {
   # Behaviour scenarios for every normative sentence of the draft, against the
   # builds the earlier steps produced (publisher, consumer, gateway).
   bash "$ROOT/scripts/overlay-source-libs.sh"
+  # The scenarios also start the initializer and the one-click kit; each needs the source publisher.
+  (cd "$ROOT/tools/create-sustainability-data" && npm ci --no-audit --no-fund)
+  bash "$ROOT/scripts/overlay-source-publisher.sh" tools/create-sustainability-data
+  (cd "$ROOT/deploy/one-click/railway" && npm ci --no-audit --no-fund)
+  bash "$ROOT/scripts/overlay-source-publisher.sh" deploy/one-click/railway
   cd "$ROOT/bdd"
   npm ci --no-audit --no-fund
   npm run trace

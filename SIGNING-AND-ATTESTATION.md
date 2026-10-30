@@ -4,7 +4,7 @@ Draft -10 defines two OPTIONAL mechanisms next to the document itself. This page
 is the short procedure for each, for the three kinds of party involved, using the
 reference implementation (`sustainability-wellknown-publisher` and
 `sustainability-wellknown-consumer`, 0.8.0 or later). It is non-normative; the
-draft's "Signing" section and the `verifiable-attestation-uri`
+draft's "The signed Member" section and the `verifiable-attestation-uri`
 member definition are the rules.
 
 There is only **one** registered resource, `/.well-known/sustainability-data`.

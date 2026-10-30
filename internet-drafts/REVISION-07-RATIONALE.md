@@ -1,6 +1,6 @@
 # Why -07 changed what it changed
 
-Status: `-07` was posted on 2026-09-17 and is the latest posted revision.
+Status: `-07` was posted on 2026-09-17; it is no longer the latest posted revision (`-12`, posted 2026-10-28; see internet-drafts/README.md). This note describes the changes of `-07` only.
 
 For the Independent Submissions Editor, the reviewer, and implementers: every substantive change
 in `-07`, its trigger, what it costs a `-06` publisher or consumer to move, and what reversing it

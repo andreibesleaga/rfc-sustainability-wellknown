@@ -243,7 +243,7 @@ body to type). `HEAD` responses carry the same `Content-Type` as the
 corresponding `GET` (RFC 9110, Section 9.3.2: the same header fields, no body). The two media-type strings are exported as `MEDIA_TYPE` and
 `LEGACY_MEDIA_TYPE` from the package root.
 
-## Signing the declaration (draft §Signing)
+## Signing the declaration (draft §The signed Member)
 
 The signature is the OPTIONAL **`signed` member embedded in every
 declaration object** — a JWS Compact Serialization (RFC 7515 §7.1) whose payload

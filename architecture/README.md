@@ -843,7 +843,7 @@ origin), and the result is flagged `legacy: true`. `sentinel.ts` implements the
 other compatibility rule for values (out-of-range ⇒ not reported; scopes exempt),
 which `transform.ts` honors when flattening and aggregating. `disclosure.ts` is
 deliberately passive — disclosure/attestation URIs are never fetched
-automatically (SSRF posture; the draft's "MUST NOT treat as proof").
+automatically (SSRF posture; the draft's "Self-Asserted Claims": a consumer "MUST NOT treat the presence of a declaration, or of any member in it, as verification of a claim").
 
 ![Consumer flow](images/consumer-flow.png)
 
@@ -1097,6 +1097,7 @@ same JTD schema enforced, identically, at every layer.
 architecture/
 ├── README.md                          # this document
 ├── diagrams/                          # Mermaid sources (one per diagram)
+│   ├── overview.mmd                   # one-picture overview used in the root README
 │   ├── c4-context.mmd                 # C4 L1 — system context
 │   ├── c4-container.mmd               # C4 L2 — containers
 │   ├── c4-component-publisher.mmd     # C4 L3 — publisher/src

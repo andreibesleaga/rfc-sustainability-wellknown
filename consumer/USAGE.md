@@ -247,7 +247,7 @@ if (r.status === "ok") {
 `verifiable-attestation-uri` fields off an already-fetched document. **It never
 makes a network call.** This is deliberate, not an oversight:
 
-- The draft's own posture on these fields is **"MUST NOT treat as proof"** — a
+- The draft's own posture on these fields ("Evidence and Upstream Consistency") is that an attestation "speaks to their authenticity only once the consumer has retrieved it, validated it against an issuer it trusts, and found that it covers the object's target and period" — a
   disclosure or attestation link is a pointer for a human or a separate,
   deliberate verification step, not something the protocol itself certifies.
 - Auto-following a URI that arrived inside a document from an origin the caller

@@ -134,8 +134,7 @@ Internet-Draft text is subject to BCP 78 and the IETF Trust's Legal Provisions.
 
 ## Support and governance
 
-**Getting help.** Ask questions in a GitHub issue (use the `question` label) or in the
-repository's Discussions. Please ask in public rather than by private e-mail, so the answer
+**Getting help.** Ask questions in a GitHub issue (use the `question` label). Please ask in public rather than by private e-mail, so the answer
 can help the next person and the history stays visible.
 
 **Reporting a problem.** Open an issue with the package and version, what you ran, what you

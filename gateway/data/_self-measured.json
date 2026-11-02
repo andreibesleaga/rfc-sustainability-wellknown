@@ -16,9 +16,9 @@
       "entered": "2026-10-02T00:00:00Z"
     },
     "2026-10": {
-      "watts": 0.0192,
-      "source": "Railway usage for 2026-10: 0.7833099166666666 vCPU-minutes and 1593.4989369684374 GB-minutes over 36000 minutes, i.e. average CPU 0.00002176 vCPU (taken as fully used), average memory 0.04426 GB, network egress 0.023142469 GB; converted with the Cloud Carbon Footprint coefficients (GCP median 0.71-4.26 W per vCPU, 0.392 W per GB of memory, 0.001 kWh per GB of egress) and a PUE of 1.1. Read from the Railway usage API (GraphQL usage: CPU_USAGE, MEMORY_USAGE_GB, NETWORK_TX_GB) on 2026-10-26 for the calendar range in UTC, 2026-10-01 to 2026-10-26 (the month in progress; re-entered when it closes)",
-      "entered": "2026-10-26T09:51:28Z"
+      "watts": 0.0206,
+      "source": "Railway usage for 2026-10: 1.3335676166666666 vCPU-minutes and 2110.9074872635233 GB-minutes over 44640 minutes, i.e. average CPU 0.00002987 vCPU (taken as fully used), average memory 0.04729 GB, network egress 0.042381573 GB; converted with the Cloud Carbon Footprint coefficients (GCP median 0.71-4.26 W per vCPU, 0.392 W per GB of memory, 0.001 kWh per GB of egress) and a PUE of 1.1. Read from the Railway usage API (GraphQL usage: CPU_USAGE, MEMORY_USAGE_GB, NETWORK_TX_GB) on 2026-11-02 for the calendar range in UTC, the whole month",
+      "entered": "2026-11-02T20:34:41Z"
     }
   }
 }

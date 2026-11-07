@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       # The Python cross-check of the vectors needs python3; setup-python makes that independent of the runner image.
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.x"
 

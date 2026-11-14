@@ -8,12 +8,12 @@ name: full-verify
 
 # The per-area workflows (publisher, consumer, gateway, bdd, draft, deploy-kit, example-scripts) run on every
 # change to their paths and cover the same checks, so this whole-repository run is not repeated on every push and
-# pull request. It runs weekly, by hand, and when the two areas only it covers change: the schema corpus
-# (schemas-validators/, example-responses/) and the report-to-declaration tool.
+# pull request. It runs weekly, by hand, and when the areas only it covers change: the schema corpus
+# (schemas-validators/, example-responses/), the report-to-declaration tool and the measurement crawler.
 on:
   push:
     branches: [main]
-    paths: ["schemas-validators/**", "example-responses/**", "tools/report-to-declaration/**", ".github/workflows/full-verify.yml"]
+    paths: ["schemas-validators/**", "example-responses/**", "tools/report-to-declaration/**", "measurements/crawl/**", ".github/workflows/full-verify.yml"]
   schedule:
     - cron: "17 5 * * 1"
   workflow_dispatch: {}
@@ -82,6 +82,9 @@ jobs:
           code=$?
           set -e
           [ "$code" -eq 3 ] && test -f out/candidate.json && ! test -f out/declaration.json
+      - name: measurement crawler tests (in-process server, no network)
+        working-directory: measurements/crawl
+        run: npm ci --no-audit --no-fund && node --test test/*.test.mjs
       - name: create-sustainability-data tests
         working-directory: tools/create-sustainability-data
         run: node --test test/*.test.mjs

@@ -1,0 +1,15 @@
+{
+  "updated": "2026-02-20T09:00:00Z",
+  "capabilities": "basic",
+  "provider": "Example Hosting Ltd",
+  "measurement-method": "third-party-modeled",
+  "methodology-uri": "https://hosting.example/sustainability/methodology",
+  "period": { "start": "2025-01-01T00:00:00Z", "end": "2026-01-01T00:00:00Z" },
+  "target": "Example Hosting Ltd",
+  "target-type": "organization",
+  "energy-consumption": 1800,
+  "energy-unit": "MWh",
+  "carbon-footprint": 520,
+  "carbon-unit": "tCO2e",
+  "carbon-accounting": "location-based"
+}

@@ -26,6 +26,7 @@ In addition to tracking the evolution of the draft through standard IETF version
 * **Supporting Docs:** `ADOPTION.md` (the case for RFC/IANA adoption) and `sfc-compliance/` — the checker (`sfc-check.mjs`), JSON Schemas, test vectors and examples for SFC profile 2.0. The profile text is the single spec at https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md; `sfc-compliance/PROFILE.md` only points to it.
 * **Reference Gateway (`gateway/`):** the live deployment at https://sustainability.up.railway.app/ ; serves the gateway's own signed Extended report, every example document and illustrative mappings of organisations' own published figures.
 * **Deployment kit (`deploy/`):** copy-paste recipes for static hosts, web servers, frameworks, WordPress, a one-click Railway node and a Home Assistant add-on; recipes marked CI are started and checked in strict mode.
+* **Measurements (`measurements/crawl/`):** a polite crawler and analysis script that record which origins publish a declaration, `carbon.txt` or `dist.json`, and how many answer every path with a web page.
 * **Tools (`tools/`):** `create-sustainability-data` (initializer) and `report-to-declaration` (a published report to a candidate declaration).
 * **Checks (`bdd/`, `fitness/`, `scripts/test-everything.sh`):** behaviour scenarios for every normative sentence of the draft, cross-package fitness functions, and one command that builds and tests every area.
 * **Adoption (`IMPLEMENTATIONS.md`, `ADOPTION.md`, `SIGNING-AND-ATTESTATION.md`).**

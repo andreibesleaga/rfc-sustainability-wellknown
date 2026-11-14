@@ -1,0 +1,19 @@
+{
+  "name": "sustainability-data-survey",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Polite measurement crawler: which origins publish a machine-readable sustainability declaration (/.well-known/sustainability-data, carbon.txt, dist.json), and how many answer 200 with a web page for any path.",
+  "license": "BSD-3-Clause",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "crawl": "node crawl.mjs",
+    "analyze": "node analyze.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "robots-parser": "^3.0.1"
+  }
+}

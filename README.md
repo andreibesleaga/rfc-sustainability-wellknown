@@ -71,6 +71,12 @@ The gateway also serves illustrative mappings of real organizations' own publish
 source and the number is inside that quote. Conflicting values and targets are refused. Nothing says it was
 checked until a named reviewer approves it.
 
+[`measurements/crawl/`](measurements/crawl/) (`0.1.0`) is a polite research crawler: for a dated list of origins it
+checks `/.well-known/sustainability-data`, `/carbon.txt`, `/.well-known/carbon.txt` and `/.well-known/dist.json`,
+plus a random path that shows whether the origin answers every request with a web page, and an analysis script turns
+the records into the tables of a report. It honours `robots.txt`, identifies itself, and keeps a document only when
+it parses.
+
 ### Publish it on your own site
 
 Everything needed to serve `/.well-known/sustainability-data` from the platform you already use, each piece
@@ -169,6 +175,7 @@ rfc-sustainability-wellknown/
 ├── publisher/                  # Reference publisher (TypeScript): adapters → conformant /.well-known/sustainability-data
 ├── consumer/                   # Reference client (TypeScript): fetch, validate, verify a /.well-known/sustainability-data document
 ├── gateway/                    # Reference multi-subject gateway (the live deployment: Extended self report, signed, attested)
+├── measurements/               # crawl/: the research crawler and its analysis script (a dated list of origins → dataset and tables)
 ├── tools/                      # create-sustainability-data (initializer) and report-to-declaration (a published report → a candidate declaration)
 ├── deploy/                     # Copy-paste deployment recipes for hosts, servers and frameworks, each CI-run one validated in strict mode
 ├── bdd/                        # Behaviour scenarios for every normative sentence of the draft (cucumber-js), with the traceability check

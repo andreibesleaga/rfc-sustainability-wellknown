@@ -16,7 +16,8 @@
 #   5. sfc-compliance  npm ci, test, both reference declarations, Python cross-check of the vectors
 #   6. example-scripts the Python, JavaScript and PHP safeguard tests and the request-handler
 #                      end-to-end test
-#   7. tools           tools/report-to-declaration: its tests and the offline demonstration
+#   7. tools           tools/report-to-declaration: its tests and the offline demonstration;
+#                      measurements/crawl: the crawler's tests (in-process server, no network)
 #   8. bdd             bdd/: traceability check (every normative sentence of the draft has a
 #                      scenario) and the cucumber-js scenarios against the three builds
 #   9. fitness         fitness/: architecture fitness functions against the three builds
@@ -174,6 +175,9 @@ do_tools() {
     --target "Example Hosting Ltd" --methodology-uri https://hosting.example/reports/2025.pdf \
     --target-type organization --source-differs --out "$out" || [ $? -eq 3 ]
   test -f "$out/candidate.json" && ! test -f "$out/declaration.json"
+  # The measurement crawler: tests against an in-process server, no network; needs the consumer build and
+  # its one dependency (robots-parser, from the committed lockfile).
+  (cd "$ROOT/measurements/crawl" && npm ci --no-audit --no-fund && node --test test/*.test.mjs)
   # The initializer: seven answers in, a conformant file and the host's configuration out.
   # It runs against the source publisher build (made by the publisher step), as in CI.
   cd "$ROOT/tools/create-sustainability-data"

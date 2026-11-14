@@ -55,6 +55,15 @@ bash scripts/overlay-source-publisher.sh tools/create-sustainability-data
 (cd fitness && npm test)
 ```
 
+`measurements/crawl/` is the research crawler. Its one dependency is `robots-parser` (committed lockfile, so `npm ci`); it uses the built `consumer/` to judge a
+document, so build the consumer first. Its tests start an in-process server and need no network:
+
+```bash
+cd measurements/crawl
+npm ci
+npm test
+```
+
 `sfc-compliance/` is the fourth area with a test suite. It holds the checker, schemas, test
 vectors and examples of [SFC profile 2.0](https://github.com/andreibesleaga/awesome-blockchain-greentech/blob/main/Innovative%20Projects/SFC_COMPLIANCE.md);
 the profile text itself is not in this repository.
@@ -71,7 +80,7 @@ Each area has its own workflow (`publisher.yml`, `consumer.yml`, `gateway.yml`, 
 `example-scripts.yml`, `sfc-compliance.yml`), run on every push and pull request that touches its paths.
 `.github/workflows/full-verify.yml` runs the draft, tools, bdd-and-fitness, schemas, publisher, consumer, gateway and
 example-scripts areas together weekly, by hand from the Actions tab, and on changes to the schema corpus or the
-report-to-declaration tool, which no other workflow covers. It has no job for `sfc-compliance/` or the deploy kit: those run in their own workflows (`sfc-compliance.yml`,
+report-to-declaration tool and the crawler in `measurements/crawl/`, which no other workflow covers. The crawler's tests run in the `tools` job. It has no job for `sfc-compliance/` or the deploy kit: those run in their own workflows (`sfc-compliance.yml`,
 `deploy-kit.yml`), and `scripts/test-everything.sh` also runs `sfc-compliance/`. The full-verify gateway job uses the source
 builds of the two libraries, and `gateway.yml` runs the gateway against the registry versions on changes under `gateway/`.
 The library jobs run on Node 22 and 24, which must pass, and on Node 26, which is reported and does not block.

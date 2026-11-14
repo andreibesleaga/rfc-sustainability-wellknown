@@ -3,7 +3,7 @@ import { appendFileSync, existsSync, readFileSync, readdirSync, writeFileSync } 
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 import { main } from "../src/cli.mjs";
-import { readResults } from "../src/store.mjs";
+import { readDone, readResults } from "../src/store.mjs";
 import { startFixtureServer } from "./fixture-server.mjs";
 import { FIXED_NOW, withTempDir } from "./helpers.mjs";
 
@@ -131,5 +131,30 @@ test("the folder holds only documents, no bodies of pages or 404s", async () => 
     const files = readdirSync(join(out, "documents")).sort();
     assert.ok(files.every((f) => !f.startsWith("spa.test") && !f.startsWith("slow.test")));
     assert.ok(files.includes("badjson.test__declaration.body") === false, "unparseable text is not kept");
+  });
+});
+
+test("--max-requests is a hard cap: redirect hops count, and an origin cut by the cap is not committed", async () => {
+  await withTempDir(async (dir) => {
+    const { code, out, lines } = await crawl(dir, ["--max-requests", "7"], ["hops.test"]);
+    assert.equal(code, 3);
+    assert.equal(JSON.parse(lines.at(-1)).requests, 7);
+    assert.deepEqual([...await readDone(out)], []);
+    const again = await crawl(dir, [], ["hops.test"]);
+    assert.equal(again.code, 0, "the cut origin is crawled afresh on the next run");
+  });
+});
+
+test("numeric options: concurrency and timeout must be positive integers; zero stays valid for gap, limit, max-requests", async () => {
+  await withTempDir(async (dir) => {
+    const list = join(dir, "l.txt");
+    writeFileSync(list, "a.example\n");
+    const base = ["--list", list, "--list-date", "2026-12-01", "--out", join(dir, "o"), "--scheme", "http", "--gap-ms", "0", "--dry-run"];
+    await assert.rejects(main([...base, "--concurrency", "0"], { stdout() {} }), /--concurrency must be a positive integer/);
+    await assert.rejects(main([...base, "--timeout-ms", "0"], { stdout() {} }), /--timeout-ms must be a positive integer/);
+    await assert.rejects(main([...base, "--limit", ""], { stdout() {} }), /--limit must be a non-negative integer/);
+    await assert.rejects(main([...base, "--scheme", "ftp"], { stdout() {} }), /--scheme must be http or https/);
+    await assert.rejects(main([...base.slice(0, 2), "--list-date", "2026-02-31", ...base.slice(4)], { stdout() {} }), /YYYY-MM-DD/);
+    for (const zero of ["--limit", "--max-requests"]) assert.equal(await main([...base, zero, "0"], { stdout() {} }), 0);
   });
 });

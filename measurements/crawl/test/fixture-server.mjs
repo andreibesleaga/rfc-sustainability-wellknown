@@ -66,6 +66,7 @@ const SCENARIOS = {
     if (path === WELL_KNOWN) return void setTimeout(() => res.destroy(), 2_000).unref();
     return missing(res);
   },
+  "robots-big.test": (path, res) => (path === "/robots.txt" ? send(res, 200, "text/plain", "User-agent: *\nAllow: /\n" + "#".repeat(300) + "\nDisallow: /carbon.txt\n") : missing(res)),
   "big.test": (path, res) => (path === "/carbon.txt" ? send(res, 200, "text/plain", "[org]\n" + "x".repeat(4096)) : missing(res)),
 };
 
@@ -75,7 +76,8 @@ export async function startFixtureServer() {
     const origin = req.headers["x-test-origin"];
     const path = req.url;
     hits.set(origin, [...(hits.get(origin) ?? []), path]);
-    (SCENARIOS[origin] ?? ((_p, r) => missing(r)))(path, res);
+    const scenario = Object.hasOwn(SCENARIOS, origin) ? SCENARIOS[origin] : null;
+    (typeof scenario === "function" ? scenario : (_p, r) => missing(r))(path, res);
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address();

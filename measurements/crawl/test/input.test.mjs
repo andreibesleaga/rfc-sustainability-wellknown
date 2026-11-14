@@ -22,3 +22,15 @@ test("a scheme, a path and a port are handled; garbage is reported, not crawled"
 test("an empty list gives no hosts", () => {
   assert.deepEqual(parseOriginList("").hosts, []);
 });
+
+test("a port outside 1-65535, or written with leading zeros, is reported, not crawled", () => {
+  const { hosts, rejected } = parseOriginList("127.0.0.1:99999\na.example:65536\nb.example:0\nc.example:00080\nd.example:65535\n");
+  assert.deepEqual(hosts, ["d.example:65535"]);
+  assert.equal(rejected.length, 4);
+});
+
+test("a host the URL parser refuses is reported, not crawled", () => {
+  const { hosts, rejected } = parseOriginList("999.1.1.1\nok.example\n");
+  assert.deepEqual(hosts, ["ok.example"]);
+  assert.deepEqual(rejected, ["999.1.1.1"]);
+});

@@ -6,7 +6,7 @@
  *   valid             declaration the consumer library accepts
  *   invalid           JSON that parses but is not a valid declaration
  *   parseable         carbon.txt-like text, or a JSON object at dist.json
- *   unparseable       200, not a web page, not the expected format
+ *   unparseable       200, not a web page, not the expected format; or a body cut at the size cap
  *   wrong-media-type  200 at the declaration path with a media type the draft rules out
  *   html-soft-404     200 with a web page
  *   other-200         200 at the random probe path, not a web page
@@ -65,10 +65,11 @@ function judgeCarbonTxt(text) {
  */
 export function classify(consumer, kind, response) {
   if (response.status !== 200) return { classification: byStatus(response.status) };
+  // A body cut at the size cap is judged by nothing it shows: a prefix proves neither a page nor a file.
+  if (response.truncated) return { classification: "unparseable", errors: ["body larger than the size cap"] };
   if (isHtml(response.contentType, response.body)) return { classification: "html-soft-404" };
   if (kind === "random") return { classification: "other-200" };
   if (kind === "robots") return { classification: "parseable" };
-  if (response.truncated) return { classification: "unparseable", errors: ["body larger than the size cap"] };
   const text = new TextDecoder().decode(response.body);
   if (kind === "declaration") return judgeDeclaration(consumer, response.contentType, text);
   if (kind === "json-object") return judgeJsonObject(consumer, text);

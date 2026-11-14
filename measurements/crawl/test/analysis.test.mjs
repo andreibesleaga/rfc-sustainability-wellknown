@@ -75,3 +75,9 @@ test("records of an origin that is not in the done list are not counted", async 
     assert.equal(JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).origins, 1);
   });
 });
+
+test("table cells escape the backslash first, then the pipe, so a cell cannot break out of its column", () => {
+  const rows = [{ origin: "a.example", note: "x\\|y | z\\" }];
+  const text = renderTables(summarize(RECORDS), rows);
+  assert.ok(text.includes("x\\\\\\|y \\| z\\\\"), text.split("\n").find((l) => l.startsWith("| a.example")));
+});

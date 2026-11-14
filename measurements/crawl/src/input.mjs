@@ -4,7 +4,18 @@
  * and a host listed twice is kept once.
  */
 const HEADER_WORDS = new Set(["rank", "domain", "host", "hostname", "origin"]);
-const HOST_RE = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:\d{1,5})?$/;
+const HOST_RE = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[1-9]\d{0,4})?$/;
+
+/** Shape is not enough: the port must be in range and the URL parser must accept the host. */
+function isCrawlable(host) {
+  if (!HOST_RE.test(host)) return false;
+  try {
+    new URL(`https://${host}/`);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function hostOfField(field) {
   const noScheme = field.trim().toLowerCase().replace(/^https?:\/\//, "");
@@ -29,7 +40,7 @@ export function parseOriginList(text) {
   lines.forEach((line, index) => {
     if (index === 0 && isHeader(line)) return;
     const host = hostOfField(fieldsOf(line)[0]);
-    if (!HOST_RE.test(host)) return void rejected.push(line);
+    if (!isCrawlable(host)) return void rejected.push(line);
     if (seen.has(host)) return;
     seen.add(host);
     hosts.push(host);

@@ -114,10 +114,13 @@ function adoptionTable(a) {
   return row(["Measure", "Origins"]) + row(["---", "---"]) + rows.map(([l, r]) => row([l, pct(r)])).join("");
 }
 
+/** Backslash first, then the pipe: otherwise the backslash added for a pipe would itself be taken as an escape. */
+const escapeCell = (value) => String(value ?? "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+
 function interopTable(rows) {
   if (!rows) return "_No interoperability file was supplied (see the README, step 3)._\n";
   const cols = ["origin", "status", "media_type", "valid", "period", "signed", "note"];
-  return row(cols) + row(cols.map(() => "---")) + rows.map((r) => row(cols.map((c) => String(r[c] ?? "").replace(/\|/g, "\\|")))).join("");
+  return row(cols) + row(cols.map(() => "---")) + rows.map((r) => row(cols.map((c) => escapeCell(r[c])))).join("");
 }
 
 export function renderTables(summary, interopRows = null) {

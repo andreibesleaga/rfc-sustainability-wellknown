@@ -55,3 +55,11 @@ test("a body over the cap is never parsed", () => {
   const big = { ...reply(200, "application/json", VALID), truncated: true };
   assert.equal(verdict("declaration", big), "unparseable");
 });
+
+test("a truncated body is unparseable whatever it looks like: a page, a robots.txt, the random probe", () => {
+  const cut = (kind, type, text) => verdict(kind, { ...reply(200, type, text), truncated: true });
+  assert.equal(cut("declaration", "text/html", "<!doctype html><html>"), "unparseable");
+  assert.equal(cut("carbon-txt", "text/plain", "<html>"), "unparseable");
+  assert.equal(cut("robots", "text/plain", "User-agent: *\nDisallow: /a\n"), "unparseable");
+  assert.equal(cut("random", "text/html", "<html>"), "unparseable");
+});

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { after, before, test } from "node:test";
-import { probeOrigin, randomPath } from "../src/probe.mjs";
+import { RequestBudgetExceeded, probeOrigin, randomPath } from "../src/probe.mjs";
 import { startFixtureServer } from "./fixture-server.mjs";
 import { FIXED_NOW, byProbe, probeDeps } from "./helpers.mjs";
 
@@ -150,4 +150,21 @@ test("every request carries the identifying user agent, with the repository URL 
   const { USER_AGENT } = await import("../src/config.mjs");
   assert.match(USER_AGENT, /^SustainabilityDataSurvey\/\d+\.\d+\.\d+ \(\+https:\/\/github\.com\/andreibesleaga\/rfc-sustainability-wellknown/);
   assert.ok(!USER_AGENT.includes("@"));
+});
+
+test("a robots.txt over the size cap is unreadable: nothing else is requested, and it is not retried", async () => {
+  server.hits.delete("robots-big.test");
+  const { records } = await run("robots-big.test", { maxBytes: 100 });
+  assert.equal(records.robots.truncated, true);
+  assert.equal(records.declaration.classification, "robots-unreachable");
+  assert.equal(records.random.classification, "robots-unreachable");
+  assert.deepEqual(server.hits.get("robots-big.test"), ["/robots.txt"]);
+});
+
+test("the request cap is hard: no request is sent past it, redirect hops included", async () => {
+  server.hits.delete("hops.test");
+  const deps = probeDeps(server.portFor({ timeoutMs: 5000 }), { maxRedirects: 3, maxRequests: 5 });
+  await assert.rejects(probeOrigin("hops.test", deps), RequestBudgetExceeded);
+  assert.equal(deps.requests.count, 5);
+  assert.equal(server.hits.get("hops.test").length, 5);
 });

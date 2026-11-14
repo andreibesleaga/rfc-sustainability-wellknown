@@ -14,9 +14,17 @@ export function randomPath(seed, host) {
   return `/sustainability-survey-probe-${sha256(`${seed}:${host}`).slice(0, 16)}`;
 }
 
+/** Thrown before a request that would pass the hard cap; nothing is sent and the origin stays unfinished. */
+export class RequestBudgetExceeded extends Error {
+  constructor() {
+    super("request cap reached");
+    this.name = "RequestBudgetExceeded";
+  }
+}
+
 const siteOf = (url) => url.host.replace(/^www\./, "");
 
-/** Follows up to `maxRedirects` hops inside the same site. Never throws. */
+/** Follows up to `maxRedirects` hops inside the same site. Throws only RequestBudgetExceeded (from pace). */
 async function follow(url, deps) {
   const start = new URL(url);
   let current = start;
@@ -72,9 +80,9 @@ async function fetchRecord(host, probe, deps) {
   return { record: { ...baseRecord(host, probe, url, deps), ...rest, stored }, response: result.response };
 }
 
-/** RFC 9309: a missing file (4xx) allows everything; an unreachable one (5xx, network) allows nothing. */
+/** RFC 9309: a missing file (4xx) allows everything; an unreachable or unreadable one (5xx, network, cut at the size cap) allows nothing. */
 function robotsVerdict(record, response) {
-  if (unreachable(record)) return { allowAll: false, rules: parseRobots("") };
+  if (unreachable(record) || record.truncated) return { allowAll: false, rules: parseRobots("") };
   if (record.status !== 200 || record.classification === "html-soft-404") return { allowAll: true, rules: parseRobots("") };
   return { allowAll: true, rules: parseRobots(new TextDecoder().decode(response.body)) };
 }
@@ -98,11 +106,12 @@ async function fetchRobots(host, deps) {
 const retryable = (record) => unreachable(record) && !String(record.error ?? "").startsWith("redirect-");
 const unreachable = (record) => record.status === null || record.status >= 500;
 
-/** @returns {Promise<object[]>} the records of one origin */
+/** @returns {Promise<object[]>} the records of one origin; rejects with RequestBudgetExceeded when deps.maxRequests would be passed */
 export async function probeOrigin(host, rawDeps) {
   const deps = { ...DEFAULTS, ...rawDeps };
   let first = true;
   deps.pace = async () => {
+    if (deps.requests.count >= deps.maxRequests) throw new RequestBudgetExceeded();
     if (!first) await deps.sleep(deps.gapMs);
     first = false;
     deps.requests.count++;
@@ -111,7 +120,7 @@ export async function probeOrigin(host, rawDeps) {
   const verdict = robotsVerdict(robots.record, robots.response);
   const records = [robots.record];
   for (const probe of probeList(deps.wellKnownPath, randomPath(deps.seed, host))) {
-    if (!verdict.allowAll) records.push(skippedRecord(host, probe, deps, "robots-unreachable", "robots.txt unreachable (5xx or network)"));
+    if (!verdict.allowAll) records.push(skippedRecord(host, probe, deps, "robots-unreachable", "robots.txt unreadable (5xx, network or over the size cap)"));
     else if (!isAllowed(verdict.rules, ROBOTS_TOKEN, probe.path)) records.push(skippedRecord(host, probe, deps, "blocked-by-robots", "disallowed by robots.txt"));
     else records.push((await fetchRecord(host, probe, deps)).record);
   }

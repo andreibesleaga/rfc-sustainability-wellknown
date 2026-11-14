@@ -35,10 +35,10 @@ blank lines are ignored. `--list-date` is the date of the list and is written in
 | Option | Default | Meaning |
 |---|---|---|
 | `--limit N` | all | only the first N origins of the list |
-| `--max-requests N` | none | stop starting origins when the next one could pass N requests (an origin in flight finishes) |
-| `--concurrency N` | 16 | origins in parallel; each origin gets one request at a time |
+| `--max-requests N` | none | hard cap on requests: an origin is started only while its seven planned requests fit, and no request, redirect hops included, is sent past N; an origin cut by the cap is not recorded and is crawled again on resume |
+| `--concurrency N` | 16 | origins in parallel (a positive integer); each origin gets one request at a time |
 | `--gap-ms N` | 1000 | pause between two requests to one origin; below 1000 is refused |
-| `--timeout-ms N` | 10000 | per request, body included |
+| `--timeout-ms N` | 10000 | per request, body included (a positive integer) |
 | `--seed S` | `sustainability-data-survey-1` | seeds the random probe path |
 | `--dry-run` | off | print the plan (origins, requests, time), make no request |
 
@@ -75,7 +75,7 @@ apart from `fetched_at` and what the sites answered.
 | `not-found` | 404 or 410 |
 | `denied` | 401, 403 or 451 |
 | `blocked-by-robots` | not requested: `robots.txt` forbids it |
-| `robots-unreachable` | not requested: `robots.txt` answered 5xx, failed, or redirected off site (RFC 9309 treats this as "disallow all") |
+| `robots-unreachable` | not requested: `robots.txt` answered 5xx, failed, was longer than the size cap, or redirected off site (RFC 9309 treats this as "disallow all") |
 | `error` | timeout, network or TLS failure, 5xx, a redirect refused |
 
 Bodies are stored under `documents/` only for `valid`, `invalid` and `parseable` answers. Nothing else is kept, only its
@@ -94,7 +94,7 @@ of every run.
   second apart. Only `GET`, only `https`, only the paths above; no cookies, no scripts, no links followed. Redirects are
   followed up to 3 hops and only inside the same site (the same host, with or without a leading `www.`); anything else is
   recorded, not followed.
-- Bodies are capped at 1 MiB. Certificates are always verified.
+- Bodies are capped at 1 MiB; a body cut at the cap is classified `unparseable` whatever its prefix shows. Origins with a port outside 1-65535, or a host the URL parser refuses, are reported as rejected lines and not crawled. Certificates are always verified.
 - The documents kept are files their owners publish for machines to read. Check a deposit for personal data before you
   publish it (for example `grep -rE '[[:alnum:]._-]+@[[:alnum:].-]+' documents/`).
 
@@ -108,12 +108,12 @@ list, not the organisation. A well-known path blocked by a firewall, a bot filte
 ## Tests
 
 ```bash
-npm test      # node --test test/*.test.mjs, 61 tests, no network
+npm test      # node --test test/*.test.mjs, 70 tests, no network
 ```
 
 An in-process HTTP server plays many origins (`test/fixture-server.mjs`): valid document, invalid JSON, a document that
 fails validation, wrong media type, web-page fallback, robots rules, an unreachable `robots.txt`, redirects (same site, a loop,
-off site, too many), a timeout, an oversized body, resume after an interruption (also after a torn write), list order under
+off site, too many), a timeout, an oversized body (and an oversized `robots.txt`), a hard request cap with redirects, option validation, resume after an interruption (also after a torn write), list order under
 concurrency, `--limit`, `--dry-run`, `--max-requests`.
 
 Layout: `src/probe.mjs` is the core (everything done to one origin, with HTTP, clock, sleep and storage passed in),

@@ -30,7 +30,7 @@ const OPTIONS = {
 
 const USAGE = `Usage: node crawl.mjs --list FILE --list-date YYYY-MM-DD --out DIR [options]
   --limit N            only the first N origins of the list
-  --max-requests N     stop starting origins when N requests would be exceeded
+  --max-requests N     hard cap: no request is sent past N (an origin cut by it is not recorded and is redone on resume)
   --concurrency N      origins in parallel (default ${DEFAULTS.concurrency}); one request at a time per origin
   --gap-ms N           pause between requests to one origin (default ${DEFAULTS.gapMs}, minimum 1000 for a real run)
   --timeout-ms N       per request (default ${DEFAULTS.timeoutMs})
@@ -38,25 +38,32 @@ const USAGE = `Usage: node crawl.mjs --list FILE --list-date YYYY-MM-DD --out DI
   --dry-run            print the plan, make no request
 Re-running the same command resumes: finished origins (done.txt) are skipped.`;
 
-const positive = (text, name) => {
-  const n = Number(text);
-  if (!Number.isInteger(n) || n < 0) throw new Error(`--${name} must be a non-negative integer`);
+/** Digits only (no "", "-1", "1e3", "0x10"); `min` is 0 where zero has a meaning, 1 where it does not. */
+const integer = (text, name, min = 0) => {
+  const n = /^\d+$/.test(text) ? Number(text) : NaN;
+  if (!Number.isSafeInteger(n) || n < min) throw new Error(`--${name} must be a ${min > 0 ? "positive" : "non-negative"} integer`);
   return n;
+};
+
+const validDate = (text) => {
+  const time = Date.parse(`${text}T00:00:00Z`);
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(time) && new Date(time).toISOString().startsWith(text);
 };
 
 function readOptions(argv) {
   const { values } = parseArgs({ args: argv, options: OPTIONS });
   if (values.help) return { help: true };
   for (const name of ["list", "list-date", "out"]) if (!values[name]) throw new Error(`--${name} is required`);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(values["list-date"])) throw new Error("--list-date must be YYYY-MM-DD");
-  const gapMs = positive(values["gap-ms"], "gap-ms");
+  if (!validDate(values["list-date"])) throw new Error("--list-date must be a real date, YYYY-MM-DD");
+  if (!["http", "https"].includes(values.scheme)) throw new Error("--scheme must be http or https");
+  const gapMs = integer(values["gap-ms"], "gap-ms");
   if (values.scheme === "https" && gapMs < DEFAULTS.gapMs) throw new Error(`--gap-ms below ${DEFAULTS.gapMs} is refused for real (https) crawls`);
   return {
     ...values,
-    limit: values.limit === undefined ? Infinity : positive(values.limit, "limit"),
-    maxRequests: values["max-requests"] === undefined ? Infinity : positive(values["max-requests"], "max-requests"),
-    concurrency: positive(values.concurrency, "concurrency"),
-    timeoutMs: positive(values["timeout-ms"], "timeout-ms"),
+    limit: values.limit === undefined ? Infinity : integer(values.limit, "limit"),
+    maxRequests: values["max-requests"] === undefined ? Infinity : integer(values["max-requests"], "max-requests"),
+    concurrency: integer(values.concurrency, "concurrency", 1),
+    timeoutMs: integer(values["timeout-ms"], "timeout-ms", 1),
     gapMs,
   };
 }

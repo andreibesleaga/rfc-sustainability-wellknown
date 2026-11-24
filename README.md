@@ -98,7 +98,7 @@ tested the way its platform expects. Details and the verification status of each
 
 ### Adoption and deployments
 
-* [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md) — the software that implements the draft and the origins known to serve the document, checked daily ([`implementations.json`](implementations.json), seven origins, all operated by the author); says who operates each one.
+* [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md) — the software that implements the draft and the origins known to serve the document, checked daily ([`implementations.json`](implementations.json), eight origins, all operated by the author); says who operates each one.
 * [ADOPTION.md](ADOPTION.md) — the case (technical, regulatory, business, ecosystem, environmental) for adopting this as an Informational RFC and for the IANA registration.
 
 ---

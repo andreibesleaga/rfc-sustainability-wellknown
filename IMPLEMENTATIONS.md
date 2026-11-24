@@ -46,6 +46,7 @@ the media type and the schema; `schemas-validators/check-live.py` runs the same 
 | <https://agenticsystempatterns.com/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-30: 200, `application/sustainability-data+json`, schema-valid (`-10`) |
 | <https://medicine-finder.up.railway.app/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-30: 200, `application/sustainability-data+json`, schema-valid (`-10`) |
 | <https://zfeeder.up.railway.app/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign` | yes | 2026-10 | 2026-10-30: 200, `application/sustainability-data+json`, schema-valid (`-10`) |
+| <https://agenticfeeder.com/.well-known/sustainability-data> | author | static file; signed offline with `sustainability-sign`; the figure adds an estimate for the site's daily build and language-model calls to the transfer-based one | yes | 2026-11 | 2026-11-24: 200, `application/sustainability-data+json`, schema-valid (`-12`) |
 
 No independent deployment is known on 2026-10-26.
 

@@ -49,6 +49,13 @@
       "operator": "author",
       "software": "static file; signed with sustainability-sign (publisher/)",
       "since": "2026-10"
+    },
+    {
+      "origin": "https://agenticfeeder.com",
+      "name": "AgenticFeeder (daily AI news; static file, signed offline; includes build and language-model energy)",
+      "operator": "author",
+      "software": "static file; signed with sustainability-sign (publisher/)",
+      "since": "2026-11"
     }
   ]
 }
